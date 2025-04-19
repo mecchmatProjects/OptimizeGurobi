@@ -2,7 +2,7 @@ import sys
 
 from gurobipy import Model, GRB, quicksum
 
-INPUT_FILE = "instance1-1.txt"
+INPUT_FILE = "instance1-2.txt"
 sep = ","
 P, W, C = None, None, None
 
@@ -41,7 +41,7 @@ if __name__ == "__main__":
     # Variables
     x = model.addVars(plants, warehouses, name="x", lb=0)  # Plant -> Warehouse
     y = model.addVars(warehouses, customers, name="y", lb=0)  # Warehouse -> Customer
-
+    z = model.addVars(customers,warehouses, vtype=GRB.INTEGER, name="z", lb=0,ub=1)  # Customer -> Warehouse
 
 
     # Objective: minimize total cost
@@ -63,6 +63,18 @@ if __name__ == "__main__":
 
     for j in warehouses:
         model.addConstr(quicksum(x[i, j] for i in plants) >= quicksum(y[j, k] for k in customers))
+
+    for k in customers:
+        model.addConstr(quicksum(z[k, j] for j in warehouses) <= 1)
+        model.addConstr(quicksum(z[k, j] for j in warehouses) >= 1)
+
+
+    for k in customers:
+        for j in warehouses:
+            model.addConstr(y[j,k] <= demand[k]*z[k,j])
+
+
+
 
     # Solve
     model.optimize()

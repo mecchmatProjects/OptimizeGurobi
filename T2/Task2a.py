@@ -1,7 +1,7 @@
 from gurobipy import Model, GRB, quicksum
 
 
-INPUT_FILE = "instance2-1.txt"
+INPUT_FILE = "instance2-2.txt"
 sep = " "
 
 with open(INPUT_FILE) as f:

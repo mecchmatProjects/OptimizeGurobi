@@ -93,6 +93,10 @@ def schedule_jobs_min_penalty(n, m, p, r, d, w):
 
 
 jobs = schedule_jobs_min_penalty(n, m, p, r, d, w)
+penalty = 0
 for job in jobs:
     # print(job, end="\\\\ \n")
-    print(f" Job {job['job']} started {job['start']} on machine {job['machine']} \\\\ ")
+    print(f" Job {job['job']} started {job['start']} on machine {job['machine']} with tardiness {job['machine']}\\\\ ")
+    penalty += job['penalty']
+
+print("Total penalty is ", penalty)

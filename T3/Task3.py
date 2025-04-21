@@ -1,134 +1,209 @@
-import csv
-from collections import defaultdict
+import gurobipy as gp
+from gurobipy import GRB
 
-from gurobipy import Model, GRB, quicksum
 
-INPUT_FILE = "toy1.csv"
-def parse_car_sharing_csv(filepath):
-    reservations = []
-    zones = defaultdict(set)
-    vehicles = []
-    total_days = 0
-
+def parse_custom_csv(content):
+    data = {'requests': [], 'zones': {}, 'vehicles': [], 'days': 0}
     current_section = None
-    with open(filepath, newline='', encoding='utf-8') as csvfile:
-        reader = csv.reader(csvfile, delimiter=';')
-        for row in reader:
-            if not row or not row[0].strip():
-                continue
+    lines = content.strip().split('\n')
 
-            keyword = row[0].strip()
-            if keyword.startswith("+Requests"):
-                current_section = "requests"
-                continue
-            elif keyword.startswith("+Zones"):
-                current_section = "zones"
-                continue
-            elif keyword.startswith("+Vehicles"):
-                current_section = "vehicles"
-                continue
-            elif keyword.startswith("+Days"):
-                current_section = "days"
-                total_days = int(row[0].split(":")[1].strip())
-                continue
-
-            if current_section == "requests":
-                req_id, zone, day, start, duration, *rest = row
-                vehicle_part = rest[:-2]
-                penalty1 = int(rest[-2])
-                penalty2 = int(rest[-1])
-                possible_vehicles = [v for v in vehicle_part if v]
-                reservations.append({
-                    "id": req_id,
-                    "zone": zone,
-                    "day": int(day),
-                    "start": int(start),
-                    "duration": int(duration),
-                    "vehicles": possible_vehicles,
-                    "penalty1": penalty1,
-                    "penalty2": penalty2
-                })
-
-            elif current_section == "zones":
-                zone_id = row[0].strip()
-                adjacent = [z.strip() for z in row[1:] if z.strip()]
-                for adj in adjacent:
-                    zones[zone_id].add(adj)
-
-            elif current_section == "vehicles":
-                vehicles.append(row[0].strip())
-
-    return {
-        "reservations": reservations,
-        "zones": dict(zones),
-        "vehicles": vehicles,
-        "days": total_days
-    }
-
-# Example usage
-data = parse_car_sharing_csv(INPUT_FILE)
-print(data["reservations"])
-print(data["zones"])
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+        if line.startswith('+'):
+            current_section = line[1:].split(':')[0].strip().lower()
+            continue
+        if current_section == 'requests':
+            fields = line.split(';')
+            req = {
+                'id': fields[0],
+                'zone': fields[1],
+                'day': int(fields[2]),
+                'start': int(fields[3]),
+                'duration': int(fields[4]),
+                'vehicles': fields[5].split('\t'),
+                'penalty1': int(fields[6]),
+                'penalty2': int(fields[7])
+            }
+            data['requests'].append(req)
+        elif current_section == 'zones':
+            fields = line.split(';')
+            zone = fields[0]
+            adjacent = fields[1].split('\t') if len(fields) > 1 else []
+            data['zones'][zone] = adjacent
+        elif current_section == 'vehicles':
+            data['vehicles'].append(line.split(';')[0].strip())
+        elif current_section == 'days':
+            data['days'] = int(line.strip())
+    return data
 
 
-# Sample data
-requests = range(3)
-vehicles = range(2)
-zones = range(2)
+def solve_with_gurobi(parsed_data):
+    model = gp.Model("CarSharing")
 
-start_times = [0, 30, 60]
-durations = [60, 60, 60]
-preferred_zones = [0, 1, 0]
-eligible_zones = [{0, 1}, {0, 1}, {0, 1}]
-eligible_vehicles = [{0, 1}, {0}, {1}]
-penalty_not_served = [10, 15, 12]
-penalty_wrong_zone = [5, 3, 4]
+    # Create variables
+    x = {}
+    y = {}
 
-def overlap(r1, r2):
-    s1, e1 = start_times[r1], start_times[r1] + durations[r1]
-    s2, e2 = start_times[r2], start_times[r2] + durations[r2]
-    return max(s1, s2) < min(e1, e2)
+    requests = parsed_data['requests']
+    zones = parsed_data['zones']
+    vehicles = parsed_data['vehicles']
 
-# Model
-m = Model("CarSharing")
+    for req in requests:
+        r = req['id']
+        x[r] = model.addVar(vtype=GRB.BINARY, name=f"x_{r}")
+        eligible_zones = [req['zone']] + zones[req['zone']]
+        for v in req['vehicles']:
+            for z in eligible_zones:
+                y[(r, v, z)] = model.addVar(vtype=GRB.BINARY, name=f"y_{r}_{v}_{z}")
 
-x = {(r, v, z): m.addVar(vtype=GRB.BINARY, name=f"x_{r}_{v}_{z}")
-     for r in requests for v in eligible_vehicles[r] for z in eligible_zones[r]}
-u = {r: m.addVar(vtype=GRB.BINARY, name=f"u_{r}") for r in requests}  # unserved
+    # Objective function
+    obj = gp.quicksum(
+        (1 - x[req['id']]) * req['penalty1'] +
+        gp.quicksum(
+            y[(req['id'], v, z)] * req['penalty2']
+            for v in req['vehicles']
+            for z in zones[req['zone']]  # Adjacent zones only
+        )
+        for req in requests
+    )
+    model.setObjective(obj, GRB.MINIMIZE)
 
-m.update()
+    # Assignment constraints
+    for req in requests:
+        r = req['id']
+        model.addConstr(
+            gp.quicksum(y[(r, v, z)]
+                        for v in req['vehicles']
+                        for z in [req['zone']] + zones[req['zone']]
+                        ) == x[r],
+            name=f"assign_{r}"
+        )
 
-# Objective: Minimize total penalties
-m.setObjective(
-    quicksum(penalty_not_served[r] * u[r] for r in requests) +
-    quicksum(x[r, v, z] * (penalty_wrong_zone[r] if z != preferred_zones[r] else 0)
-             for (r, v, z) in x),
-    GRB.MINIMIZE
-)
+    # Vehicle conflict constraints (corrected)
+    for v in vehicles:
+        # Fix: Use correct variable 'v' in list comprehension
+        relevant_requests = [req for req in requests if v in req['vehicles']]
 
-# Each request served once or marked unserved
-for r in requests:
-    m.addConstr(quicksum(x[r, v, z] for v in eligible_vehicles[r] for z in eligible_zones[r]
-                         if (r, v, z) in x) + u[r] == 1)
+        for i in range(len(relevant_requests)):
+            req1 = relevant_requests[i]
+            eligible_zones1 = [req1['zone']] + zones[req1['zone']]
 
-# No overlapping requests for the same vehicle
-for v in vehicles:
-    for r1 in requests:
-        for r2 in requests:
-            if r1 < r2 and overlap(r1, r2):
-                for z1 in zones:
-                    for z2 in zones:
-                        if (r1, v, z1) in x and (r2, v, z2) in x:
-                            m.addConstr(x[r1, v, z1] + x[r2, v, z2] <= 1)
+            for j in range(i + 1, len(relevant_requests)):
+                req2 = relevant_requests[j]
+                eligible_zones2 = [req2['zone']] + zones[req2['zone']]
 
-m.optimize()
+                if req1['day'] != req2['day']:
+                    continue
 
-# Output
-for r in requests:
-    if u[r].X > 0.5:
-        print(f"Request {r} not served")
+                # Check time overlap
+                start1 = req1['start']
+                end1 = start1 + req1['duration']
+                start2 = req2['start']
+                end2 = start2 + req2['duration']
+
+                if (start1 < end2) and (start2 < end1):
+                    # Corrected: Sum all possible zone assignments
+                    model.addConstr(
+                        gp.quicksum(y[(req1['id'], v, z)] for z in eligible_zones1) +
+                        gp.quicksum(y[(req2['id'], v, z)] for z in eligible_zones2)
+                        <= 1,
+                        name=f"conflict_{v}_{req1['id']}_{req2['id']}"
+                    )
+
+    # Solve and process results
+    model.optimize()
+    # --- SOLUTION PROCESSING STARTS HERE ---
+    results = []
+    total_penalty = 0
+
+    if model.status == GRB.OPTIMAL:
+        print("\nOptimal solution found!")
+
+        # Process each request
+        for req in parsed_data['requests']:
+            req_id = req['id']
+            served = x[req_id].X > 0.5  # Check if served
+            assignment = None
+            penalty = 0
+
+            if served:
+                # Find vehicle and zone assignment
+                for v in req['vehicles']:
+                    for z in [req['zone']] + zones[req['zone']]:
+                        if y[(req_id, v, z)].X > 0.5:
+                            assignment = (v, z)
+                            # Check if non-preferred zone
+                            if z != req['zone']:
+                                penalty = req['penalty2']
+                            break
+                    if assignment:
+                        break
+            else:
+                # Apply penalty for unserved request
+                penalty = req['penalty1']
+
+            total_penalty += penalty
+            results.append((req_id, served, assignment))
+
+        # Print detailed results
+        print("\nDetailed assignments:")
+        for req_id, served, assignment in results:
+            if served:
+                print(f"{req_id}: Served by {assignment[0]} from zone {assignment[1]}")
+            else:
+                print(f"{req_id}: NOT SERVED (Penalty: {req['penalty1']})")
+
+        print(f"\nTotal penalty: {total_penalty}")
+
     else:
-        for v in eligible_vehicles[r]:
-            for z in eligible_zones[r]:
-                if (r, v, z) in x and x[r, v, z].X > 0.5:
-                    print(f"Request {r} served by vehicle {v} from zone {z}")
+        print("No optimal solution found. Status:", model.status)
+
+    return results, total_penalty
+#
+# # Example data
+# csv_content = """+Requests: 10
+# req0;z0;0;1072;127;car2	car3	car0	car1	car4;100;20
+# req1;z4;1;648;342;car2	car3	car1	car4	car5;100;20
+# req2;z4;1;889;166;car3;100;20
+# req3;z0;0;885;314;car1;100;20
+# req4;z2;0;780;312;car2	car3	car4	car5;100;20
+# req5;z0;1;763;265;car2	car3	car0	car1	car4;100;20
+# req6;z3;1;922;188;car2;100;20
+# req7;z4;0;568;175;car3	car0	car1;100;20
+# req8;z1;0;1034;128;car3	car0;100;20
+# req9;z4;0;539;335;car3;100;20
+# +Zones: 5
+# z0;z1
+# z1;z0	z2
+# z2;z1	z3
+# z3;z2	z4
+# z4;z3
+# +Vehicles: 6
+# car0
+# car1
+# car2
+# car3
+# car4
+# car5
+# +Days: 2"""
+
+# Run solution
+INPUT_FILE = "instance05.csv" # "toy1.csv"
+
+with open(INPUT_FILE, 'r') as file:
+    file_content = file.read()
+
+print(file_content)
+parsed_data = parse_custom_csv(file_content)
+results, total_penalty = solve_with_gurobi(parsed_data)
+
+# Print results
+print("Optimal Assignment:")
+for req_id, served, assignment in results:
+    if served:
+        print(f"{req_id}: Served by {assignment[0]} from {assignment[1]} \\\\")
+    else:
+        print(f"{req_id}: Not served\\\\")
+print(f"\nTotal Penalty: {total_penalty}\\\\")

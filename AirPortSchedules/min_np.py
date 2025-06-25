@@ -16,7 +16,7 @@ flights = [
 initial_positions = {'A': 1, 'B': 1}
 turnaround = 30  # minutes
 np_param = 2  # Number of airplanes for instance
-delta = 1.0  # Fraction of airplanes contributing flights
+delta = 0.5  # Fraction of airplanes contributing flights
 
 
 # Convert times to minutes since midnight
@@ -99,7 +99,7 @@ for fid in model.flights:
 model.flow = pyo.Var(model.arcs, domain=pyo.NonNegativeReals)
 
 
-# FIXED: Proper flow conservation constraints
+# Proper flow conservation constraints
 def flow_conservation(model, node):
     # Skip source and sink - they have special handling
     if node in ['source', 'sink']:
@@ -129,7 +129,7 @@ def capacity_constraint(model, i, j):
 model.capacity_constraint = pyo.Constraint(model.arcs, rule=capacity_constraint)
 
 
-# FIXED: Additional constraint to ensure source outflow equals sink inflow
+# Additional constraint to ensure source outflow equals sink inflow
 def source_sink_balance(model):
     source_out = sum(model.flow[arc] for arc in model.arcs if arc[0] == 'source')
     sink_in = sum(model.flow[arc] for arc in model.arcs if arc[1] == 'sink')
@@ -147,7 +147,7 @@ def objective_rule(model):
 model.objective = pyo.Objective(rule=objective_rule, sense=pyo.minimize)
 
 # Solve the model
-solver = pyo.SolverFactory('gurobi')
+solver = pyo.SolverFactory('cplex')
 results = solver.solve(model)
 
 # Check if solution was found

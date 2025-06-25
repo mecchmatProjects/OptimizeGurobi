@@ -196,17 +196,17 @@ def generate_instance(rotations, np, delta):
 
     return list(flight_set), initial_positions_prime, P_prime, P_doubleprime
 
+#
+# # Generate instance
+# flight_set, initial_positions_prime, P_prime, P_doubleprime = generate_instance(
+#     rotations, np_param, delta_
+# )
 
-# Generate instance
-flight_set, initial_positions_prime, P_prime, P_doubleprime = generate_instance(
-    rotations, np_param, delta_
-)
-
-print("\nGenerated instance:")
-print(f"Selected airplanes (P_prime): {P_prime}")
-print(f"Airplanes contributing flights (P_doubleprime): {P_doubleprime}")
-print(f"Initial positions: {initial_positions_prime}")
-print("Flight set:", flight_set)
+# print("\nGenerated instance:")
+# print(f"Selected airplanes (P_prime): {P_prime}")
+# print(f"Airplanes contributing flights (P_doubleprime): {P_doubleprime}")
+# print(f"Initial positions: {initial_positions_prime}")
+# print("Flight set:", flight_set)
 
 # (Optional) Solve tail assignment for generated instance
 # This would use the same model structure but with the generated flight_set

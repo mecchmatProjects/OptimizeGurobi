@@ -1,0 +1,295 @@
+/*********************************************
+ * OPL 22.1.1.0 Model
+ * Author: Admin
+ * Creation Date: Jun 22, 2025 at 8:45:59 PM
+ *********************************************/
+using CP;
+
+{string} Airports = ...;
+int      Nbflight = ...;
+{int}    Aircrafts = ...;
+range    Flights = 1..Nbflight;
+int      nDays = 7;
+range    Days = 1..nDays;
+
+// Flight information
+tuple FlightInfo
+{
+    int     flight;            // Flight index
+    string  origin;         // Take-Off Airport
+    string  destination;    // Land-In Airport
+    float   departureTime;   // Take-Off Time (minutes)
+    float   arrivalTime;     // Land-In time (minutes)
+}
+
+{FlightInfo} Flight = ...;
+
+// Initial aircraft locations
+tuple AircraftInitial {
+    int aircraftId;
+    string initialAirport;
+}
+
+AircraftInitial Aircraft[Aircrafts] = ...;
+
+// Initial maintenance counters (in minutes or days as appropriate)
+tuple initialHoursSinceA {
+    int aircraftId;
+    float iHSA;
+}
+
+initialHoursSinceA Acheck[Aircrafts]=...;
+
+tuple initialHoursSinceB {
+    int aircraftId;
+    float iHSB;
+}
+
+initialHoursSinceB Bcheck[Aircrafts]=...;
+
+
+tuple initialDaysSinceC {
+    int aircraftId;
+    int iDSC;
+}
+
+initialDaysSinceC Ccheck[Aircrafts]=...;
+
+
+tuple initialDaysSinceD {
+    int aircraftId;
+    int iDSD;
+}
+
+initialDaysSinceD Dcheck[Aircrafts]=...;
+
+
+// Cost matrix
+float Cost[1..Nbflight][Aircrafts] = ...;
+
+// Maintenance parameters
+{string} MA   = {"A", "B", "C", "D", "E", "F"}; // Set of maintenance airports
+int      dmax = 4;
+float    Tmax = 64 * 60;         // Maximum Time (minutes)
+int       nu = 14;
+int       mcap[MA] = [5, 8, 7, 6, 9, 7];  // Maintenance capacity per airport per day
+int       Mdd      = 100000;
+int       acmax = 6;
+int       atmax = 50;
+
+
+// Maintenance thresholds
+float A_check_hours = 400.0;
+float B_check_hours = 600.0;
+int C_check_days = 540;
+int D_check_days = 1825;
+
+// Maintenance durations
+float A_check_duration = 8 * 60;
+float B_check_duration = 16 * 60;
+int   C_check_duration = 5;
+int   D_check_duration = 10;
+
+// -----------------------------
+// Pre-Processing data
+// -----------------------------
+tuple CFlightInfo {
+    int flight;
+    string origin;
+    string destination;
+    float departureTime;
+    float arrivalTime;
+    int day;
+    float duration;
+}
+CFlightInfo FlightData[Flights];
+
+int tuningtilim = 60;
+execute
+{
+    cp.param.timelimit = 50;
+
+    for(var flight in Flight)
+    {
+        FlightData[flight.flight].flight        = flight.flight;
+        FlightData[flight.flight].origin        = flight.origin;
+        FlightData[flight.flight].destination   = flight.destination;
+        FlightData[flight.flight].departureTime = flight.departureTime;
+        FlightData[flight.flight].arrivalTime   = flight.arrivalTime;
+        FlightData[flight.flight].day           = Math.ceil(flight.arrivalTime / (24 * 60));
+        FlightData[flight.flight].duration      = flight.arrivalTime - flight.departureTime;
+    }
+}
+
+// -----------------------------
+// DECISION VARIABLES
+// -----------------------------
+dvar boolean x[1..Nbflight][Aircrafts];
+dvar boolean y[Aircrafts][Days];
+dvar boolean z[1..Nbflight][Aircrafts][Days];
+
+// Maintenance check decisions
+dvar boolean yA[Aircrafts][Days];
+dvar boolean yB[Aircrafts][Days];
+dvar boolean yC[Aircrafts][Days];
+dvar boolean yD[Aircrafts][Days];
+
+// -----------------------------
+// DERIVED SETS
+// -----------------------------
+float TurnTime = 30;
+
+// -----------------------------
+// OBJECTIVE FUNCTION
+// -----------------------------
+minimize sum(i in Flights, j in Aircrafts) Cost[i][j] * x[i][j];
+
+// -----------------------------
+// CONSTRAINTS
+// -----------------------------
+constraints {
+  forall(i in Flights)
+    sum(j in Aircrafts) x[i][j] == 1;
+
+//not initial airport - route balancing and continuity
+  forall(j in Aircrafts, k in Airports, i in Flights: FlightData[i].origin == k && k != Aircraft[j].initialAirport)
+    (sum(i1 in Flights: FlightData[i1].destination == k && FlightData[i1].arrivalTime <= FlightData[i].departureTime - TurnTime) x[i1][j] -
+     sum(i1 in Flights: FlightData[i1].origin == k && FlightData[i1].departureTime < FlightData[i].departureTime) x[i1][j] >= x[i][j]);
+
+//initial airport version -route balancing
+  forall(j in Aircrafts, k in Airports, i in Flights: FlightData[i].origin == k && k == Aircraft[j].initialAirport)
+    (sum(i1 in Flights: FlightData[i1].destination == k && FlightData[i1].arrivalTime <= FlightData[i].departureTime - TurnTime) x[i1][j] -
+     sum(i1 in Flights: FlightData[i1].origin == k && FlightData[i1].departureTime < FlightData[i].departureTime) x[i1][j] >= x[i][j] - 1);
+
+
+//If aircraft j finishes flight i on day d and goes into maintenance immediately after (z[i][j][d] = 1),
+//then it cannot fly any later flight i2 on the same day.
+  forall(i in Flights, j in Aircrafts, d in Days: FlightData[i].day == d)
+    forall(i2 in Flights: FlightData[i2].day == d && FlightData[i2].departureTime > FlightData[i].arrivalTime)
+      z[i][j][d] + x[i2][j] <= 1;
+
+//This is to ensure Maintenance after a flight is only allowed if that flight was actually flown by the aircraft.
+  forall(i in Flights, j in Aircrafts, d in Days: FlightData[i].day == d)
+    z[i][j][d] <= x[i][j];
+
+//makes sure the number of aircrafts do not exceed the capacity of maintenance station
+  forall(m in MA, d in Days)
+    (sum(i in Flights, j in Aircrafts: FlightData[i].origin == m) z[i][j][d]) <= mcap[m];
+
+// ensure flight arrives in aiprot m and goes into maintance
+  forall(j in Aircrafts, d in Days, m in MA)
+    (sum(i in Flights: FlightData[i].origin == m) z[i][j][d]) == y[j][d];
+
+//rolling coverage that for between every d & d+dmax-1 days, there is atleast one maintenance
+  forall(j in Aircrafts, d in Days: d <= nDays - dmax + 1)
+    (sum(r in d..(d + dmax - 1)) y[j][r]) >= 1;
+
+//between the d & dmax range; ensures the flying hours do not execced TMAX if a maintannce did not occour
+  forall(j in Aircrafts, d in Days, d2 in Days: d2 - d >= 2 && d2 - d <= dmax - 1 && d < nDays)
+    sum(i in Flights: FlightData[i].day > d && FlightData[i].day <= d2) (x[i][j] * FlightData[i].duration) <=
+      Tmax + Mdd * (2 - y[j][d] - y[j][d2]) + Mdd * sum(r in (d+1)..(d2-1)) y[j][r];
+
+//rolling coverage that for between every d & d+acmax-1 days, there is atleast one maintenance
+  forall(j in Aircrafts, d in Days: d <= nDays - acmax + 1)
+    (sum(r in d..(d + acmax - 1)) y[j][r]) >= 1;
+
+//between the d & acmax range; ensures the flying hours do not execced atmax if a maintannce did not occour
+  forall(j in Aircrafts, d in Days, d2 in Days: d2 - d >= 2 && d2 - d <= acmax - 1 && d < nDays)
+    sum(i in Flights: FlightData[i].day > d && FlightData[i].day <= d2) (x[i][j] * FlightData[i].duration) <=
+      atmax + Mdd * (2 - y[j][d] - y[j][d2]) + Mdd * sum(r in (d+1)..(d2-1)) y[j][r];
+
+  forall(j in Aircrafts, d in Days)
+    sum(i in Flights: FlightData[i].day <= d) (x[i][j] * FlightData[i].duration) + (Acheck[j].iHSA * (1-sum(r in 1..d)yA[j][r])) <=
+      A_check_hours + Mdd * (1 - sum(r in 1..d) yA[j][r]);
+
+  forall(j in Aircrafts, d in Days)
+    sum(i in Flights: FlightData[i].day <= d) (x[i][j] * FlightData[i].duration) + Bcheck[j].iHSB <=
+      B_check_hours + Mdd * (1 - sum(r in 1..d) yB[j][r]);
+
+ // forall(j in Aircrafts, d in Days)
+ //   if (d + Ccheck[j].iDSC >= C_check_days) && (d >= C_check_days) then
+ //   sum(r in (d - C_check_days + 1)..d) yC[j][r] >= 1;
+
+//  forall(j in Aircrafts, d in Days: d + Dcheck[j].iDSD >= D_check_days)
+//    sum(r in (d - D_check_days + 1)..d) yD[j][r] >= 1;
+
+//  forall(j in Aircrafts, d in Days: d + Ccheck[j].iDSC >= C_check_days)
+//    sum(r in (d - C_check_days + 1)..d) yC[j][r] >= 1;
+
+//  forall(j in Aircrafts, d in Days: d + Dcheck[j].iDSD >= D_check_days)
+//    sum(r in (d - D_check_days + 1)..d) yD[j][r] >= 1;
+
+  forall(j in Aircrafts, d in Days) yA[j][d] >= yB[j][d];
+  forall(j in Aircrafts, d in Days) yB[j][d] >= yC[j][d];
+ // forall(j in Aircrafts, d in Days) yC[j][d] >= yD[j][d];
+
+
+  // Block flight assignments during A-check duration (in minutes)
+  forall(j in Aircrafts, d in Days)
+    forall(i in Flights: FlightData[i].departureTime >= (d - 1) * 24 * 60 && FlightData[i].departureTime < d * 24 * 60 + A_check_duration)
+      x[i][j] <= 1 - yA[j][d];
+
+  // Block flight assignments during B-check duration (in minutes)
+  forall(j in Aircrafts, d in Days)
+    forall(i in Flights: FlightData[i].departureTime >= (d - 1) * 24 * 60 && FlightData[i].departureTime < d * 24 * 60 + B_check_duration)
+      x[i][j] <= 1 - yB[j][d];
+
+  // Block flight assignments during C-check duration (in days)
+ // forall(j in Aircrafts, d in Days: d <= nDays - C_check_duration + 1)
+ //   forall(r in d..(d + C_check_duration - 1))
+ //     forall(i in Flights: FlightData[i].day == r)
+  //      x[i][j] <= 1 - yC[j][d];
+
+  // Block flight assignments during D-check duration (in days)
+ // forall(j in Aircrafts, d in Days: d <= nDays - D_check_duration + 1)
+ //   forall(r in d..(d + D_check_duration - 1))
+ //     forall(i in Flights: FlightData[i].day == r)
+ //       x[i][j] <= 1 - yD[j][d];
+}
+
+
+// -----------------------------
+// OUTPUT
+// -----------------------------
+execute
+{
+    if(cp.getObjValue() != -Infinity)
+    {
+        writeln("Solver Object value: ", cp.getObjValue());
+        for(var j in Aircrafts)
+        {
+            writeln("********** Flights assigned to aircraft ", j ," **********");
+            for(var i in Flights)
+            {
+                if(x[i][j] >= 0.5)
+                {
+                    writeln("Flight n° <", i, " \"", FlightData[i].origin, "\" \"", FlightData[i].destination, "\" ",FlightData[i].departureTime, " ", FlightData[i].arrivalTime, ">");
+                }
+                else
+                {
+                    //writeln("Aircraft ", j, "- > Flight ", i);
+                }
+            }
+        }
+
+        writeln("\n\n----------------- Maintaince -------------- \n\n");
+        for(var j in Aircrafts)
+        {
+
+            for(var d in Days)
+            {
+                if(y[j][d] > 0.5) writeln("Aircraft ", j, " is Maintainced at day = ", d);
+                if(yA[j][d] > 0.5) writeln("Aircraft ", j, " is A-check Maintainced at day = ", d);
+                if(yB[j][d] > 0.5) writeln("Aircraft ", j, " is B-check Maintainced at day = ", d);
+ //                     if(yC[j][d] > 0.5) writeln("Aircraft ", j, " is C-check Maintainced at day = ", d);
+ //                     if(yD[j][d] > 0.5) writeln("Aircraft ", j, " is D-check Maintainced at day = ", d);
+            }
+        }
+
+    }
+
+    else
+    {
+        writeln("Can't solve the problem...'");
+    }   
+}

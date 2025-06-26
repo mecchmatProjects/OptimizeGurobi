@@ -120,10 +120,10 @@ for j in model.P:
     for k in model.A:
         for i in flight_arr[k]:
             t_arr_i = flight_data[i]['t2']
-            # print("ijk",i,j,k, end=":")
-            # print(t_arr_i, end="\t")
-            # print(F_geq_k(k, t_arr_i), end="\t")
-            # print(F_lt_k(k, t_arr_i))
+            print("ijk",i,j,k, end=":")
+            print(t_arr_i, end="\t")
+            print(F_geq_k(k, t_arr_i), end="\t")
+            print(F_lt_k(k, t_arr_i))
 
             lhs_geq = sum(model.x[i1, j] for i1 in F_geq_k(k, t_arr_i))
             lhs_lt = sum(model.x[i1, j] for i1 in F_lt_k(k, t_arr_i))

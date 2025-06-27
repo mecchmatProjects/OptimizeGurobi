@@ -27,22 +27,32 @@ FlightData = {
         "departureTime": f["departureTime"],
         "arrivalTime": f["arrivalTime"],
         "duration": f["arrivalTime"] - f["departureTime"],
-        "day": int(f["arrivalTime"] // (24 * 60)) + 1
+        "day": int(f["departureTime"] // (24 * 60)) + 1
     } for f in Flight
 }
+for it in FlightData.values():
+    print(it)
 
 # Initial aircraft locations
 a0 = {1: "A", 2: "B"}
 
 # Cost matrix
-c = {(i, j): 1000 + i * 10 + j * 5 for i in Flights for j in Aircrafts}  # dummy values
+cost = [
+     [6804, 6870],
+     [4536, 4580],
+     [7216, 7286],
+     [1133, 1144],
+     [6185, 6245],
+     [5678, 5700]
+    ]
+
 mc = {(i, j, d): 100 for i in Flights for j in Aircrafts for d in Days}  # dummy maintenance cost
 
 # Maintenance capacity
 mcap = {(m, d): 2 for m in MA for d in Days}  # dummy capacity
 
 # Helper functions
-F_m = {m: [i for i in Flights if FlightData[i]["origin"] == m] for m in MA}  # The set of flights which land in airport m
+F_m = {m: [i for i in Flights if FlightData[i]["origin"] == m] for m in MA}  # The set of flights which departs from airport m
 
 F_arr_k = {k: [i for i in Flights if FlightData[i]["destination"] == k] for k in sorted(Airports)}  # The set of flights which land in airport k
 F_dep_k = {k: [i for i in Flights if FlightData[i]["origin"] == k] for k in sorted(Airports)}  # The set of flights which land in airport k
@@ -60,7 +70,7 @@ F_dep_t = lambda k, t: [i for i in F_dep_k[k] if FlightData[i]["departureTime"] 
 
 
 F_d = {d: [i for i in Flights if FlightData[i]["day"] == d] for d in Days}
-F_d_next = lambda d1, d2: [i for i in Flights if d1 < FlightData[i]["day"] <= d2]
+F_d_next = lambda d1, d2: [i for i in Flights if d1 <= FlightData[i]["day"] <= d2]
 F_d_i = lambda d, i: [i2 for i2 in Flights if FlightData[i2]["day"] == d and FlightData[i2]["arrivalTime"] > FlightData[i]["arrivalTime"]]
 
 Tmax = 8 * 60  # in minutes
@@ -73,7 +83,11 @@ model = ConcreteModel()
 
 model.F = Set(initialize=Flights)
 model.P = Set(initialize=sorted(Aircrafts))
-model.A = Set(initialize=sorted(Airports))
+# model.A = Set(initialize=sorted(Airports))
+model.A = Set(initialize=list(set(f['origin'] for f in FlightData.values()).union(set(f['destination'] for f in FlightData.values()))))
+
+print(model.A)
+
 model.D = Set(initialize=sorted(Days))
 model.MA = Set(initialize=sorted(MA))
 
@@ -84,7 +98,7 @@ model.z = Var(model.F, model.P, model.D, domain=Binary)
 model.y = Var(model.P, model.D, domain=Binary)
 
 model.obj = Objective(
-    expr=sum(c[i, j] * model.x[i, j] for i in model.F for j in model.P) +
+    expr=sum(cost[i-1][j-1] * model.x[i, j] for i in model.F for j in model.P) +
          sum(mc[i, j, d] * model.z[i, j, d] for m in model.MA for i in F_m[m] for j in model.P for d in model.D),
     sense=minimize
 )
@@ -122,13 +136,6 @@ for j in model.P:
             else:
                 model.equipment_turn_constraints.add(lhs_geq - lhs_lt >= model.x[i, j] - 1)
 
-# model.turn_time = ConstraintList()
-# for j in model.P:
-#     for i in model.F:
-#         for i2 in model.F:
-#             if i != i2 and FlightData[i]["destination"] == FlightData[i2]["origin"] and \
-#                FlightData[i]["arrivalTime"] + min_turn > FlightData[i2]["departureTime"]:
-#                 model.turn_time.add(model.x[i, j] + model.x[i2, j] <= 1)
 
 model.maint_last = ConstraintList()
 for i in model.F:
@@ -160,8 +167,10 @@ for d in model.D:
 
 
 model.maint_spacing = ConstraintList()
+# print(Days)
 for j in model.P:
     for start in range(0, len(Days) - dmax + 1):
+        # print(start, start + dmax, Days[start:start + dmax])
         model.maint_spacing.add(sum(model.y[j, r] for r in Days[start:start + dmax]) >= 1)
 
 

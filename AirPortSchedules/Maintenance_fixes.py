@@ -314,6 +314,20 @@ dmax = 3
 Mbig = 9999
 min_turn = 30  # in minutes
 
+
+# Maintenance thresholds
+A_check_hours = 400.0
+B_check_hours = 600.0
+C_check_days = 540
+D_check_days = 1825
+
+# Maintenance durations
+A_check_duration = 8 * 60
+B_check_duration = 16 * 60
+C_check_duration = 5
+D_check_duration = 10
+
+
 model = ConcreteModel()
 
 model.F = Set(initialize=Flights)
@@ -409,15 +423,15 @@ for j in model.P:
         model.maint_spacing.add(sum(model.y[j, r] for r in Days[start:start + dmax]) >= 1)
 
 
-model.maint_cumulative = ConstraintList()
-for j in model.P:
-    for start in range(len(Days) - 1):
-        for end in range(start + 2, min(start + dmax, len(Days))):
-            d = Days[start]
-            d_ = Days[end]
-            t_sum = sum(FlightData[i]['duration'] * model.x[i, j] for i in F_d_next(d+1, d_))
-            y_sum = sum(model.y[j, r] for r in Days[start+1:end])
-            model.maint_cumulative.add(t_sum <= Tmax + Mbig * y_sum + Mbig*(2 - model.y[j, d] - model.y[j, d_]) )
+# model.maint_cumulative = ConstraintList()
+# for j in model.P:
+#     for start in range(len(Days) - 1):
+#         for end in range(start + 2, min(start + dmax, len(Days))):
+#             d = Days[start]
+#             d_ = Days[end]
+#             t_sum = sum(FlightData[i]['duration'] * model.x[i, j] for i in F_d_next(d+1, d_))
+#             y_sum = sum(model.y[j, r] for r in Days[start+1:end])
+#             model.maint_cumulative.add(t_sum <= Tmax + Mbig * y_sum + Mbig*(2 - model.y[j, d] - model.y[j, d_]) )
 
 # Solve
 solver = SolverFactory('cplex')  # Or 'cplex', 'glpk', etc.

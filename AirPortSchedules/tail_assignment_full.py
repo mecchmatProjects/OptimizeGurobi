@@ -87,7 +87,8 @@ model.F = Set(initialize=range(1, F+1))
 model.P = Set(initialize=range(1, P+1))
 model.A = Set(initialize=list(set(f['a1'] for f in flight_data.values()).union(set(f['a2'] for f in flight_data.values()))))
 
-print("cost data:", cost_data, flight_data, a0)
+print("cost data:", cost_data, flight_data, a0 )
+print(model.A)
 model.x = Var(model.F, model.P, domain=Binary)
 model.c = Param(model.F, model.P, initialize=cost_data)
 

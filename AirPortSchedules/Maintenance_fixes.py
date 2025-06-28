@@ -282,6 +282,15 @@ Ccheck = {0: 20.0, 1: 20.0, 2: 538.0, 3: 20.0, 4: 20.0, 5: 20.0, 6: 20.0, 7: 20.
 
 Dcheck = {0: 20.0, 1: 20.0, 2: 20.0, 3: 1823.0, 4: 20.0, 5: 20.0, 6: 20.0, 7: 20.0, 8: 20.0, 9: 20.0}
 
+NUM_Checks = 4
+All_Checks = {
+    1: Acheck,
+    2: Bcheck,
+    3: Ccheck,
+    4: Dcheck
+}
+
+
 # Tmax = 8 * 60  # in minutes
 # nu = 15
 # dmax = 3
@@ -294,18 +303,44 @@ min_turn = 30  # in minutes
 # Maintenance thresholds
 A_check_hours = 400.0
 B_check_hours = 600.0
+C_check_hours = 540 * 24
+D_check_hours = 1825 * 24
+
+
+A_check_days = int((A_check_hours+DayShift) / DayShift)
+B_check_days = int((B_check_hours+DayShift) / DayShift)
 C_check_days = 540
 D_check_days = 1825
 
 
-A_check_days = int((A_check_hours+DayShift) / DayShift)
-
 # Maintenance durations
 A_check_duration = 8 * 60
 B_check_duration = 16 * 60
-C_check_duration = 5
-D_check_duration = 10
+C_check_duration = 5 * 24 * 60
+D_check_duration = 10 * 24 * 60
 
+All_Check_List = list(range(1, NUM_Checks+1))
+
+All_Check_days = {
+    1: A_check_days,
+    2: B_check_days,
+    3: C_check_days,
+    4: D_check_days
+}
+
+All_Check_hours = {
+    1: A_check_hours,
+    2: B_check_hours,
+    3: C_check_hours,
+    4: D_check_hours
+}
+
+All_Check_durations ={
+    1: A_check_duration,
+    2: B_check_duration,
+    3: C_check_duration,
+    4: D_check_duration
+}
 
 mc = {(i, j, d): 100 for i in Flights for j in Aircrafts for d in Days}  # dummy maintenance cost
 
@@ -347,16 +382,18 @@ print(model.A)
 
 model.D = Set(initialize=sorted(Days))
 model.MA = Set(initialize=sorted(MA))
+model.C = Set(initialize=sorted(All_Check_List))
 
 print([j for j in model.P])
 
 model.x = Var(model.F, model.P, domain=Binary)
-model.z = Var(model.F, model.P, model.D, domain=Binary)
-model.y = Var(model.P, model.D, domain=Binary)
+
+model.z = Var(model.F, model.P, model.D, model.C, domain=Binary)
+model.y = Var(model.P, model.D,model.C, domain=Binary)
 
 model.obj = Objective(
     expr=sum(cost[i-1][j-1] * model.x[i, j] for i in model.F for j in model.P) +
-         sum(mc[i, j, d] * model.z[i, j, d] for m in model.MA for i in F_m[m] for j in model.P for d in model.D),
+         sum(mc[i, j, d] * model.z[i, j, d, check] for m in model.MA for i in F_m[m] for j in model.P for d in model.D for check in model.C),
     sense=minimize
 )
 
@@ -395,73 +432,80 @@ for j in model.P:
 
 
 model.maint_last = ConstraintList()
-for i in model.F:
-    for j in model.P:
-        for d in model.D:
-            for i2 in F_d_i(d, i):
-                model.maint_last.add(model.z[i, j, d] + model.x[i2, j] <= 1)
+for check in model.C:
+    for i in model.F:
+        for j in model.P:
+            for d in model.D:
+                for i2 in F_d_i(d, i):
+                    model.maint_last.add(model.z[i, j, d, check] + model.x[i2, j] <= 1)
 
 model.maint_assignment = ConstraintList()
-for i in model.F:
-    for j in model.P:
-        for d in model.D:
-            model.maint_assignment.add(model.x[i, j] >= model.z[i, j, d])
+for check in model.C:
+    for i in model.F:
+        for j in model.P:
+            for d in model.D:
+                model.maint_assignment.add(model.x[i, j] >= model.z[i, j, d, check])
 
 model.maint_capacity = ConstraintList()
-for d in model.D:
-    for m in model.MA:
-        relevant_flights = F_m.get(m, [])
-        if relevant_flights:
-            model.maint_capacity.add(
-                sum(model.z[i, j, d] for i in relevant_flights for j in model.P) <= mcap[m, d]
-            )
+for check in model.C:
+    for d in model.D:
+        for m in model.MA:
+            relevant_flights = F_m.get(m, [])
+            if relevant_flights:
+                model.maint_capacity.add(
+                    sum(model.z[i, j, d, check] for i in relevant_flights for j in model.P) <= mcap[m, d]
+                )
 
 model.maint_link = ConstraintList()
-for d in model.D:
-    for m in model.MA:
-        for j in model.P:
-            model.maint_link.add(sum(model.z[i, j, d] for i in F_m[m]) == model.y[j, d])
+for check in model.C:
+    for d in model.D:
+        for m in model.MA:
+            for j in model.P:
+                model.maint_link.add(sum(model.z[i, j, d, check] for i in F_m[m]) == model.y[j, d, check])
 
 
 model.maint_spacing = ConstraintList()
 # model.maint_spacing0 = ConstraintList()
 # print(Days)
 
-
-Acheck_start_days = {}
-for plane, check_prev in Acheck.items():
-    Acheck_start_days[plane] = int((A_check_hours - check_prev)/24)
-    print(plane, Acheck_start_days[plane])
+#
+# Acheck_start_days = {}
+# for plane, check_prev in Acheck.items():
+#     Acheck_start_days[plane] = int((A_check_hours - check_prev)/24)
+#     print(plane, Acheck_start_days[plane])
 
 # for j in model.P:
 #     print("j is", j, Days[0: Acheck_start_days[j]+1])
 #     model.maint_spacing0.add(sum(model.y[j, r] for r in Days[0: Acheck_start_days[j]+1]) >= 1)
 
-for j in model.P:
-    print("j=",j)
-    for start in range(0, len(Days) - A_check_days + 1):
-        print("checks", start, start + A_check_days, Days[start:start + A_check_days])
-        model.maint_spacing.add(sum(model.y[j, r] for r in Days[start:start + A_check_days]) >= 1)
+for check in All_Check_List:
+    for j in model.P:
+        print("j=",j)
+        for start in range(0, len(Days) - All_Check_days[check] + 1):
+            print("checks", start, start + All_Check_days[check], Days[start:start + All_Check_days[check]])
+            model.maint_spacing.add(sum(model.y[j, r, check] for r in Days[start:start + All_Check_days[check]]) >= 1)
 
 
 model.maint_cumulative = ConstraintList()
-for j in model.P:
-    for start in range(len(Days) - 1):
-        for end in range(start + 2, min(start + A_check_days, len(Days))):
-            d = Days[start]
-            d_ = Days[end]
-            t_sum = sum(FlightData[i]['duration'] * model.x[i, j] for i in F_d_next(d+1, d_))
-            y_sum = sum(model.y[j, r] for r in Days[start+1:end])
-            model.maint_cumulative.add(t_sum <= A_check_hours + Mbig * y_sum + Mbig*(2 - model.y[j, d] - model.y[j, d_]) )
+for check in All_Check_List:
+    for j in model.P:
+        for start in range(len(Days) - 1):
+            for end in range(start + 2, min(start + All_Check_days[check], len(Days))):
+                d = Days[start]
+                d_ = Days[end]
+                t_sum = sum(FlightData[i]['duration'] * model.x[i, j] for i in F_d_next(d+1, d_))
+                y_sum = sum(model.y[j, r, check] for r in Days[start+1:end])
+                model.maint_cumulative.add(t_sum <= All_Check_hours[check] + Mbig * y_sum + Mbig*(2 - model.y[j, d, check] - model.y[j, d_, check]) )
 
 model.maint_cumulative0 = ConstraintList()
-for j in model.P:
-    for end in range(1, min(A_check_days, len(Days))):
-        d = Days[0]
-        d_ = Days[end]
-        t_sum = sum(FlightData[i]['duration'] * model.x[i, j] for i in F_d_next(d, d_))
-        y_sum = sum(model.y[j, r] for r in Days[1:end])
-        model.maint_cumulative0.add(t_sum <= A_check_hours + Mbig * y_sum + Mbig*(2 - model.y[j, d] - model.y[j, d_]) )
+for check in All_Check_List:
+    for j in model.P:
+        for end in range(1, min(All_Check_days[check], len(Days))):
+            d = Days[0]
+            d_ = Days[end]
+            t_sum = sum(FlightData[i]['duration'] * model.x[i, j] for i in F_d_next(d, d_))
+            y_sum = sum(model.y[j, r, check] for r in Days[1:end])
+            model.maint_cumulative0.add(t_sum <= All_Check_hours[check] + Mbig * y_sum + Mbig*(2 - model.y[j, d, check] - model.y[j, d_, check]) )
 
 
 # Solve

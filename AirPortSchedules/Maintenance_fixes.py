@@ -136,8 +136,9 @@ Flight = [
 {'flight': 103, 'origin': 'E', 'destination': 'B', 'departureTime': 5660.0, 'arrivalTime': 5845.0}
 ],
 
-for f in Flight[0]:
-    print(f)
+
+# for f in Flight[0]:
+#     print(f)
 
 # Derived FlightData
 FlightData = {
@@ -150,8 +151,9 @@ FlightData = {
         "day": int(f["departureTime"] // (DayShift * 60)) + 1
     } for f in Flight[0]
 }
-for it in FlightData.values():
-    print(it)
+
+# for it in FlightData.values():
+#     print(it)
 
 # Initial aircraft locations
 a0 = {1: "A", 2: "B"}
@@ -375,16 +377,16 @@ model = ConcreteModel()
 
 model.F = Set(initialize=Flights)
 model.P = Set(initialize=sorted(Aircrafts))
-# model.A = Set(initialize=sorted(Airports))
-model.A = Set(initialize=list(set(f['origin'] for f in FlightData.values()).union(set(f['destination'] for f in FlightData.values()))))
+model.A = Set(initialize=sorted(Airports))
+# model.A = Set(initialize=list(set(f['origin'] for f in FlightData.values()).union(set(f['destination'] for f in FlightData.values()))))
 
-print(model.A)
+# print(model.A)
 
 model.D = Set(initialize=sorted(Days))
 model.MA = Set(initialize=sorted(MA))
 model.C = Set(initialize=sorted(All_Check_List))
 
-print([j for j in model.P])
+# print([j for j in model.P])
 
 model.x = Var(model.F, model.P, domain=Binary)
 
@@ -419,11 +421,11 @@ for j in model.P:
             t_dep = flight_data[i]['departureTime']
             lhs_geq = sum(model.x[i1, j] for i1 in F_arr_t(k, t_dep, turn_time))
             lhs_lt = sum(model.x[i1, j] for i1 in F_dep_t(k, t_dep))
-
-            print("ijk", i, j, k, end=":")
-            print(t_dep, end="\t")
-            print(F_arr_t(k, t_dep, turn_time), lhs_geq, end="\t")
-            print(F_dep_t(k, t_dep), lhs_lt)
+            #
+            # print("ijk", i, j, k, end=":")
+            # print(t_dep, end="\t")
+            # print(F_arr_t(k, t_dep, turn_time), lhs_geq, end="\t")
+            # print(F_dep_t(k, t_dep), lhs_lt)
 
             if k != AircraftInit[j]:
                 model.equipment_turn_constraints.add(lhs_geq - lhs_lt >= model.x[i, j])
@@ -480,9 +482,9 @@ model.maint_spacing = ConstraintList()
 
 for check in All_Check_List:
     for j in model.P:
-        print("j=",j)
+        # print("j=",j)
         for start in range(0, len(Days) - All_Check_days[check] + 1):
-            print("checks", start, start + All_Check_days[check], Days[start:start + All_Check_days[check]])
+            # print("checks", start, start + All_Check_days[check], Days[start:start + All_Check_days[check]])
             model.maint_spacing.add(sum(model.y[j, r, check] for r in Days[start:start + All_Check_days[check]]) >= 1)
 
 

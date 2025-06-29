@@ -1,25 +1,17 @@
 from pyomo.environ import *
 from pyomo.opt import SolverFactory
 
-# --- CP-style Inputs ---
+
+DEBUG = False
+# Inputs ---
+
+#  Basic conditions check
 # Airports = ["A", "B"]
 # Aircrafts = [1, 2]
 # Nbflight = 6
 # Flights = list(range(1, Nbflight + 1))
 # Days = list(range(1, 8))
 # MA = sorted(["A", "B", "C"])  # Maintenance airports
-
-Airports = ["A","B","C","D","E","F","H","G","K","I","J","N","R","Q","P","M","L","S"]
-Nbflight = 103
-Aircrafts = [0, 1, 2,  3, 4, 5, 6, 7, 8, 9]
-
-DayShift = 24
-
-Flights = list(range(1, Nbflight + 1))
-Days = list(range(1, 8 * int(24/DayShift)))
-
-MA = sorted(Airports)
-
 # Flight Information
 # Flight = [
 #     {"flight": 1, "origin": "A", "destination": "B", "departureTime": 540, "arrivalTime": 660},
@@ -29,7 +21,33 @@ MA = sorted(Airports)
 #     {"flight": 5, "origin": "A", "destination": "B", "departureTime": 720, "arrivalTime": 840},
 #     {"flight": 6, "origin": "B", "destination": "A", "departureTime": 870, "arrivalTime": 990}
 # ]
+#
+# # Initial aircraft locations
+# a0 = {1: "A", 2: "B"}
 
+# Cost matrix
+# cost = [
+#      [6804, 6870],
+#      [4536, 4580],
+#      [7216, 7286],
+#      [1133, 1144],
+#      [6185, 6245],
+#      [5678, 5700]
+#     ]
+
+
+Airports = ["A","B","C","D","E","F","H","G","K","I","J","N","R","Q","P","M","L","S"]
+Nbflight = 103
+Aircrafts = [0, 1, 2,  3, 4, 5, 6, 7, 8, 9]
+
+DayShift = 24 # Consider shift as day with 24 hrs
+
+Flights = list(range(1, Nbflight + 1))
+Days = list(range(1, 8 * int(24/DayShift)))
+
+MA = sorted(Airports)  # Consider Maintenance everywhere
+
+# Flight Information
 Flight = [
 {'flight': 1, 'origin': 'D', 'destination': 'E', 'departureTime': 4855.0, 'arrivalTime': 5060.0},
 {'flight': 2, 'origin': 'E', 'destination': 'F', 'departureTime': 5130.0, 'arrivalTime': 5240.0},
@@ -134,11 +152,11 @@ Flight = [
 {'flight': 101, 'origin': 'C', 'destination': 'B', 'departureTime': 7840.0, 'arrivalTime': 8040.0},
 {'flight': 102, 'origin': 'B', 'destination': 'C', 'departureTime': 8125.0, 'arrivalTime': 8325.0},
 {'flight': 103, 'origin': 'E', 'destination': 'B', 'departureTime': 5660.0, 'arrivalTime': 5845.0}
-],
+]
 
-
-# for f in Flight[0]:
-#     print(f)
+if DEBUG:
+    for f in Flight:
+        print(f)
 
 # Derived FlightData
 FlightData = {
@@ -148,25 +166,13 @@ FlightData = {
         "departureTime": f["departureTime"],
         "arrivalTime": f["arrivalTime"],
         "duration": f["arrivalTime"] - f["departureTime"],
-        "day": int(f["departureTime"] // (DayShift * 60)) + 1
-    } for f in Flight[0]
+        "day": int(f["departureTime"] // (DayShift * 60)) + 1 - 7
+    } for f in Flight
 }
 
-# for it in FlightData.values():
-#     print(it)
-
-# Initial aircraft locations
-a0 = {1: "A", 2: "B"}
-
-# Cost matrix
-# cost = [
-#      [6804, 6870],
-#      [4536, 4580],
-#      [7216, 7286],
-#      [1133, 1144],
-#      [6185, 6245],
-#      [5678, 5700]
-#     ]
+if DEBUG:
+    for it in FlightData.values():
+        print(it)
 
 cost =[
 [6804.0,6870.0,6771.0,6804.0,6870.0,6771.0,6804.0,6870.0,6771.0,6804.0,],
@@ -299,7 +305,7 @@ B_check_hours = 600.0
 C_check_hours = 540 * 24
 D_check_hours = 1825 * 24
 
-
+# Maintenance thresholds in days
 A_check_days = int((A_check_hours+DayShift) / DayShift)
 B_check_days = int((B_check_hours+DayShift) / DayShift)
 C_check_days = 540
@@ -346,7 +352,7 @@ All_Check_durations ={
     All_Check_List[3]: D_check_duration
 }
 
-All_Check_List = ["Acheck"]
+# All_Check_List = ["Acheck"]
 
 mc = {(i, j, d): 100 for i in Flights for j in Aircrafts for d in Days}  # dummy maintenance cost
 
@@ -360,32 +366,28 @@ F_arr_k = {k: [i for i in Flights if FlightData[i]["destination"] == k] for k in
 F_dep_k = {k: [i for i in Flights if FlightData[i]["origin"] == k] for k in sorted(Airports)}  # The set of flights which land in airport k
 
 # The set of flights which land in airport k before time t
-# def F_gkt(k, t, delta):
-#     return [i for i in Flights if FlightData[i]["destination"] == k and FlightData[i]["departureTime"] <= t - delta]
 F_arr_t = lambda k, t, delta: [i for i in F_arr_k[k] if FlightData[i]["arrivalTime"] <= t - delta]
-
 # The set of flights which land in airport k before time t
-def F_lkt(k,t):
-    return [i for i in Flights if FlightData[i]["origin"] == k and FlightData[i]["departureTime"] < t]
-
 F_dep_t = lambda k, t: [i for i in F_dep_k[k] if FlightData[i]["departureTime"] < t]
-
+# The set of flights which land in airport k after t and before time t1
 F_dep_t_t1 = lambda k, t, t1: [i for i in F_dep_k[k] if FlightData[i]["departureTime"] > t and FlightData[i]["departureTime"] <= t1]
 
-
+# The set of flights for a given day
 F_d = {d: [i for i in Flights if FlightData[i]["day"] == d] for d in Days}
+# The set of flights for a given day interval
 F_d_next = lambda d1, d2: [i for i in Flights if d1 < FlightData[i]["day"] <= d2]
+# The set of flights for a given day when arrivalTime greater than arrivalTime of given flight
 F_d_i = lambda d, i: [i2 for i2 in Flights if FlightData[i]["day"] == d and FlightData[i2]["departureTime"] > FlightData[i]["arrivalTime"]]
 
 
-
+# Define model
 model = ConcreteModel()
 
+# Define indices
 model.F = Set(initialize=Flights)
 model.P = Set(initialize=sorted(Aircrafts))
 model.A = Set(initialize=sorted(Airports))
 # model.A = Set(initialize=list(set(f['origin'] for f in FlightData.values()).union(set(f['destination'] for f in FlightData.values()))))
-
 # print(model.A)
 
 model.D = Set(initialize=sorted(Days))
@@ -394,17 +396,19 @@ model.C = Set(initialize=sorted(All_Check_List))
 
 # print([j for j in model.P])
 
+# Define variables
 model.x = Var(model.F, model.P, domain=Binary)
-
 model.z = Var(model.F, model.P, model.D, model.C, domain=Binary)
 model.y = Var(model.P, model.D, model.C, domain=Binary)
 
+# Define objective (7)
 model.obj = Objective(
     expr=sum(cost[i-1][j-1] * model.x[i, j] for i in model.F for j in model.P) +
          sum(mc[i, j, d] * model.z[i, j, d, check] for m in model.MA for i in F_m[m] for j in model.P for d in model.D for check in model.C),
     sense=minimize
 )
 
+# Constraint C1  (1)
 model.c1 = ConstraintList()
 for i in model.F:
     model.c1.add(sum(model.x[i, j] for j in model.P) == 1)
@@ -414,12 +418,7 @@ turn_time = min_turn
 flight_data = FlightData
 flight_arr = {k: [i for i in model.F if FlightData[i]['destination'] == k] for k in model.A}
 
-# def F_geq_k(k, t):
-#     return [i for i, f in flight_data.items() if f['destination'] == k and f['arrivalTime'] <= t + turn_time]
-#
-# def F_lt_k(k, t):
-#     return [i for i, f in flight_data.items() if f['origin'] == k and f['departureTime'] < t]
-
+# Constraints (2)-(3)
 model.equipment_turn_constraints = ConstraintList()
 for j in model.P:
     for k in model.A:
@@ -427,11 +426,13 @@ for j in model.P:
             t_dep = flight_data[i]['departureTime']
             lhs_geq = sum(model.x[i1, j] for i1 in F_arr_t(k, t_dep, turn_time))
             lhs_lt = sum(model.x[i1, j] for i1 in F_dep_t(k, t_dep))
+
             #
-            # print("ijk", i, j, k, end=":")
-            # print(t_dep, end="\t")
-            # print(F_arr_t(k, t_dep, turn_time), lhs_geq, end="\t")
-            # print(F_dep_t(k, t_dep), lhs_lt)
+            if DEBUG:
+                print("ijk", i, j, k, end=":")
+                print(t_dep, end="\t")
+                print(F_arr_t(k, t_dep, turn_time), lhs_geq, end="\t")
+                print(F_dep_t(k, t_dep), lhs_lt)
 
             if k != AircraftInit[j]:
                 model.equipment_turn_constraints.add(lhs_geq - lhs_lt >= model.x[i, j])
@@ -439,6 +440,7 @@ for j in model.P:
                 model.equipment_turn_constraints.add(lhs_geq - lhs_lt >= model.x[i, j] - 1)
 
 
+# Constraint (8)
 model.maint_last = ConstraintList()
 for check in model.C:
     for i in model.F:
@@ -447,6 +449,7 @@ for check in model.C:
                 for i2 in F_d_i(d, i):
                     model.maint_last.add(model.z[i, j, d, check] + model.x[i2, j] <= 1)
 
+# Constraint (9)
 model.maint_assignment = ConstraintList()
 for check in model.C:
     for i in model.F:
@@ -454,6 +457,7 @@ for check in model.C:
             for d in model.D:
                 model.maint_assignment.add(model.x[i, j] >= model.z[i, j, d, check])
 
+# Constraint (10)
 model.maint_capacity = ConstraintList()
 for check in model.C:
     for d in model.D:
@@ -464,6 +468,7 @@ for check in model.C:
                     sum(model.z[i, j, d, check] for i in relevant_flights for j in model.P) <= mcap[m, d]
                 )
 
+# Constraint (11)
 model.maint_link = ConstraintList()
 for check in model.C:
     for d in model.D:
@@ -473,10 +478,8 @@ for check in model.C:
             model.maint_link.add(sum(model.z[i, j, d, check] for i in Flights if FlightData[i]["destination"] in MA) == model.y[j, d, check])
 
 
-model.maint_spacing = ConstraintList()
 # model.maint_spacing0 = ConstraintList()
 # print(Days)
-
 #
 # Acheck_start_days = {}
 # for plane, check_prev in Acheck.items():
@@ -487,6 +490,8 @@ model.maint_spacing = ConstraintList()
 #     print("j is", j, Days[0: Acheck_start_days[j]+1])
 #     model.maint_spacing0.add(sum(model.y[j, r] for r in Days[0: Acheck_start_days[j]+1]) >= 1)
 
+# Constraint (12)
+model.maint_spacing = ConstraintList()
 for check in All_Check_List:
     for j in model.P:
         # print("j=",j, All_Check_days[check], len(Days) -1)
@@ -494,7 +499,7 @@ for check in All_Check_List:
             # print("checks", start, min(start + All_Check_days[check], len(Days)-1), Days[start:start + All_Check_days[check]])
             model.maint_spacing.add(sum(model.y[j, r, check] for r in Days[start:start + All_Check_days[check]]) >= 1)
 
-
+# Constraint (13)
 model.maint_cumulative = ConstraintList()
 for check in All_Check_List:
     for j in model.P:
@@ -506,7 +511,7 @@ for check in All_Check_List:
                 y_sum = sum(model.y[j, r, check] for r in Days[start+1:end])
                 model.maint_cumulative.add(t_sum <= All_Check_hours[check] + Mbig * y_sum + Mbig*(2 - model.y[j, d, check] - model.y[j, d_, check]) )
 
-
+# Constraint (14)
 model.maint_cumulative_start = ConstraintList()
 for check in All_Check_List:
     for j in model.P:
@@ -518,14 +523,13 @@ for check in All_Check_List:
             # print(j, All_Check_hours[check], All_Checks[check][j], d, d_)
             model.maint_cumulative_start.add(t_sum <= All_Check_hours[check] - All_Checks[check][j] + Mbig * y_sum + Mbig*(1 - model.y[j, d_, check]))
 
-
+# Constraint - my version of no double check
 model.maint_block_checks = ConstraintList()
 for j in model.P:
     for d in model.D:
         model.maint_block_checks.add(sum(model.y[j, d, check] for check in All_Check_List) <= 1)
 
-
-model.maint_block_flights = ConstraintList()
+# Constraint no flight during checks
 # for j in model.P:
 #     for d in model.D:
 #         for k in model.A:
@@ -539,7 +543,6 @@ model.maint_block_flights = ConstraintList()
 #                     lhs_lt = sum(model.x[i1, j] for i1 in F_dep_t_t1(k,t_dep, t_dep + All_Check_durations[check]))
 #                     model.maint_block_flights.add(lhs_lt <= Mbig * model.y[j, d, check])
 
-
 # for j in model.P:
 #     for d in model.D:
 #         for i in model.F:
@@ -552,8 +555,8 @@ model.maint_block_flights = ConstraintList()
 #                     print(j,i,d,check)
 #                     model.maint_block_flights.add(model.x[i, j] + model.y[j, d, check] <=1)
 
-
-
+# Constraint no flight during checks
+model.maint_block_flights = ConstraintList()
 for check in model.C:
     for i in model.F:
         t_arr = flight_data[i]['arrivalTime']
@@ -563,6 +566,8 @@ for check in model.C:
             continue
 
         for j in model.P:
+            if DEBUG:
+                print("figths", i, "plane", j, "port", airport, "day", d, "t:", t_arr, t_arr + All_Check_durations[check], F_dep_t_t1(airport, t_arr, t_arr + All_Check_durations[check]))
             for i2 in F_dep_t_t1(airport, t_arr, t_arr + All_Check_durations[check]):
                 model.maint_block_flights.add(model.z[i, j, d, check] + model.x[i2, j] <= 1)
 

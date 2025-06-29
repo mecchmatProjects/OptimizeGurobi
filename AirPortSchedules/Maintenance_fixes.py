@@ -370,6 +370,8 @@ def F_lkt(k,t):
 
 F_dep_t = lambda k, t: [i for i in F_dep_k[k] if FlightData[i]["departureTime"] < t]
 
+F_dep_t_t1 = lambda k, t, t1: [i for i in F_dep_k[k] if FlightData[i]["departureTime"] > t and FlightData[i]["departureTime"] <= t1]
+
 
 F_d = {d: [i for i in Flights if FlightData[i]["day"] == d] for d in Days}
 F_d_next = lambda d1, d2: [i for i in Flights if d1 < FlightData[i]["day"] <= d2]
@@ -487,9 +489,9 @@ model.maint_spacing = ConstraintList()
 
 for check in All_Check_List:
     for j in model.P:
-        print("j=",j, All_Check_days[check], len(Days) -1)
-        for start in range(0, len(Days)- All_Check_days[check]-1) :
-            print("checks", start, min(start + All_Check_days[check], len(Days)-1), Days[start:start + All_Check_days[check]])
+        # print("j=",j, All_Check_days[check], len(Days) -1)
+        for start in range(0, len(Days)- All_Check_days[check]-1):
+            # print("checks", start, min(start + All_Check_days[check], len(Days)-1), Days[start:start + All_Check_days[check]])
             model.maint_spacing.add(sum(model.y[j, r, check] for r in Days[start:start + All_Check_days[check]]) >= 1)
 
 
@@ -505,7 +507,7 @@ for check in All_Check_List:
                 model.maint_cumulative.add(t_sum <= All_Check_hours[check] + Mbig * y_sum + Mbig*(2 - model.y[j, d, check] - model.y[j, d_, check]) )
 
 
-model.maint_cumulative0 = ConstraintList()
+model.maint_cumulative_start = ConstraintList()
 for check in All_Check_List:
     for j in model.P:
         for end in range(1, min(len(Days)-1, All_Check_days[check])):
@@ -513,9 +515,56 @@ for check in All_Check_List:
             d_ = Days[end]
             t_sum = sum(FlightData[i]['duration'] * model.x[i, j] for i in F_d_next(d, d_))
             y_sum = sum(model.y[j, r, check] for r in Days[:end])
-            print(j, All_Check_hours[check], All_Checks[check][j], d, d_)
-            model.maint_cumulative0.add(t_sum <= All_Check_hours[check] - All_Checks[check][j] + Mbig * y_sum + Mbig*(1 - model.y[j, d_, check]))
+            # print(j, All_Check_hours[check], All_Checks[check][j], d, d_)
+            model.maint_cumulative_start.add(t_sum <= All_Check_hours[check] - All_Checks[check][j] + Mbig * y_sum + Mbig*(1 - model.y[j, d_, check]))
 
+
+model.maint_block_checks = ConstraintList()
+for j in model.P:
+    for d in model.D:
+        model.maint_block_checks.add(sum(model.y[j, d, check] for check in All_Check_List) <= 1)
+
+
+model.maint_block_flights = ConstraintList()
+# for j in model.P:
+#     for d in model.D:
+#         for k in model.A:
+#             for i in F_dep_k[k]:
+#                 if flight_data[i]['day'] !=d:
+#                     continue
+#
+#                 t_dep = flight_data[i]['departureTime']
+#
+#                 for check in All_Check_List:
+#                     lhs_lt = sum(model.x[i1, j] for i1 in F_dep_t_t1(k,t_dep, t_dep + All_Check_durations[check]))
+#                     model.maint_block_flights.add(lhs_lt <= Mbig * model.y[j, d, check])
+
+
+# for j in model.P:
+#     for d in model.D:
+#         for i in model.F:
+#             t_dep = flight_data[i]['departureTime']
+#             if flight_data[i]['day'] < d:
+#                 continue
+#
+#             for check in model.C:
+#                 if t_dep < d * 24 * 60 + All_Check_durations[check]:
+#                     print(j,i,d,check)
+#                     model.maint_block_flights.add(model.x[i, j] + model.y[j, d, check] <=1)
+
+
+
+for check in model.C:
+    for i in model.F:
+        t_arr = flight_data[i]['arrivalTime']
+        day = flight_data[i]['day']
+        airport = flight_data[i]['destination']
+        if airport not in MA:
+            continue
+
+        for j in model.P:
+            for i2 in F_dep_t_t1(airport, t_arr, t_arr + All_Check_durations[check]):
+                model.maint_block_flights.add(model.z[i, j, d, check] + model.x[i2, j] <= 1)
 
 # Solve
 solver = SolverFactory('cplex')  # Or 'cplex', 'glpk', etc.

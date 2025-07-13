@@ -2,7 +2,8 @@ from pyomo.environ import *
 from pyomo.opt import SolverFactory
 
 
-DEBUG = False
+DEBUG = True
+
 # Inputs ---
 
 #  Basic conditions check
@@ -166,7 +167,7 @@ FlightData = {
         "departureTime": f["departureTime"],
         "arrivalTime": f["arrivalTime"],
         "duration": f["arrivalTime"] - f["departureTime"],
-        "day": int(f["departureTime"] // (DayShift * 60)) + 1 - 7
+        "day": int(f["departureTime"] // (DayShift * 60)) + 1
     } for f in Flight
 }
 
@@ -282,7 +283,7 @@ cost =[
 
 AircraftInit ={0: 'I', 1: 'J', 2: 'K', 3: 'B', 4: 'J', 5: 'A', 6: 'D', 7: 'I', 8: 'I', 9: 'C'}
 
-Acheck ={0: 390.0, 1: 20.0, 2: 20.0, 3: 20.0, 4: 20.0, 5: 20.0, 6: 20.0, 7: 20.0, 8: 20.0, 9: 20.0}
+Acheck ={0: 398.0, 1: 20.0, 2: 20.0, 3: 20.0, 4: 20.0, 5: 20.0, 6: 20.0, 7: 20.0, 8: 20.0, 9: 20.0}
 Bcheck = {0: 20.0, 1: 594.0, 2: 20.0, 3: 20.0, 4: 20.0, 5: 20.0, 6: 20.0, 7: 20.0, 8: 20.0, 9: 20.0}
 Ccheck = {0: 20.0, 1: 20.0, 2: 538.0, 3: 20.0, 4: 20.0, 5: 20.0, 6: 20.0, 7: 20.0, 8: 20.0, 9: 20.0}
 Dcheck = {0: 20.0, 1: 20.0, 2: 20.0, 3: 1823.0, 4: 20.0, 5: 20.0, 6: 20.0, 7: 20.0, 8: 20.0, 9: 20.0}
@@ -335,6 +336,14 @@ All_Check_days = {
     All_Check_List[3]: 200
 }
 
+Premature_Check_penalty = {
+    All_Check_List[0]: {0:0,1:10,2:20,3:40,4:60},
+    All_Check_List[1]: {0:0,1:10,2:20,3:40,4:60},
+    All_Check_List[2]: {0:0,1:10,2:20,3:40,4:60},
+    All_Check_List[3]: {0:0,1:10,2:20,3:40,4:60}
+}
+
+
 All_Check_hours = {
     All_Check_List[0]: A_check_hours,
     All_Check_List[1]: B_check_hours,
@@ -348,6 +357,8 @@ All_Check_durations ={
     All_Check_List[2]: C_check_duration,
     All_Check_List[3]: D_check_duration
 }
+
+
 
 # All_Check_List = ["Acheck"]
 
@@ -401,7 +412,8 @@ model.y = Var(model.P, model.D, model.C, domain=Binary)
 # Define objective (7)
 model.obj = Objective(
     expr=sum(cost[i-1][j-1] * model.x[i, j] for i in model.F for j in model.P) +
-         sum(mc[i, j, d] * model.z[i, j, d, check] for m in model.MA for i in F_m[m] for j in model.P for d in model.D for check in model.C),
+         sum((mc[i, j, d] + Premature_Check_penalty[check][(All_Check_days[check] - d)%5] ) * model.z[i, j, d, check] for m in model.MA for i in F_m[m] for j in model.P for d in model.D for check in model.C)
+    ,
     sense=minimize
 )
 
@@ -506,7 +518,7 @@ for check in All_Check_List:
                 d_ = Days[end]
                 t_sum = sum(FlightData[i]['duration'] * model.x[i, j] for i in F_d_next(d+1, d_))
                 y_sum = sum(model.y[j, r, check] for r in Days[start+1:end])
-                model.maint_cumulative.add(t_sum <= All_Check_hours[check] + Mbig * y_sum + Mbig*(2 - model.y[j, d, check] - model.y[j, d_, check]) )
+                model.maint_cumulative.add(t_sum <= All_Check_hours[check]*60 + Mbig * y_sum + Mbig*(2 - model.y[j, d, check] - model.y[j, d_, check]) )
 
 # Constraint for counting previous flight hours before start - my version
 model.maint_cumulative_start = ConstraintList()
@@ -515,10 +527,10 @@ for check in All_Check_List:
         for end in range(1, min(len(Days)-1, All_Check_days[check])):
             d = Days[0]
             d_ = Days[end]
-            t_sum = sum(FlightData[i]['duration'] * model.x[i, j] for i in F_d_next(d, d_))
+            t_sum = sum(FlightData[i]['duration'] * model.x[i, j] for i in F_d_next(0, d_))
             y_sum = sum(model.y[j, r, check] for r in Days[:end])
             # print(j, All_Check_hours[check], All_Checks[check][j], d, d_)
-            model.maint_cumulative_start.add(t_sum <= All_Check_hours[check] - All_Checks[check][j] + Mbig * y_sum + Mbig*(1 - model.y[j, d_, check]))
+            model.maint_cumulative_start.add(t_sum <= (All_Check_hours[check] - All_Checks[check][j])*60 + Mbig * y_sum + Mbig*(model.y[j, d_, check]))
 
 # Constraint - my version of no double check
 model.maint_block_checks = ConstraintList()
@@ -582,5 +594,7 @@ for i in model.F:
             for c in model.C:
                 if value(model.z[i, j, d, c]) > 0.5:
                     print(f"In this flight Plane {j} goes to check {c[0]} on day {d}")
+                # print(value(model.y[j, d, c]),end=",")
+            # print("\t",end="")
 
 print(f"Total Cost: {value(model.obj)}")

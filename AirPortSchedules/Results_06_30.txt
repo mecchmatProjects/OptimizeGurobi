@@ -1,0 +1,115 @@
+Assignment Results:
+Flight 1 assigned to Plane 9
+Flight 2 assigned to Plane 9
+Flight 3 assigned to Plane 9
+Flight 4 assigned to Plane 9
+Flight 5 assigned to Plane 9
+Flight 6 assigned to Plane 9
+Flight 7 assigned to Plane 9
+Flight 8 assigned to Plane 9
+Flight 9 assigned to Plane 9
+In this flight Plane 9 goes to check A on day 5
+Flight 10 assigned to Plane 9
+Flight 11 assigned to Plane 9
+Flight 12 assigned to Plane 9
+Flight 13 assigned to Plane 9
+Flight 14 assigned to Plane 9
+Flight 15 assigned to Plane 3
+Flight 16 assigned to Plane 9
+Flight 17 assigned to Plane 9
+Flight 18 assigned to Plane 9
+Flight 19 assigned to Plane 9
+Flight 20 assigned to Plane 9
+Flight 21 assigned to Plane 9
+Flight 22 assigned to Plane 9
+Flight 23 assigned to Plane 9
+Flight 24 assigned to Plane 1
+Flight 25 assigned to Plane 6
+Flight 26 assigned to Plane 9
+Flight 27 assigned to Plane 9
+Flight 28 assigned to Plane 9
+Flight 29 assigned to Plane 9
+Flight 30 assigned to Plane 1
+Flight 31 assigned to Plane 6
+Flight 32 assigned to Plane 6
+Flight 33 assigned to Plane 6
+Flight 34 assigned to Plane 6
+Flight 35 assigned to Plane 6
+Flight 36 assigned to Plane 6
+In this flight Plane 6 goes to check A on day 5
+Flight 37 assigned to Plane 6
+Flight 38 assigned to Plane 6
+Flight 39 assigned to Plane 6
+Flight 40 assigned to Plane 6
+Flight 41 assigned to Plane 6
+Flight 42 assigned to Plane 5
+In this flight Plane 5 goes to check A on day 3
+Flight 43 assigned to Plane 2
+Flight 44 assigned to Plane 2
+Flight 45 assigned to Plane 2
+Flight 46 assigned to Plane 2
+In this flight Plane 2 goes to check A on day 4
+Flight 47 assigned to Plane 6
+Flight 48 assigned to Plane 6
+Flight 49 assigned to Plane 6
+Flight 50 assigned to Plane 6
+Flight 51 assigned to Plane 6
+Flight 52 assigned to Plane 7
+Flight 53 assigned to Plane 7
+Flight 54 assigned to Plane 4
+In this flight Plane 4 goes to check A on day 2
+Flight 55 assigned to Plane 7
+Flight 56 assigned to Plane 7
+Flight 57 assigned to Plane 7
+Flight 58 assigned to Plane 3
+Flight 59 assigned to Plane 0
+Flight 60 assigned to Plane 4
+Flight 61 assigned to Plane 3
+Flight 62 assigned to Plane 3
+Flight 63 assigned to Plane 0
+Flight 64 assigned to Plane 4
+Flight 65 assigned to Plane 7
+Flight 66 assigned to Plane 7
+Flight 67 assigned to Plane 7
+Flight 68 assigned to Plane 7
+Flight 69 assigned to Plane 0
+Flight 70 assigned to Plane 0
+Flight 71 assigned to Plane 0
+In this flight Plane 0 goes to check A on day 3
+Flight 72 assigned to Plane 0
+Flight 73 assigned to Plane 0
+Flight 74 assigned to Plane 0
+Flight 75 assigned to Plane 0
+Flight 76 assigned to Plane 0
+Flight 77 assigned to Plane 7
+In this flight Plane 7 goes to check A on day 4
+Flight 78 assigned to Plane 7
+Flight 79 assigned to Plane 8
+In this flight Plane 8 goes to check A on day 5
+Flight 80 assigned to Plane 9
+Flight 81 assigned to Plane 3
+Flight 82 assigned to Plane 3
+Flight 83 assigned to Plane 9
+Flight 84 assigned to Plane 9
+Flight 85 assigned to Plane 9
+Flight 86 assigned to Plane 9
+Flight 87 assigned to Plane 1
+In this flight Plane 1 goes to check A on day 5
+Flight 88 assigned to Plane 3
+Flight 89 assigned to Plane 3
+Flight 90 assigned to Plane 3
+Flight 91 assigned to Plane 3
+Flight 92 assigned to Plane 3
+Flight 93 assigned to Plane 3
+Flight 94 assigned to Plane 3
+Flight 95 assigned to Plane 3
+Flight 96 assigned to Plane 3
+In this flight Plane 3 goes to check A on day 5
+Flight 97 assigned to Plane 3
+Flight 98 assigned to Plane 3
+Flight 99 assigned to Plane 3
+Flight 100 assigned to Plane 3
+Flight 101 assigned to Plane 3
+Flight 102 assigned to Plane 3
+Flight 103 assigned to Plane 3
+Total Cost: 835726.0

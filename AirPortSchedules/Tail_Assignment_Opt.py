@@ -283,7 +283,7 @@ cost =[
 
 AircraftInit ={0: 'I', 1: 'J', 2: 'K', 3: 'B', 4: 'J', 5: 'A', 6: 'D', 7: 'I', 8: 'I', 9: 'C'}
 
-Acheck ={0: 398.0, 1: 20.0, 2: 20.0, 3: 20.0, 4: 20.0, 5: 20.0, 6: 20.0, 7: 20.0, 8: 20.0, 9: 20.0}
+Acheck ={0: 390.0, 1: 20.0, 2: 20.0, 3: 20.0, 4: 20.0, 5: 20.0, 6: 20.0, 7: 20.0, 8: 20.0, 9: 20.0}
 Bcheck = {0: 20.0, 1: 594.0, 2: 20.0, 3: 20.0, 4: 20.0, 5: 20.0, 6: 20.0, 7: 20.0, 8: 20.0, 9: 20.0}
 Ccheck = {0: 20.0, 1: 20.0, 2: 538.0, 3: 20.0, 4: 20.0, 5: 20.0, 6: 20.0, 7: 20.0, 8: 20.0, 9: 20.0}
 Dcheck = {0: 20.0, 1: 20.0, 2: 20.0, 3: 1823.0, 4: 20.0, 5: 20.0, 6: 20.0, 7: 20.0, 8: 20.0, 9: 20.0}
@@ -518,7 +518,10 @@ for check in All_Check_List:
                 d_ = Days[end]
                 t_sum = sum(FlightData[i]['duration'] * model.x[i, j] for i in F_d_next(d+1, d_))
                 y_sum = sum(model.y[j, r, check] for r in Days[start+1:end])
-                model.maint_cumulative.add(t_sum <= All_Check_hours[check]*60 + Mbig * y_sum + Mbig*(2 - model.y[j, d, check] - model.y[j, d_, check]) )
+                model.maint_cumulative.add(t_sum <= All_Check_hours[check]*60 + Mbig * y_sum +
+                                           Mbig*(2 - model.y[j, d, check] - model.y[j, d_, check]) )
+                # model.maint_cumulative.add(t_sum <= All_Check_hours[check] * 60 + Mbig * y_sum + Mbig * model.y[j, d, check])
+                # model.maint_cumulative.add(t_sum <= All_Check_hours[check] * 60 + Mbig * y_sum + Mbig * model.y[j, d_, check])
 
 # Constraint for counting previous flight hours before start - my version
 model.maint_cumulative_start = ConstraintList()

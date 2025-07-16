@@ -2,7 +2,7 @@ from pyomo.environ import *
 from pyomo.opt import SolverFactory
 
 
-DEBUG = True
+DEBUG = False
 
 # Inputs ---
 
@@ -288,6 +288,11 @@ Bcheck = {0: 20.0, 1: 594.0, 2: 20.0, 3: 20.0, 4: 20.0, 5: 20.0, 6: 20.0, 7: 20.
 Ccheck = {0: 20.0, 1: 20.0, 2: 538.0, 3: 20.0, 4: 20.0, 5: 20.0, 6: 20.0, 7: 20.0, 8: 20.0, 9: 20.0}
 Dcheck = {0: 20.0, 1: 20.0, 2: 20.0, 3: 1823.0, 4: 20.0, 5: 20.0, 6: 20.0, 7: 20.0, 8: 20.0, 9: 20.0}
 
+Acheck_days ={0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0}
+Bcheck_days = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0}
+Ccheck_days = {0: 20.0, 1: 20.0, 2: 538.0, 3: 20.0, 4: 20.0, 5: 20.0, 6: 20.0, 7: 20.0, 8: 20.0, 9: 20.0}
+Dcheck_days = {0: 20.0, 1: 20.0, 2: 20.0, 3: 1823.0, 4: 20.0, 5: 20.0, 6: 20.0, 7: 20.0, 8: 20.0, 9: 20.0}
+
 # Tmax = 8 * 60  # in minutes
 # nu = 15
 # dmax = 3
@@ -332,8 +337,8 @@ All_Checks = {
 All_Check_days = {
     All_Check_List[0]: 5,
     All_Check_List[1]: 10,
-    All_Check_List[2]: 100,
-    All_Check_List[3]: 200
+    All_Check_List[2]: C_check_days,
+    All_Check_List[3]: D_check_days
 }
 
 Premature_Check_penalty = {
@@ -341,6 +346,13 @@ Premature_Check_penalty = {
     All_Check_List[1]: {0:0,1:10,2:20,3:40,4:60},
     All_Check_List[2]: {0:0,1:10,2:20,3:40,4:60},
     All_Check_List[3]: {0:0,1:10,2:20,3:40,4:60}
+}
+
+All_Checks2 = {
+    All_Check_List[0]: Acheck_days,
+    All_Check_List[1]: Bcheck_days,
+    All_Check_List[2]: Ccheck_days,
+    All_Check_List[3]: Dcheck_days
 }
 
 
@@ -508,6 +520,15 @@ for check in All_Check_List:
             # print("checks", start, min(start + All_Check_days[check], len(Days)-1), Days[start:start + All_Check_days[check]])
             model.maint_spacing.add(sum(model.y[j, r, check] for r in Days[start:start + All_Check_days[check]]) >= 1)
 
+# Constraint (12 and 14 for C-D checks) we check regarding previous unchecked days
+model.maint_spacing2 = ConstraintList()
+for check in All_Check_List:
+    for j in model.P:
+        days_without_checks = int(All_Check_days[check] - All_Checks2[check][j])
+        # print(days_without_checks)
+        model.maint_spacing2.add(sum(model.y[j, r, check] for r in Days[:days_without_checks]) >= 1)
+
+
 # Constraint (13)
 model.maint_cumulative = ConstraintList()
 for check in All_Check_List:
@@ -601,3 +622,84 @@ for i in model.F:
             # print("\t",end="")
 
 print(f"Total Cost: {value(model.obj)}")
+
+
+
+print("\nAircraft Assignment and Maintenance Report:")
+
+for j in model.P:
+    events = []
+    # Gather all assigned flights for this aircraft (use departure time for sorting)
+    for i in model.F:
+        if value(model.x[i, j]) > 0.5:
+            events.append((FlightData[i]['departureTime'], f"F{i}"))
+    # Gather all maintenance events for this aircraft (use day for sorting, ensure it follows flights on the same day)
+    for d in model.D:
+        for c in model.C:
+            if value(model.y[j, d, c]) > 0.5:
+                # Use a large offset to sort maintenance after all flights on the same day
+                events.append((d * 1e6, f"M{c[0]}{d}"))
+    # Sort all events chronologically
+    events.sort()
+    # Format output
+    events_str = ", ".join([e[1] for e in events])
+    print(f"Aircraft {j}: {events_str}")
+
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+
+# Prepare data (replace with your actual solution extraction)
+events = []
+for j in model.P:
+    # Flights
+    for i in model.F:
+        if value(model.x[i, j]) > 0.5:
+            events.append({
+                'aircraft': j,
+                'type': 'flight',
+                'label': f'F{i}',
+                'start': FlightData[i]['departureTime'],
+                'end': FlightData[i]['arrivalTime']
+            })
+    # Maintenance
+    for d in model.D:
+        for c in model.C:
+            if value(model.y[j, d, c]) > 0.5:
+                duration = All_Check_durations[c]
+                events.append({
+                    'aircraft': j,
+                    'type': 'maintenance',
+                    'label': f'M{c[0]}{d}',
+                    'start': d * 24 * 60,
+                    'end': d * 24 * 60 + duration
+                })
+
+# Sort by aircraft and start time
+events.sort(key=lambda x: (x['aircraft'], x['start']))
+
+# Plotting
+fig, ax = plt.subplots(figsize=(15, 8))
+flight_color = 'tab:blue'
+maintenance_colors = {'A': 'tab:orange', 'B': 'tab:green', 'C': 'tab:red', 'D': 'tab:purple'}
+aircraft_positions = {j: idx for idx, j in enumerate(sorted(set(e['aircraft'] for e in events)))}
+
+for e in events:
+    y = aircraft_positions[e['aircraft']]
+    color = flight_color if e['type'] == 'flight' else maintenance_colors[e['label'][1]]
+    ax.barh(y, e['end'] - e['start'], left=e['start'], height=0.4, color=color, edgecolor='black')
+    ax.text(e['start'] + (e['end'] - e['start']) / 2, y, e['label'], ha='center', va='center', color='white', fontsize=8)
+
+ax.set_yticks(list(aircraft_positions.values()))
+ax.set_yticklabels([f'Aircraft {j}' for j in sorted(aircraft_positions.keys())])
+ax.set_xlabel('Time (minutes)')
+ax.set_title('Aircraft Flight and Maintenance Timeline')
+
+flight_patch = mpatches.Patch(color=flight_color, label='Flight')
+maintenance_patches = [mpatches.Patch(color=clr, label=f'Maintenance {typ}') for typ, clr in maintenance_colors.items()]
+ax.legend(handles=[flight_patch] + maintenance_patches, loc='upper right')
+
+plt.tight_layout()
+plt.show()
+
+
+

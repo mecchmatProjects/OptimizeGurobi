@@ -2,7 +2,7 @@ from pyomo.environ import *
 from pyomo.opt import SolverFactory
 
 
-DEBUG = False
+DEBUG = True
 
 # Inputs ---
 
@@ -321,6 +321,12 @@ B_check_duration = 16 * 60
 C_check_duration = 5 * 24 * 60
 D_check_duration = 10 * 24 * 60
 
+# Maintenance durations
+A_check_duration_days = 0
+B_check_duration_days = 0
+C_check_duration_days = 5
+D_check_duration_days = 10
+
 
 NUM_Checks = 4
 # All_Check_List = list(range(1, NUM_Checks+1))
@@ -370,7 +376,12 @@ All_Check_durations ={
     All_Check_List[3]: D_check_duration
 }
 
-
+All_Check_durations_days ={
+    All_Check_List[0]: A_check_duration_days,
+    All_Check_List[1]: B_check_duration_days,
+    All_Check_List[2]: C_check_duration_days,
+    All_Check_List[3]: D_check_duration_days
+}
 
 # All_Check_List = ["Acheck"]
 
@@ -525,7 +536,9 @@ model.maint_spacing2 = ConstraintList()
 for check in All_Check_List:
     for j in model.P:
         days_without_checks = int(All_Check_days[check] - All_Checks2[check][j])
-        # print(days_without_checks)
+        if days_without_checks >= len(model.D):
+            continue
+        print("days check", days_without_checks)
         model.maint_spacing2.add(sum(model.y[j, r, check] for r in Days[:days_without_checks]) >= 1)
 
 
@@ -561,6 +574,27 @@ model.maint_block_checks = ConstraintList()
 for j in model.P:
     for d in model.D:
         model.maint_block_checks.add(sum(model.y[j, d, check] for check in All_Check_List) <= 1)
+
+
+# Constraint - my version of check length
+model.maint_block_checks2 = ConstraintList()
+for j in model.P:
+    for check in All_Check_List:
+        if All_Check_durations_days[check] == 0:
+            continue
+
+        for d in range(len(Days)):
+            K = min(d + All_Check_durations_days[check], len(Days))
+            print([Days[x] for x in range(d + 1, K)])
+            if d==0:
+                model.maint_block_checks2.add(
+                    sum(model.y[j, Days[d1], check] for d1 in range(1, K)) + Mbig * (1 - model.y[j, Days[0], check]) >= K-1)
+                continue
+            if d>=K:
+                 continue
+
+            model.maint_block_checks2.add(sum(model.y[j, Days[d1], check] for d1 in range(d+1,K)) + Mbig*model.y[j, Days[d-1], check] +Mbig*(1-model.y[j, Days[d], check]) >= K-d-1)
+
 
 # Constraint no flight during checks
 # for j in model.P:
@@ -600,9 +634,32 @@ for check in model.C:
 
         for j in model.P:
             if DEBUG:
-                print("figths", i, "plane", j, "port", airport, "day", d, "t:", t_arr, t_arr + All_Check_durations[check], F_dep_t_t1(airport, t_arr, t_arr + All_Check_durations[check]))
+                print("figths", i, "plane", j, "port", airport, "day", day, "t:", t_arr, t_arr + All_Check_durations[check], F_dep_t_t1(airport, t_arr, t_arr + All_Check_durations[check]))
             for i2 in F_dep_t_t1(airport, t_arr, t_arr + All_Check_durations[check]):
-                model.maint_block_flights.add(model.z[i, j, d, check] + model.x[i2, j] <= 1)
+                model.maint_block_flights.add(model.z[i, j, day, check] + model.x[i2, j] <= 1)
+
+model.maint_block_flights2 = ConstraintList()
+for check in model.C:
+    if All_Check_durations_days[check]<=1:
+        continue
+    for i in model.F:
+        t_arr = flight_data[i]['arrivalTime']
+        day = flight_data[i]['day']
+        print("day", day)
+        # day = Days.index(day)
+        # print(day)
+        if day == 1:
+            continue
+        airport = flight_data[i]['origin']
+        if airport not in MA:
+            continue
+
+        for j in model.P:
+            if DEBUG and check=="Dcheck" and j==3:
+                print("CVheck figths", i, "plane", j, "port", airport, "day", day, "t:", t_arr, t_arr + All_Check_durations[check], F_dep_t_t1(airport, t_arr, t_arr + All_Check_durations[check]))
+
+            model.maint_block_flights2.add(model.y[j, day-1, check] + model.y[j, day, check] + model.x[i, j] <= 2)
+
 
 # Solve
 solver = SolverFactory('cplex')  # Or 'cbc', 'glpk', etc.
@@ -618,7 +675,7 @@ for i in model.F:
             for c in model.C:
                 if value(model.z[i, j, d, c]) > 0.5:
                     print(f"In this flight Plane {j} goes to check {c[0]} on day {d}")
-                # print(value(model.y[j, d, c]),end=",")
+                # (value(model.y[j, d, c]),end=",")
             # print("\t",end="")
 
 print(f"Total Cost: {value(model.obj)}")

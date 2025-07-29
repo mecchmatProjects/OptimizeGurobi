@@ -1,0 +1,42 @@
+Hello, dear Arun!
+I am sending my solution of your problem:
+1) Python file (uses Pyomo package and cplex as solver) 
+2) Solution result for the data you gave me
+Please beware, that I had to modify som input data for uniformity of units:
+departureTime/arrivalTime in minutes, days is considred counting from 7th since 
+it is the earliest flight in these data, while A/B/C/D-checks are in hours of previous flights,
+ Maintenance thresholds are in hours, while Maintenance durations are in minutes again.
+Maintenance costs and capacity is taken as 100 and 2 respectively.
+The constraints for counting pevious flights, no double checks and no flight during checks 
+are absent in the paper and I think required adjustments comaporing to CP version you sent.
+
+Regards, Viktor
+
+
+Hello, dear Arun!
+I am sending my updates to the solution of the problem:
+1) Fix minor bugs connected with non-uniformity of time units in (13-14) conditions
+2) Added non-strict constraint as you proposed for penalty of premature check-up
+(though not sure it is the right approach here). I added it as Premature_Check_penalty array - we add to objective function corresponding penalties for
+extra days (I penalized only 5 days here)
+
+Thanks for the cooperation,
+regards, Viktor
+
+
+
+Hello, dear Arun!
+I made the updates to criteria regarding the difference in checks - some new criteria created.
+In order to keep the uniformity we have now two arrays for check:
+Acheck/Bcheck/Cchekc/Dcheck - which are "flying hours since last check"
+and Acheck_days/Bcheck_days/Ccheck_days/Dcheck_days which are "elapsed days since last check"
+
+I am sending my updates to the solution of the problem and results for your data.
+Thanks for the visualization snippet - it really helps. 
+
+Best regards, Viktor
+
+ 
+
+
+

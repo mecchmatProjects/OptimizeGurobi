@@ -2,7 +2,7 @@ from pyomo.environ import *
 from pyomo.opt import SolverFactory
 
 
-DEBUG = True
+DEBUG = False
 
 # Inputs ---
 
@@ -293,6 +293,9 @@ Bcheck_days = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0}
 Ccheck_days = {0: 20.0, 1: 20.0, 2: 538.0, 3: 20.0, 4: 20.0, 5: 20.0, 6: 20.0, 7: 20.0, 8: 20.0, 9: 20.0}
 Dcheck_days = {0: 20.0, 1: 20.0, 2: 20.0, 3: 1823.0, 4: 20.0, 5: 20.0, 6: 20.0, 7: 20.0, 8: 20.0, 9: 20.0}
 
+Acheck ={0: 390.0, 1: 360.0, 2: 350.0, 3: 380.0, 4: 395.0, 5: 340.0, 6: 380.0, 7: 385.0, 8: 375.0, 9: 390.0}
+Bcheck = {0: 590.0, 1: 594.0, 2: 580.0, 3: 570.0, 4: 575.0, 5: 585.0, 6: 591.0, 7: 595.0, 8: 500.0, 9: 520.0}
+
 # Tmax = 8 * 60  # in minutes
 # nu = 15
 # dmax = 3
@@ -321,13 +324,14 @@ B_check_duration = 16 * 60
 C_check_duration = 5 * 24 * 60
 D_check_duration = 10 * 24 * 60
 
-# Maintenance durations
+# Maintenance durations for days
 A_check_duration_days = 0
 B_check_duration_days = 0
 C_check_duration_days = 5
 D_check_duration_days = 10
 
 
+# Generalized lists
 NUM_Checks = 4
 # All_Check_List = list(range(1, NUM_Checks+1))
 All_Check_List = ["Acheck","Bcheck", "Ccheck", "Dcheck"]
@@ -337,7 +341,6 @@ All_Checks = {
     All_Check_List[2]: Ccheck,
     All_Check_List[3]: Dcheck
 }
-
 
 
 All_Check_days = {
@@ -354,7 +357,7 @@ Premature_Check_penalty = {
     All_Check_List[3]: {0:0,1:10,2:20,3:40,4:60}
 }
 
-All_Checks2 = {
+All_Checks_Done_Days = {
     All_Check_List[0]: Acheck_days,
     All_Check_List[1]: Bcheck_days,
     All_Check_List[2]: Ccheck_days,
@@ -362,7 +365,7 @@ All_Checks2 = {
 }
 
 
-All_Check_hours = {
+All_Check_Done_hours = {
     All_Check_List[0]: A_check_hours,
     All_Check_List[1]: B_check_hours,
     All_Check_List[2]: C_check_hours,
@@ -394,7 +397,7 @@ mcap = {(m, d): 2 for m in MA for d in Days}  # dummy capacity
 F_m = {m: [i for i in Flights if FlightData[i]["destination"] == m] for m in MA}  # The set of flights which departs from airport m
 
 F_arr_k = {k: [i for i in Flights if FlightData[i]["destination"] == k] for k in sorted(Airports)}  # The set of flights which land in airport k
-F_dep_k = {k: [i for i in Flights if FlightData[i]["origin"] == k] for k in sorted(Airports)}  # The set of flights which land in airport k
+F_dep_k = {k: [i for i in Flights if FlightData[i]["origin"] == k] for k in sorted(Airports)}  # The set of flights which departs from airport k
 
 # The set of flights which land in airport k before time t
 F_arr_t = lambda k, t, delta: [i for i in F_arr_k[k] if FlightData[i]["arrivalTime"] <= t - delta]
@@ -407,7 +410,7 @@ F_dep_t_t1 = lambda k, t, t1: [i for i in F_dep_k[k] if FlightData[i]["departure
 F_d = {d: [i for i in Flights if FlightData[i]["day"] == d] for d in Days}
 # The set of flights for a given day interval
 F_d_next = lambda d1, d2: [i for i in Flights if d1 < FlightData[i]["day"] <= d2]
-# The set of flights for a given day when arrivalTime greater than arrivalTime of given flight
+# The set of flights for a given day when departureTime greater than arrivalTime of given flight
 F_d_i = lambda d, i: [i2 for i2 in Flights if FlightData[i]["day"] == d and FlightData[i2]["departureTime"] > FlightData[i]["arrivalTime"]]
 
 
@@ -473,6 +476,7 @@ for j in model.P:
 
 
 # Constraint (8)
+# Maintenance blocks flights
 model.maint_last = ConstraintList()
 for check in model.C:
     for i in model.F:
@@ -482,6 +486,7 @@ for check in model.C:
                     model.maint_last.add(model.z[i, j, d, check] + model.x[i2, j] <= 1)
 
 # Constraint (9)
+# Activation for flights: we have to fly for check
 model.maint_assignment = ConstraintList()
 for check in model.C:
     for i in model.F:
@@ -490,6 +495,7 @@ for check in model.C:
                 model.maint_assignment.add(model.x[i, j] >= model.z[i, j, d, check])
 
 # Constraint (10)
+# Capacity limits for maintenances
 model.maint_capacity = ConstraintList()
 for check in model.C:
     for d in model.D:
@@ -501,6 +507,7 @@ for check in model.C:
                 )
 
 # Constraint (11)
+# Activation for maintenances checks
 model.maint_link = ConstraintList()
 for check in model.C:
     for d in model.D:
@@ -523,6 +530,7 @@ for check in model.C:
 #     model.maint_spacing0.add(sum(model.y[j, r] for r in Days[0: Acheck_start_days[j]+1]) >= 1)
 
 # Constraint (12)
+# We have checks in All_Check_days interval
 model.maint_spacing = ConstraintList()
 for check in All_Check_List:
     for j in model.P:
@@ -532,17 +540,20 @@ for check in All_Check_List:
             model.maint_spacing.add(sum(model.y[j, r, check] for r in Days[start:start + All_Check_days[check]]) >= 1)
 
 # Constraint (12 and 14 for C-D checks) we check regarding previous unchecked days
+# We need checks regarding our check days remained
 model.maint_spacing2 = ConstraintList()
 for check in All_Check_List:
     for j in model.P:
-        days_without_checks = int(All_Check_days[check] - All_Checks2[check][j])
+        days_without_checks = int(All_Check_days[check] - All_Checks_Done_Days[check][j])
         if days_without_checks >= len(model.D):
             continue
-        print("days check", days_without_checks)
+        if DEBUG:
+            print("days check", days_without_checks)
         model.maint_spacing2.add(sum(model.y[j, r, check] for r in Days[:days_without_checks]) >= 1)
 
 
 # Constraint (13)
+# Planes could not fly without checks for All_Check_Done_hours
 model.maint_cumulative = ConstraintList()
 for check in All_Check_List:
     for j in model.P:
@@ -552,12 +563,17 @@ for check in All_Check_List:
                 d_ = Days[end]
                 t_sum = sum(FlightData[i]['duration'] * model.x[i, j] for i in F_d_next(d+1, d_))
                 y_sum = sum(model.y[j, r, check] for r in Days[start+1:end])
-                model.maint_cumulative.add(t_sum <= All_Check_hours[check]*60 + Mbig * y_sum +
-                                           Mbig*(2 - model.y[j, d, check] - model.y[j, d_, check]) )
-                # model.maint_cumulative.add(t_sum <= All_Check_hours[check] * 60 + Mbig * y_sum + Mbig * model.y[j, d, check])
-                # model.maint_cumulative.add(t_sum <= All_Check_hours[check] * 60 + Mbig * y_sum + Mbig * model.y[j, d_, check])
+                # This is paper constraint (13) - however, it seems to be Wrong???!!!
+                # model.maint_cumulative.add(t_sum <= All_Check_Done_hours[check]*60 + Mbig * y_sum +
+                #                            Mbig*(2 - model.y[j, d, check] - model.y[j, d_, check]) )
 
+                # My corrected version:: either y_sum or y[j,start] and y[j,end]
+                model.maint_cumulative.add(t_sum <= All_Check_Done_hours[check] * 60 + Mbig * y_sum + Mbig * model.y[j, d, check])
+                model.maint_cumulative.add(t_sum <= All_Check_Done_hours[check] * 60 + Mbig * y_sum + Mbig * model.y[j, d_, check])
+
+# Constraint 13-1
 # Constraint for counting previous flight hours before start - my version
+# Planes could not fly without checks for All_Check_Done_hours - Previous flight hours without checks
 model.maint_cumulative_start = ConstraintList()
 for check in All_Check_List:
     for j in model.P:
@@ -566,18 +582,24 @@ for check in All_Check_List:
             d_ = Days[end]
             t_sum = sum(FlightData[i]['duration'] * model.x[i, j] for i in F_d_next(0, d_))
             y_sum = sum(model.y[j, r, check] for r in Days[:end])
-            # print(j, All_Check_hours[check], All_Checks[check][j], d, d_)
-            model.maint_cumulative_start.add(t_sum <= (All_Check_hours[check] - All_Checks[check][j])*60 + Mbig * y_sum + Mbig*(model.y[j, d_, check]))
+            if DEBUG:
+                print("Plane ", j, "unchecked hrs", All_Check_Done_hours[check], All_Checks[check][j], "start/end days",d, d_)
+            # Flight minutes is small or we have either y_sum or y[j,end]
+            model.maint_cumulative_start.add(t_sum <= (All_Check_Done_hours[check] - All_Checks[check][j]) * 60 + Mbig * y_sum + Mbig * model.y[j, d_, check])
 
+# Constraint 14??
 # Constraint - my version of no double check
+# We can have only one check simultenously per one day
 model.maint_block_checks = ConstraintList()
 for j in model.P:
     for d in model.D:
         model.maint_block_checks.add(sum(model.y[j, d, check] for check in All_Check_List) <= 1)
 
 
+# Constraint 14-1
 # Constraint - my version of check length
-model.maint_block_checks2 = ConstraintList()
+# C-D checks last for All_Check_durations_days
+model.maint_checks_days = ConstraintList()
 for j in model.P:
     for check in All_Check_List:
         if All_Check_durations_days[check] == 0:
@@ -585,17 +607,18 @@ for j in model.P:
 
         for d in range(len(Days)):
             K = min(d + All_Check_durations_days[check], len(Days))
-            print([Days[x] for x in range(d + 1, K)])
+            if DEBUG:
+                print([Days[x] for x in range(d + 1, K)])
             if d==0:
-                model.maint_block_checks2.add(
+                model.maint_checks_days.add(
                     sum(model.y[j, Days[d1], check] for d1 in range(1, K)) + Mbig * (1 - model.y[j, Days[0], check]) >= K-1)
                 continue
             if d>=K:
                  continue
 
-            model.maint_block_checks2.add(sum(model.y[j, Days[d1], check] for d1 in range(d+1,K)) + Mbig*model.y[j, Days[d-1], check] +Mbig*(1-model.y[j, Days[d], check]) >= K-d-1)
+            model.maint_checks_days.add(sum(model.y[j, Days[d1], check] for d1 in range(d + 1, K)) + Mbig * model.y[j, Days[d - 1], check] + Mbig * (1 - model.y[j, Days[d], check]) >= K - d - 1)
 
-
+# Version of CPLEX sent - not sure they are correct
 # Constraint no flight during checks
 # for j in model.P:
 #     for d in model.D:
@@ -622,7 +645,9 @@ for j in model.P:
 #                     print(j,i,d,check)
 #                     model.maint_block_flights.add(model.x[i, j] + model.y[j, d, check] <=1)
 
-# Constraint no flight during checks - my version
+# Constraint (15)
+# Constraint no flight during checks - my version\
+# For checks A-B hours
 model.maint_block_flights = ConstraintList()
 for check in model.C:
     for i in model.F:
@@ -633,32 +658,41 @@ for check in model.C:
             continue
 
         for j in model.P:
-            if DEBUG:
+            if DEBUG or check=="Bcheck" and j==0:
                 print("figths", i, "plane", j, "port", airport, "day", day, "t:", t_arr, t_arr + All_Check_durations[check], F_dep_t_t1(airport, t_arr, t_arr + All_Check_durations[check]))
             for i2 in F_dep_t_t1(airport, t_arr, t_arr + All_Check_durations[check]):
+                if DEBUG:
+                    print(i,j,day,check,i2,j)
                 model.maint_block_flights.add(model.z[i, j, day, check] + model.x[i2, j] <= 1)
 
-model.maint_block_flights2 = ConstraintList()
+
+
+# Constraint (15-1)
+# Constraint no flight during checks - my version
+# For checks C-D days
+model.maint_block_flights_days = ConstraintList()
 for check in model.C:
-    if All_Check_durations_days[check]<=1:
+    if All_Check_durations_days[check] <= 1:
         continue
     for i in model.F:
         t_arr = flight_data[i]['arrivalTime']
         day = flight_data[i]['day']
-        print("day", day)
+        if DEBUG:
+            print("day", day)
         # day = Days.index(day)
         # print(day)
         if day == 1:
             continue
         airport = flight_data[i]['origin']
-        if airport not in MA:
-            continue
+        # if airport not in MA:
+        #     continue
 
         for j in model.P:
-            if DEBUG and check=="Dcheck" and j==3:
-                print("CVheck figths", i, "plane", j, "port", airport, "day", day, "t:", t_arr, t_arr + All_Check_durations[check], F_dep_t_t1(airport, t_arr, t_arr + All_Check_durations[check]))
+            if DEBUG:
+                print("Check fligths", i, "plane", j, "port", airport, "day", day, "t:", t_arr, t_arr +
+                      All_Check_durations[check], F_dep_t_t1(airport, t_arr, t_arr + All_Check_durations[check]))
 
-            model.maint_block_flights2.add(model.y[j, day-1, check] + model.y[j, day, check] + model.x[i, j] <= 2)
+            model.maint_block_flights_days.add(model.y[j, day - 1, check] + model.y[j, day, check] + model.x[i, j] <= 2)
 
 
 # Solve

@@ -167,7 +167,8 @@ FlightData = {
         "departureTime": f["departureTime"],
         "arrivalTime": f["arrivalTime"],
         "duration": f["arrivalTime"] - f["departureTime"],
-        "day": int(f["departureTime"] // (DayShift * 60)) + 1
+        "day_departure": int(f["departureTime"] // (DayShift * 60)) + 1,
+        "day_arrival": int(f["arrivalTime"] // (DayShift * 60)) + 1,
     } for f in Flight
 }
 
@@ -407,11 +408,11 @@ F_dep_t = lambda k, t: [i for i in F_dep_k[k] if FlightData[i]["departureTime"] 
 F_dep_t_t1 = lambda k, t, t1: [i for i in F_dep_k[k] if FlightData[i]["departureTime"] > t and FlightData[i]["departureTime"] <= t1]
 
 # The set of flights for a given day
-F_d = {d: [i for i in Flights if FlightData[i]["day"] == d] for d in Days}
+F_d = {d: [i for i in Flights if FlightData[i]["day_departure"] == d] for d in Days}
 # The set of flights for a given day interval
-F_d_next = lambda d1, d2: [i for i in Flights if d1 < FlightData[i]["day"] <= d2]
+F_d_next = lambda d1, d2: [i for i in Flights if d1 < FlightData[i]["day_departure"] <= d2]
 # The set of flights for a given day when departureTime greater than arrivalTime of given flight
-F_d_i = lambda d, i: [i2 for i2 in Flights if FlightData[i]["day"] == d and FlightData[i2]["departureTime"] > FlightData[i]["arrivalTime"]]
+F_d_i = lambda d, i: [i2 for i2 in Flights if FlightData[i]["day_departure"] == d and FlightData[i2]["departureTime"] > FlightData[i]["arrivalTime"]]
 
 
 # Define model
@@ -617,7 +618,9 @@ for j in model.P:
             if d>=K:
                  continue
 
-            model.maint_checks_days.add(sum(model.y[j, Days[d1], check] for d1 in range(d + 1, K)) + Mbig * model.y[j, Days[d - 1], check] + Mbig * (1 - model.y[j, Days[d], check]) >= K - d - 1)
+            model.maint_checks_days.add(sum(model.y[j, Days[d1], check] for d1 in range(d + 1, K)) +
+                                        Mbig * model.y[j, Days[d - 1], check] +
+                                        Mbig * (1 - model.y[j, Days[d], check]) >= K - d - 1)
 
 # Version of CPLEX sent - not sure they are correct
 # Constraint no flight during checks
@@ -653,7 +656,7 @@ model.maint_block_flights = ConstraintList()
 for check in model.C:
     for i in model.F:
         t_arr = flight_data[i]['arrivalTime']
-        day = flight_data[i]['day']
+        day = flight_data[i]['day_arrival']
         airport = flight_data[i]['destination']
         if airport not in MA:
             continue
@@ -665,7 +668,7 @@ for check in model.C:
             for i2 in F_dep_t_t1(airport, t_arr, t_arr + All_Check_durations[check]):
                 if DEBUG:
                     print(i,j,day,check,i2,j)
-                for d in range(day, min(day + 2, Days[-1])):
+                for d in range(day, min(day + 1, Days[-1])):
                     model.maint_block_flights.add(model.z[i, j, d, check] + model.x[i2, j] <= 1)
                 # if day == 1 and All_Check_durations_days[check] > 1:
                 #     model.maint_block_flights.add(model.y[j, day, check] + model.x[i2, j] <= 1)
@@ -699,7 +702,7 @@ for check in model.C:
         continue
     for i in model.F:
         t_arr = flight_data[i]['arrivalTime']
-        day = flight_data[i]['day']
+        day = flight_data[i]['day_arrival']
         if DEBUG:
             print("day", day)
         # day = Days.index(day)
@@ -752,23 +755,24 @@ for j in model.P:
     for i in model.F:
         if value(model.x[i, j]) > 0.5:
             events.append((FlightData[i]['departureTime'],
-                           f"F{i}_d{FlightData[i]['day']}_{FlightData[i]['departureTime']}_{FlightData[i]['arrivalTime']}"))
+                           f"F{i}_d{FlightData[i]['day_departure']}_{FlightData[i]['departureTime']}_{FlightData[i]['arrivalTime']}"))
             events2.append((FlightData[i]['departureTime'],
-                           f"F{i}_d{FlightData[i]['day']}_{FlightData[i]['departureTime']}_{FlightData[i]['arrivalTime']}"))
+                           f"F{i}_d{FlightData[i]['day_departure']}_{FlightData[i]['departureTime']}_{FlightData[i]['arrivalTime']}"))
     # Gather all maintenance events for this aircraft (use day for sorting, ensure it follows flights on the same day)
     for d in model.D:
         for c in model.C:
             if value(model.y[j, d, c]) > 0.5:
-                dt = 0
+                dt = (d-1)*24*60
                 for i in model.F:
-                    t_arr = flight_data[i]['arrivalTime']
-                    day = flight_data[i]['day']
+
+                    day = flight_data[i]['day_arrival']
                     if day != d:
                         continue
                     airport = flight_data[i]['destination']
                     if airport not in MA:
                         continue
 
+                    t_arr = flight_data[i]['arrivalTime']
                     if value(model.z[i, j, d, c])>0.5:
                         dt = t_arr
                         break
@@ -802,17 +806,17 @@ for j in model.P:
                 'label': f'F{i}',
                 'start': FlightData[i]['departureTime'],
                 'end': FlightData[i]['arrivalTime'],
-                'day': FlightData[i]['day']
+                'day': FlightData[i]['day_departure']
             })
     # Maintenance
     for d in model.D:
         for c in model.C:
             if value(model.y[j, d, c]) > 0.5:
                 duration = All_Check_durations[c]
-                dt = 0
+                dt = (d-1)*24*60
                 for i in model.F:
                     t_arr = flight_data[i]['arrivalTime']
-                    day = flight_data[i]['day']
+                    day = flight_data[i]['day_arrival']
                     if day != d:
                         continue
                     airport = flight_data[i]['destination']
@@ -821,9 +825,10 @@ for j in model.P:
 
                     if value(model.z[i, j, d, c])>0.5:
                         dt = t_arr
+                        break
 
-                if All_Check_durations_days[c] <= 1:
-                    dt += 24*60
+                # if All_Check_durations_days[c] <= 1:
+                #     dt += 24*60
 
                 events.append({
                     'aircraft': j,

@@ -171,9 +171,9 @@ FlightData = {
     } for f in Flight
 }
 
-if DEBUG:
-    for it in FlightData.values():
-        print(it)
+if DEBUG or True:
+    for i,it in FlightData.items():
+        print(i, it)
 
 cost =[
 [6804.0,6870.0,6771.0,6804.0,6870.0,6771.0,6804.0,6870.0,6771.0,6804.0,],
@@ -344,8 +344,8 @@ All_Checks = {
 
 
 All_Check_days = {
-    All_Check_List[0]: 5,
-    All_Check_List[1]: 10,
+    All_Check_List[0]: 50,
+    All_Check_List[1]: 100,
     All_Check_List[2]: C_check_days,
     All_Check_List[3]: D_check_days
 }
@@ -438,7 +438,8 @@ model.y = Var(model.P, model.D, model.C, domain=Binary)
 # Define objective (7)
 model.obj = Objective(
     expr=sum(cost[i-1][j-1] * model.x[i, j] for i in model.F for j in model.P) +
-         sum((mc[i, j, d] + Premature_Check_penalty[check][(All_Check_days[check] - d)%5] ) * model.z[i, j, d, check] for m in model.MA for i in F_m[m] for j in model.P for d in model.D for check in model.C)
+         sum((mc[i, j, d] + Premature_Check_penalty[check][(All_Check_days[check] - d)%5]) * model.z[i, j, d, check]
+             for m in model.MA for i in F_m[m] for j in model.P for d in model.D for check in model.C)
     ,
     sense=minimize
 )
@@ -589,7 +590,7 @@ for check in All_Check_List:
 
 # Constraint 14??
 # Constraint - my version of no double check
-# We can have only one check simultenously per one day
+# We can have only one check simultenuosly per one day
 model.maint_block_checks = ConstraintList()
 for j in model.P:
     for d in model.D:
@@ -659,13 +660,35 @@ for check in model.C:
 
         for j in model.P:
             if DEBUG or check=="Bcheck" and j==0:
-                print("figths", i, "plane", j, "port", airport, "day", day, "t:", t_arr, t_arr + All_Check_durations[check], F_dep_t_t1(airport, t_arr, t_arr + All_Check_durations[check]))
+                print("figths", i, "plane", j, "port", airport, "day", day, "t:", t_arr, t_arr + All_Check_durations[check],
+                      F_dep_t_t1(airport, t_arr, t_arr + All_Check_durations[check]))
             for i2 in F_dep_t_t1(airport, t_arr, t_arr + All_Check_durations[check]):
                 if DEBUG:
                     print(i,j,day,check,i2,j)
-                model.maint_block_flights.add(model.z[i, j, day, check] + model.x[i2, j] <= 1)
+                for d in range(day, min(day + 2, Days[-1])):
+                    model.maint_block_flights.add(model.z[i, j, d, check] + model.x[i2, j] <= 1)
+                # if day == 1 and All_Check_durations_days[check] > 1:
+                #     model.maint_block_flights.add(model.y[j, day, check] + model.x[i2, j] <= 1)
 
+    t_arr = 0
+    day = Days[0]
 
+    for airport in AircraftInit.values():
+
+        if airport not in MA:
+            continue
+
+        for j in model.P:
+            if DEBUG or check == "Bcheck" and j == 0:
+                print("figths", i, "plane", j, "port", airport, "day", day, "t:", t_arr, t_arr + All_Check_durations[check],
+                      F_dep_t_t1(airport, t_arr, t_arr + All_Check_durations[check]))
+            for i2 in F_dep_t_t1(airport, 0, All_Check_durations[check]):
+                if DEBUG:
+                    print(i, j, day, check, i2, j)
+                for d in range(day, min(day + 1, Days[-1])):
+                    model.maint_block_flights.add(model.y[j, d, check] + model.x[i2, j] <= 1)
+
+# model.maint_block_flights.add(model.z[, j, d, check] + model.x[i2, j] <= 1)
 
 # Constraint (15-1)
 # Constraint no flight during checks - my version
@@ -682,6 +705,9 @@ for check in model.C:
         # day = Days.index(day)
         # print(day)
         if day == 1:
+            for j in model.P:
+               model.maint_block_flights_days.add(
+                    model.y[j, day, check] + model.x[i, j] <= 1)
             continue
         airport = flight_data[i]['origin']
         # if airport not in MA:
@@ -693,6 +719,7 @@ for check in model.C:
                       All_Check_durations[check], F_dep_t_t1(airport, t_arr, t_arr + All_Check_durations[check]))
 
             model.maint_block_flights_days.add(model.y[j, day - 1, check] + model.y[j, day, check] + model.x[i, j] <= 2)
+
 
 
 # Solve
@@ -720,21 +747,45 @@ print("\nAircraft Assignment and Maintenance Report:")
 
 for j in model.P:
     events = []
+    events2 = []
     # Gather all assigned flights for this aircraft (use departure time for sorting)
     for i in model.F:
         if value(model.x[i, j]) > 0.5:
-            events.append((FlightData[i]['departureTime'], f"F{i}"))
+            events.append((FlightData[i]['departureTime'],
+                           f"F{i}_d{FlightData[i]['day']}_{FlightData[i]['departureTime']}_{FlightData[i]['arrivalTime']}"))
+            events2.append((FlightData[i]['departureTime'],
+                           f"F{i}_d{FlightData[i]['day']}_{FlightData[i]['departureTime']}_{FlightData[i]['arrivalTime']}"))
     # Gather all maintenance events for this aircraft (use day for sorting, ensure it follows flights on the same day)
     for d in model.D:
         for c in model.C:
             if value(model.y[j, d, c]) > 0.5:
+                dt = 0
+                for i in model.F:
+                    t_arr = flight_data[i]['arrivalTime']
+                    day = flight_data[i]['day']
+                    if day != d:
+                        continue
+                    airport = flight_data[i]['destination']
+                    if airport not in MA:
+                        continue
+
+                    if value(model.z[i, j, d, c])>0.5:
+                        dt = t_arr
+                        break
+
                 # Use a large offset to sort maintenance after all flights on the same day
-                events.append((d * 1e6, f"M{c[0]}{d}"))
+                events.append((d * 1e6, f"M{c[0]}{d}_{dt}_{dt + All_Check_durations[c]}"))
+                events2.append((dt, f"M{c[0]}{d}_{dt}_{dt + All_Check_durations[c]}"))
     # Sort all events chronologically
     events.sort()
     # Format output
     events_str = ", ".join([e[1] for e in events])
     print(f"Aircraft {j}: {events_str}")
+
+    events2.sort()
+    # Format output
+    events2_str = ", ".join([e[1] for e in events2])
+    print(f"Aircraft {j}: {events2_str}")
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -750,19 +801,37 @@ for j in model.P:
                 'type': 'flight',
                 'label': f'F{i}',
                 'start': FlightData[i]['departureTime'],
-                'end': FlightData[i]['arrivalTime']
+                'end': FlightData[i]['arrivalTime'],
+                'day': FlightData[i]['day']
             })
     # Maintenance
     for d in model.D:
         for c in model.C:
             if value(model.y[j, d, c]) > 0.5:
                 duration = All_Check_durations[c]
+                dt = 0
+                for i in model.F:
+                    t_arr = flight_data[i]['arrivalTime']
+                    day = flight_data[i]['day']
+                    if day != d:
+                        continue
+                    airport = flight_data[i]['destination']
+                    if airport not in MA:
+                        continue
+
+                    if value(model.z[i, j, d, c])>0.5:
+                        dt = t_arr
+
+                if All_Check_durations_days[c] <= 1:
+                    dt += 24*60
+
                 events.append({
                     'aircraft': j,
                     'type': 'maintenance',
-                    'label': f'M{c[0]}{d}',
-                    'start': d * 24 * 60,
-                    'end': d * 24 * 60 + duration
+                    'label': f'M{c[0]}{d}_{(d-1) * 24 * 60 + dt}',
+                    'start': dt,
+                    'end':  dt + duration,
+                    'day':  d
                 })
 
 # Sort by aircraft and start time

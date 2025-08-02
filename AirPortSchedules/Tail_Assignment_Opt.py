@@ -435,6 +435,7 @@ model.C = Set(initialize=sorted(All_Check_List))
 model.x = Var(model.F, model.P, domain=Binary)
 model.z = Var(model.F, model.P, model.D, model.C, domain=Binary)
 model.y = Var(model.P, model.D, model.C, domain=Binary)
+model.mega_check = Var(model.P, model.D, model.C, domain=Binary)
 
 # Define objective (7)
 model.obj = Objective(
@@ -531,6 +532,25 @@ for check in model.C:
 #     print("j is", j, Days[0: Acheck_start_days[j]+1])
 #     model.maint_spacing0.add(sum(model.y[j, r] for r in Days[0: Acheck_start_days[j]+1]) >= 1)
 
+
+model.maint_hierarchy = ConstraintList()
+
+CHECK_HIERARCHY ={
+    "Acheck": ["Acheck", "Bcheck", "Ccheck", "Dcheck"],
+    "Bcheck": ["Bcheck", "Ccheck", "Dcheck"],
+    "Ccheck": ["Ccheck", "Dcheck"],
+    "Dcheck": ["Dcheck"]
+}
+
+for j in model.P:
+    for d in model.D:
+        for c in model.C:
+            model.maint_hierarchy.add(model.mega_check[j, d, c] <=
+                                   sum(model.y[j, d, check] for check in CHECK_HIERARCHY[c]))
+            model.maint_hierarchy.add(len(CHECK_HIERARCHY) *  model.mega_check[j, d, c] >=
+                                  sum(model.y[j, d, check] for check in CHECK_HIERARCHY[c]))
+
+
 # Constraint (12)
 # We have checks in All_Check_days interval
 model.maint_spacing = ConstraintList()
@@ -539,7 +559,7 @@ for check in All_Check_List:
         # print("j=",j, All_Check_days[check], len(Days) -1)
         for start in range(0, len(Days)- All_Check_days[check]-1):
             # print("checks", start, min(start + All_Check_days[check], len(Days)-1), Days[start:start + All_Check_days[check]])
-            model.maint_spacing.add(sum(model.y[j, r, check] for r in Days[start:start + All_Check_days[check]]) >= 1)
+            model.maint_spacing.add(sum(model.mega_check[j, r, check] for r in Days[start:start + All_Check_days[check]]) >= 1)
 
 # Constraint (12 and 14 for C-D checks) we check regarding previous unchecked days
 # We need checks regarding our check days remained
@@ -551,7 +571,7 @@ for check in All_Check_List:
             continue
         if DEBUG:
             print("days check", days_without_checks)
-        model.maint_spacing2.add(sum(model.y[j, r, check] for r in Days[:days_without_checks]) >= 1)
+        model.maint_spacing2.add(sum(model.mega_check[j, r, check] for r in Days[:days_without_checks]) >= 1)
 
 
 # Constraint (13)
@@ -564,14 +584,14 @@ for check in All_Check_List:
                 d = Days[start]
                 d_ = Days[end]
                 t_sum = sum(FlightData[i]['duration'] * model.x[i, j] for i in F_d_next(d+1, d_))
-                y_sum = sum(model.y[j, r, check] for r in Days[start+1:end])
+                y_sum = sum(model.mega_check[j, r, check] for r in Days[start+1:end])
                 # This is paper constraint (13) - however, it seems to be Wrong???!!!
-                # model.maint_cumulative.add(t_sum <= All_Check_Done_hours[check]*60 + Mbig * y_sum +
-                #                            Mbig*(2 - model.y[j, d, check] - model.y[j, d_, check]) )
+                model.maint_cumulative.add(t_sum <= All_Check_Done_hours[check]*60 + Mbig * y_sum +
+                                           Mbig*(2 - model.mega_check[j, d, check] - model.mega_check[j, d_, check]) )
 
                 # My corrected version:: either y_sum or y[j,start] and y[j,end]
-                model.maint_cumulative.add(t_sum <= All_Check_Done_hours[check] * 60 + Mbig * y_sum + Mbig * model.y[j, d, check])
-                model.maint_cumulative.add(t_sum <= All_Check_Done_hours[check] * 60 + Mbig * y_sum + Mbig * model.y[j, d_, check])
+                model.maint_cumulative.add(t_sum <= All_Check_Done_hours[check] * 60 + Mbig * y_sum + Mbig * model.mega_check[j, d, check])
+                model.maint_cumulative.add(t_sum <= All_Check_Done_hours[check] * 60 + Mbig * y_sum + Mbig * model.mega_check[j, d_, check])
 
 # Constraint 13-1
 # Constraint for counting previous flight hours before start - my version
@@ -583,11 +603,13 @@ for check in All_Check_List:
             d = Days[0]
             d_ = Days[end]
             t_sum = sum(FlightData[i]['duration'] * model.x[i, j] for i in F_d_next(0, d_))
-            y_sum = sum(model.y[j, r, check] for r in Days[:end])
+            y_sum = sum(model.mega_check[j, r, check] for r in Days[:end])
             if DEBUG:
                 print("Plane ", j, "unchecked hrs", All_Check_Done_hours[check], All_Checks[check][j], "start/end days",d, d_)
             # Flight minutes is small or we have either y_sum or y[j,end]
-            model.maint_cumulative_start.add(t_sum <= (All_Check_Done_hours[check] - All_Checks[check][j]) * 60 + Mbig * y_sum + Mbig * model.y[j, d_, check])
+            model.maint_cumulative_start.add(t_sum <= (All_Check_Done_hours[check] - All_Checks[check][j]) * 60 +
+                                             Mbig * y_sum +
+                                             Mbig * model.mega_check[j, d_, check])
 
 # Constraint 14??
 # Constraint - my version of no double check
@@ -613,14 +635,15 @@ for j in model.P:
                 print([Days[x] for x in range(d + 1, K)])
             if d==0:
                 model.maint_checks_days.add(
-                    sum(model.y[j, Days[d1], check] for d1 in range(1, K)) + Mbig * (1 - model.y[j, Days[0], check]) >= K-1)
+                    sum(model.mega_check[j, Days[d1], check] for d1 in range(1, K)) +
+                    Mbig * (1 - model.mega_check[j, Days[0], check]) >= K-1)
                 continue
             if d>=K:
                  continue
 
-            model.maint_checks_days.add(sum(model.y[j, Days[d1], check] for d1 in range(d + 1, K)) +
-                                        Mbig * model.y[j, Days[d - 1], check] +
-                                        Mbig * (1 - model.y[j, Days[d], check]) >= K - d - 1)
+            model.maint_checks_days.add(sum(model.mega_check[j, Days[d1], check] for d1 in range(d + 1, K)) +
+                                        Mbig * model.mega_check[j, Days[d - 1], check] +
+                                        Mbig * (1 - model.mega_check[j, Days[d], check]) >= K - d - 1)
 
 # Version of CPLEX sent - not sure they are correct
 # Constraint no flight during checks
@@ -668,7 +691,7 @@ for check in model.C:
             for i2 in F_dep_t_t1(airport, t_arr, t_arr + All_Check_durations[check]):
                 if DEBUG:
                     print(i,j,day,check,i2,j)
-                for d in range(day, min(day + 1, Days[-1])):
+                for d in range(day, min(day + 2, Days[-1])):
                     model.maint_block_flights.add(model.z[i, j, d, check] + model.x[i2, j] <= 1)
                 # if day == 1 and All_Check_durations_days[check] > 1:
                 #     model.maint_block_flights.add(model.y[j, day, check] + model.x[i2, j] <= 1)
@@ -689,7 +712,7 @@ for check in model.C:
                 if DEBUG:
                     print(i, j, day, check, i2, j)
                 for d in range(day, min(day + 1, Days[-1])):
-                    model.maint_block_flights.add(model.y[j, d, check] + model.x[i2, j] <= 1)
+                    model.maint_block_flights.add(model.mega_check[j, d, check] + model.x[i2, j] <= 1)
 
 # model.maint_block_flights.add(model.z[, j, d, check] + model.x[i2, j] <= 1)
 
@@ -710,7 +733,7 @@ for check in model.C:
         if day == 1:
             for j in model.P:
                model.maint_block_flights_days.add(
-                    model.y[j, day, check] + model.x[i, j] <= 1)
+                    model.mega_check[j, day, check] + model.x[i, j] <= 1)
             continue
         airport = flight_data[i]['origin']
         # if airport not in MA:
@@ -721,7 +744,7 @@ for check in model.C:
                 print("Check fligths", i, "plane", j, "port", airport, "day", day, "t:", t_arr, t_arr +
                       All_Check_durations[check], F_dep_t_t1(airport, t_arr, t_arr + All_Check_durations[check]))
 
-            model.maint_block_flights_days.add(model.y[j, day - 1, check] + model.y[j, day, check] + model.x[i, j] <= 2)
+            model.maint_block_flights_days.add(model.mega_check[j, day - 1, check] + model.mega_check[j, day, check] + model.x[i, j] <= 2)
 
 
 

@@ -12,6 +12,7 @@ DEBUG = False
 # Inputs ---
 
 TEST_DIR = "TestsData"
+OUT_DIR = "OUT"
 
 
 def parse_airline_data(file_path):
@@ -116,8 +117,8 @@ if __name__ == "__main__":
             if len(fname) > 3 and fname.endswith(".dat"):
                 data = parse_airline_data(os.path.join(root,fname))
 
-                output_file_txt = os.path.join("OUT", fname[:-4] + "_result.txt")
-                output_file_pic = os.path.join("OUT", fname[:-4] + "_result.png")
+                output_file_txt = os.path.join(OUT_DIR, fname[:-4] + "_result.txt")
+                output_file_pic = os.path.join(OUT_DIR, fname[:-4] + "_result.png")
 
                 params = {}
                 for part in fname.split('_'):
@@ -641,6 +642,41 @@ if __name__ == "__main__":
                 # Solve
                 solver = SolverFactory('cplex')  # Or 'cbc', 'glpk', etc.
                 results = solver.solve(model)
+                # Extract and print solver statistics
+
+                print("\n# # # Residual Gap at CPU # # Residual Gap at CPU")
+                print("Var\tConst\tNodes\tgap (%)\troot (%)\t(sec)")
+
+                if hasattr(results, 'solver') and results.solver:
+                    # Extract basic statistics
+                    nVar = len(list(model.component_data_objects(ctype=Var)))
+                    nConst = len(list(model.component_data_objects(ctype=Constraint)))
+
+                    # Extract solver-specific statistics
+                    nodes = getattr(results.solver, 'num_nodes', '-')
+                    cpu_time = getattr(results.solver, 'time', '-')
+
+                    # Extract and format gap
+                    gap = getattr(results.solver, 'gap', None)
+                    gap_str = f"{gap * 100:.4f}%" if gap is not None else '-'
+
+                    # Manually calculate gap if attribute not available
+                    best_integer = results.problem.lower_bound
+                    best_bound = results.problem.upper_bound
+                    if best_integer is not None and best_bound is not None:
+                        gap = abs(best_integer - best_bound) / abs(best_integer)
+                        gap_str = f"{gap * 100:.4f}%" if gap is not None else '-'
+
+                    # Print statistics row
+                    print(f"{nVar}\t{nConst}\t{nodes}\t{gap_str}\t-\t{cpu_time:.2f}")
+                else:
+                    print("-\t-\t-\t-\t-\t-  (Solver statistics not available)")
+
+                # Print termination status
+                term_cond = results.solver.termination_condition
+                print(f"\nTermination Condition: {term_cond}")
+                if term_cond != TerminationCondition.optimal:
+                    print("Warning: Solution is not optimal!")
 
                 print("\nAssignment Results:")
                 for i in model.F:

@@ -1,3 +1,4 @@
+import os
 import re
 from collections import defaultdict
 
@@ -16,8 +17,10 @@ def parse_airline_data(file_path):
 
     # Helper function to parse matrix
     def parse_matrix(s):
-        return [[float(x.strip()) for x in row.split(',') if x.strip()]
-                for row in re.findall(r'\[([^\]]+)\]', s)]
+        return [
+            [float(x.strip()) for x in row.split(',') if x.strip()]
+            for row in re.findall(r'\[([^\]]*)\][,\s]*', s)
+        ]
 
     # Parse Airports
     airports_match = re.search(r'Airports\s*=\s*{([^}]+)};', content)
@@ -49,11 +52,18 @@ def parse_airline_data(file_path):
 
 
     # Parse Cost matrix
-    # cost_match = re.search(r'Cost\s*=\s*\[([^\]]+)\];', content, re.DOTALL)
+    #cost_match = re.search(r'\s*Cost\s*=\[()\];', content)
+    # cost_match = re.search(r'Cost\s*=\s*\[(.*?)\]\s*;', content, re.DOTALL)
+    # print(cost_match)
     # cost = parse_matrix(cost_match.group(0)) if cost_match else []
+
+    cost_match = re.search(r'Cost\s*=\s*\[(.*?)\]\s*;', content, re.DOTALL)
+    print(cost_match)
+    cost = parse_matrix(cost_match.group(1)) if cost_match else []
 
     # Parse Aircraft initial positions
     aircraft_match = re.search(r'Aircraft\s*=\s*\[([^\]]+)\];', content)
+    print(aircraft_match)
     aircraft_tuples = parse_tuples(aircraft_match.group(1)) if aircraft_match else []
     a0 = {}
     for t in aircraft_tuples:
@@ -85,7 +95,7 @@ def parse_airline_data(file_path):
         "Flights": Flights,
         "Flight": Flight,
         "Aircrafts": Aircrafts,
-        # "cost": cost,
+        "cost": cost,
         "a0": a0,
         "MA": MA,
         "Days": Days,
@@ -98,18 +108,36 @@ def parse_airline_data(file_path):
 
 # Example usage
 if __name__ == "__main__":
-    data = parse_airline_data("test_full.txt")
+
+    TEST_DIR = "TestsData"
+    data = parse_airline_data("test_000.dat")
 
     # Access parsed data
     print("Airports:", data["Airports"])
     print("Number of flights:", data["Nbflight"])
     print("Flight details:")
     for val in data["Flight"]:
-        print(val,",")
-    # print("Cost matrix sample:", data["cost"][0][:2])
+        print(val, ",")
+    print("Cost matrix sample:", data["cost"])
     print("Initial aircraft positions:", data["a0"])
     print("Maintenance airports:", data["MA"])
     print("A-checks:", data["Acheck"])
-    print("A-checks:", data["Bcheck"])
-    print("A-checks:", data["Ccheck"])
-    print("A-checks:", data["Dcheck"])
+    print("B-checks:", data["Bcheck"])
+    print("C-checks:", data["Ccheck"])
+    print("D-checks:", data["Dcheck"])
+
+    for root, dirs, files in os.walk(TEST_DIR):
+        for fname in files:
+            if len(fname) > 3 and fname.endswith(".dat"):
+                data = parse_airline_data(os.path.join(root,fname))
+                # Access parsed data
+                print("Airports:", data["Airports"])
+                print("Number of flights:", data["Nbflight"])
+                print("Flight details:")
+                for val in data["Flight"]:
+                    print(val, ",")
+                print("Cost matrix sample:", data["cost"])
+                print("Initial aircraft positions:", data["a0"])
+
+
+

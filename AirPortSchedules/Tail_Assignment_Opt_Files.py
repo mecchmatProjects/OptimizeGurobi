@@ -7,7 +7,7 @@ from pyomo.environ import *
 from pyomo.opt import SolverFactory
 
 
-DEBUG = True
+DEBUG = False
 
 # Inputs ---
 
@@ -115,6 +115,20 @@ if __name__ == "__main__":
         for fname in files:
             if len(fname) > 3 and fname.endswith(".dat"):
                 data = parse_airline_data(os.path.join(root,fname))
+
+                output_file_txt = os.path.join("OUT", fname[:-4] + "_result.txt")
+                output_file_pic = os.path.join("OUT", fname[:-4] + "_result.png")
+
+                params = {}
+                for part in fname.split('_'):
+                    if '=' in part:
+                        key, val = part.split('=', 1)
+                        params[key] = val
+
+                density = float(params.get('density', 0))
+                p = int(params.get('p', 0))
+                h = int(params.get('h', 0))
+
                 # Access parsed data
                 print("Airports:", data["Airports"])
                 print("Number of flights:", data["Nbflight"])
@@ -129,7 +143,6 @@ if __name__ == "__main__":
                 Nbflight = data["Nbflight"]
                 Aircrafts = data["Aircrafts"]
                 print(Aircrafts)
-                input()
 
                 DayShift = 24 # Consider shift as day with 24 hrs
 
@@ -164,9 +177,11 @@ if __name__ == "__main__":
                 cost = data["cost"]
                 AircraftInit = data["a0"]
 
-                MAX_DAYS = max(8, FlightData.values()["day_arrival"])
+                MAX_DAYS = max([y["day_arrival"] for x,y in FlightData.items()])+1
+                print(MAX_DAYS)
+                MAX_DAYS = max(8, MAX_DAYS)
 
-                Days = list(range(1, MAX_DAYS * int(24 / DayShift)))
+                Days = list(range(1, MAX_DAYS * int(24.1 / DayShift)))
 
                 print(cost[:2])
                 print(AircraftInit)
@@ -625,7 +640,7 @@ if __name__ == "__main__":
 
                 # Solve
                 solver = SolverFactory('cplex')  # Or 'cbc', 'glpk', etc.
-                solver.solve(model)
+                results = solver.solve(model)
 
                 print("\nAssignment Results:")
                 for i in model.F:
@@ -642,127 +657,133 @@ if __name__ == "__main__":
 
                 print(f"Total Cost: {value(model.obj)}")
 
+                with open(output_file_txt,"w") as file_out:
+                    print("File", output_file_txt)
 
+                    print("\nAircraft Assignment and Maintenance Report:\n", file=file_out)
 
-                print("\nAircraft Assignment and Maintenance Report:")
+                    for j in model.P:
+                        events = []
+                        events2 = []
+                        # Gather all assigned flights for this aircraft (use departure time for sorting)
+                        for i in model.F:
+                            if value(model.x[i, j]) > 0.5:
+                                events.append((FlightData[i]['departureTime'],
+                                               f"F{i}_d{FlightData[i]['day_departure']}_{FlightData[i]['departureTime']}_{FlightData[i]['arrivalTime']}"))
+                                events2.append((FlightData[i]['departureTime'],
+                                               f"F{i}_d{FlightData[i]['day_departure']}_{FlightData[i]['departureTime']}_{FlightData[i]['arrivalTime']}"))
+                        # Gather all maintenance events for this aircraft (use day for sorting, ensure it follows flights on the same day)
+                        for d in model.D:
+                            for c in model.C:
+                                if value(model.y[j, d, c]) > 0.5:
+                                    dt = (d-1)*24*60
+                                    for i in model.F:
 
-                for j in model.P:
+                                        day = flight_data[i]['day_arrival']
+                                        if day != d:
+                                            continue
+                                        airport = flight_data[i]['destination']
+                                        if airport not in MA:
+                                            continue
+
+                                        t_arr = flight_data[i]['arrivalTime']
+                                        if value(model.z[i, j, d, c])>0.5:
+                                            dt = t_arr
+                                            break
+
+                                    # Use a large offset to sort maintenance after all flights on the same day
+                                    events.append((d * 1e6, f"M{c[0]}{d}_{dt}_{dt + All_Check_durations[c]}"))
+                                    events2.append((dt, f"M{c[0]}{d}_{dt}_{dt + All_Check_durations[c]}"))
+                        # Sort all events chronologically
+                        events.sort()
+                        # Format output
+                        events_str = ", ".join([e[1] for e in events])
+                        print(f"Aircraft {j}: {events_str}")
+
+                        events2.sort()
+                        # Format output
+                        events2_str = ", ".join([e[1] for e in events2])
+                        print(f"Aircraft {j}: {events2_str}", file=file_out)
+
+                    import matplotlib.pyplot as plt
+                    import matplotlib.patches as mpatches
+
+                    # Prepare data (replace with your actual solution extraction)
                     events = []
-                    events2 = []
-                    # Gather all assigned flights for this aircraft (use departure time for sorting)
-                    for i in model.F:
-                        if value(model.x[i, j]) > 0.5:
-                            events.append((FlightData[i]['departureTime'],
-                                           f"F{i}_d{FlightData[i]['day_departure']}_{FlightData[i]['departureTime']}_{FlightData[i]['arrivalTime']}"))
-                            events2.append((FlightData[i]['departureTime'],
-                                           f"F{i}_d{FlightData[i]['day_departure']}_{FlightData[i]['departureTime']}_{FlightData[i]['arrivalTime']}"))
-                    # Gather all maintenance events for this aircraft (use day for sorting, ensure it follows flights on the same day)
-                    for d in model.D:
-                        for c in model.C:
-                            if value(model.y[j, d, c]) > 0.5:
-                                dt = (d-1)*24*60
-                                for i in model.F:
-
-                                    day = flight_data[i]['day_arrival']
-                                    if day != d:
-                                        continue
-                                    airport = flight_data[i]['destination']
-                                    if airport not in MA:
-                                        continue
-
-                                    t_arr = flight_data[i]['arrivalTime']
-                                    if value(model.z[i, j, d, c])>0.5:
-                                        dt = t_arr
-                                        break
-
-                                # Use a large offset to sort maintenance after all flights on the same day
-                                events.append((d * 1e6, f"M{c[0]}{d}_{dt}_{dt + All_Check_durations[c]}"))
-                                events2.append((dt, f"M{c[0]}{d}_{dt}_{dt + All_Check_durations[c]}"))
-                    # Sort all events chronologically
-                    events.sort()
-                    # Format output
-                    events_str = ", ".join([e[1] for e in events])
-                    print(f"Aircraft {j}: {events_str}")
-
-                    events2.sort()
-                    # Format output
-                    events2_str = ", ".join([e[1] for e in events2])
-                    print(f"Aircraft {j}: {events2_str}")
-
-                import matplotlib.pyplot as plt
-                import matplotlib.patches as mpatches
-
-                # Prepare data (replace with your actual solution extraction)
-                events = []
-                for j in model.P:
-                    # Flights
-                    for i in model.F:
-                        if value(model.x[i, j]) > 0.5:
-                            events.append({
-                                'aircraft': j,
-                                'type': 'flight',
-                                'label': f'F{i}',
-                                'start': FlightData[i]['departureTime'],
-                                'end': FlightData[i]['arrivalTime'],
-                                'day': FlightData[i]['day_departure']
-                            })
-                    # Maintenance
-                    for d in model.D:
-                        for c in model.C:
-                            if value(model.y[j, d, c]) > 0.5:
-                                duration = All_Check_durations[c]
-                                dt = (d-1)*24*60
-                                for i in model.F:
-                                    t_arr = flight_data[i]['arrivalTime']
-                                    day = flight_data[i]['day_arrival']
-                                    if day != d:
-                                        continue
-                                    airport = flight_data[i]['destination']
-                                    if airport not in MA:
-                                        continue
-
-                                    if value(model.z[i, j, d, c])>0.5:
-                                        dt = t_arr
-                                        break
-
-                                # if All_Check_durations_days[c] <= 1:
-                                #     dt += 24*60
-
+                    for j in model.P:
+                        # Flights
+                        for i in model.F:
+                            if value(model.x[i, j]) > 0.5:
                                 events.append({
                                     'aircraft': j,
-                                    'type': 'maintenance',
-                                    'label': f'M{c[0]}{d}_{(d-1) * 24 * 60 + dt}',
-                                    'start': dt,
-                                    'end':  dt + duration,
-                                    'day':  d
+                                    'type': 'flight',
+                                    'label': f'F{i}',
+                                    'start': FlightData[i]['departureTime'],
+                                    'end': FlightData[i]['arrivalTime'],
+                                    'day': FlightData[i]['day_departure']
                                 })
+                        # Maintenance
+                        for d in model.D:
+                            for c in model.C:
+                                if value(model.y[j, d, c]) > 0.5:
+                                    duration = All_Check_durations[c]
+                                    dt = (d-1)*24*60
+                                    for i in model.F:
+                                        t_arr = flight_data[i]['arrivalTime']
+                                        day = flight_data[i]['day_arrival']
+                                        if day != d:
+                                            continue
+                                        airport = flight_data[i]['destination']
+                                        if airport not in MA:
+                                            continue
 
-                # Sort by aircraft and start time
-                events.sort(key=lambda x: (x['aircraft'], x['start']))
+                                        if value(model.z[i, j, d, c])>0.5:
+                                            dt = t_arr
+                                            break
 
-                # Plotting
-                fig, ax = plt.subplots(figsize=(15, 8))
-                flight_color = 'tab:blue'
-                maintenance_colors = {'A': 'tab:orange', 'B': 'tab:green', 'C': 'tab:red', 'D': 'tab:purple'}
-                aircraft_positions = {j: idx for idx, j in enumerate(sorted(set(e['aircraft'] for e in events)))}
+                                    # if All_Check_durations_days[c] <= 1:
+                                    #     dt += 24*60
 
-                for e in events:
-                    y = aircraft_positions[e['aircraft']]
-                    color = flight_color if e['type'] == 'flight' else maintenance_colors[e['label'][1]]
-                    ax.barh(y, e['end'] - e['start'], left=e['start'], height=0.4, color=color, edgecolor='black')
-                    ax.text(e['start'] + (e['end'] - e['start']) / 2, y, e['label'], ha='center', va='center', color='white', fontsize=8)
+                                    events.append({
+                                        'aircraft': j,
+                                        'type': 'maintenance',
+                                        'label': f'M{c[0]}{d}_{(d-1) * 24 * 60 + dt}',
+                                        'start': dt,
+                                        'end':  dt + duration,
+                                        'day':  d
+                                    })
 
-                ax.set_yticks(list(aircraft_positions.values()))
-                ax.set_yticklabels([f'Aircraft {j}' for j in sorted(aircraft_positions.keys())])
-                ax.set_xlabel('Time (minutes)')
-                ax.set_title('Aircraft Flight and Maintenance Timeline')
+                    # Sort by aircraft and start time
+                    events.sort(key=lambda x: (x['aircraft'], x['start']))
 
-                flight_patch = mpatches.Patch(color=flight_color, label='Flight')
-                maintenance_patches = [mpatches.Patch(color=clr, label=f'Maintenance {typ}') for typ, clr in maintenance_colors.items()]
-                ax.legend(handles=[flight_patch] + maintenance_patches, loc='upper right')
+                    # Plotting
+                    fig, ax = plt.subplots(figsize=(15, 8))
+                    flight_color = 'tab:blue'
+                    maintenance_colors = {'A': 'tab:orange', 'B': 'tab:green', 'C': 'tab:red', 'D': 'tab:purple'}
+                    aircraft_positions = {j: idx for idx, j in enumerate(sorted(set(e['aircraft'] for e in events)))}
 
-                plt.tight_layout()
-                plt.show()
+                    for e in events:
+                        y = aircraft_positions[e['aircraft']]
+                        color = flight_color if e['type'] == 'flight' else maintenance_colors[e['label'][1]]
+                        ax.barh(y, e['end'] - e['start'], left=e['start'], height=0.4, color=color, edgecolor='black')
+                        ax.text(e['start'] + (e['end'] - e['start']) / 2, y, e['label'], ha='center', va='center', color='white', fontsize=8)
+
+                    ax.set_yticks(list(aircraft_positions.values()))
+                    ax.set_yticklabels([f'Aircraft {j}' for j in sorted(aircraft_positions.keys())])
+                    ax.set_xlabel('Time (minutes)')
+                    ax.set_title('Aircraft Flight and Maintenance Timeline')
+
+                    flight_patch = mpatches.Patch(color=flight_color, label='Flight')
+                    maintenance_patches = [mpatches.Patch(color=clr, label=f'Maintenance {typ}') for typ, clr in maintenance_colors.items()]
+                    ax.legend(handles=[flight_patch] + maintenance_patches, loc='upper right')
+
+                    plt.tight_layout()
+                    if output_file_pic:
+                        print("save to ", output_file_pic)
+                        plt.savefig(output_file_pic)
+                    else:
+                        plt.show()
+
 
 
 

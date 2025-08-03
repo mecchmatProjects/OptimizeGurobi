@@ -518,6 +518,8 @@ for check in model.C:
         for j in model.P:
             # print(j, d, m, F_m[m])
             model.maint_link.add(sum(model.z[i, j, d, check] for i in Flights if FlightData[i]["destination"] in MA) == model.y[j, d, check])
+            model.maint_link.add(sum(model.z[i, j, d, check] for i in Flights) == model.y[j, d, check])
+
 
 
 # model.maint_spacing0 = ConstraintList()
@@ -691,10 +693,13 @@ for check in model.C:
             for i2 in F_dep_t_t1(airport, t_arr, t_arr + All_Check_durations[check]):
                 if DEBUG:
                     print(i,j,day,check,i2,j)
-                for d in range(day, min(day + 2, Days[-1])):
-                    model.maint_block_flights.add(model.z[i, j, d, check] + model.x[i2, j] <= 1)
-                # if day == 1 and All_Check_durations_days[check] > 1:
-                #     model.maint_block_flights.add(model.y[j, day, check] + model.x[i2, j] <= 1)
+                # for d in range(day, min(day + 2, Days[-1])):
+                #     model.maint_block_flights.add(model.z[i, j, d, check] + model.x[i2, j] <= 1)
+                    # if day == 1 and All_Check_durations_days[check] > 1:
+                    #     model.maint_block_flights.add(model.y[j, day, check] + model.x[i2, j] <= 1)
+
+                day2 = flight_data[i2]['day_departure']
+                model.maint_block_flights.add(model.z[i, j, day2, check] + model.x[i2, j] <= 1)
 
     t_arr = 0
     day = Days[0]
@@ -711,8 +716,9 @@ for check in model.C:
             for i2 in F_dep_t_t1(airport, 0, All_Check_durations[check]):
                 if DEBUG:
                     print(i, j, day, check, i2, j)
-                for d in range(day, min(day + 1, Days[-1])):
-                    model.maint_block_flights.add(model.mega_check[j, d, check] + model.x[i2, j] <= 1)
+                #for d in range(day, min(day + 1, Days[-1])):
+                day2 = flight_data[i2]['day_departure']
+                model.maint_block_flights.add(model.y[j, day, check] + model.x[i2, j] <= 1)
 
 # model.maint_block_flights.add(model.z[, j, d, check] + model.x[i2, j] <= 1)
 
@@ -735,16 +741,20 @@ for check in model.C:
                model.maint_block_flights_days.add(
                     model.mega_check[j, day, check] + model.x[i, j] <= 1)
             continue
+
         airport = flight_data[i]['origin']
-        # if airport not in MA:
-        #     continue
+        if airport not in MA:
+            continue
 
         for j in model.P:
             if DEBUG:
                 print("Check fligths", i, "plane", j, "port", airport, "day", day, "t:", t_arr, t_arr +
                       All_Check_durations[check], F_dep_t_t1(airport, t_arr, t_arr + All_Check_durations[check]))
 
-            model.maint_block_flights_days.add(model.mega_check[j, day - 1, check] + model.mega_check[j, day, check] + model.x[i, j] <= 2)
+            day2 = flight_data[i2]['day_departure']
+            model.maint_block_flights_days.add(model.mega_check[j, day, check] + model.mega_check[j, day2, check] + model.x[i, j] <= 2)
+            # model.maint_block_flights_days.add(
+            #      model.y[j, day2, check] + model.x[i, j] <= 1)
 
 
 

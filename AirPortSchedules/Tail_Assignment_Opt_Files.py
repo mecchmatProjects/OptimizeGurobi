@@ -698,6 +698,34 @@ if __name__ == "__main__":
 
                     print("\nAircraft Assignment and Maintenance Report:\n", file=file_out)
 
+                    print("\n# # # Residual Gap at CPU # # Residual Gap at CPU")
+                    print("Var\tConst\tNodes\tgap (%)\troot (%)\t(sec)")
+
+                    if hasattr(results, 'solver') and results.solver:
+                        # Extract basic statistics
+                        nVar = len(list(model.component_data_objects(ctype=Var)))
+                        nConst = len(list(model.component_data_objects(ctype=Constraint)))
+
+                        # Extract solver-specific statistics
+                        nodes = getattr(results.solver, 'num_nodes', '-')
+                        cpu_time = getattr(results.solver, 'time', '-')
+
+                        # Extract and format gap
+                        gap = getattr(results.solver, 'gap', None)
+                        gap_str = f"{gap * 100:.4f}%" if gap is not None else '-'
+
+                        # Manually calculate gap if attribute not available
+                        best_integer = results.problem.lower_bound
+                        best_bound = results.problem.upper_bound
+                        if best_integer is not None and best_bound is not None:
+                            gap = abs(best_integer - best_bound) / abs(best_integer)
+                            gap_str = f"{gap * 100:.4f}%" if gap is not None else '-'
+
+                        # Print statistics row
+                        print(f"{nVar:8}\t{nConst:10}\t{nodes}\t{gap_str}\t-\t{cpu_time:.2f}", file=file_out)
+                    else:
+                        print("-\t-\t-\t-\t-\t-  (Solver statistics not available)", file=file_out)
+
                     for j in model.P:
                         events = []
                         events2 = []

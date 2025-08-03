@@ -654,6 +654,7 @@ if __name__ == "__main__":
 
                     # Extract solver-specific statistics
                     nodes = getattr(results.solver, 'num_nodes', '-')
+
                     cpu_time = getattr(results.solver, 'time', '-')
 
                     # Extract and format gap
@@ -671,6 +672,20 @@ if __name__ == "__main__":
                     print(f"{nVar}\t{nConst}\t{nodes}\t{gap_str}\t-\t{cpu_time:.2f}")
                 else:
                     print("-\t-\t-\t-\t-\t-  (Solver statistics not available)")
+                print(model)
+                print(results)
+
+
+                def parse_root_gap(log_text):
+                    # Pattern for root node gap report
+                    pattern = r"Root node solution \(.*?\): ([\d.]+) \(gap = ([\d.]+)%\)"
+                    match = re.search(pattern, log_text)
+                    if match:
+                        root_obj = float(match.group(1))
+                        root_gap = float(match.group(2))
+                        return root_gap
+                    return None
+
 
                 # Print termination status
                 term_cond = results.solver.termination_condition
@@ -693,13 +708,15 @@ if __name__ == "__main__":
 
                 print(f"Total Cost: {value(model.obj)}")
 
+
+
                 with open(output_file_txt,"w") as file_out:
                     print("File", output_file_txt)
 
                     print("\nAircraft Assignment and Maintenance Report:\n", file=file_out)
 
-                    print("\n# # # Residual Gap at CPU # # Residual Gap at CPU")
-                    print("Var\tConst\tNodes\tgap (%)\troot (%)\t(sec)")
+                    print("\n# # # Residual Gap at CPU # # Residual Gap at CPU", file=file_out)
+                    print("Var\tConst\tNodes\tgap (%)\troot (%)\t(sec)", file=file_out)
 
                     if hasattr(results, 'solver') and results.solver:
                         # Extract basic statistics
@@ -707,19 +724,19 @@ if __name__ == "__main__":
                         nConst = len(list(model.component_data_objects(ctype=Constraint)))
 
                         # Extract solver-specific statistics
-                        nodes = getattr(results.solver, 'num_nodes', '-')
-                        cpu_time = getattr(results.solver, 'time', '-')
+                        nodes = getattr(results.solver, 'num_nodes', '---')
+                        cpu_time = getattr(results.solver, 'time', '---')
 
-                        # Extract and format gap
-                        gap = getattr(results.solver, 'gap', None)
-                        gap_str = f"{gap * 100:.4f}%" if gap is not None else '-'
+                        # # Extract and format gap
+                        # gap = getattr(results.solver, 'gap', None)
+                        # gap_str = f"{gap * 100:.4f}%" if gap is not None else '-'
 
                         # Manually calculate gap if attribute not available
                         best_integer = results.problem.lower_bound
                         best_bound = results.problem.upper_bound
                         if best_integer is not None and best_bound is not None:
                             gap = abs(best_integer - best_bound) / abs(best_integer)
-                            gap_str = f"{gap * 100:.4f}%" if gap is not None else '-'
+                            gap_str = f"{gap * 100:.4f}%" if gap is not None else '----'
 
                         # Print statistics row
                         print(f"{nVar:8}\t{nConst:10}\t{nodes}\t{gap_str}\t-\t{cpu_time:.2f}", file=file_out)
@@ -851,3 +868,13 @@ if __name__ == "__main__":
 
 
 
+
+# Capture solver log
+with open('cplex.log', 'w') as log_file:
+    results = solver.solve(model, tee=True, logfile='cplex.log')
+
+# Parse log
+with open('cplex.log', 'r') as f:
+    log_text = f.read()
+    root_gap = parse_root_gap(log_text)
+    print("Root gap", root_gap)

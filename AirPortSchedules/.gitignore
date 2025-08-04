@@ -1,3 +1,6 @@
 .idea
 TestsData
-OUT
+OUT/*.txt
+OUT/*.png
+*.log
+*.png

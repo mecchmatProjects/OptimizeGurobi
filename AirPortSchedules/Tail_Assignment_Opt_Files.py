@@ -14,6 +14,106 @@ DEBUG = False
 TEST_DIR = "TestsData"
 OUT_DIR = "OUT"
 
+DayShift = 24  # Consider shift as day with 24 hrs
+
+Acheck = {0: 390.0, 1: 20.0, 2: 20.0, 3: 20.0, 4: 20.0, 5: 20.0, 6: 20.0, 7: 20.0, 8: 20.0, 9: 20.0}
+Bcheck = {0: 20.0, 1: 594.0, 2: 20.0, 3: 20.0, 4: 20.0, 5: 20.0, 6: 20.0, 7: 20.0, 8: 20.0, 9: 20.0}
+Ccheck = {0: 20.0, 1: 20.0, 2: 538.0, 3: 20.0, 4: 20.0, 5: 20.0, 6: 20.0, 7: 20.0, 8: 20.0, 9: 20.0}
+Dcheck = {0: 20.0, 1: 20.0, 2: 20.0, 3: 1823.0, 4: 20.0, 5: 20.0, 6: 20.0, 7: 20.0, 8: 20.0, 9: 20.0}
+
+Acheck_days = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0}
+Bcheck_days = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0}
+Ccheck_days = {0: 20.0, 1: 20.0, 2: 538.0, 3: 20.0, 4: 20.0, 5: 20.0, 6: 20.0, 7: 20.0, 8: 20.0, 9: 20.0}
+Dcheck_days = {0: 20.0, 1: 20.0, 2: 20.0, 3: 1823.0, 4: 20.0, 5: 20.0, 6: 20.0, 7: 20.0, 8: 20.0, 9: 20.0}
+
+Acheck = {0: 390.0, 1: 360.0, 2: 350.0, 3: 380.0, 4: 395.0, 5: 340.0, 6: 380.0, 7: 385.0, 8: 375.0, 9: 390.0}
+Bcheck = {0: 590.0, 1: 594.0, 2: 580.0, 3: 570.0, 4: 575.0, 5: 585.0, 6: 591.0, 7: 595.0, 8: 500.0, 9: 520.0}
+
+# Tmax = 8 * 60  # in minutes
+# nu = 15
+# dmax = 3
+
+Mbig = 9999999
+
+min_turn = 30  # in minutes
+
+# Maintenance thresholds
+A_check_hours = 400.0
+B_check_hours = 600.0
+C_check_hours = 540 * 24
+D_check_hours = 1825 * 24
+
+# Maintenance thresholds in days
+A_check_days = int((A_check_hours + DayShift) / DayShift)
+B_check_days = int((B_check_hours + DayShift) / DayShift)
+C_check_days = 540
+D_check_days = 1825
+
+# Maintenance durations
+A_check_duration = 8 * 60
+B_check_duration = 16 * 60
+C_check_duration = 5 * 24 * 60
+D_check_duration = 10 * 24 * 60
+
+# Maintenance durations for days
+A_check_duration_days = 0
+B_check_duration_days = 0
+C_check_duration_days = 5
+D_check_duration_days = 10
+
+# Generalized lists
+NUM_Checks = 4
+# All_Check_List = list(range(1, NUM_Checks+1))
+All_Check_List = ["Acheck", "Bcheck", "Ccheck", "Dcheck"]
+All_Checks = {
+    All_Check_List[0]: Acheck,
+    All_Check_List[1]: Bcheck,
+    All_Check_List[2]: Ccheck,
+    All_Check_List[3]: Dcheck
+}
+
+All_Check_days = {
+    All_Check_List[0]: 50,
+    All_Check_List[1]: 100,
+    All_Check_List[2]: C_check_days,
+    All_Check_List[3]: D_check_days
+}
+
+Premature_Check_penalty = {
+    All_Check_List[0]: {0: 0, 1: 10, 2: 20, 3: 40, 4: 60},
+    All_Check_List[1]: {0: 0, 1: 10, 2: 20, 3: 40, 4: 60},
+    All_Check_List[2]: {0: 0, 1: 10, 2: 20, 3: 40, 4: 60},
+    All_Check_List[3]: {0: 0, 1: 10, 2: 20, 3: 40, 4: 60}
+}
+
+All_Checks_Done_Days = {
+    All_Check_List[0]: Acheck_days,
+    All_Check_List[1]: Bcheck_days,
+    All_Check_List[2]: Ccheck_days,
+    All_Check_List[3]: Dcheck_days
+}
+
+All_Check_Done_hours = {
+    All_Check_List[0]: A_check_hours,
+    All_Check_List[1]: B_check_hours,
+    All_Check_List[2]: C_check_hours,
+    All_Check_List[3]: D_check_hours
+}
+
+All_Check_durations = {
+    All_Check_List[0]: A_check_duration,
+    All_Check_List[1]: B_check_duration,
+    All_Check_List[2]: C_check_duration,
+    All_Check_List[3]: D_check_duration
+}
+
+All_Check_durations_days = {
+    All_Check_List[0]: A_check_duration_days,
+    All_Check_List[1]: B_check_duration_days,
+    All_Check_List[2]: C_check_duration_days,
+    All_Check_List[3]: D_check_duration_days
+}
+
 
 def parse_airline_data(file_path):
     with open(file_path, 'r') as f:
@@ -65,18 +165,11 @@ def parse_airline_data(file_path):
 
 
     # Parse Cost matrix
-    #cost_match = re.search(r'\s*Cost\s*=\[()\];', content)
-    # cost_match = re.search(r'Cost\s*=\s*\[(.*?)\]\s*;', content, re.DOTALL)
-    # print(cost_match)
-    # cost = parse_matrix(cost_match.group(0)) if cost_match else []
-
     cost_match = re.search(r'Cost\s*=\s*\[(.*?)\]\s*;', content, re.DOTALL)
-    print(cost_match)
     cost = parse_matrix(cost_match.group(1)) if cost_match else []
 
     # Parse Aircraft initial positions
     aircraft_match = re.search(r'Aircraft\s*=\s*\[([^\]]+)\];', content)
-    print(aircraft_match)
     aircraft_tuples = parse_tuples(aircraft_match.group(1)) if aircraft_match else []
     a0 = {}
     for t in aircraft_tuples:
@@ -101,16 +194,6 @@ def parse_airline_data(file_path):
 if __name__ == "__main__":
 
     TEST_DIR = "TestsData"
-    data = parse_airline_data("test_000.dat")
-
-    # Access parsed data
-    print("Airports:", data["Airports"])
-    print("Number of flights:", data["Nbflight"])
-    print("Flight details:")
-    for val in data["Flight"]:
-        print(val, ",")
-    print("Cost matrix sample:", data["cost"])
-    print("Initial aircraft positions:", data["a0"])
 
     for root, dirs, files in os.walk(TEST_DIR):
         for fname in files:
@@ -130,22 +213,21 @@ if __name__ == "__main__":
                 p = int(params.get('p', 0))
                 h = int(params.get('h', 0))
 
-                # Access parsed data
-                print("Airports:", data["Airports"])
-                print("Number of flights:", data["Nbflight"])
-                print("Flight details:")
-                for val in data["Flight"]:
-                    print(val, ",")
-                print("Cost matrix sample:", data["cost"])
-                print("Initial aircraft positions:", data["a0"])
-
 
                 Airports = data["Airports"]
                 Nbflight = data["Nbflight"]
                 Aircrafts = data["Aircrafts"]
-                print(Aircrafts)
 
-                DayShift = 24 # Consider shift as day with 24 hrs
+                # Access parsed data
+                if DEBUG:
+                    print("Airports:", data["Airports"])
+                    print("Number of flights:", data["Nbflight"])
+                    print("Flight details:")
+                    for val in data["Flight"]:
+                        print(val, ",")
+                    print("Cost matrix sample:", data["cost"])
+                    print("Initial aircraft positions:", data["a0"])
+                    print("Aircrafts", Aircrafts)
 
                 Flights = list(range(1, Nbflight + 1))
 
@@ -171,124 +253,25 @@ if __name__ == "__main__":
                     } for f in Flight
                 }
 
-                if DEBUG or True:
+                if DEBUG:
                     for i,it in FlightData.items():
                         print(i, it)
 
                 cost = data["cost"]
                 AircraftInit = data["a0"]
 
-                MAX_DAYS = max([y["day_arrival"] for x,y in FlightData.items()])+1
-                print(MAX_DAYS)
+                MAX_DAYS = max([y["day_arrival"] for x,y in FlightData.items()]) + 1
+
                 MAX_DAYS = max(8, MAX_DAYS)
 
                 Days = list(range(1, MAX_DAYS * int(24.1 / DayShift)))
 
-                print(cost[:2])
-                print(AircraftInit)
-
-                Acheck ={0: 390.0, 1: 20.0, 2: 20.0, 3: 20.0, 4: 20.0, 5: 20.0, 6: 20.0, 7: 20.0, 8: 20.0, 9: 20.0}
-                Bcheck = {0: 20.0, 1: 594.0, 2: 20.0, 3: 20.0, 4: 20.0, 5: 20.0, 6: 20.0, 7: 20.0, 8: 20.0, 9: 20.0}
-                Ccheck = {0: 20.0, 1: 20.0, 2: 538.0, 3: 20.0, 4: 20.0, 5: 20.0, 6: 20.0, 7: 20.0, 8: 20.0, 9: 20.0}
-                Dcheck = {0: 20.0, 1: 20.0, 2: 20.0, 3: 1823.0, 4: 20.0, 5: 20.0, 6: 20.0, 7: 20.0, 8: 20.0, 9: 20.0}
-
-                Acheck_days ={0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0}
-                Bcheck_days = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0}
-                Ccheck_days = {0: 20.0, 1: 20.0, 2: 538.0, 3: 20.0, 4: 20.0, 5: 20.0, 6: 20.0, 7: 20.0, 8: 20.0, 9: 20.0}
-                Dcheck_days = {0: 20.0, 1: 20.0, 2: 20.0, 3: 1823.0, 4: 20.0, 5: 20.0, 6: 20.0, 7: 20.0, 8: 20.0, 9: 20.0}
-
-                Acheck ={0: 390.0, 1: 360.0, 2: 350.0, 3: 380.0, 4: 395.0, 5: 340.0, 6: 380.0, 7: 385.0, 8: 375.0, 9: 390.0}
-                Bcheck = {0: 590.0, 1: 594.0, 2: 580.0, 3: 570.0, 4: 575.0, 5: 585.0, 6: 591.0, 7: 595.0, 8: 500.0, 9: 520.0}
-
-                # Tmax = 8 * 60  # in minutes
-                # nu = 15
-                # dmax = 3
-
-                Mbig = 9999999
-
-                min_turn = 30  # in minutes
-
-
-                # Maintenance thresholds
-                A_check_hours = 400.0
-                B_check_hours = 600.0
-                C_check_hours = 540 * 24
-                D_check_hours = 1825 * 24
-
-                # Maintenance thresholds in days
-                A_check_days = int((A_check_hours+DayShift) / DayShift)
-                B_check_days = int((B_check_hours+DayShift) / DayShift)
-                C_check_days = 540
-                D_check_days = 1825
-
-
-                # Maintenance durations
-                A_check_duration = 8 * 60
-                B_check_duration = 16 * 60
-                C_check_duration = 5 * 24 * 60
-                D_check_duration = 10 * 24 * 60
-
-                # Maintenance durations for days
-                A_check_duration_days = 0
-                B_check_duration_days = 0
-                C_check_duration_days = 5
-                D_check_duration_days = 10
-
-
-                # Generalized lists
-                NUM_Checks = 4
-                # All_Check_List = list(range(1, NUM_Checks+1))
-                All_Check_List = ["Acheck","Bcheck", "Ccheck", "Dcheck"]
-                All_Checks = {
-                    All_Check_List[0]: Acheck,
-                    All_Check_List[1]: Bcheck,
-                    All_Check_List[2]: Ccheck,
-                    All_Check_List[3]: Dcheck
-                }
-
-
-                All_Check_days = {
-                    All_Check_List[0]: 50,
-                    All_Check_List[1]: 100,
-                    All_Check_List[2]: C_check_days,
-                    All_Check_List[3]: D_check_days
-                }
-
-                Premature_Check_penalty = {
-                    All_Check_List[0]: {0:0,1:10,2:20,3:40,4:60},
-                    All_Check_List[1]: {0:0,1:10,2:20,3:40,4:60},
-                    All_Check_List[2]: {0:0,1:10,2:20,3:40,4:60},
-                    All_Check_List[3]: {0:0,1:10,2:20,3:40,4:60}
-                }
-
-                All_Checks_Done_Days = {
-                    All_Check_List[0]: Acheck_days,
-                    All_Check_List[1]: Bcheck_days,
-                    All_Check_List[2]: Ccheck_days,
-                    All_Check_List[3]: Dcheck_days
-                }
-
-
-                All_Check_Done_hours = {
-                    All_Check_List[0]: A_check_hours,
-                    All_Check_List[1]: B_check_hours,
-                    All_Check_List[2]: C_check_hours,
-                    All_Check_List[3]: D_check_hours
-                }
-
-                All_Check_durations ={
-                    All_Check_List[0]: A_check_duration,
-                    All_Check_List[1]: B_check_duration,
-                    All_Check_List[2]: C_check_duration,
-                    All_Check_List[3]: D_check_duration
-                }
-
-                All_Check_durations_days ={
-                    All_Check_List[0]: A_check_duration_days,
-                    All_Check_List[1]: B_check_duration_days,
-                    All_Check_List[2]: C_check_duration_days,
-                    All_Check_List[3]: D_check_duration_days
-                }
+                if DEBUG:
+                    print("MAx  days:", MAX_DAYS)
+                    print("COST:")
+                    print(cost[:2])
+                    print("Initial positions")
+                    print(AircraftInit)
 
                 # All_Check_List = ["Acheck"]
 
@@ -339,7 +322,6 @@ if __name__ == "__main__":
                 model.z = Var(model.F, model.P, model.D, model.C, domain=Binary)
                 model.y = Var(model.P, model.D, model.C, domain=Binary)
                 model.mega_check = Var(model.P, model.D, model.C, domain=Binary)
-                print(model.mega_check, model.P, model.D, model.C)
 
                 # Define objective (7)
                 model.obj = Objective(
@@ -605,7 +587,6 @@ if __name__ == "__main__":
                                 for d in range(day, min(day + 1, Days[-1])):
                                     model.maint_block_flights.add(model.mega_check[j, d, check] + model.x[i2, j] <= 1)
 
-                # model.maint_block_flights.add(model.z[, j, d, check] + model.x[i2, j] <= 1)
 
                 # Constraint (15-1)
                 # Constraint no flight during checks - my version
@@ -615,27 +596,26 @@ if __name__ == "__main__":
                     if All_Check_durations_days[check] <= 1:
                         continue
                     for i in model.F:
-                        t_arr = flight_data[i]['arrivalTime']
-                        day = flight_data[i]['day_arrival']
+                        day = flight_data[i]['day_departure']
                         if DEBUG:
                             print("day", day)
-                        # day = Days.index(day)
-                        # print(day)
-                        if day == 1:
-                            for j in model.P:
-                               model.maint_block_flights_days.add(
-                                    model.mega_check[j, day, check] + model.x[i, j] <= 1)
-                            continue
-                        airport = flight_data[i]['origin']
-                        # if airport not in MA:
+                        # # day = Days.index(day)
+                        # # print(day)
+                        # if day == 1:
+                        #     for j in model.P:
+                        #        model.maint_block_flights_days.add(
+                        #             model.mega_check[j, day, check] + model.x[i, j] <= 1)
                         #     continue
+                        airport = flight_data[i]['origin']
+                        if airport not in MA:
+                            continue
 
                         for j in model.P:
                             if DEBUG:
                                 print("Check fligths", i, "plane", j, "port", airport, "day", day, "t:", t_arr, t_arr +
                                       All_Check_durations[check], F_dep_t_t1(airport, t_arr, t_arr + All_Check_durations[check]))
-
-                            model.maint_block_flights_days.add(model.mega_check[j, day - 1, check] + model.mega_check[j, day, check] + model.x[i, j] <= 2)
+                            if day>Days[0]:
+                                model.maint_block_flights_days.add(model.y[j, day-1, check] + model.y[j, day, check] + model.x[i, j] <= 2)
 
 
 

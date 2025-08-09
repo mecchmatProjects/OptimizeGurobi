@@ -1,5 +1,7 @@
 import os
 import re
+from pathlib import Path
+
 from collections import defaultdict
 
 
@@ -8,6 +10,7 @@ from pyomo.opt import SolverFactory
 
 
 DEBUG = False
+DEBUG_15 = True
 CNT_FILE = True
 
 USE_PAPER_HRS_CHECK = True  # Use check for maintenances as in paper
@@ -208,9 +211,9 @@ def parse_airline_data(file_path):
 # Example usage
 if __name__ == "__main__":
 
-    TEST_DIR = "TestsData"
-    OUT_DIR = "OUT"
-    os.makedirs(OUT_DIR, exist_ok=True)  # Create folder if is not exist
+    # TEST_DIR = "TestsData"
+    # os.makedirs(OUT_DIR, exist_ok=True)  # Create folder if is not exist
+    Path(OUT_DIR).mkdir(parents=True, exist_ok=True)
 
     for root, dirs, files in os.walk(TEST_DIR):
         for fname in files:
@@ -315,7 +318,7 @@ if __name__ == "__main__":
                 # The set of flights for a given day interval
                 F_d_next = lambda d1, d2: [i for i in Flights if d1 < FlightData[i]["day_departure"] <= d2]
                 # The set of flights for a given day when departureTime greater than arrivalTime of given flight
-                F_d_i = lambda d, i: [i2 for i2 in Flights if FlightData[i]["day_departure"] == d and FlightData[i2]["departureTime"] > FlightData[i]["arrivalTime"]]
+                F_d_i = lambda d, i: [i2 for i2 in Flights if FlightData[i2]["day_departure"] == d and FlightData[i2]["departureTime"] > FlightData[i]["arrivalTime"]]
 
 
                 # Define model
@@ -388,6 +391,7 @@ if __name__ == "__main__":
                     for i in model.F:
                         for j in model.P:
                             for d in model.D:
+                                if 
                                 for i2 in F_d_i(d, i):
                                     model.maint_last.add(model.z[i, j, d, check] + model.x[i2, j] <= 1)
 
@@ -421,6 +425,9 @@ if __name__ == "__main__":
                         for j in model.P:
                             # print(j, d, m, F_m[m])
                             model.maint_link.add(sum(model.z[i, j, d, check] for i in Flights if FlightData[i]["destination"] in MA) == model.y[j, d, check])
+                            model.maint_link.add(
+                                sum(model.z[i, j, d, check] for i in Flights) ==
+                                model.y[j, d, check])
 
 
                 model.maint_hierarchy = ConstraintList()
@@ -452,7 +459,7 @@ if __name__ == "__main__":
                     for check in All_Check_List:
                         for j in model.P:
                             # print("j=",j, All_Check_days[check], len(Days) -1)
-                            for start in range(0, len(Days)- All_Check_days[check]-1):
+                            for start in range(0, len(Days) - All_Check_days[check]-1):
                                 if DEBUG:
                                     print("checks", start, min(start + All_Check_days[check], len(Days)-1), Days[start:start + All_Check_days[check]])
                                 model.maint_spacing.add(sum(model.mega_check[j, r, check] for r in Days[start:start + All_Check_days[check]]) >= 1)
@@ -585,11 +592,11 @@ if __name__ == "__main__":
                             continue
 
                         for j in model.P:
-                            if DEBUG:  # or check=="Bcheck" and j==0:
+                            if DEBUG_15:  # or check=="Bcheck" and j==0:
                                 print("figths", i, "plane", j, "port", airport, "day", day, "t:", t_arr, t_arr + All_Check_durations[check],
                                       F_dep_t_t1(airport, t_arr, t_arr + All_Check_durations[check]))
                             for i2 in F_dep_t_t1(airport, t_arr, t_arr + All_Check_durations[check]):
-                                if DEBUG:
+                                if DEBUG_15:
                                     print(i,j,day,check,i2,j)
                                 #for d in range(day, min(day + 2, Days[-1])):
                                 day2 = flight_data[i2]['day_departure']
@@ -872,8 +879,8 @@ if __name__ == "__main__":
                     else:
                         plt.show()
 
-                # if CNT_FILE > 0:
-                #     input()
+                if CNT_FILE > 0:
+                    input()
 
 #             if CNT_FILE > 0:
 #                 break

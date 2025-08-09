@@ -18,9 +18,11 @@ USE_UPDATED_HRS_CHECKS = False  # Use check updated version for maintenances
 USE_EXISTING_HRS_CHECK = True  # Use hrs check counting of elapsed flight hrs
 
 USE_DAYS_CHECKS = True  # Use check version for maintenances with days threshold
-USE_EXISTING_DAYS_CHECKS = True   # Use check version for maintenances with days threshold with elapsed days
+USE_EXISTING_DAYS_CHECKS = False   # Use check version for maintenances with days threshold with elapsed days
 
 USE_CHECK_HIERARCHY = False  # If we use D check - we reload other checks too, C check - reloads A,B, B - reloads A
+
+USE_CHECKS_SANITY = True
 
 # Inputs ---
 
@@ -391,9 +393,27 @@ if __name__ == "__main__":
                     for i in model.F:
                         for j in model.P:
                             for d in model.D:
-                                if 
-                                for i2 in F_d_i(d, i):
-                                    model.maint_last.add(model.z[i, j, d, check] + model.x[i2, j] <= 1)
+                                if d == FlightData[i]["day_arrival"]:
+                                    for i2 in F_d_i(d, i):
+                                        model.maint_last.add(model.z[i, j, d, check] + model.x[i2, j] <= 1)
+
+                                # elif d < FlightData[i]["day_arrival"]:
+                                #     model.maint_last.add(model.z[i, j, d, check] == 0)
+                                # elif d > FlightData[i]["day_arrival"] + All_Check_durations_days[check]:
+                                #     model.maint_last.add(model.z[i, j, d, check] == 0)
+
+                # Additional constraint on maintenance check sanity
+                if USE_CHECKS_SANITY:
+                    model.z_check = ConstraintList()
+                    for check in model.C:
+                        for i in model.F:
+                            for j in model.P:
+                                for d in model.D:
+                                    if d < FlightData[i]["day_arrival"]:
+                                        model.z_check.add(model.z[i, j, d, check] == 0)
+
+                                    if d > FlightData[i]["day_arrival"]:
+                                        model.z_check.add(model.z[i, j, d, check] <= model.z[i, j, d-1, check])
 
                 # Constraint (9)
                 # Activation for flights: we have to fly for check
@@ -425,9 +445,9 @@ if __name__ == "__main__":
                         for j in model.P:
                             # print(j, d, m, F_m[m])
                             model.maint_link.add(sum(model.z[i, j, d, check] for i in Flights if FlightData[i]["destination"] in MA) == model.y[j, d, check])
-                            model.maint_link.add(
-                                sum(model.z[i, j, d, check] for i in Flights) ==
-                                model.y[j, d, check])
+                            # model.maint_link.add(
+                            #     sum(model.z[i, j, d, check] for i in Flights) ==
+                            #     model.y[j, d, check])
 
 
                 model.maint_hierarchy = ConstraintList()
@@ -520,7 +540,7 @@ if __name__ == "__main__":
 
                 # Constraint 14??
                 # Constraint - my version of no double check
-                # We can have only one check simultenuosly per one day
+                # We can have only one check simultaneously per one day
                 model.maint_block_checks = ConstraintList()
                 for j in model.P:
                     for d in model.D:

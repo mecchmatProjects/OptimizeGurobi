@@ -323,6 +323,7 @@ if __name__ == "__main__":
                 F_d_i = lambda d, i: [i2 for i2 in Flights if FlightData[i2]["day_departure"] == d and FlightData[i2]["departureTime"] > FlightData[i]["arrivalTime"]]
 
 
+
                 # Define model
                 model = ConcreteModel()
 
@@ -344,6 +345,8 @@ if __name__ == "__main__":
                 model.z = Var(model.F, model.P, model.D, model.C, domain=Binary, initialize=0)
                 model.y = Var(model.P, model.D, model.C, domain=Binary, initialize=0)
                 model.mega_check = Var(model.P, model.D, model.C, domain=Binary, initialize=0)
+
+                model.fd = Var( model.A,model.P, model.D, domain=Binary, initialize=0)
 
                 # Define objective (7)
                 model.obj = Objective(
@@ -404,16 +407,37 @@ if __name__ == "__main__":
 
                 # Additional constraint on maintenance check sanity
                 if USE_CHECKS_SANITY:
+
+                    # model.fd_check = ConstraintList()
+                    #
+                    # for a in model.A:
+                    #     for j in model.P:
+                    #         for d in model.D:
+                    #             model.fd_check.add(Mbig * model.fd[a, j, d] >= sum(model.x[i, j]
+                    #                                                         for i in F_d_next(d-1,d)
+                    #                                                         if a == FlightData[i]["origin"]))
+
                     model.z_check = ConstraintList()
                     for check in model.C:
                         for i in model.F:
                             for j in model.P:
                                 for d in model.D:
                                     if d < FlightData[i]["day_arrival"]:
-                                        model.z_check.add(model.z[i, j, d, check] == 0)
+                                        a_start = AircraftInit[j]
+                                        # sum(model.fd[a_start, j, d1] for d1 in range(1,d))
+                                        # model.z_check.add(Mbig * (model.z[i, j, d, check]-1) <= sum(model.fd[a_start, j, d1] for d1 in range(1,d+1)))
+
+                                        model.z_check.add(Mbig * (1-model.z[i, j, d, check]) >= sum(
+                                            model.x[i,j] for i in F_d_next(0,d)) )
 
                                     if d > FlightData[i]["day_arrival"]:
-                                        model.z_check.add(model.z[i, j, d, check] <= model.z[i, j, d-1, check])
+                                        a_d = FlightData[i]["destination"]
+                                        # model.fd[a_d, j, d]
+                                        # model.z_check.add(Mbig * (1 - model.z[i, j, d, check]) >=
+                                        #                   sum(model.fd[a_d, j, d1] for d1 in range(FlightData[i]["day_arrival"],d+1)))
+
+                                        model.z_check.add(Mbig * (1 - model.z[i, j, d, check]) >=
+                                                          sum(model.x[i,j] for i in F_d_next(FlightData[i]["day_arrival"], d + 1)))
 
                 # Constraint (9)
                 # Activation for flights: we have to fly for check

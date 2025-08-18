@@ -23,8 +23,9 @@ USE_EXISTING_DAYS_CHECKS = False   # Use check version for maintenances with day
 USE_CHECK_HIERARCHY = True  # If we use D check - we reload other checks too, C check - reloads A,B, B - reloads A
 
 USE_CHECKS_SANITY = True
+USE_OVERLAP_CHECKS = True
 
-DPHT = None  # (0.5, 10, 15, 3)
+DPHT = None  # (0.5, 10, 15, 5)   # (0.5, 10, 15, 3)
 
 # Inputs ---
 
@@ -299,6 +300,7 @@ if __name__ == "__main__":
                 if DEBUG:
                     for i,it in FlightData.items():
                         print(i, it)
+                    input()
 
                 cost = data["cost"]
                 AircraftInit = data["a0"]
@@ -367,7 +369,7 @@ if __name__ == "__main__":
                 model.y = Var(model.P, model.D, model.C, domain=Binary, initialize=0)
                 model.mega_check = Var(model.P, model.D, model.C, domain=Binary, initialize=0)
 
-                model.fd = Var( model.A,model.P, model.D, domain=Binary, initialize=0)
+                # model.fd = Var( model.A,model.P, model.D, domain=Binary, initialize=0)
 
                 # Define objective (7)
                 model.obj = Objective(
@@ -460,7 +462,6 @@ if __name__ == "__main__":
                                         model.z_check.add(Mbig * (1 - model.z[i, j, d, check]) >=
                                                           sum(model.x[i,j] for i in F_d_next(FlightData[i]["day_arrival"], d + 1)))
 
-
                     model.z_check2 = ConstraintList()
 
                     for i in model.F:
@@ -473,23 +474,26 @@ if __name__ == "__main__":
                                                        sum(model.z[i, j, d-1, c] for c in All_Check_List))
 
 
-
                 # ONE MORE MISSED BY PAPER CONSTRAINT
-                model.flight_overlap = ConstraintList()
+                if USE_OVERLAP_CHECKS:
+                    model.flight_overlap = ConstraintList()
 
-                for i in model.F:
-                    for i1 in model.F:
-                        if i1 <= i:
-                            continue
-                        if FlightData[i]["arrivalTime"] >= FlightData[i1]["departureTime"] + turn_time:
-                            continue
+                    for i in model.F:
+                        for i1 in model.F:
+                            if i1 <= i:
+                                continue
+                            if FlightData[i]["departureTime"] >= FlightData[i1]["arrivalTime"] + turn_time:
+                                continue
 
-                        if FlightData[i1]["arrivalTime"] >= FlightData[i]["departureTime"] + turn_time:
-                            continue
+                            if FlightData[i1]["departureTime"] >= FlightData[i]["arrivalTime"] + turn_time:
+                                continue
 
-                        for j in model.P:
-                            model.flight_overlap.add(model.x[i, j] + model.x[i1, j] <= 1)
+                            if DEBUG:
+                                print(f"flight {i}: {FlightData[i]["arrivalTime"]}, {FlightData[i]["departureTime"]}", end ="; \t")
+                                print(f"and flight {i1}: {FlightData[i1]["arrivalTime"]}, {FlightData[i1]["departureTime"]}")
 
+                            for j in model.P:
+                                model.flight_overlap.add(model.x[i, j] + model.x[i1, j] <= 1)
 
                 # Constraint (9)
                 # Activation for flights: we have to fly for check

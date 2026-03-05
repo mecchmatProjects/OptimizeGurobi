@@ -4,3 +4,8 @@ OUT/*.txt
 OUT/*.png
 *.log
 *.png
+_pycache_/*
+.idea/*
+*.pyc
+
+

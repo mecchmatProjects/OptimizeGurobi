@@ -8,6 +8,7 @@ from pyomo.opt import SolverFactory
 
 
 DEBUG = False
+CNT_FILE = True
 
 # Inputs ---
 
@@ -25,9 +26,9 @@ Acheck_days = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0}
 Bcheck_days = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0}
 Ccheck_days = {0: 20.0, 1: 20.0, 2: 538.0, 3: 20.0, 4: 20.0, 5: 20.0, 6: 20.0, 7: 20.0, 8: 20.0, 9: 20.0}
 Dcheck_days = {0: 20.0, 1: 20.0, 2: 20.0, 3: 1823.0, 4: 20.0, 5: 20.0, 6: 20.0, 7: 20.0, 8: 20.0, 9: 20.0}
-
-Acheck = {0: 390.0, 1: 360.0, 2: 350.0, 3: 380.0, 4: 395.0, 5: 340.0, 6: 380.0, 7: 385.0, 8: 375.0, 9: 390.0}
-Bcheck = {0: 590.0, 1: 594.0, 2: 580.0, 3: 570.0, 4: 575.0, 5: 585.0, 6: 591.0, 7: 595.0, 8: 500.0, 9: 520.0}
+#
+# Acheck = {0: 390.0, 1: 360.0, 2: 350.0, 3: 380.0, 4: 395.0, 5: 340.0, 6: 380.0, 7: 385.0, 8: 375.0, 9: 390.0}
+# Bcheck = {0: 590.0, 1: 594.0, 2: 580.0, 3: 570.0, 4: 575.0, 5: 585.0, 6: 591.0, 7: 595.0, 8: 500.0, 9: 520.0}
 
 # Tmax = 8 * 60  # in minutes
 # nu = 15
@@ -418,11 +419,8 @@ if __name__ == "__main__":
                 for j in model.P:
                     for d in model.D:
                         for c in model.C:
-                            model.maint_hierarchy.add(model.mega_check[j, d, c] <=
-                                                   sum(model.y[j, d, check] for check in CHECK_HIERARCHY[c]))
-                            model.maint_hierarchy.add(len(CHECK_HIERARCHY) *  model.mega_check[j, d, c] >=
-                                                  sum(model.y[j, d, check] for check in CHECK_HIERARCHY[c]))
-
+                            model.maint_hierarchy.add(model.mega_check[j, d, c] ==
+                                                      sum(model.y[j, d, check] for check in CHECK_HIERARCHY[c]))
 
                 # Constraint (12)
                 # We have checks in All_Check_days interval
@@ -459,8 +457,8 @@ if __name__ == "__main__":
                                 t_sum = sum(FlightData[i]['duration'] * model.x[i, j] for i in F_d_next(d+1, d_))
                                 y_sum = sum(model.mega_check[j, r, check] for r in Days[start+1:end])
                                 # This is paper constraint (13) - however, it seems to be Wrong???!!!
-                                model.maint_cumulative.add(t_sum <= All_Check_Done_hours[check]*60 + Mbig * y_sum +
-                                                           Mbig*(2 - model.mega_check[j, d, check] - model.mega_check[j, d_, check]) )
+                                # model.maint_cumulative.add(t_sum <= All_Check_Done_hours[check]*60 + Mbig * y_sum +
+                                #                            Mbig*(2 - model.mega_check[j, d, check] - model.mega_check[j, d_, check]) )
 
                                 # My corrected version:: either y_sum or y[j,start] and y[j,end]
                                 model.maint_cumulative.add(t_sum <= All_Check_Done_hours[check] * 60 + Mbig * y_sum + Mbig * model.mega_check[j, d, check])
@@ -564,8 +562,10 @@ if __name__ == "__main__":
                             for i2 in F_dep_t_t1(airport, t_arr, t_arr + All_Check_durations[check]):
                                 if DEBUG:
                                     print(i,j,day,check,i2,j)
-                                for d in range(day, min(day + 2, Days[-1])):
-                                    model.maint_block_flights.add(model.z[i, j, d, check] + model.x[i2, j] <= 1)
+                                #for d in range(day, min(day + 2, Days[-1])):
+                                day2 = flight_data[i2]['day_departure']
+
+                                model.maint_block_flights.add(model.z[i, j, day, check] + model.x[i2, j] <= 1)
                                 # if day == 1 and All_Check_durations_days[check] > 1:
                                 #     model.maint_block_flights.add(model.y[j, day, check] + model.x[i2, j] <= 1)
 
@@ -584,8 +584,8 @@ if __name__ == "__main__":
                             for i2 in F_dep_t_t1(airport, 0, All_Check_durations[check]):
                                 if DEBUG:
                                     print(i, j, day, check, i2, j)
-                                for d in range(day, min(day + 1, Days[-1])):
-                                    model.maint_block_flights.add(model.mega_check[j, d, check] + model.x[i2, j] <= 1)
+                                # for d in range(day, min(day + 1, Days[-1])):
+                                model.maint_block_flights.add(model.mega_check[j, day, check] + model.x[i2, j] <= 1)
 
 
                 # Constraint (15-1)
@@ -599,13 +599,7 @@ if __name__ == "__main__":
                         day = flight_data[i]['day_departure']
                         if DEBUG:
                             print("day", day)
-                        # # day = Days.index(day)
-                        # # print(day)
-                        # if day == 1:
-                        #     for j in model.P:
-                        #        model.maint_block_flights_days.add(
-                        #             model.mega_check[j, day, check] + model.x[i, j] <= 1)
-                        #     continue
+
                         airport = flight_data[i]['origin']
                         if airport not in MA:
                             continue
@@ -615,7 +609,9 @@ if __name__ == "__main__":
                                 print("Check fligths", i, "plane", j, "port", airport, "day", day, "t:", t_arr, t_arr +
                                       All_Check_durations[check], F_dep_t_t1(airport, t_arr, t_arr + All_Check_durations[check]))
                             if day>Days[0]:
-                                model.maint_block_flights_days.add(model.y[j, day-1, check] + model.y[j, day, check] + model.x[i, j] <= 2)
+                                # model.maint_block_flights_days.add(model.y[j, day-1, check] + model.y[j, day, check] + model.x[i, j] <= 2)
+                                model.maint_block_flights_days.add(
+                                    model.y[j, day, check] + model.x[i, j] <= 1)
 
 
 
@@ -737,18 +733,18 @@ if __name__ == "__main__":
                         for d in model.D:
                             for c in model.C:
                                 if value(model.y[j, d, c]) > 0.5:
-                                    dt = (d-1)*24*60
+                                    dt = 0
                                     for i in model.F:
 
-                                        day = flight_data[i]['day_arrival']
-                                        if day != d:
-                                            continue
-                                        airport = flight_data[i]['destination']
-                                        if airport not in MA:
-                                            continue
+                                        # day = flight_data[i]['day_arrival']
+                                        # if day != d:
+                                        #     continue
+                                        # airport = flight_data[i]['destination']
+                                        # if airport not in MA:
+                                        #     continue
 
-                                        t_arr = flight_data[i]['arrivalTime']
                                         if value(model.z[i, j, d, c])>0.5:
+                                            t_arr = flight_data[i]['arrivalTime']
                                             dt = t_arr
                                             break
 
@@ -788,17 +784,18 @@ if __name__ == "__main__":
                             for c in model.C:
                                 if value(model.y[j, d, c]) > 0.5:
                                     duration = All_Check_durations[c]
-                                    dt = (d-1)*24*60
+                                    dt = 0
                                     for i in model.F:
-                                        t_arr = flight_data[i]['arrivalTime']
-                                        day = flight_data[i]['day_arrival']
-                                        if day != d:
-                                            continue
-                                        airport = flight_data[i]['destination']
-                                        if airport not in MA:
-                                            continue
+
+                                        # day = flight_data[i]['day_arrival']
+                                        # if day != d:
+                                        #     continue
+                                        # airport = flight_data[i]['destination']
+                                        # if airport not in MA:
+                                        #     continue
 
                                         if value(model.z[i, j, d, c])>0.5:
+                                            t_arr = flight_data[i]['arrivalTime']
                                             dt = t_arr
                                             break
 
@@ -845,16 +842,18 @@ if __name__ == "__main__":
                     else:
                         plt.show()
 
+                # if CNT_FILE > 0:
+                #     input()
 
-
-
-
-# Capture solver log
-with open('cplex.log', 'w') as log_file:
-    results = solver.solve(model, tee=True, logfile='cplex.log')
-
-# Parse log
-with open('cplex.log', 'r') as f:
-    log_text = f.read()
-    root_gap = parse_root_gap(log_text)
-    print("Root gap", root_gap)
+#             if CNT_FILE > 0:
+#                 break
+# #
+# # Capture solver log
+# with open('cplex.log', 'w') as log_file:
+#     results = solver.solve(model, tee=True, logfile='cplex.log')
+#
+# # Parse log
+# with open('cplex.log', 'r') as f:
+#     log_text = f.read()
+#     root_gap = parse_root_gap(log_text)
+#     print("Root gap", root_gap)

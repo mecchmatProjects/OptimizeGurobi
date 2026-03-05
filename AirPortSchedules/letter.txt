@@ -38,5 +38,30 @@ Best regards, Viktor
 
  
 
+Hello, dear Arun!
+I made some fixes - here is my new version.
+Also, please, note that Acheck_days - is in days (not hours, so should not be so big).
+
+Regarding the methaheuristics (genetic algorithm) approach. Yes, I am intersted to do it.
+However, I have some questions:
+1) Do you need to impelement the exact appraoch of the paper you sent, or we need to change it?
+As far as I get, the paper you sent is solving sightly different (though close) Optimization problem.
+Do we need to adjust this GA to our task or we need it for the Optimizatioin problem of the paper?
+2) The approach of the paper seems a complex one for impelementation, and also, as often with GA -
+probably long on running, so maybe this implementation, and moreover debugging can take long time.
+3) Should we reformulate the condition of the problem we are solving as general as it could possibly be?
+
+
+
+
+
+
+
+I am sending my updates to the solution of the problem and results for your data.
+Thanks for the visualization snippet - it really helps. 
+
+Best regards, Viktor
+
+ 
 
 

@@ -1,0 +1,58 @@
+Hello, dear Arun!
+Thanks for your updates.
+Not sure that I am available for work on our project now, 
+but I may try to figure something out.
+I revisited code once more and don't see the problem in the
+constraints you mentioned, however, I agree that more checks are needed.
+Regarding the issues:
+1) I've seen that costs of the 2nd plane maintenance and usage are higher than the others,
+so, could it be that model works correctly by completely eliminating it?
+2) Unfortunately, I could not see on the figure you sent whether the total sum
+of flight time for the planes is greater or less 60 hrs,
+could you send me the corresponding result.txt file?
+Could you try with 20,40 hrs for A check?
+Could it be the problem just with visualization?
+(also it would be great if you send me the exact test file and full console output for this or any other problematic case
+with descriptions of what exactly wrong)
+
+Kind regards, Viktor
+
+Hello, dear Arun!
+Looks like understand the issue: 
+the criteria used allows z an y variables to be defined at the days after the departure 
+for maintencance - you can see MA an MB outputs sometimes have days index (d) long after defined by arrival time.
+I looked at the paper criteria - and they have the same issue, I think we stuck at the paper mistake.
+I tried to set my criterion to overcome this issue (z_check - turned by SANITY check).
+Also, I defined flags to turn on/off days, hours criteria at the start of the program,
+and you can also with them switch between my and paper variants of maintenance blocking criterion.
+Plz, beware that in the sending version I am using paper (still consider it is wrong) hours criterion
+and set 5,10 for elapsed Days checks A,B
+
+Best regards, Viktor
+
+ 
+Hello, dear Arun!
+Do you have any news regarding the countre-example?
+So far it seems to me that the conditions set are exactly contradicting (13) - (13-1),
+but I am not investigated it fully as it seems to be a big deal of work.
+If you are sure, that these data allows some solution - plz, send it to me.
+I am pretty sure at this stage that all paper criteria implemented correctly,
+but see some incorrectness in the paper.
+I looked carefully once more at the paper, and already noticed next faults:
+1) Proposition 1 is not correctly proven. Moreover, I am alomst sure I could build countre example for it  
+and we need to add at least one criterion more there (non-overalapping contsraint already present in the code).
+2) No analogue of proposition 1 for (7)-(15)? so we are not sure to have the correct model
+3) Constraint (13) looks to be not completely correct (I may need some time to disprove it, while 
+finding the correct constraint may be problematic since requires more functions and variables to deal with)
+
+Unofortunately, I may be very busy next days and even 1-2 weeks to make a full analysis here, 
+and also the mentioned issues defenetely go out of the project scope to be solved.
+However, their resolutions could be a good topic for the good paper (and maybe even to this 
+exact journal since it deals with correction of the paper) - yet it in this case it requires 
+much more time and efforts with expanding the project frame too, so I am not sure I could resolve 
+this in the short time. 
+
+Best regards, Viktor
+
+
+   

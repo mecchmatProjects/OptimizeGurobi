@@ -1,0 +1,3 @@
+pytest
+pyomo
+# add solver-specific packages if you plan to run the model (e.g., cplex, gurobi)

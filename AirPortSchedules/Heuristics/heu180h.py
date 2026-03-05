@@ -336,10 +336,14 @@ class Optimizer:
             'C': thresh['C'] * 24.0,
             'D': thresh['D'] * 24.0,
         }
-        # Day-interval thresholds for spacing constraints
+        # Day-interval thresholds for spacing constraints.
+        # A and B thresholds are in flight-minutes (not calendar days);
+        # their spacing is handled by C13 (hour accumulation), NOT C12.
+        # C and D are already in calendar days.
+        # Use None to mark check types with no calendar-day spacing constraint.
         self.check_days = {
-            'A': max(1, int(thresh['A'] / 60.0 / 24.0)),
-            'B': max(1, int(thresh['B'] / 60.0 / 24.0)),
+            'A': None,          # flight-hour based -> no calendar-day spacing
+            'B': None,          # flight-hour based -> no calendar-day spacing
             'C': int(thresh['C']),
             'D': int(thresh['D']),
         }
@@ -568,18 +572,39 @@ class Optimizer:
     # ------------------------------------------------------------------
 
     def _add_c8_maint_blocks_flights(self, m):
+        """C8: if z[i,j,d_i,c]=1 (check c triggered by flight i on its arrival
+        day d_i), then aircraft j cannot fly any flight i2 that departs from the
+        SAME airport on the SAME day AFTER flight i arrives.
+        Only add constraint for d == d_i (the actual arrival day of flight i);
+        the original loop over all days was incorrect and exponentially wasteful."""
         m.c8 = ConstraintList()
+        # Pre-group: for each (arrival_airport, day), flights departing LATER
+        later_flights: dict = {}
+        for i2, fd2 in self.flight_data.items():
+            key = (fd2['origin'], fd2['day_departure'], fd2['departureTime'])
+            later_flights.setdefault(key, []).append(i2)
+
         for c in self.CHECK_LIST:
             for i in m.F:
-                dep_i = self.flight_data[i]['arrivalTime']
-                d_i   = self.flight_data[i]['day_arrival']
+                fd_i  = self.flight_data[i]
+                arr_i = fd_i['arrivalTime']
+                d_i   = fd_i['day_arrival']
+                dest_i = fd_i['destination']
+                # Only flights that depart from same airport as i's destination,
+                # same day, and AFTER i arrives
+                blocking = [
+                    i2 for i2, fd2 in self.flight_data.items()
+                    if fd2['origin'] == dest_i
+                    and fd2['day_departure'] == d_i
+                    and fd2['departureTime'] > arr_i
+                ]
+                if not blocking:
+                    continue
                 for j in m.P:
-                    for d in m.D:
-                        # Same-day flights that depart after flight i arrives
-                        for i2 in self.flight_ids:
-                            fd2 = self.flight_data[i2]
-                            if fd2['day_departure'] == d_i and fd2['departureTime'] > dep_i:
-                                m.c8.add(m.z[i, j, d, c] + m.x[i2, j] <= 1)
+                    # Only d == d_i is semantically correct
+                    if d_i in m.D:
+                        for i2 in blocking:
+                            m.c8.add(m.z[i, j, d_i, c] + m.x[i2, j] <= 1)
 
     # ------------------------------------------------------------------
     # Constraint C9 – z[i,j,d,c] can only be 1 if x[i,j]=1
@@ -700,11 +725,22 @@ class Optimizer:
     # ------------------------------------------------------------------
 
     def _add_c12_day_spacing(self, m):
+        """Sliding-window day-spacing: within every window of `ival` consecutive
+        days at least one maintenance check of type c must be scheduled.
+        Only applies to check types with a calendar-day interval (C, D).
+        A and B checks are regulated by flight-hour accumulation (C13), not
+        calendar-day spacing, so they are skipped here.
+        Also skips check types whose interval exceeds the planning horizon
+        (the constraint would be trivially inactive)."""
         m.c12 = ConstraintList()
         days = sorted(self.days)
         n    = len(days)
         for c in self.CHECK_LIST:
             ival = self.check_days[c]
+            if ival is None:        # flight-hour threshold type: skip
+                continue
+            if ival >= n:           # interval >= horizon: window never filled, skip
+                continue
             for j in m.P:
                 for start in range(n - ival + 1):
                     m.c12.add(
@@ -723,10 +759,13 @@ class Optimizer:
         days  = sorted(self.days)
         n     = len(days)
         for c in self.CHECK_LIST:
-            hr_limit = self.check_hrs[c]   # hours
+            hr_limit  = self.check_hrs[c]   # hours
+            # For A/B (flight-hour types) check_days is None -> use full horizon.
+            # For C/D (calendar-day types) use their day interval as range bound.
+            cd = self.check_days[c] if self.check_days[c] is not None else n
             for j in m.P:
                 for si in range(n - 1):
-                    for ei in range(si + 2, min(si + self.check_days[c], n)):
+                    for ei in range(si + 2, min(si + cd, n)):
                         d,  d_ = days[si], days[ei]
                         t_sum  = sum(
                             self.flight_data[i]['duration'] * m.x[i, j]
@@ -757,9 +796,10 @@ class Optimizer:
         n    = len(days)
         for c in self.CHECK_LIST:
             hr_limit = self.check_hrs[c]
+            cd = self.check_days[c] if self.check_days[c] is not None else n
             for j in m.P:
                 prior_hrs = self.init_check_hrs[c].get(j, 0.0)
-                for ei in range(1, min(n - 1, self.check_days[c])):
+                for ei in range(1, min(n - 1, cd)):
                     d_   = days[ei]
                     t_sum = sum(
                         self.flight_data[i]['duration'] * m.x[i, j]

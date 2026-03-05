@@ -388,14 +388,30 @@ class Optimizer:
                     use_existing_hrs=True,
                     use_check_hierarchy=True,
                     use_sanity=True,
-                    use_overlap=True):
-        """Construct the ConcreteModel.  Call before solve()."""
+                    use_overlap=True,
+                    allow_ferry=True):
+        """Construct the ConcreteModel.  Call before solve().
+
+        Parameters
+        ----------
+        allow_ferry : bool
+            When *True* (default) the C2-C3 equipment-flow / turnaround
+            constraints are included, enforcing that each aircraft must be
+            physically present at the departure airport of every flight it
+            operates (no implicit repositioning).  Set to *False* to drop
+            these routing constraints and treat the problem as a pure
+            assignment + maintenance model — the model becomes significantly
+            smaller and easier to solve, but ferry / repositioning flights
+            may be needed in practice to execute the resulting schedule.
+        """
         m = ConcreteModel()
         self.model = m
         self._add_sets_and_variables(m)
         self._add_objective(m)
         self._add_c1_coverage(m)
-        self._add_c23_turn(m)
+        if allow_ferry:
+            # C2-C3: equipment-flow balance (prevents implicit teleportation)
+            self._add_c23_turn(m)
         if use_overlap:
             self._add_overlap(m)
         self._add_c8_maint_blocks_flights(m)
@@ -829,14 +845,40 @@ class Optimizer:
             raise RuntimeError("Call build_model() first.")
 
         solver = SolverFactory(solver_name)
+
+        # --- solver-specific time-limit options ---
+        _sn = solver_name.lower()
+        _solve_kwargs = dict(tee=tee)
         if time_limit is not None:
-            # Common option names across solvers
-            for opt_key in ('timelimit', 'TimeLimit', 'max_seconds', 'time_limit'):
-                try:
-                    solver.options[opt_key] = int(time_limit)
-                except Exception:
-                    pass
-        self.results = solver.solve(self.model, tee=tee)
+            if 'gurobi' in _sn:
+                solver.options['TimeLimit'] = int(time_limit)
+            elif 'cplex' in _sn:
+                solver.options['timelimit'] = int(time_limit)
+            elif 'cbc' in _sn:
+                # Pyomo's CBCSHELL hard-codes '-sec' which AMPL-style CBC 2.10+
+                # rejects; pass via timelimit kwarg (same underlying flag) and
+                # fall back to no-limit if it still fails.
+                _solve_kwargs['timelimit'] = int(time_limit)
+            elif 'glpk' in _sn:
+                solver.options['tmlim'] = int(time_limit)
+            else:  # generic fallback (highs, scip, …)
+                solver.options['TimeLimit'] = int(time_limit)
+
+        try:
+            self.results = solver.solve(self.model, **_solve_kwargs)
+        except Exception as _exc:
+            # CBC with timelimit kwarg may raise ApplicationError when the CBC
+            # binary rejects '-sec'.  Retry without any time limit.
+            if 'cbc' in _sn and 'timelimit' in _solve_kwargs:
+                import warnings
+                warnings.warn(
+                    f"[CBC] setting time limit failed ({_exc}); "
+                    "re-solving without time limit.", stacklevel=2
+                )
+                _solve_kwargs.pop('timelimit')
+                self.results = solver.solve(self.model, **_solve_kwargs)
+            else:
+                raise
 
         m   = self.model
         res = self.results
@@ -1122,20 +1164,24 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
              time_limit=None,
              out_txt=None, gantt_path=None, show_gantt=True,
              use_day_spacing=True, use_existing_hrs=True,
-             use_check_hierarchy=True, use_sanity=True, use_overlap=True):
+             use_check_hierarchy=True, use_sanity=True, use_overlap=True,
+             allow_ferry=True):
     """Build and solve the MILP model, then display results.
 
     Parameters
     ----------
     time_limit : int | None   Solver wall-clock time limit in seconds.
                               None means no limit (solver default).
+    allow_ferry : bool        When False, C2-C3 routing constraints are
+                              omitted (pure assignment; smaller model).
     """
     opt = Optimizer(data_path)
     opt.build_model(use_day_spacing=use_day_spacing,
                     use_existing_hrs=use_existing_hrs,
                     use_check_hierarchy=use_check_hierarchy,
                     use_sanity=use_sanity,
-                    use_overlap=use_overlap)
+                    use_overlap=use_overlap,
+                    allow_ferry=allow_ferry)
     summary = opt.solve(solver_name=solver, tee=tee, out_path=out_txt,
                         time_limit=time_limit)
     opt.plot_gantt(save_path=gantt_path, show=show_gantt)
@@ -1194,7 +1240,8 @@ def _run_one_heuristic(fp, out_dir, stem, show_gantt):
     }
 
 
-def _run_one_milp(fp, out_dir, stem, solver, tee, show_gantt, time_limit):
+def _run_one_milp(fp, out_dir, stem, solver, tee, show_gantt, time_limit,
+                  allow_ferry=True):
     """Run MILP on a single file; return metrics dict."""
     import time, os
     gantt_out = os.path.join(out_dir, f'{stem}_milp_gantt.png')
@@ -1204,6 +1251,7 @@ def _run_one_milp(fp, out_dir, stem, solver, tee, show_gantt, time_limit):
         data_path=fp, solver=solver, tee=tee,
         time_limit=time_limit,
         out_txt=txt_out, gantt_path=gantt_out, show_gantt=show_gantt,
+        allow_ferry=allow_ferry,
     )
     cpu = time.time() - t0
 
@@ -1274,7 +1322,8 @@ def _plot_comparison(rows, out_dir):
 
 
 def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
-              solver='cplex', tee=False, show_gantt=False, time_limit=300):
+              solver='cplex', tee=False, show_gantt=False, time_limit=300,
+              allow_ferry=True):
     """Process every JSON file in *input_dir* and write results to *output_dir*.
 
     For each dataset the following files are created in output_dir::
@@ -1296,6 +1345,8 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
     tee        : bool  Stream solver stdout.
     show_gantt : bool  Pop up interactive Gantt windows.
     time_limit : int   Solver time-limit in seconds (default: 300).
+    allow_ferry: bool  When False, C2-C3 routing constraints are omitted
+                       from the MILP (pure assignment; smaller model).
     """
     import os, glob, time
 
@@ -1307,8 +1358,9 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
     run_heu  = mode in ('heuristic', 'both')
     run_milp_ = mode in ('milp', 'both')
 
+    ferry_label = "ON (routing enforced)" if allow_ferry else "OFF (pure assignment)"
     print(f"[batch] {len(json_files)} file(s) in '{input_dir}'")
-    print(f"[batch] mode={mode}  solver={solver}  time_limit={time_limit}s")
+    print(f"[batch] mode={mode}  solver={solver}  time_limit={time_limit}s  ferry={ferry_label}")
     print(f"[batch] output → '{output_dir}'\n")
 
     all_rows = []
@@ -1329,7 +1381,8 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
         if run_milp_:
             try:
                 row = _run_one_milp(fp, output_dir, stem, solver, tee,
-                                    show_gantt, time_limit)
+                                    show_gantt, time_limit,
+                                    allow_ferry=allow_ferry)
                 all_rows.append(row)
             except Exception as exc:
                 print(f"  ✗ [milp] {exc}")
@@ -1411,7 +1464,11 @@ def main():
                         help='Save Gantt chart PNG to this path')
     parser.add_argument('--no-show',     dest='show', action='store_false',
                         help='Do not display Gantt interactively')
-    parser.set_defaults(show=True)
+    parser.add_argument('--no-ferry',    dest='allow_ferry', action='store_false',
+                        help='Omit C2-C3 routing constraints from MILP '
+                             '(pure assignment; smaller/faster model). '
+                             'Ferry flights may be needed to execute the resulting schedule.')
+    parser.set_defaults(show=True, allow_ferry=True)
     args = parser.parse_args()
 
     if args.mode == 'heuristic':
@@ -1423,14 +1480,16 @@ def main():
         run_milp(data_path=args.data,
                  solver=args.solver, tee=args.tee,
                  time_limit=args.time_limit,
-                 out_txt=args.out, gantt_path=args.gantt, show_gantt=args.show)
+                 out_txt=args.out, gantt_path=args.gantt, show_gantt=args.show,
+                 allow_ferry=args.allow_ferry)
     else:  # batch
         run_batch(input_dir=args.input_dir,
                   output_dir=args.output_dir,
                   mode=args.batch_mode,
                   solver=args.solver, tee=args.tee,
                   time_limit=args.time_limit,
-                  show_gantt=args.show)
+                  show_gantt=args.show,
+                  allow_ferry=args.allow_ferry)
 
 
 if __name__ == '__main__':

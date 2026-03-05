@@ -550,6 +550,148 @@ class Optimizer:
                         + self.M_BIG * (1 - m.mega[j, days[di], c]) >= end - di - 1
                     )
 
+    # ------------------------------------------------------------------
+    # Constraint C12 – day-spacing: every check-interval window must
+    # contain at least one occurrence of mega[j,·,c]
+    # ------------------------------------------------------------------
+
+    def _add_c12_day_spacing(self, m):
+        m.c12 = ConstraintList()
+        days = sorted(self.days)
+        n    = len(days)
+        for c in self.CHECK_LIST:
+            ival = self.check_days[c]
+            for j in m.P:
+                for start in range(n - ival + 1):
+                    m.c12.add(
+                        sum(m.mega[j, days[r], c] for r in range(start, start + ival)) >= 1
+                    )
+
+    # ------------------------------------------------------------------
+    # Constraint C13 – cumulative flight-hour accumulation between checks
+    # Between any two days d and d_ (within one check interval), total
+    # flight minutes assigned to aircraft j must not exceed threshold
+    # unless a check occurs in between (uses big-M relaxation).
+    # ------------------------------------------------------------------
+
+    def _add_c13_hr_accumulation(self, m):
+        m.c13 = ConstraintList()
+        days  = sorted(self.days)
+        n     = len(days)
+        for c in self.CHECK_LIST:
+            hr_limit = self.check_hrs[c]   # hours
+            for j in m.P:
+                for si in range(n - 1):
+                    for ei in range(si + 2, min(si + self.check_days[c], n)):
+                        d,  d_ = days[si], days[ei]
+                        t_sum  = sum(
+                            self.flight_data[i]['duration'] * m.x[i, j]
+                            for i in self._f_between_days(d, d_)
+                        )
+                        y_mid  = sum(m.mega[j, days[r], c]
+                                     for r in range(si + 1, ei))
+                        # Relax with big-M when either boundary day has a check
+                        m.c13.add(
+                            t_sum <= hr_limit * 60
+                                     + self.M_BIG * y_mid
+                                     + self.M_BIG * m.mega[j, d, c]
+                        )
+                        m.c13.add(
+                            t_sum <= hr_limit * 60
+                                     + self.M_BIG * y_mid
+                                     + self.M_BIG * m.mega[j, d_, c]
+                        )
+
+    # ------------------------------------------------------------------
+    # Constraint C13b – existing flight hours at start of horizon
+    # The aircraft's accumulated hours since last check must be respected.
+    # ------------------------------------------------------------------
+
+    def _add_c13b_existing_hrs(self, m):
+        m.c13b = ConstraintList()
+        days = sorted(self.days)
+        n    = len(days)
+        for c in self.CHECK_LIST:
+            hr_limit = self.check_hrs[c]
+            for j in m.P:
+                prior_hrs = self.init_check_hrs[c].get(j, 0.0)
+                for ei in range(1, min(n - 1, self.check_days[c])):
+                    d_   = days[ei]
+                    t_sum = sum(
+                        self.flight_data[i]['duration'] * m.x[i, j]
+                        for i in self._f_between_days(0, d_)
+                    )
+                    y_mid = sum(m.mega[j, days[r], c] for r in range(ei - 1))
+                    m.c13b.add(
+                        t_sum <= (hr_limit - prior_hrs) * 60
+                                 + self.M_BIG * y_mid
+                                 + self.M_BIG * m.mega[j, d_, c]
+                    )
+
+    # ------------------------------------------------------------------
+    # Constraint C15 – no flight during an active maintenance check
+    # After flight i triggers check c for aircraft j on day d, flights
+    # departing from the same airport within the check duration are blocked.
+    # Also applies at the start of the horizon (initial position).
+    # ------------------------------------------------------------------
+
+    def _add_c15_no_flight_during_maint(self, m):
+        m.c15 = ConstraintList()
+        for c in self.CHECK_LIST:
+            dur = self.check_dur[c]               # check duration in minutes
+            # a) Triggered by an arriving flight
+            for i in self.flight_ids:
+                fd   = self.flight_data[i]
+                apt  = fd['destination']
+                d    = fd['day_arrival']
+                t_arr = fd['arrivalTime']
+                if apt not in self.maint_airports:
+                    continue
+                for j in m.P:
+                    for i2 in self._f_dep_window(apt, t_arr, t_arr + dur):
+                        m.c15.add(m.z[i, j, d, c] + m.x[i2, j] <= 1)
+            # b) Initial position at time zero
+            days = sorted(self.days)
+            d0   = days[0]
+            seen_apts = set()
+            for j, apt in self.aircraft_init.items():
+                if apt not in self.maint_airports or apt in seen_apts:
+                    continue
+                seen_apts.add(apt)
+                for j2 in m.P:
+                    for i2 in self._f_dep_window(apt, 0, dur):
+                        m.c15.add(m.mega[j2, d0, c] + m.x[i2, j2] <= 1)
+        # Multi-day checks additionally block departing flights on later days
+        m.c15b = ConstraintList()
+        for c in self.CHECK_LIST:
+            if self.check_dur_days[c] <= 1:
+                continue
+            for i in self.flight_ids:
+                fd  = self.flight_data[i]
+                apt = fd['origin']
+                d   = fd['day_departure']
+                if apt not in self.maint_airports:
+                    continue
+                for j in m.P:
+                    if d > sorted(self.days)[0]:
+                        m.c15b.add(m.y[j, d, c] + m.x[i, j] <= 1)
+
+    # ------------------------------------------------------------------
+    # Sanity: z[i,j,d,c]=0 when day d is after arrival day + check duration
+    # ------------------------------------------------------------------
+
+    def _add_sanity(self, m):
+        m.c_sanity = ConstraintList()
+        for c in self.CHECK_LIST:
+            for i in m.F:
+                arr_day = self.flight_data[i]['day_arrival']
+                for j in m.P:
+                    for d in m.D:
+                        if d < self.flight_data[i]['day_arrival']:
+                            m.c_sanity.add(m.z[i, j, d, c] == 0)
+                        if d > arr_day + self.check_dur_days[c]:
+                            m.c_sanity.add(m.z[i, j, d, c] == 0)
+
 
 # ----------------------------
 # EXECUTION

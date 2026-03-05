@@ -373,6 +373,56 @@ class Optimizer:
     def _flight_cost(self, fid, aid):
         return self.cost_matrix[fid - 1][self._aid_index[aid]]
 
+    # ------------------------------------------------------------------
+    # Constraint C1 – every flight covered by exactly one aircraft
+    # ------------------------------------------------------------------
+
+    def _add_c1_coverage(self, m):
+        m.c1 = ConstraintList()
+        for i in m.F:
+            m.c1.add(sum(m.x[i, j] for j in m.P) == 1)
+
+    # ------------------------------------------------------------------
+    # Constraints C2–C3 – equipment-flow / turnaround feasibility
+    # For every airport k, aircraft j, departing flight i from k:
+    #   (flights arrived at k before dep[i] - turn) − (flights departed k
+    #   before dep[i]) ≥ x[i,j]  (−1 if j is initially based at k)
+    # ------------------------------------------------------------------
+
+    def _add_c23_turn(self, m):
+        m.c23 = ConstraintList()
+        tau = self.MIN_TURN
+        for j in m.P:
+            init_apt = self.aircraft_init[j]
+            for k in m.A:
+                for i in self._f_dep_k(k):
+                    t = self.flight_data[i]['departureTime']
+                    lhs = (sum(m.x[i1, j] for i1 in self._f_arr_before(k, t, tau))
+                           - sum(m.x[i1, j] for i1 in self._f_dep_before(k, t)))
+                    rhs = m.x[i, j] if k != init_apt else m.x[i, j] - 1
+                    m.c23.add(lhs >= rhs)
+
+    # ------------------------------------------------------------------
+    # Overlap constraint – two flights that overlap in time cannot share
+    # the same aircraft (fills the gap left by C2–C3 for short windows)
+    # ------------------------------------------------------------------
+
+    def _add_overlap(self, m):
+        m.c_overlap = ConstraintList()
+        tau = self.MIN_TURN
+        fids = list(m.F)
+        for idx, i in enumerate(fids):
+            fd_i = self.flight_data[i]
+            for i1 in fids[idx + 1:]:
+                fd_i1 = self.flight_data[i1]
+                # They don't overlap if one departs after the other arrives + turn
+                if fd_i['departureTime'] >= fd_i1['arrivalTime'] + tau:
+                    continue
+                if fd_i1['departureTime'] >= fd_i['arrivalTime'] + tau:
+                    continue
+                for j in m.P:
+                    m.c_overlap.add(m.x[i, j] + m.x[i1, j] <= 1)
+
 
 # ----------------------------
 # EXECUTION

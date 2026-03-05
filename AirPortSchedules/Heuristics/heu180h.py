@@ -8,8 +8,8 @@ import pandas as pd
 
 # Optional Pyomo imports (only needed for Optimizer)
 try:
-    from pyomo.environ import (ConcreteModel, Set, Var, Objective, ConstraintList,
-                                Binary, minimize, value as pyo_value)
+    from pyomo.environ import (ConcreteModel, Set, Var, Objective, Constraint,
+                                ConstraintList, Binary, minimize, value as pyo_value)
     from pyomo.opt import SolverFactory, TerminationCondition
     PYOMO_AVAILABLE = True
 except ImportError:
@@ -339,14 +339,31 @@ class Optimizer:
         self.check_dur     = {k: float(durs[k]) for k in self.CHECK_LIST}  # minutes
         self.check_dur_days = {k: int(durs[k] // self.DAY_SHIFT) for k in self.CHECK_LIST}
 
-        # ── Initial check state (elapsed flight minutes → hours) ─────────────
+        # ── Initial check state (convert all to hours) ───────────────────────
+        # JSON may use 'A','B' (minutes) and 'C','D' or 'C_Days','D_Days' (days)
         init_ck = raw.get('Initial_Checks', {})
         self.init_check_hrs = {}
         for ck in self.CHECK_LIST:
-            self.init_check_hrs[ck] = {
-                aid: float(init_ck.get(ck, {}).get(str(aid), 0)) / 60.0
-                for aid in self.aircraft_ids
-            }
+            if ck in ('C', 'D'):
+                # Prefer C_Days / D_Days key (values in days); fall back to C/D (minutes)
+                day_key = f'{ck}_Days'
+                if day_key in init_ck:
+                    # values are in days → convert to hours
+                    self.init_check_hrs[ck] = {
+                        aid: float(init_ck[day_key].get(str(aid), 0)) * 24.0
+                        for aid in self.aircraft_ids
+                    }
+                else:
+                    # values are in minutes → convert to hours
+                    self.init_check_hrs[ck] = {
+                        aid: float(init_ck.get(ck, {}).get(str(aid), 0)) / 60.0
+                        for aid in self.aircraft_ids
+                    }
+            else:  # A, B  — always in minutes in both file formats
+                self.init_check_hrs[ck] = {
+                    aid: float(init_ck.get(ck, {}).get(str(aid), 0)) / 60.0
+                    for aid in self.aircraft_ids
+                }
 
         # ── Cost matrix ───────────────────────────────────────────────────────
         # cost_matrix[fid-1][aid_index]  (outer index = flight, inner = aircraft)
@@ -790,7 +807,7 @@ class Optimizer:
     # Solve
     # ------------------------------------------------------------------
 
-    def solve(self, solver_name='cplex', tee=False, out_path=None):
+    def solve(self, solver_name='cplex', tee=False, out_path=None, time_limit=None):
         """Invoke the solver on the built model.
 
         Parameters
@@ -801,6 +818,8 @@ class Optimizer:
             Stream solver log to stdout.
         out_path : str | None
             If given, write the text report to this file.
+        time_limit : int | None
+            Solver wall-clock time limit in seconds (None = no limit).
 
         Returns
         -------
@@ -810,6 +829,13 @@ class Optimizer:
             raise RuntimeError("Call build_model() first.")
 
         solver = SolverFactory(solver_name)
+        if time_limit is not None:
+            # Common option names across solvers
+            for opt_key in ('timelimit', 'TimeLimit', 'max_seconds', 'time_limit'):
+                try:
+                    solver.options[opt_key] = int(time_limit)
+                except Exception:
+                    pass
         self.results = solver.solve(self.model, tee=tee)
 
         m   = self.model
@@ -1008,10 +1034,6 @@ def _plot_gantt(events, aid_list, unassigned_flights=None, unassigned_ids=None,
 
 
 # ----------------------------
-# UNIFIED MAIN
-# ----------------------------
-
-# ----------------------------
 # RESULT HELPERS
 # ----------------------------
 
@@ -1097,17 +1119,25 @@ def run_heuristic(data_path='data18h.json', csv_path='final_schedule.csv',
 
 
 def run_milp(data_path='data18h.json', solver='cplex', tee=False,
+             time_limit=None,
              out_txt=None, gantt_path=None, show_gantt=True,
              use_day_spacing=True, use_existing_hrs=True,
              use_check_hierarchy=True, use_sanity=True, use_overlap=True):
-    """Build and solve the MILP model, then display results."""
+    """Build and solve the MILP model, then display results.
+
+    Parameters
+    ----------
+    time_limit : int | None   Solver wall-clock time limit in seconds.
+                              None means no limit (solver default).
+    """
     opt = Optimizer(data_path)
     opt.build_model(use_day_spacing=use_day_spacing,
                     use_existing_hrs=use_existing_hrs,
                     use_check_hierarchy=use_check_hierarchy,
                     use_sanity=use_sanity,
                     use_overlap=use_overlap)
-    summary = opt.solve(solver_name=solver, tee=tee, out_path=out_txt)
+    summary = opt.solve(solver_name=solver, tee=tee, out_path=out_txt,
+                        time_limit=time_limit)
     opt.plot_gantt(save_path=gantt_path, show=show_gantt)
     return opt, summary
 
@@ -1116,124 +1146,213 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
 # BATCH RUNNER
 # ----------------------------
 
-def run_batch(input_dir='Inputs', output_dir='Outputs', mode='heuristic',
-              solver='cplex', tee=False, show_gantt=False):
+def _run_one_heuristic(fp, out_dir, stem, show_gantt):
+    """Run heuristic on a single file; return metrics dict."""
+    import time, os
+    csv_out   = os.path.join(out_dir, f'{stem}_heu_schedule.csv')
+    gantt_out = os.path.join(out_dir, f'{stem}_heu_gantt.png')
+    txt_out   = os.path.join(out_dir, f'{stem}_heu_summary.txt')
+    t0 = time.time()
+    sc, ac_fids, unassigned = run_heuristic(
+        data_path=fp, csv_path=csv_out,
+        gantt_path=gantt_out, show_gantt=show_gantt, verbose=False,
+    )
+    cpu = time.time() - t0
+    n   = len(sc.flights)
+    na  = n - len(unassigned)
+
+    # Cost = sum of assignment costs in solution
+    total_cost = sum(
+        sc.get_timeline(aid, ac_fids[aid])['cost']
+        for aid in sc.aircrafts
+        if sc.get_timeline(aid, ac_fids[aid])
+    )
+
+    max_h = max(f['arr'] for f in sc.flights.values())
+    lines = [f"Dataset : {fp}", f"Mode    : heuristic",
+             f"Flights : {na}/{n} assigned  ({len(unassigned)} unassigned)",
+             f"Cost    : {total_cost:.0f}",
+             f"CPU     : {cpu:.1f}s", "",
+             f"{'AID':>5}  {'Flt':>5}  {'Busy(min)':>10}  {'Free(min)':>10}"]
+    for aid in sorted(sc.aircrafts):
+        res = sc.get_timeline(aid, ac_fids[aid])
+        if res:
+            busy = sum(e['end'] - e['start'] for e in res['events'])
+            lines.append(f"{aid:>5}  {len(ac_fids[aid]):>5}  {busy:>10.0f}  {max_h-busy:>10.0f}")
+        else:
+            lines.append(f"{aid:>5}  {'0':>5}  {'0':>10}  {max_h:>10.0f}")
+    with open(txt_out, 'w') as fh:
+        fh.write('\n'.join(lines))
+
+    print(f"    [heu] assigned {na}/{n}  cost {total_cost:.0f}  cpu {cpu:.1f}s")
+    print(f"          csv→{csv_out}  png→{gantt_out}")
+    return {
+        'stem': stem, 'mode': 'heuristic',
+        'flights': n, 'assigned': na, 'unassigned': n - na,
+        'cost': round(total_cost, 2), 'obj': round(total_cost, 2),
+        'gap_%': None, 'status': 'heuristic', 'cpu_s': round(cpu, 2),
+    }
+
+
+def _run_one_milp(fp, out_dir, stem, solver, tee, show_gantt, time_limit):
+    """Run MILP on a single file; return metrics dict."""
+    import time, os
+    gantt_out = os.path.join(out_dir, f'{stem}_milp_gantt.png')
+    txt_out   = os.path.join(out_dir, f'{stem}_milp_summary.txt')
+    t0 = time.time()
+    opt, info = run_milp(
+        data_path=fp, solver=solver, tee=tee,
+        time_limit=time_limit,
+        out_txt=txt_out, gantt_path=gantt_out, show_gantt=show_gantt,
+    )
+    cpu = time.time() - t0
+
+    # Count assigned flights from model
+    m = opt.model
+    n_assigned = sum(1 for i in m.F for j in m.P if pyo_value(m.x[i, j]) > 0.5)
+    n_total    = len(list(m.F))
+
+    print(f"    [milp] status={info.get('status')}  obj={info.get('obj')}  "
+          f"gap={f"{info['gap']*100:.2f}%" if info.get('gap') else '-'}  cpu={cpu:.1f}s")
+    print(f"          png→{gantt_out}")
+    return {
+        'stem': stem, 'mode': 'milp',
+        'flights': n_total, 'assigned': n_assigned, 'unassigned': n_total - n_assigned,
+        'cost': round(info.get('obj') or 0, 2), 'obj': round(info.get('obj') or 0, 2),
+        'gap_%': round(info['gap'] * 100, 4) if info.get('gap') else None,
+        'status': info.get('status'), 'cpu_s': round(cpu, 2),
+    }
+
+
+def _plot_comparison(rows, out_dir):
+    """Bar-chart comparison of heuristic vs MILP across all datasets."""
+    import os
+    import numpy as np
+
+    df = pd.DataFrame(rows)
+    if df.empty or 'mode' not in df.columns:
+        return
+
+    heu  = df[df['mode'] == 'heuristic'].set_index('stem')
+    milp = df[df['mode'] == 'milp'].set_index('stem')
+    stems = sorted(set(df['stem']))
+
+    if heu.empty or milp.empty:
+        return
+
+    x   = np.arange(len(stems))
+    w   = 0.35
+    fig, axes = plt.subplots(1, 3, figsize=(18, 5))
+    fig.suptitle('Heuristic vs MILP – Batch Comparison', fontsize=13, fontweight='bold')
+
+    def _bar(ax, col, title, ylabel, fmt='{:.0f}'):
+        hvals = [heu.loc[s, col] if s in heu.index else 0 for s in stems]
+        mvals = [milp.loc[s, col] if s in milp.index else 0 for s in stems]
+        bars1 = ax.bar(x - w/2, hvals, w, label='Heuristic', color='#3498db')
+        bars2 = ax.bar(x + w/2, mvals, w, label='MILP',      color='#e74c3c')
+        for b, v in zip(bars1, hvals):
+            if v:
+                ax.text(b.get_x() + b.get_width()/2, b.get_height() + 0.01*max(hvals+mvals),
+                        fmt.format(v), ha='center', va='bottom', fontsize=8)
+        for b, v in zip(bars2, mvals):
+            if v:
+                ax.text(b.get_x() + b.get_width()/2, b.get_height() + 0.01*max(hvals+mvals),
+                        fmt.format(v), ha='center', va='bottom', fontsize=8)
+        ax.set_title(title); ax.set_ylabel(ylabel)
+        ax.set_xticks(x); ax.set_xticklabels([s[-20:] for s in stems], rotation=20, ha='right')
+        ax.legend()
+
+    _bar(axes[0], 'assigned', 'Flights Assigned',     'Count')
+    _bar(axes[1], 'obj',      'Objective / Cost',     'Cost',   fmt='{:.0f}')
+    _bar(axes[2], 'cpu_s',    'Computation Time (s)', 'Seconds', fmt='{:.1f}')
+
+    plt.tight_layout()
+    cmp_path = os.path.join(out_dir, '_comparison.png')
+    plt.savefig(cmp_path, dpi=150, bbox_inches='tight')
+    plt.close()
+    print(f"\n[batch] Comparison chart → {cmp_path}")
+
+
+def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
+              solver='cplex', tee=False, show_gantt=False, time_limit=300):
     """Process every JSON file in *input_dir* and write results to *output_dir*.
 
-    For each dataset the following files are created in output_dir:
-      <stem>_schedule.csv   – event table
-      <stem>_gantt.png      – Gantt chart
-      <stem>_summary.txt    – utilisation / solver statistics
+    For each dataset the following files are created in output_dir::
+
+      <stem>_heu_schedule.csv   – heuristic event table
+      <stem>_heu_gantt.png      – heuristic Gantt chart
+      <stem>_heu_summary.txt    – heuristic utilisation report
+      <stem>_milp_gantt.png     – MILP Gantt chart  (when mode includes milp)
+      <stem>_milp_summary.txt   – MILP solver report
+      _batch_summary.csv        – master metrics table (all files × modes)
+      _comparison.png           – side-by-side bar chart (when mode='both')
 
     Parameters
     ----------
     input_dir  : str   Folder containing *.json data files.
     output_dir : str   Destination folder (created if absent).
-    mode       : str   'heuristic' or 'milp'.
-    solver     : str   Pyomo solver name (MILP mode only).
-    tee        : bool  Stream solver output (MILP mode only).
-    show_gantt : bool  Pop up an interactive window for each dataset.
+    mode       : str   'heuristic', 'milp', or 'both'.
+    solver     : str   Pyomo solver name  (default: 'cplex').
+    tee        : bool  Stream solver stdout.
+    show_gantt : bool  Pop up interactive Gantt windows.
+    time_limit : int   Solver time-limit in seconds (default: 300).
     """
-    import os
-    import glob
-    import time
+    import os, glob, time
 
     os.makedirs(output_dir, exist_ok=True)
-
     json_files = sorted(glob.glob(os.path.join(input_dir, '*.json')))
     if not json_files:
-        print(f"[batch] No JSON files found in '{input_dir}'")
-        return
+        print(f"[batch] No JSON files found in '{input_dir}'"); return
 
-    print(f"[batch] Found {len(json_files)} file(s) in '{input_dir}'")
-    print(f"[batch] Mode = {mode}   Output → '{output_dir}'\n")
+    run_heu  = mode in ('heuristic', 'both')
+    run_milp_ = mode in ('milp', 'both')
 
-    summary_rows = []
+    print(f"[batch] {len(json_files)} file(s) in '{input_dir}'")
+    print(f"[batch] mode={mode}  solver={solver}  time_limit={time_limit}s")
+    print(f"[batch] output → '{output_dir}'\n")
+
+    all_rows = []
 
     for fp in json_files:
         stem = os.path.splitext(os.path.basename(fp))[0]
-        csv_out   = os.path.join(output_dir, f'{stem}_schedule.csv')
-        gantt_out = os.path.join(output_dir, f'{stem}_gantt.png')
-        txt_out   = os.path.join(output_dir, f'{stem}_summary.txt')
-
+        print(f"\n{'─'*60}")
         print(f"  ▶  {stem}")
-        t0 = time.time()
 
-        try:
-            if mode == 'heuristic':
-                sc, ac_fids, unassigned = run_heuristic(
-                    data_path=fp,
-                    csv_path=csv_out,
-                    gantt_path=gantt_out,
-                    show_gantt=show_gantt,
-                    verbose=False,
-                )
-                n   = len(sc.flights)
-                na  = n - len(unassigned)
-                elapsed = time.time() - t0
+        if run_heu:
+            try:
+                row = _run_one_heuristic(fp, output_dir, stem, show_gantt)
+                all_rows.append(row)
+            except Exception as exc:
+                print(f"  ✗ [heuristic] {exc}")
+                import traceback; traceback.print_exc()
 
-                # per-aircraft utilisation
-                max_h = max(f['arr'] for f in sc.flights.values())
-                lines = [f"Dataset : {fp}",
-                         f"Mode    : heuristic",
-                         f"Flights : {na}/{n} assigned  ({len(unassigned)} unassigned)",
-                         f"CPU     : {elapsed:.1f}s",
-                         "",
-                         f"{'AID':>5}  {'Flights':>7}  {'Busy(min)':>10}  {'Free(min)':>10}",
-                        ]
-                for aid in sorted(sc.aircrafts):
-                    res = sc.get_timeline(aid, ac_fids[aid])
-                    if res:
-                        busy = sum(e['end'] - e['start'] for e in res['events'])
-                        lines.append(f"{aid:>5}  {len(ac_fids[aid]):>7}  "
-                                     f"{busy:>10.0f}  {max_h - busy:>10.0f}")
-                    else:
-                        lines.append(f"{aid:>5}  {'0':>7}  {'0':>10}  {max_h:>10.0f}")
-                summary_rows.append({
-                    'file': stem, 'mode': mode,
-                    'flights': n, 'assigned': na,
-                    'unassigned': len(unassigned), 'cpu_s': round(elapsed, 2),
-                })
+        if run_milp_:
+            try:
+                row = _run_one_milp(fp, output_dir, stem, solver, tee,
+                                    show_gantt, time_limit)
+                all_rows.append(row)
+            except Exception as exc:
+                print(f"  ✗ [milp] {exc}")
+                import traceback; traceback.print_exc()
 
-            else:  # milp
-                opt, info = run_milp(
-                    data_path=fp,
-                    solver=solver, tee=tee,
-                    out_txt=txt_out,
-                    gantt_path=gantt_out,
-                    show_gantt=show_gantt,
-                )
-                elapsed = time.time() - t0
-                lines = []   # already written by run_milp -> print_report
-                summary_rows.append({
-                    'file': stem, 'mode': mode,
-                    'status': info.get('status'),
-                    'obj': info.get('obj'),
-                    'gap_%': round(info['gap'] * 100, 4) if info.get('gap') else None,
-                    'cpu_s': round(elapsed, 2),
-                })
-
-            if lines:
-                with open(txt_out, 'w') as fh:
-                    fh.write('\n'.join(lines))
-
-            print(f"       csv  → {csv_out}")
-            print(f"       png  → {gantt_out}")
-            print(f"       txt  → {txt_out}")
-            print(f"       time → {time.time()-t0:.1f}s")
-
-        except Exception as exc:
-            print(f"  ✗  ERROR on {stem}: {exc}")
-            import traceback
-            traceback.print_exc()
+    print(f"\n{'─'*60}")
 
     # Master summary CSV
-    if summary_rows:
-        master = pd.DataFrame(summary_rows)
+    if all_rows:
+        master = pd.DataFrame(all_rows)
         master_path = os.path.join(output_dir, '_batch_summary.csv')
         master.to_csv(master_path, index=False)
-        print(f"\n[batch] Master summary → {master_path}")
-        print(master.to_string(index=False))
+        print(f"[batch] Master summary → {master_path}")
+        # Pretty console table
+        disp_cols = ['stem','mode','flights','assigned','unassigned','obj','gap_%','cpu_s']
+        disp = master[[c for c in disp_cols if c in master.columns]]
+        print(disp.to_string(index=False))
+
+        # Comparison chart (only when both modes ran)
+        if mode == 'both':
+            _plot_comparison(all_rows, output_dir)
+
+    return all_rows
 
 
 # ----------------------------
@@ -1257,25 +1376,40 @@ def main():
                           --solver cplex
     """
     import argparse
-    parser = argparse.ArgumentParser(description='Aircraft Schedule Optimizer')
-    parser.add_argument('--mode',       default='heuristic',
+    parser = argparse.ArgumentParser(
+        description='Aircraft Schedule Optimizer',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "Examples:\n"
+            "  py -3 heu180h.py                                          # heuristic on data18h.json\n"
+            "  py -3 heu180h.py --mode milp --solver cplex --tee         # MILP single file\n"
+            "  py -3 heu180h.py --mode batch --input-dir Inputs          # heuristic batch\n"
+            "  py -3 heu180h.py --mode batch --batch-mode both --solver cplex  # both + compare\n"
+        )
+    )
+    parser.add_argument('--mode',        default='heuristic',
                         choices=['heuristic', 'milp', 'batch'],
-                        help='Optimization approach (default: heuristic)')
-    parser.add_argument('--data',       default='data18h.json',
-                        help='JSON data file (single-file modes)')
-    parser.add_argument('--input-dir',  default='Inputs',
-                        help='Input folder for batch mode (default: Inputs)')
-    parser.add_argument('--output-dir', default='Outputs',
-                        help='Output folder for batch mode (default: Outputs)')
-    parser.add_argument('--solver',     default='cplex',
-                        help='Pyomo solver name (MILP / batch-milp, default: cplex)')
-    parser.add_argument('--tee',        action='store_true',
-                        help='Stream solver log to stdout (MILP modes)')
-    parser.add_argument('--out',        default=None,
+                        help='Run mode (default: heuristic)')
+    parser.add_argument('--batch-mode',  default='both',
+                        choices=['heuristic', 'milp', 'both'],
+                        help='Which optimizers to run in batch (default: both)')
+    parser.add_argument('--data',        default='data18h.json',
+                        help='JSON data file  (single-file modes)')
+    parser.add_argument('--input-dir',   default='Inputs',
+                        help='Input folder for batch mode  (default: Inputs)')
+    parser.add_argument('--output-dir',  default='Outputs',
+                        help='Output folder for batch mode  (default: Outputs)')
+    parser.add_argument('--solver',      default='cplex',
+                        help='Pyomo solver name  (default: cplex)')
+    parser.add_argument('--time-limit',  type=int, default=300,
+                        help='Solver time limit in seconds for MILP  (default: 300)')
+    parser.add_argument('--tee',         action='store_true',
+                        help='Stream solver log to stdout  (MILP modes)')
+    parser.add_argument('--out',         default=None,
                         help='Output path: CSV for heuristic, TXT for MILP')
-    parser.add_argument('--gantt',      default=None,
+    parser.add_argument('--gantt',       default=None,
                         help='Save Gantt chart PNG to this path')
-    parser.add_argument('--no-show',    dest='show', action='store_false',
+    parser.add_argument('--no-show',     dest='show', action='store_false',
                         help='Do not display Gantt interactively')
     parser.set_defaults(show=True)
     args = parser.parse_args()
@@ -1287,15 +1421,15 @@ def main():
                       show_gantt=args.show)
     elif args.mode == 'milp':
         run_milp(data_path=args.data,
-                 solver=args.solver,
-                 tee=args.tee,
-                 out_txt=args.out,
-                 gantt_path=args.gantt,
-                 show_gantt=args.show)
+                 solver=args.solver, tee=args.tee,
+                 time_limit=args.time_limit,
+                 out_txt=args.out, gantt_path=args.gantt, show_gantt=args.show)
     else:  # batch
         run_batch(input_dir=args.input_dir,
                   output_dir=args.output_dir,
-                  mode='heuristic',         # batch always uses heuristic by default
+                  mode=args.batch_mode,
+                  solver=args.solver, tee=args.tee,
+                  time_limit=args.time_limit,
                   show_gantt=args.show)
 
 

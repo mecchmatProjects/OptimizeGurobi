@@ -1,10 +1,17 @@
 import json
 import math
 import random
+import sys
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
 import matplotlib.patches as mpatches
 import pandas as pd
+
+# Force UTF-8 output on Windows (avoids UnicodeEncodeError for box-drawing chars)
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+if hasattr(sys.stderr, 'reconfigure'):
+    sys.stderr.reconfigure(encoding='utf-8')
 
 # Optional Pyomo imports (only needed for Optimizer)
 try:
@@ -23,16 +30,16 @@ class Scheduler:
     """Greedy + insertion heuristic scheduler.
 
     Threshold units (stored in JSON exactly as follows):
-      A, B  → minutes of accumulated flight time
-      C, D  → calendar days since last check
+      A, B  -> minutes of accumulated flight time
+      C, D  -> calendar days since last check
 
     Durations (Maintenance_Durations) are always in minutes.
 
     Check hierarchy (heaviest resets all lighter counters):
-      D check → resets D, C, B, A
-      C check → resets C, B, A        (D counter keeps running)
-      B check → resets B, A           (C, D counters keep running)
-      A check → resets A only         (B, C, D counters keep running)
+      D check -> resets D, C, B, A
+      C check -> resets C, B, A        (D counter keeps running)
+      B check -> resets B, A           (C, D counters keep running)
+      A check -> resets A only         (B, C, D counters keep running)
     """
 
     def __init__(self, data_path):
@@ -97,7 +104,7 @@ class Scheduler:
             return 0.0, 0.0, -t_days, -t_days   # (a, b, c_offset, d_offset)
         elif needed == 'C':
             # C resets flight-hour counters A & B, and the C calendar counter
-            return 0.0, 0.0, -t_days, None       # d_offset=None → unchanged
+            return 0.0, 0.0, -t_days, None       # d_offset=None -> unchanged
         elif needed == 'B':
             # B resets flight-hour counters A & B only
             return 0.0, 0.0, None, None
@@ -322,7 +329,7 @@ class Optimizer:
         durs   = raw['Maintenance_Durations']   # all in minutes
 
         # Hours thresholds used in cumulative flight-hour constraints
-        # A/B stored as minutes → convert; C/D stored as days → ×24
+        # A/B stored as minutes -> convert; C/D stored as days -> ×24
         self.check_hrs = {
             'A': thresh['A'] / 60.0,
             'B': thresh['B'] / 60.0,
@@ -348,13 +355,13 @@ class Optimizer:
                 # Prefer C_Days / D_Days key (values in days); fall back to C/D (minutes)
                 day_key = f'{ck}_Days'
                 if day_key in init_ck:
-                    # values are in days → convert to hours
+                    # values are in days -> convert to hours
                     self.init_check_hrs[ck] = {
                         aid: float(init_ck[day_key].get(str(aid), 0)) * 24.0
                         for aid in self.aircraft_ids
                     }
                 else:
-                    # values are in minutes → convert to hours
+                    # values are in minutes -> convert to hours
                     self.init_check_hrs[ck] = {
                         aid: float(init_ck.get(ck, {}).get(str(aid), 0)) / 60.0
                         for aid in self.aircraft_ids
@@ -389,20 +396,23 @@ class Optimizer:
                     use_check_hierarchy=True,
                     use_sanity=True,
                     use_overlap=True,
-                    allow_ferry=True):
+                    allow_ferry=True,
+                    use_maintenance=True):
         """Construct the ConcreteModel.  Call before solve().
 
         Parameters
         ----------
         allow_ferry : bool
             When *True* (default) the C2-C3 equipment-flow / turnaround
-            constraints are included, enforcing that each aircraft must be
-            physically present at the departure airport of every flight it
-            operates (no implicit repositioning).  Set to *False* to drop
-            these routing constraints and treat the problem as a pure
-            assignment + maintenance model — the model becomes significantly
-            smaller and easier to solve, but ferry / repositioning flights
-            may be needed in practice to execute the resulting schedule.
+            constraints are included.  Set to *False* for a pure
+            assignment + maintenance model (smaller, faster; ferry flights
+            may be needed to execute the resulting schedule in practice).
+        use_maintenance : bool
+            When *True* (default) all maintenance constraints (C8-C15,
+            check hierarchy, duration, day-spacing, hr-accumulation) are
+            added.  Set to *False* to solve a pure flight-assignment model
+            (no check scheduling) — dramatically fewer constraints, much
+            faster to solve, useful as an upper-bound / relaxation benchmark.
         """
         m = ConcreteModel()
         self.model = m
@@ -414,19 +424,20 @@ class Optimizer:
             self._add_c23_turn(m)
         if use_overlap:
             self._add_overlap(m)
-        self._add_c8_maint_blocks_flights(m)
-        self._add_c9_maint_assignment(m)
-        self._add_c10_capacity(m)
-        self._add_c11_maint_link(m)
-        self._add_hierarchy(m, use_check_hierarchy)
-        self._add_c14_one_check_per_day(m)
-        self._add_c14b_check_duration(m)
-        if use_day_spacing:
-            self._add_c12_day_spacing(m)
-        if use_existing_hrs:
-            self._add_c13b_existing_hrs(m)
-        self._add_c13_hr_accumulation(m)
-        self._add_c15_no_flight_during_maint(m)
+        if use_maintenance:
+            self._add_c8_maint_blocks_flights(m)
+            self._add_c9_maint_assignment(m)
+            self._add_c10_capacity(m)
+            self._add_c11_maint_link(m)
+            self._add_hierarchy(m, use_check_hierarchy)
+            self._add_c14_one_check_per_day(m)
+            self._add_c14b_check_duration(m)
+            if use_day_spacing:
+                self._add_c12_day_spacing(m)
+            if use_existing_hrs:
+                self._add_c13b_existing_hrs(m)
+            self._add_c13_hr_accumulation(m)
+            self._add_c15_no_flight_during_maint(m)
         if use_sanity:
             self._add_sanity(m)
         return m
@@ -920,7 +931,7 @@ class Optimizer:
         for i in m.F:
             for j in m.P:
                 if pyo_value(m.x[i, j]) > 0.5:
-                    _p(f"  Flight {i:4d}  → Aircraft {j}")
+                    _p(f"  Flight {i:4d}  -> Aircraft {j}")
 
         _p("\n--- Maintenance ---")
         for j in m.P:
@@ -933,7 +944,7 @@ class Optimizer:
         text = "\n".join(lines)
         print(text)
         if out_path:
-            with open(out_path, 'w') as f:
+            with open(out_path, 'w', encoding='utf-8') as f:
                 f.write(text)
 
     # ------------------------------------------------------------------
@@ -1149,7 +1160,7 @@ def run_heuristic(data_path='data18h.json', csv_path='final_schedule.csv',
     if csv_path:
         df.to_csv(csv_path, index=False)
         if verbose:
-            print(f"\nTable saved → {csv_path}")
+            print(f"\nTable saved -> {csv_path}")
 
     events = _heuristic_events(sc, final_ac_fids)
     _plot_gantt(events, sorted(sc.aircrafts),
@@ -1165,15 +1176,15 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
              out_txt=None, gantt_path=None, show_gantt=True,
              use_day_spacing=True, use_existing_hrs=True,
              use_check_hierarchy=True, use_sanity=True, use_overlap=True,
-             allow_ferry=True):
+             allow_ferry=True, use_maintenance=True):
     """Build and solve the MILP model, then display results.
 
     Parameters
     ----------
-    time_limit : int | None   Solver wall-clock time limit in seconds.
-                              None means no limit (solver default).
-    allow_ferry : bool        When False, C2-C3 routing constraints are
-                              omitted (pure assignment; smaller model).
+    time_limit     : int | None  Solver wall-clock time limit in seconds.
+    allow_ferry    : bool        When False, C2-C3 routing constraints omitted.
+    use_maintenance: bool        When False, all maintenance constraints omitted
+                                 (pure flight-assignment relaxation).
     """
     opt = Optimizer(data_path)
     opt.build_model(use_day_spacing=use_day_spacing,
@@ -1181,7 +1192,8 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
                     use_check_hierarchy=use_check_hierarchy,
                     use_sanity=use_sanity,
                     use_overlap=use_overlap,
-                    allow_ferry=allow_ferry)
+                    allow_ferry=allow_ferry,
+                    use_maintenance=use_maintenance)
     summary = opt.solve(solver_name=solver, tee=tee, out_path=out_txt,
                         time_limit=time_limit)
     opt.plot_gantt(save_path=gantt_path, show=show_gantt)
@@ -1231,7 +1243,7 @@ def _run_one_heuristic(fp, out_dir, stem, show_gantt):
         fh.write('\n'.join(lines))
 
     print(f"    [heu] assigned {na}/{n}  cost {total_cost:.0f}  cpu {cpu:.1f}s")
-    print(f"          csv→{csv_out}  png→{gantt_out}")
+    print(f"          csv->{csv_out}  png->{gantt_out}")
     return {
         'stem': stem, 'mode': 'heuristic',
         'flights': n, 'assigned': na, 'unassigned': n - na,
@@ -1241,7 +1253,7 @@ def _run_one_heuristic(fp, out_dir, stem, show_gantt):
 
 
 def _run_one_milp(fp, out_dir, stem, solver, tee, show_gantt, time_limit,
-                  allow_ferry=True):
+                  allow_ferry=True, use_maintenance=True):
     """Run MILP on a single file; return metrics dict."""
     import time, os
     gantt_out = os.path.join(out_dir, f'{stem}_milp_gantt.png')
@@ -1252,6 +1264,7 @@ def _run_one_milp(fp, out_dir, stem, solver, tee, show_gantt, time_limit,
         time_limit=time_limit,
         out_txt=txt_out, gantt_path=gantt_out, show_gantt=show_gantt,
         allow_ferry=allow_ferry,
+        use_maintenance=use_maintenance,
     )
     cpu = time.time() - t0
 
@@ -1262,7 +1275,7 @@ def _run_one_milp(fp, out_dir, stem, solver, tee, show_gantt, time_limit,
 
     print(f"    [milp] status={info.get('status')}  obj={info.get('obj')}  "
           f"gap={f"{info['gap']*100:.2f}%" if info.get('gap') else '-'}  cpu={cpu:.1f}s")
-    print(f"          png→{gantt_out}")
+    print(f"          png->{gantt_out}")
     return {
         'stem': stem, 'mode': 'milp',
         'flights': n_total, 'assigned': n_assigned, 'unassigned': n_total - n_assigned,
@@ -1318,12 +1331,12 @@ def _plot_comparison(rows, out_dir):
     cmp_path = os.path.join(out_dir, '_comparison.png')
     plt.savefig(cmp_path, dpi=150, bbox_inches='tight')
     plt.close()
-    print(f"\n[batch] Comparison chart → {cmp_path}")
+    print(f"\n[batch] Comparison chart -> {cmp_path}")
 
 
 def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
               solver='cplex', tee=False, show_gantt=False, time_limit=300,
-              allow_ferry=True):
+              allow_ferry=True, use_maintenance=True):
     """Process every JSON file in *input_dir* and write results to *output_dir*.
 
     For each dataset the following files are created in output_dir::
@@ -1338,15 +1351,16 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
 
     Parameters
     ----------
-    input_dir  : str   Folder containing *.json data files.
-    output_dir : str   Destination folder (created if absent).
-    mode       : str   'heuristic', 'milp', or 'both'.
-    solver     : str   Pyomo solver name  (default: 'cplex').
-    tee        : bool  Stream solver stdout.
-    show_gantt : bool  Pop up interactive Gantt windows.
-    time_limit : int   Solver time-limit in seconds (default: 300).
-    allow_ferry: bool  When False, C2-C3 routing constraints are omitted
-                       from the MILP (pure assignment; smaller model).
+    input_dir      : str   Folder containing *.json data files.
+    output_dir     : str   Destination folder (created if absent).
+    mode           : str   'heuristic', 'milp', or 'both'.
+    solver         : str   Pyomo solver name  (default: 'cplex').
+    tee            : bool  Stream solver stdout.
+    show_gantt     : bool  Pop up interactive Gantt windows.
+    time_limit     : int   Solver time-limit in seconds (default: 300).
+    allow_ferry    : bool  When False, C2-C3 routing constraints omitted.
+    use_maintenance: bool  When False, all maintenance constraints omitted
+                           (pure flight-assignment relaxation; much smaller model).
     """
     import os, glob, time
 
@@ -1358,10 +1372,12 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
     run_heu  = mode in ('heuristic', 'both')
     run_milp_ = mode in ('milp', 'both')
 
-    ferry_label = "ON (routing enforced)" if allow_ferry else "OFF (pure assignment)"
+    ferry_label = "ON" if allow_ferry else "OFF (pure assignment)"
+    maint_label = "ON" if use_maintenance else "OFF (relaxed)"
     print(f"[batch] {len(json_files)} file(s) in '{input_dir}'")
-    print(f"[batch] mode={mode}  solver={solver}  time_limit={time_limit}s  ferry={ferry_label}")
-    print(f"[batch] output → '{output_dir}'\n")
+    print(f"[batch] mode={mode}  solver={solver}  time_limit={time_limit}s")
+    print(f"[batch] ferry={ferry_label}  maintenance={maint_label}")
+    print(f"[batch] output -> '{output_dir}'\n")
 
     all_rows = []
 
@@ -1382,7 +1398,8 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
             try:
                 row = _run_one_milp(fp, output_dir, stem, solver, tee,
                                     show_gantt, time_limit,
-                                    allow_ferry=allow_ferry)
+                                    allow_ferry=allow_ferry,
+                                    use_maintenance=use_maintenance)
                 all_rows.append(row)
             except Exception as exc:
                 print(f"  ✗ [milp] {exc}")
@@ -1395,7 +1412,7 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
         master = pd.DataFrame(all_rows)
         master_path = os.path.join(output_dir, '_batch_summary.csv')
         master.to_csv(master_path, index=False)
-        print(f"[batch] Master summary → {master_path}")
+        print(f"[batch] Master summary -> {master_path}")
         # Pretty console table
         disp_cols = ['stem','mode','flights','assigned','unassigned','obj','gap_%','cpu_s']
         disp = master[[c for c in disp_cols if c in master.columns]]
@@ -1466,9 +1483,12 @@ def main():
                         help='Do not display Gantt interactively')
     parser.add_argument('--no-ferry',    dest='allow_ferry', action='store_false',
                         help='Omit C2-C3 routing constraints from MILP '
-                             '(pure assignment; smaller/faster model). '
-                             'Ferry flights may be needed to execute the resulting schedule.')
-    parser.set_defaults(show=True, allow_ferry=True)
+                             '(pure assignment; smaller/faster model).')
+    parser.add_argument('--no-maintenance', dest='use_maintenance', action='store_false',
+                        help='Omit ALL maintenance constraints from MILP '
+                             '(pure flight-assignment relaxation; much smaller/faster). '
+                             'Useful as a lower-bound / feasibility benchmark.')
+    parser.set_defaults(show=True, allow_ferry=True, use_maintenance=True)
     args = parser.parse_args()
 
     if args.mode == 'heuristic':
@@ -1481,7 +1501,8 @@ def main():
                  solver=args.solver, tee=args.tee,
                  time_limit=args.time_limit,
                  out_txt=args.out, gantt_path=args.gantt, show_gantt=args.show,
-                 allow_ferry=args.allow_ferry)
+                 allow_ferry=args.allow_ferry,
+                 use_maintenance=args.use_maintenance)
     else:  # batch
         run_batch(input_dir=args.input_dir,
                   output_dir=args.output_dir,
@@ -1489,7 +1510,8 @@ def main():
                   solver=args.solver, tee=args.tee,
                   time_limit=args.time_limit,
                   show_gantt=args.show,
-                  allow_ferry=args.allow_ferry)
+                  allow_ferry=args.allow_ferry,
+                  use_maintenance=args.use_maintenance)
 
 
 if __name__ == '__main__':

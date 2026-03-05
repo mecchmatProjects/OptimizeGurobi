@@ -20,82 +20,176 @@ except ImportError:
 # ----------------------------
 
 class Scheduler:
+    """Greedy + insertion heuristic scheduler.
+
+    Threshold units (stored in JSON exactly as follows):
+      A, B  → minutes of accumulated flight time
+      C, D  → calendar days since last check
+
+    Durations (Maintenance_Durations) are always in minutes.
+
+    Check hierarchy (heaviest resets all lighter counters):
+      D check → resets D, C, B, A
+      C check → resets C, B, A        (D counter keeps running)
+      B check → resets B, A           (C, D counters keep running)
+      A check → resets A only         (B, C, D counters keep running)
+    """
+
     def __init__(self, data_path):
         with open(data_path, 'r') as f:
             self.data = json.load(f)
-        
-        self.flights = {f[0]: {'fid': f[0], 'orig': f[1], 'dest': f[2], 'dep': f[3], 'arr': f[4], 'dur': f[4]-f[3]} 
-                        for f in self.data['Flights']}
-        self.aircrafts = self.data['Aircrafts']
-        self.init_pos = self.data['AIRCRAFT_INIT_POS']
+
+        self.flights = {
+            fl[0]: {'fid': fl[0], 'orig': fl[1], 'dest': fl[2],
+                    'dep': float(fl[3]), 'arr': float(fl[4]),
+                    'dur': float(fl[4]) - float(fl[3])}
+            for fl in self.data['Flights']
+        }
+        self.aircrafts   = self.data['Aircrafts']
+        self.init_pos    = self.data['AIRCRAFT_INIT_POS']
         self.init_checks = self.data['Initial_Checks']
-        self.thresholds = self.data['Maintenance_Thresholds']
-        self.durations = self.data['Maintenance_Durations']
+
+        # A/B thresholds in MINUTES; C/D thresholds in DAYS
+        self.thresh_ab = {
+            'A': float(self.data['Maintenance_Thresholds']['A']),
+            'B': float(self.data['Maintenance_Thresholds']['B']),
+        }
+        self.thresh_cd = {
+            'C': float(self.data['Maintenance_Thresholds']['C']),
+            'D': float(self.data['Maintenance_Thresholds']['D']),
+        }
+        # Durations always in minutes
+        self.durations   = {k: float(v) for k, v in self.data['Maintenance_Durations'].items()}
         self.station_cap = self.data['Station_Capacity']
         self.cost_matrix = self.data['Cost_Matrix']
-        
+
         self.ferry_time = 60
-        self.ferry_cost = 6000 # High cost helps the optimizer minimize these
+        self.ferry_cost = 6000
+
+    # ------------------------------------------------------------------
+    def _init_counters(self, aid):
+        """Return (a_min, b_min, c_days, d_days) for aircraft aid."""
+        sid = str(aid)
+        ic  = self.init_checks
+        # A/B: accumulated flight minutes since last check
+        a = float(ic.get('A', {}).get(sid, 0))
+        b = float(ic.get('B', {}).get(sid, 0))
+        # C/D: calendar days elapsed since last check
+        c = float(ic.get('C_Days', ic.get('C', {})).get(sid, 0))
+        d = float(ic.get('D_Days', ic.get('D', {})).get(sid, 0))
+        return a, b, c, d
+
+    @staticmethod
+    def _reset_counters(needed, a, b, c_days, t_now_min):
+        """Apply hierarchy reset after performing *needed* check.
+
+        Parameters
+        ----------
+        t_now_min : float  Current schedule time in minutes (after check ends).
+
+        Returns updated (a, b, c_days, d_days_offset).
+        The d_days value is returned as an *offset* so that
+        ``d_days_offset + (curr_time / 1440)`` gives elapsed days since last D check.
+        """
+        t_days = t_now_min / 1440.0
+        if needed == 'D':
+            # D is most comprehensive − resets all counters
+            return 0.0, 0.0, -t_days, -t_days   # (a, b, c_offset, d_offset)
+        elif needed == 'C':
+            # C resets flight-hour counters A & B, and the C calendar counter
+            return 0.0, 0.0, -t_days, None       # d_offset=None → unchanged
+        elif needed == 'B':
+            # B resets flight-hour counters A & B only
+            return 0.0, 0.0, None, None
+        else:  # 'A'
+            # A resets only its own flight-hour counter
+            return 0.0, None, None, None
 
     def get_timeline(self, aid, fids):
-        curr_apt = self.init_pos[str(aid)]
-        curr_time = 0.0
-        a = float(self.init_checks['A'].get(str(aid), 0))
-        b = float(self.init_checks['B'].get(str(aid), 0))
-        c_init = float(self.init_checks.get('C_Days', {}).get(str(aid), 0))
-        d_init = float(self.init_checks.get('D_Days', {}).get(str(aid), 0))
-        
-        events = []
-        total_cost = 0
+        """Simulate one aircraft's schedule and return event list + cost.
+
+        Returns None if the assignment is infeasible.
+        """
+        curr_apt  = self.init_pos[str(aid)]
+        curr_time = 0.0          # minutes into the planning horizon
+        a, b, c_off, d_off = self._init_counters(aid)
+        # c_days_elapsed = c_off + (curr_time / 1440)  (same for d)
+
+        events     = []
+        total_cost = 0.0
 
         for fid in fids:
             fl = self.flights[fid]
-            
-            # 1. Repositioning (Ferry) - Minimization logic happens via cost
-            if curr_apt != fl['orig']:
-                if curr_time + self.ferry_time > fl['dep']: return None
-                events.append({'kind': 'FERRY', 'start': curr_time, 'end': curr_time + self.ferry_time, 
-                               'orig': curr_apt, 'dest': fl['orig'], 'cost': self.ferry_cost})
-                curr_time += self.ferry_time
-                curr_apt = fl['orig']
-                total_cost += self.ferry_cost
-            
-            # 2. Maintenance Logic
-            days_now = curr_time / 1440.0
-            needed = None
-            if d_init + days_now > self.thresholds['D']: needed = 'D'
-            elif c_init + days_now > self.thresholds['C']: needed = 'C'
-            elif b + fl['dur'] > self.thresholds['B']: needed = 'B'
-            elif a + fl['dur'] > self.thresholds['A']: needed = 'A'
-            
-            if needed:
-                m_dur = self.durations[needed]
-                if curr_time + m_dur > fl['dep']: return None
-                if self.station_cap.get(fl['orig'], 0) == 0: return None
-                
-                events.append({'kind': 'MAINT', 'start': curr_time, 'end': curr_time + m_dur, 
-                               'orig': fl['orig'], 'dest': fl['orig'], 'check': needed})
-                curr_time += m_dur
-                
-                if needed == 'D': a=0; b=0; c_init = -(curr_time/1440.0); d_init = -(curr_time/1440.0)
-                elif needed == 'C': a=0; b=0; c_init = -(curr_time/1440.0)
-                elif needed == 'B': a=0; b=0
-                elif needed == 'A': a=0
 
-            # 3. Flight Execution
-            if curr_time > fl['dep']: return None
-            
-            snap = {'rem_a': self.thresholds['A'] - a, 'rem_b': self.thresholds['B'] - b,
-                    'rem_c': self.thresholds['C'] - (c_init + fl['dep']/1440.0),
-                    'rem_d': self.thresholds['D'] - (d_init + fl['dep']/1440.0)}
-            
-            events.append({'kind': 'FLIGHT', 'fid': fid, 'start': fl['dep'], 'end': fl['arr'], 
-                           'orig': fl['orig'], 'dest': fl['dest'], 'cost': self.cost_matrix[fid-1][aid], 
-                           'dur': fl['dur'], **snap})
-            
-            curr_time, curr_apt = fl['arr'], fl['dest']
-            a += fl['dur']; b += fl['dur']
-            total_cost += self.cost_matrix[fid-1][aid]
+            # ── 1. Ferry / repositioning ──────────────────────────────────
+            if curr_apt != fl['orig']:
+                if curr_time + self.ferry_time > fl['dep']:
+                    return None
+                events.append({
+                    'kind': 'FERRY', 'start': curr_time,
+                    'end':  curr_time + self.ferry_time,
+                    'orig': curr_apt, 'dest': fl['orig'],
+                    'cost': self.ferry_cost,
+                })
+                curr_time += self.ferry_time
+                curr_apt   = fl['orig']
+                total_cost += self.ferry_cost
+
+            # ── 2. Maintenance check (before departing this flight) ───────
+            days_now = curr_time / 1440.0
+            # D then C (day-based); B then A (flight-hour-based)
+            # Priority: heaviest check wins so hierarchy reset is maximal
+            needed = None
+            if   d_off + days_now >= self.thresh_cd['D']:          needed = 'D'
+            elif c_off + days_now >= self.thresh_cd['C']:          needed = 'C'
+            elif b + fl['dur']    >= self.thresh_ab['B']:          needed = 'B'
+            elif a + fl['dur']    >= self.thresh_ab['A']:          needed = 'A'
+
+            if needed:
+                m_dur   = self.durations[needed]
+                if curr_time + m_dur > fl['dep']:                    return None
+                if self.station_cap.get(fl['orig'], 0) == 0:         return None
+
+                events.append({
+                    'kind': 'MAINT', 'check': needed,
+                    'start': curr_time, 'end': curr_time + m_dur,
+                    'orig': fl['orig'], 'dest': fl['orig'],
+                })
+                curr_time += m_dur
+
+                # Apply hierarchy reset
+                na, nb, nc, nd = self._reset_counters(needed, a, b, c_off, curr_time)
+                if na is not None: a     = na
+                if nb is not None: b     = nb
+                if nc is not None: c_off = nc
+                if nd is not None: d_off = nd
+
+            # ── 3. Flight execution ───────────────────────────────────────
+            if curr_time > fl['dep']:
+                return None
+
+            days_dep = fl['dep'] / 1440.0
+            snap = {
+                'rem_a':  self.thresh_ab['A'] - a,          # minutes remaining
+                'rem_b':  self.thresh_ab['B'] - b,
+                'rem_c':  self.thresh_cd['C'] - (c_off + days_dep),  # days remaining
+                'rem_d':  self.thresh_cd['D'] - (d_off + days_dep),
+            }
+            events.append({
+                'kind': 'FLIGHT', 'fid': fid,
+                'start': fl['dep'], 'end': fl['arr'],
+                'orig': fl['orig'], 'dest': fl['dest'],
+                'cost': self.cost_matrix[fid - 1][aid],
+                'dur':  fl['dur'],
+                **snap,
+            })
+
+            curr_time  = fl['arr']
+            curr_apt   = fl['dest']
+            # Accumulate flight minutes for A & B counters
+            a          += fl['dur']
+            b          += fl['dur']
+            total_cost += self.cost_matrix[fid - 1][aid]
 
         return {'events': events, 'cost': total_cost}
 
@@ -917,41 +1011,12 @@ def _plot_gantt(events, aid_list, unassigned_flights=None, unassigned_ids=None,
 # UNIFIED MAIN
 # ----------------------------
 
-def run_heuristic(data_path='data18h.json', csv_path='final_schedule.csv',
-                  gantt_path=None, show_gantt=True):
-    """Run the greedy+insertion heuristic and display results."""
-    sc = Scheduler(data_path)
-    final_ac_fids, unassigned = sc.optimize()
+# ----------------------------
+# RESULT HELPERS
+# ----------------------------
 
-    # Utilization summary
-    max_horizon = max(f['arr'] for f in sc.flights.values())
-    print("\n--- Aircraft Utilization Summary ---")
-    for aid in sorted(sc.aircrafts):
-        res = sc.get_timeline(aid, final_ac_fids[aid])
-        if res:
-            busy = sum(e['end'] - e['start'] for e in res['events'])
-            print(f"  AC {aid:3d}: Free Time = {max_horizon - busy:.0f} min")
-        else:
-            print(f"  AC {aid:3d}: Free Time = {max_horizon:.0f} min  (no flights)")
-    print("------------------------------------")
-
-    # CSV export
-    rows = []
-    for aid in sorted(sc.aircrafts):
-        res = sc.get_timeline(aid, final_ac_fids[aid])
-        if res:
-            for e in res['events']:
-                label = f"F{e['fid']}" if e['kind'] == 'FLIGHT' else e.get('check', 'FERRY')
-                rows.append([aid, e['kind'], label, e['orig'], e['dest'], e['start'],
-                             e.get('dur', '-'), e.get('rem_a', '-'), e.get('rem_b', '-'),
-                             e.get('rem_c', '-'), e.get('rem_d', '-')])
-    df = pd.DataFrame(rows, columns=['AID','Type','ID','From','To','Dep','Dur',
-                                     'Rem A','Rem B','Rem C(d)','Rem D(d)'])
-    print(df.to_string())
-    df.to_csv(csv_path, index=False)
-    print(f"\nSchedule saved to {csv_path}")
-
-    # Gantt
+def _heuristic_events(sc, final_ac_fids):
+    """Extract Gantt-compatible event list from a Scheduler result."""
     events = []
     for aid in sorted(sc.aircrafts):
         res = sc.get_timeline(aid, final_ac_fids[aid])
@@ -965,11 +1030,68 @@ def run_heuristic(data_path='data18h.json', csv_path='final_schedule.csv',
                     'end':      e['end'],
                     'check':    e.get('check'),
                 })
+    return events
 
+
+def _heuristic_df(sc, final_ac_fids):
+    """Build a summary DataFrame from a Scheduler result."""
+    rows = []
+    for aid in sorted(sc.aircrafts):
+        res = sc.get_timeline(aid, final_ac_fids[aid])
+        if res:
+            for e in res['events']:
+                label = f"F{e['fid']}" if e['kind'] == 'FLIGHT' else e.get('check', 'FERRY')
+                rows.append([
+                    aid, e['kind'], label, e.get('orig','-'), e.get('dest','-'),
+                    round(e['start'], 1),
+                    round(e.get('dur', e['end']-e['start']), 1),
+                    round(e.get('rem_a', float('nan')), 1),
+                    round(e.get('rem_b', float('nan')), 1),
+                    round(e.get('rem_c', float('nan')), 3),
+                    round(e.get('rem_d', float('nan')), 3),
+                ])
+    return pd.DataFrame(rows, columns=[
+        'AID','Type','ID','From','To','Dep(min)','Dur(min)',
+        'Rem_A(min)','Rem_B(min)','Rem_C(days)','Rem_D(days)'
+    ])
+
+
+def run_heuristic(data_path='data18h.json', csv_path='final_schedule.csv',
+                  gantt_path=None, show_gantt=True, verbose=True):
+    """Run the greedy+insertion heuristic and display results."""
+    sc = Scheduler(data_path)
+    final_ac_fids, unassigned = sc.optimize()
+
+    n_flights  = len(sc.flights)
+    n_assigned = n_flights - len(unassigned)
+
+    if verbose:
+        max_horizon = max(f['arr'] for f in sc.flights.values())
+        print(f"\n--- Aircraft Utilization Summary  [{data_path}] ---")
+        for aid in sorted(sc.aircrafts):
+            res = sc.get_timeline(aid, final_ac_fids[aid])
+            if res:
+                busy = sum(e['end'] - e['start'] for e in res['events'])
+                print(f"  AC {aid:3d}: busy {busy:7.0f} min  free {max_horizon - busy:7.0f} min  "
+                      f"flights {len(final_ac_fids[aid])}")
+            else:
+                print(f"  AC {aid:3d}: no flights assigned")
+        print(f"  Assigned {n_assigned}/{n_flights}  |  Unassigned {len(unassigned)}")
+        print("------------------------------------")
+
+    df = _heuristic_df(sc, final_ac_fids)
+    if verbose:
+        print(df.to_string())
+    if csv_path:
+        df.to_csv(csv_path, index=False)
+        if verbose:
+            print(f"\nTable saved → {csv_path}")
+
+    events = _heuristic_events(sc, final_ac_fids)
     _plot_gantt(events, sorted(sc.aircrafts),
                 unassigned_ids=unassigned, flights_dict=sc.flights,
                 save_path=gantt_path, show=show_gantt,
-                title=f"Heuristic Schedule (assigned {len(sc.flights)-len(unassigned)}/{len(sc.flights)})")
+                title=f"Heuristic  {data_path}  (assigned {n_assigned}/{n_flights})")
 
     return sc, final_ac_fids, unassigned
 
@@ -990,25 +1112,171 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
     return opt, summary
 
 
+# ----------------------------
+# BATCH RUNNER
+# ----------------------------
+
+def run_batch(input_dir='Inputs', output_dir='Outputs', mode='heuristic',
+              solver='cplex', tee=False, show_gantt=False):
+    """Process every JSON file in *input_dir* and write results to *output_dir*.
+
+    For each dataset the following files are created in output_dir:
+      <stem>_schedule.csv   – event table
+      <stem>_gantt.png      – Gantt chart
+      <stem>_summary.txt    – utilisation / solver statistics
+
+    Parameters
+    ----------
+    input_dir  : str   Folder containing *.json data files.
+    output_dir : str   Destination folder (created if absent).
+    mode       : str   'heuristic' or 'milp'.
+    solver     : str   Pyomo solver name (MILP mode only).
+    tee        : bool  Stream solver output (MILP mode only).
+    show_gantt : bool  Pop up an interactive window for each dataset.
+    """
+    import os
+    import glob
+    import time
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    json_files = sorted(glob.glob(os.path.join(input_dir, '*.json')))
+    if not json_files:
+        print(f"[batch] No JSON files found in '{input_dir}'")
+        return
+
+    print(f"[batch] Found {len(json_files)} file(s) in '{input_dir}'")
+    print(f"[batch] Mode = {mode}   Output → '{output_dir}'\n")
+
+    summary_rows = []
+
+    for fp in json_files:
+        stem = os.path.splitext(os.path.basename(fp))[0]
+        csv_out   = os.path.join(output_dir, f'{stem}_schedule.csv')
+        gantt_out = os.path.join(output_dir, f'{stem}_gantt.png')
+        txt_out   = os.path.join(output_dir, f'{stem}_summary.txt')
+
+        print(f"  ▶  {stem}")
+        t0 = time.time()
+
+        try:
+            if mode == 'heuristic':
+                sc, ac_fids, unassigned = run_heuristic(
+                    data_path=fp,
+                    csv_path=csv_out,
+                    gantt_path=gantt_out,
+                    show_gantt=show_gantt,
+                    verbose=False,
+                )
+                n   = len(sc.flights)
+                na  = n - len(unassigned)
+                elapsed = time.time() - t0
+
+                # per-aircraft utilisation
+                max_h = max(f['arr'] for f in sc.flights.values())
+                lines = [f"Dataset : {fp}",
+                         f"Mode    : heuristic",
+                         f"Flights : {na}/{n} assigned  ({len(unassigned)} unassigned)",
+                         f"CPU     : {elapsed:.1f}s",
+                         "",
+                         f"{'AID':>5}  {'Flights':>7}  {'Busy(min)':>10}  {'Free(min)':>10}",
+                        ]
+                for aid in sorted(sc.aircrafts):
+                    res = sc.get_timeline(aid, ac_fids[aid])
+                    if res:
+                        busy = sum(e['end'] - e['start'] for e in res['events'])
+                        lines.append(f"{aid:>5}  {len(ac_fids[aid]):>7}  "
+                                     f"{busy:>10.0f}  {max_h - busy:>10.0f}")
+                    else:
+                        lines.append(f"{aid:>5}  {'0':>7}  {'0':>10}  {max_h:>10.0f}")
+                summary_rows.append({
+                    'file': stem, 'mode': mode,
+                    'flights': n, 'assigned': na,
+                    'unassigned': len(unassigned), 'cpu_s': round(elapsed, 2),
+                })
+
+            else:  # milp
+                opt, info = run_milp(
+                    data_path=fp,
+                    solver=solver, tee=tee,
+                    out_txt=txt_out,
+                    gantt_path=gantt_out,
+                    show_gantt=show_gantt,
+                )
+                elapsed = time.time() - t0
+                lines = []   # already written by run_milp -> print_report
+                summary_rows.append({
+                    'file': stem, 'mode': mode,
+                    'status': info.get('status'),
+                    'obj': info.get('obj'),
+                    'gap_%': round(info['gap'] * 100, 4) if info.get('gap') else None,
+                    'cpu_s': round(elapsed, 2),
+                })
+
+            if lines:
+                with open(txt_out, 'w') as fh:
+                    fh.write('\n'.join(lines))
+
+            print(f"       csv  → {csv_out}")
+            print(f"       png  → {gantt_out}")
+            print(f"       txt  → {txt_out}")
+            print(f"       time → {time.time()-t0:.1f}s")
+
+        except Exception as exc:
+            print(f"  ✗  ERROR on {stem}: {exc}")
+            import traceback
+            traceback.print_exc()
+
+    # Master summary CSV
+    if summary_rows:
+        master = pd.DataFrame(summary_rows)
+        master_path = os.path.join(output_dir, '_batch_summary.csv')
+        master.to_csv(master_path, index=False)
+        print(f"\n[batch] Master summary → {master_path}")
+        print(master.to_string(index=False))
+
+
+# ----------------------------
+# UNIFIED MAIN
+# ----------------------------
+
 def main():
-    """Entry point – edit MODE and parameters below or call run_* directly."""
+    """Entry point.  Examples::
+
+        # single file – heuristic (default)
+        py -3 heu180h.py --data data18h.json
+
+        # single file – MILP
+        py -3 heu180h.py --mode milp --data data18h.json --solver cplex --tee
+
+        # batch folder run – heuristic
+        py -3 heu180h.py --mode batch --input-dir Inputs --output-dir Outputs
+
+        # batch folder run – MILP
+        py -3 heu180h.py --mode batch --input-dir Inputs --output-dir Outputs \\
+                          --solver cplex
+    """
     import argparse
     parser = argparse.ArgumentParser(description='Aircraft Schedule Optimizer')
-    parser.add_argument('--mode',   default='heuristic',
-                        choices=['heuristic', 'milp'],
+    parser.add_argument('--mode',       default='heuristic',
+                        choices=['heuristic', 'milp', 'batch'],
                         help='Optimization approach (default: heuristic)')
-    parser.add_argument('--data',   default='data18h.json',
-                        help='Path to JSON data file')
-    parser.add_argument('--solver', default='cplex',
-                        help='Pyomo solver name for MILP mode (default: cplex)')
-    parser.add_argument('--tee',    action='store_true',
-                        help='Stream solver log (MILP mode only)')
-    parser.add_argument('--out',    default=None,
-                        help='Output file path (txt for MILP, csv for heuristic)')
-    parser.add_argument('--gantt',  default=None,
-                        help='Save Gantt chart to this PNG path')
-    parser.add_argument('--no-show', dest='show', action='store_false',
-                        help='Do not display the Gantt chart interactively')
+    parser.add_argument('--data',       default='data18h.json',
+                        help='JSON data file (single-file modes)')
+    parser.add_argument('--input-dir',  default='Inputs',
+                        help='Input folder for batch mode (default: Inputs)')
+    parser.add_argument('--output-dir', default='Outputs',
+                        help='Output folder for batch mode (default: Outputs)')
+    parser.add_argument('--solver',     default='cplex',
+                        help='Pyomo solver name (MILP / batch-milp, default: cplex)')
+    parser.add_argument('--tee',        action='store_true',
+                        help='Stream solver log to stdout (MILP modes)')
+    parser.add_argument('--out',        default=None,
+                        help='Output path: CSV for heuristic, TXT for MILP')
+    parser.add_argument('--gantt',      default=None,
+                        help='Save Gantt chart PNG to this path')
+    parser.add_argument('--no-show',    dest='show', action='store_false',
+                        help='Do not display Gantt interactively')
     parser.set_defaults(show=True)
     args = parser.parse_args()
 
@@ -1017,13 +1285,18 @@ def main():
                       csv_path=args.out or 'final_schedule.csv',
                       gantt_path=args.gantt,
                       show_gantt=args.show)
-    else:
+    elif args.mode == 'milp':
         run_milp(data_path=args.data,
                  solver=args.solver,
                  tee=args.tee,
                  out_txt=args.out,
                  gantt_path=args.gantt,
                  show_gantt=args.show)
+    else:  # batch
+        run_batch(input_dir=args.input_dir,
+                  output_dir=args.output_dir,
+                  mode='heuristic',         # batch always uses heuristic by default
+                  show_gantt=args.show)
 
 
 if __name__ == '__main__':

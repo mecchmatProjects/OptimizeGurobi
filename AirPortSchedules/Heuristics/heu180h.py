@@ -819,64 +819,212 @@ class Optimizer:
         events.sort(key=lambda e: (e['aircraft'], e['start']))
         return events
 
+    # ------------------------------------------------------------------
+    # Gantt chart for MILP results
+    # ------------------------------------------------------------------
+
+    def plot_gantt(self, save_path=None, show=True):
+        """Render a Gantt chart from the solved model.
+
+        Parameters
+        ----------
+        save_path : str | None  Path to save PNG; if None chart is not saved.
+        show      : bool        Call plt.show() when True.
+        """
+        events    = self.get_events()
+        aid_list  = sorted(self.aircraft_ids)
+        _plot_gantt(events, aid_list, unassigned_ids=[], save_path=save_path,
+                    show=show, title='MILP Aircraft Schedule')
+
 
 # ----------------------------
-# EXECUTION
+# SHARED GANTT UTILITY
 # ----------------------------
 
-sc = Scheduler('data18h.json')
-final_ac_fids, unassigned = sc.optimize()
+# Colour palette shared by heuristic and MILP outputs
+_GANTT_COLORS = {
+    'FLIGHT': '#3498db',
+    'FERRY':  '#9b59b6',
+    'A':      '#2ecc71',
+    'B':      '#f1c40f',
+    'C':      '#e67e22',
+    'D':      '#c0392b',
+    'UN':     '#e74c3c',
+}
 
-# Calculate and Print Free Time
-print("\n--- Aircraft Utilization Summary ---")
-max_horizon = max([f['arr'] for f in sc.flights.values()])
-for aid in sorted(sc.aircrafts):
-    res = sc.get_timeline(aid, final_ac_fids[aid])
-    if res:
-        busy_time = sum((e['end'] - e['start']) for e in res['events'])
-        # Free time is horizon minus the time actually spent doing things
-        free_time = max_horizon - busy_time
-        print(f"AC {aid}: Free Time = {free_time:.2f} mins")
+
+def _plot_gantt(events, aid_list, unassigned_flights=None, unassigned_ids=None,
+                flights_dict=None, save_path=None, show=True, title='Fleet Schedule'):
+    """Generic Gantt plotter used by both Scheduler and Optimizer.
+
+    Parameters
+    ----------
+    events           : list of dicts with keys aircraft, type, start, end, check
+    aid_list         : ordered list of aircraft IDs (rows)
+    unassigned_flights: dict {fid: flight_info} for heuristic unassigned row
+    unassigned_ids   : list of unassigned fids (MILP has none usually)
+    flights_dict     : full flights dict from Scheduler (for unassigned row)
+    save_path        : file path to save PNG
+    show             : call plt.show()
+    title            : chart title
+    """
+    colors = _GANTT_COLORS
+    fig, ax = plt.subplots(figsize=(18, max(6, len(aid_list) * 0.6 + 2)))
+
+    for i, aid in enumerate(aid_list):
+        for e in (ev for ev in events if ev['aircraft'] == aid):
+            c_key = e.get('check') or e['type']
+            color = colors.get(c_key, colors['FLIGHT'])
+            dur   = e['end'] - e['start']
+            ax.broken_barh([(e['start'], dur)], (i * 10, 8),
+                           facecolors=color, edgecolor='white', linewidth=0.5)
+            if dur > 30:
+                ax.text(e['start'] + dur / 2, i * 10 + 4, e['label'],
+                        ha='center', va='center', color='white', fontsize=7, clip_on=True)
+
+    # Unassigned row (heuristic only)
+    if unassigned_ids and flights_dict:
+        un_y = len(aid_list) * 10
+        for fid in unassigned_ids:
+            fl = flights_dict[fid]
+            ax.broken_barh([(fl['dep'], fl['dur'])], (un_y, 8),
+                           facecolors=colors['UN'], alpha=0.3, hatch='//')
+
+    n_rows = len(aid_list) + (1 if unassigned_ids else 0)
+    ax.set_yticks([i * 10 + 4 for i in range(n_rows)])
+    labels = [f'AC {a}' for a in aid_list]
+    if unassigned_ids:
+        labels.append('UNASSIGNED')
+    ax.set_yticklabels(labels)
+    ax.set_xlabel('Time (minutes)')
+
+    legend_patches = [mpatches.Patch(color=c, label=k) for k, c in colors.items()]
+    ax.legend(handles=legend_patches, title='Event Types',
+              loc='upper left', bbox_to_anchor=(1, 1))
+    plt.title(title)
+    plt.tight_layout()
+
+    if save_path:
+        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+        print(f"Gantt saved to {save_path}")
+    if show:
+        plt.show()
     else:
-        print(f"AC {aid}: Free Time = {max_horizon:.2f} mins (No flights assigned)")
-print("------------------------------------\n")
+        plt.close()
 
-# Generate Table
-rows = []
-for aid in sorted(sc.aircrafts):
-    res = sc.get_timeline(aid, final_ac_fids[aid])
-    if res:
-        for e in res['events']:
-            label = f"F{e['fid']}" if e['kind'] == 'FLIGHT' else e.get('check', 'FERRY')
-            row = [aid, e['kind'], label, e['orig'], e['dest'], e['start'], 
-                   e.get('dur', '-'), e.get('rem_a', '-'), e.get('rem_b', '-'), 
-                   e.get('rem_c', '-'), e.get('rem_d', '-')]
-            rows.append(row)
 
-df = pd.DataFrame(rows, columns=['AID', 'Type', 'ID', 'From', 'To', 'Dep', 'Dur', 'Rem A', 'Rem B', 'Rem C(d)', 'Rem D(d)'])
-print(df.to_string())
-df.to_csv('final_schedule.csv', index=False)
+# ----------------------------
+# UNIFIED MAIN
+# ----------------------------
 
-# Plotting
-colors = {"FLIGHT": "#3498db", "FERRY": "#9b59b6", "A": "#2ecc71", "B": "#f1c40f", "C": "#e67e22", "D": "#c0392b", "UN": "#e74c3c"}
-fig, ax = plt.subplots(figsize=(15, 8))
-for i, aid in enumerate(sorted(sc.aircrafts)):
-    res = sc.get_timeline(aid, final_ac_fids[aid])
-    if res:
-        for e in res['events']:
-            c = colors.get(e.get('check', e['kind']), colors['FLIGHT'])
-            ax.broken_barh([(e['start'], e['end']-e['start'])], (i*10, 8), facecolors=c, edgecolor='white', linewidth=0.5)
+def run_heuristic(data_path='data18h.json', csv_path='final_schedule.csv',
+                  gantt_path=None, show_gantt=True):
+    """Run the greedy+insertion heuristic and display results."""
+    sc = Scheduler(data_path)
+    final_ac_fids, unassigned = sc.optimize()
 
-un_y = len(sc.aircrafts) * 10
-for fid in unassigned:
-    fl = sc.flights[fid]
-    ax.broken_barh([(fl['dep'], fl['dur'])], (un_y, 8), facecolors=colors["UN"], alpha=0.3, hatch='//')
+    # Utilization summary
+    max_horizon = max(f['arr'] for f in sc.flights.values())
+    print("\n--- Aircraft Utilization Summary ---")
+    for aid in sorted(sc.aircrafts):
+        res = sc.get_timeline(aid, final_ac_fids[aid])
+        if res:
+            busy = sum(e['end'] - e['start'] for e in res['events'])
+            print(f"  AC {aid:3d}: Free Time = {max_horizon - busy:.0f} min")
+        else:
+            print(f"  AC {aid:3d}: Free Time = {max_horizon:.0f} min  (no flights)")
+    print("------------------------------------")
 
-legend_patches = [mpatches.Patch(color=color, label=label) for label, color in colors.items()]
-ax.legend(handles=legend_patches, title="Event Types", loc='upper left', bbox_to_anchor=(1, 1))
+    # CSV export
+    rows = []
+    for aid in sorted(sc.aircrafts):
+        res = sc.get_timeline(aid, final_ac_fids[aid])
+        if res:
+            for e in res['events']:
+                label = f"F{e['fid']}" if e['kind'] == 'FLIGHT' else e.get('check', 'FERRY')
+                rows.append([aid, e['kind'], label, e['orig'], e['dest'], e['start'],
+                             e.get('dur', '-'), e.get('rem_a', '-'), e.get('rem_b', '-'),
+                             e.get('rem_c', '-'), e.get('rem_d', '-')])
+    df = pd.DataFrame(rows, columns=['AID','Type','ID','From','To','Dep','Dur',
+                                     'Rem A','Rem B','Rem C(d)','Rem D(d)'])
+    print(df.to_string())
+    df.to_csv(csv_path, index=False)
+    print(f"\nSchedule saved to {csv_path}")
 
-ax.set_yticks([i*10+4 for i in range(len(sc.aircrafts)+1)])
-ax.set_yticklabels([f"AC {a}" for a in sorted(sc.aircrafts)] + ["UNASSIGNED"])
-plt.title(f"Optimized Fleet Schedule (Assigned: {len(sc.flights)-len(unassigned)})")
-plt.tight_layout()
-plt.show()
+    # Gantt
+    events = []
+    for aid in sorted(sc.aircrafts):
+        res = sc.get_timeline(aid, final_ac_fids[aid])
+        if res:
+            for e in res['events']:
+                events.append({
+                    'aircraft': aid,
+                    'type':     e['kind'],
+                    'label':    f"F{e['fid']}" if e['kind'] == 'FLIGHT' else e.get('check', 'FERRY'),
+                    'start':    e['start'],
+                    'end':      e['end'],
+                    'check':    e.get('check'),
+                })
+
+    _plot_gantt(events, sorted(sc.aircrafts),
+                unassigned_ids=unassigned, flights_dict=sc.flights,
+                save_path=gantt_path, show=show_gantt,
+                title=f"Heuristic Schedule (assigned {len(sc.flights)-len(unassigned)}/{len(sc.flights)})")
+
+    return sc, final_ac_fids, unassigned
+
+
+def run_milp(data_path='data18h.json', solver='cplex', tee=False,
+             out_txt=None, gantt_path=None, show_gantt=True,
+             use_day_spacing=True, use_existing_hrs=True,
+             use_check_hierarchy=True, use_sanity=True, use_overlap=True):
+    """Build and solve the MILP model, then display results."""
+    opt = Optimizer(data_path)
+    opt.build_model(use_day_spacing=use_day_spacing,
+                    use_existing_hrs=use_existing_hrs,
+                    use_check_hierarchy=use_check_hierarchy,
+                    use_sanity=use_sanity,
+                    use_overlap=use_overlap)
+    summary = opt.solve(solver_name=solver, tee=tee, out_path=out_txt)
+    opt.plot_gantt(save_path=gantt_path, show=show_gantt)
+    return opt, summary
+
+
+def main():
+    """Entry point – edit MODE and parameters below or call run_* directly."""
+    import argparse
+    parser = argparse.ArgumentParser(description='Aircraft Schedule Optimizer')
+    parser.add_argument('--mode',   default='heuristic',
+                        choices=['heuristic', 'milp'],
+                        help='Optimization approach (default: heuristic)')
+    parser.add_argument('--data',   default='data18h.json',
+                        help='Path to JSON data file')
+    parser.add_argument('--solver', default='cplex',
+                        help='Pyomo solver name for MILP mode (default: cplex)')
+    parser.add_argument('--tee',    action='store_true',
+                        help='Stream solver log (MILP mode only)')
+    parser.add_argument('--out',    default=None,
+                        help='Output file path (txt for MILP, csv for heuristic)')
+    parser.add_argument('--gantt',  default=None,
+                        help='Save Gantt chart to this PNG path')
+    parser.add_argument('--no-show', dest='show', action='store_false',
+                        help='Do not display the Gantt chart interactively')
+    parser.set_defaults(show=True)
+    args = parser.parse_args()
+
+    if args.mode == 'heuristic':
+        run_heuristic(data_path=args.data,
+                      csv_path=args.out or 'final_schedule.csv',
+                      gantt_path=args.gantt,
+                      show_gantt=args.show)
+    else:
+        run_milp(data_path=args.data,
+                 solver=args.solver,
+                 tee=args.tee,
+                 out_txt=args.out,
+                 gantt_path=args.gantt,
+                 show_gantt=args.show)
+
+
+if __name__ == '__main__':
+    main()

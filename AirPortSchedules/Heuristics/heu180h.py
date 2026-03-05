@@ -423,6 +423,133 @@ class Optimizer:
                 for j in m.P:
                     m.c_overlap.add(m.x[i, j] + m.x[i1, j] <= 1)
 
+    # ------------------------------------------------------------------
+    # Constraint C8 – maintenance check blocks subsequent same-day flights
+    # z[i,j,d,c]=1 means aircraft j does check c on day d after flight i;
+    # any flight i2 that departs the same day AFTER flight i is blocked.
+    # ------------------------------------------------------------------
+
+    def _add_c8_maint_blocks_flights(self, m):
+        m.c8 = ConstraintList()
+        for c in self.CHECK_LIST:
+            for i in m.F:
+                dep_i = self.flight_data[i]['arrivalTime']
+                d_i   = self.flight_data[i]['day_arrival']
+                for j in m.P:
+                    for d in m.D:
+                        # Same-day flights that depart after flight i arrives
+                        for i2 in self.flight_ids:
+                            fd2 = self.flight_data[i2]
+                            if fd2['day_departure'] == d_i and fd2['departureTime'] > dep_i:
+                                m.c8.add(m.z[i, j, d, c] + m.x[i2, j] <= 1)
+
+    # ------------------------------------------------------------------
+    # Constraint C9 – z[i,j,d,c] can only be 1 if x[i,j]=1
+    # (maintenance triggered by a flight requires that flight is assigned)
+    # ------------------------------------------------------------------
+
+    def _add_c9_maint_assignment(self, m):
+        m.c9 = ConstraintList()
+        for c in self.CHECK_LIST:
+            for i in m.F:
+                for j in m.P:
+                    for d in m.D:
+                        m.c9.add(m.x[i, j] >= m.z[i, j, d, c])
+
+    # ------------------------------------------------------------------
+    # Constraint C10 – maintenance capacity per airport per day
+    # ------------------------------------------------------------------
+
+    def _add_c10_capacity(self, m):
+        m.c10 = ConstraintList()
+        cap = {a: self.station_cap[(a, 1)] for a in self.maint_airports}   # same every day
+        F_m = {a: [i for i, fd in self.flight_data.items() if fd['destination'] == a]
+               for a in self.maint_airports}
+        for c in self.CHECK_LIST:
+            for d in m.D:
+                for a in m.MA:
+                    flights_a = F_m.get(a, [])
+                    if flights_a:
+                        m.c10.add(
+                            sum(m.z[i, j, d, c]
+                                for i in flights_a for j in m.P) <= cap[a]
+                        )
+
+    # ------------------------------------------------------------------
+    # Constraint C11 – link z to y:
+    # y[j,d,c] = Σ_i  z[i,j,d,c]  (summed over flights landing at MA)
+    # ------------------------------------------------------------------
+
+    def _add_c11_maint_link(self, m):
+        m.c11 = ConstraintList()
+        ma_set = set(self.maint_airports)
+        for c in self.CHECK_LIST:
+            for d in m.D:
+                for j in m.P:
+                    m.c11.add(
+                        sum(m.z[i, j, d, c]
+                            for i in self.flight_ids
+                            if self.flight_data[i]['destination'] in ma_set)
+                        == m.y[j, d, c]
+                    )
+
+    # ------------------------------------------------------------------
+    # Check hierarchy: mega[j,d,c] = 1 if a check at level ≥c occurs on d
+    # ------------------------------------------------------------------
+
+    def _add_hierarchy(self, m, use_hierarchy=True):
+        m.c_hierarchy = ConstraintList()
+        for j in m.P:
+            for d in m.D:
+                for c in self.CHECK_LIST:
+                    if use_hierarchy:
+                        covers = self.CHECK_HIERARCHY[c]
+                        m.c_hierarchy.add(
+                            m.mega[j, d, c] == sum(m.y[j, d, c2] for c2 in covers)
+                        )
+                    else:
+                        m.c_hierarchy.add(m.mega[j, d, c] == m.y[j, d, c])
+
+    # ------------------------------------------------------------------
+    # Constraint C14 – at most one check type per aircraft per day
+    # ------------------------------------------------------------------
+
+    def _add_c14_one_check_per_day(self, m):
+        m.c14 = ConstraintList()
+        for j in m.P:
+            for d in m.D:
+                m.c14.add(sum(m.y[j, d, c] for c in self.CHECK_LIST) <= 1)
+
+    # ------------------------------------------------------------------
+    # Constraint C14b – multi-day checks occupy consecutive days
+    # If aircraft j starts check c on day d and the check lasts K days then
+    # mega[j,d+1..d+K-1,c] must all be 1.
+    # ------------------------------------------------------------------
+
+    def _add_c14b_check_duration(self, m):
+        m.c14b = ConstraintList()
+        days = sorted(self.days)
+        for j in m.P:
+            for c in self.CHECK_LIST:
+                K = self.check_dur_days[c]
+                if K <= 1:
+                    continue
+                for di, d in enumerate(days):
+                    end = min(di + K, len(days))
+                    if di == 0:
+                        m.c14b.add(
+                            sum(m.mega[j, days[d1], c] for d1 in range(1, end))
+                            + self.M_BIG * (1 - m.mega[j, days[0], c]) >= end - 1
+                        )
+                        continue
+                    if di >= end:
+                        continue
+                    m.c14b.add(
+                        sum(m.mega[j, days[d1], c] for d1 in range(di + 1, end))
+                        + self.M_BIG * m.mega[j, days[di - 1], c]
+                        + self.M_BIG * (1 - m.mega[j, days[di], c]) >= end - di - 1
+                    )
+
 
 # ----------------------------
 # EXECUTION

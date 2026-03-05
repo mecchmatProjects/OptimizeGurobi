@@ -269,6 +269,73 @@ class Optimizer:
         self.results = None
 
     # ------------------------------------------------------------------
+    # Model construction
+    # ------------------------------------------------------------------
+
+    def build_model(self,
+                    use_day_spacing=True,
+                    use_existing_hrs=True,
+                    use_check_hierarchy=True,
+                    use_sanity=True,
+                    use_overlap=True):
+        """Construct the ConcreteModel.  Call before solve()."""
+        m = ConcreteModel()
+        self.model = m
+        self._add_sets_and_variables(m)
+        self._add_objective(m)
+        self._add_c1_coverage(m)
+        self._add_c23_turn(m)
+        if use_overlap:
+            self._add_overlap(m)
+        self._add_c8_maint_blocks_flights(m)
+        self._add_c9_maint_assignment(m)
+        self._add_c10_capacity(m)
+        self._add_c11_maint_link(m)
+        self._add_hierarchy(m, use_check_hierarchy)
+        self._add_c14_one_check_per_day(m)
+        self._add_c14b_check_duration(m)
+        if use_day_spacing:
+            self._add_c12_day_spacing(m)
+        if use_existing_hrs:
+            self._add_c13b_existing_hrs(m)
+        self._add_c13_hr_accumulation(m)
+        self._add_c15_no_flight_during_maint(m)
+        if use_sanity:
+            self._add_sanity(m)
+        return m
+
+    def _add_sets_and_variables(self, m):
+        """Define Pyomo Sets and Var declarations on model m."""
+        m.F   = Set(initialize=self.flight_ids)
+        m.P   = Set(initialize=sorted(self.aircraft_ids))
+        m.A   = Set(initialize=self.airports)
+        m.MA  = Set(initialize=self.maint_airports)
+        m.D   = Set(initialize=sorted(self.days))
+        m.C   = Set(initialize=self.CHECK_LIST)
+
+        # x[i,j] = 1  iff flight i assigned to aircraft j
+        m.x = Var(m.F, m.P, domain=Binary, initialize=0)
+        # z[i,j,d,c] = 1  iff aircraft j does check c on day d triggered by flight i
+        m.z = Var(m.F, m.P, m.D, m.C, domain=Binary, initialize=0)
+        # y[j,d,c] = 1  iff aircraft j undergoes check c on day d
+        m.y = Var(m.P, m.D, m.C, domain=Binary, initialize=0)
+        # mega_check[j,d,c] = 1 if aircraft j has a check of type ≥c on day d (hierarchy)
+        m.mega = Var(m.P, m.D, m.C, domain=Binary, initialize=0)
+
+    def _add_objective(self, m):
+        """Minimize flight assignment cost + premature maintenance penalty."""
+        maint_cost = 100   # flat penalty per maintenance event (can be extended)
+        m.obj = Objective(
+            expr=(
+                sum(self._flight_cost(i, j) * m.x[i, j]
+                    for i in m.F for j in m.P)
+                + sum(maint_cost * m.z[i, j, d, c]
+                      for i in m.F for j in m.P for d in m.D for c in m.C)
+            ),
+            sense=minimize,
+        )
+
+    # ------------------------------------------------------------------
     # Helper index sets (computed lazily from flight_data)
     # ------------------------------------------------------------------
     def _f_arr_k(self, k):

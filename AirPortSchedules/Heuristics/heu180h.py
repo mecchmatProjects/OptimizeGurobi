@@ -692,6 +692,133 @@ class Optimizer:
                         if d > arr_day + self.check_dur_days[c]:
                             m.c_sanity.add(m.z[i, j, d, c] == 0)
 
+    # ------------------------------------------------------------------
+    # Solve
+    # ------------------------------------------------------------------
+
+    def solve(self, solver_name='cplex', tee=False, out_path=None):
+        """Invoke the solver on the built model.
+
+        Parameters
+        ----------
+        solver_name : str
+            Pyomo solver name ('cplex', 'cbc', 'glpk', …).
+        tee : bool
+            Stream solver log to stdout.
+        out_path : str | None
+            If given, write the text report to this file.
+
+        Returns
+        -------
+        dict with keys: status, n_vars, n_cons, gap, cpu, obj
+        """
+        if self.model is None:
+            raise RuntimeError("Call build_model() first.")
+
+        solver = SolverFactory(solver_name)
+        self.results = solver.solve(self.model, tee=tee)
+
+        m   = self.model
+        res = self.results
+        tc  = res.solver.termination_condition
+
+        n_var  = len(list(m.component_data_objects(ctype=Var)))
+        n_con  = len(list(m.component_data_objects(ctype=Constraint)))
+        lo     = getattr(res.problem, 'lower_bound', None)
+        hi     = getattr(res.problem, 'upper_bound', None)
+        gap    = abs(hi - lo) / abs(lo) if lo and hi and lo != 0 else None
+        cpu    = getattr(res.solver, 'time', None)
+        obj_v  = pyo_value(m.obj) if tc == TerminationCondition.optimal else None
+
+        summary = dict(status=str(tc), n_vars=n_var, n_cons=n_con,
+                       gap=gap, cpu=cpu, obj=obj_v)
+        self.print_report(out_path=out_path, summary=summary)
+        return summary
+
+    # ------------------------------------------------------------------
+    # Text report
+    # ------------------------------------------------------------------
+
+    def print_report(self, out_path=None, summary=None):
+        """Print assignment + maintenance schedule; optionally write to file."""
+        m = self.model
+        lines = []
+        _p = lines.append
+
+        _p("\n=== MILP Aircraft Assignment Report ===")
+        if summary:
+            g = f"{summary['gap']*100:.4f}%" if summary.get('gap') is not None else '-'
+            t = f"{summary['cpu']:.2f}s"     if summary.get('cpu') is not None else '-'
+            _p(f"  Status : {summary['status']}")
+            _p(f"  Vars   : {summary['n_vars']}   Constraints: {summary['n_cons']}")
+            _p(f"  Gap    : {g}   CPU: {t}")
+            _p(f"  Obj    : {summary['obj']}")
+
+        _p("\n--- Assignment ---")
+        for i in m.F:
+            for j in m.P:
+                if pyo_value(m.x[i, j]) > 0.5:
+                    _p(f"  Flight {i:4d}  → Aircraft {j}")
+
+        _p("\n--- Maintenance ---")
+        for j in m.P:
+            for d in m.D:
+                for c in self.CHECK_LIST:
+                    if pyo_value(m.y[j, d, c]) > 0.5:
+                        _p(f"  Aircraft {j}  day {d:3d}  check {c}")
+
+        _p(f"\nTotal cost: {pyo_value(m.obj):.2f}")
+        text = "\n".join(lines)
+        print(text)
+        if out_path:
+            with open(out_path, 'w') as f:
+                f.write(text)
+
+    # ------------------------------------------------------------------
+    # Extract schedule events for downstream use (Gantt / CSV)
+    # ------------------------------------------------------------------
+
+    def get_events(self):
+        """Return list of event dicts {aircraft, type, label, start, end, day}.
+
+        Compatible with the Gantt plotter used for the heuristic output.
+        """
+        m = self.model
+        events = []
+        for j in m.P:
+            for i in m.F:
+                if pyo_value(m.x[i, j]) > 0.5:
+                    fd = self.flight_data[i]
+                    events.append({
+                        'aircraft': j,
+                        'type':     'FLIGHT',
+                        'label':    f'F{i}',
+                        'start':    fd['departureTime'],
+                        'end':      fd['arrivalTime'],
+                        'day':      fd['day_departure'],
+                        'check':    None,
+                    })
+            for d in m.D:
+                for c in self.CHECK_LIST:
+                    if pyo_value(m.y[j, d, c]) > 0.5:
+                        # Find the trigger flight to get start time
+                        t_start = (d - 1) * self.DAY_SHIFT
+                        for i in m.F:
+                            if pyo_value(m.z[i, j, d, c]) > 0.5:
+                                t_start = self.flight_data[i]['arrivalTime']
+                                break
+                        events.append({
+                            'aircraft': j,
+                            'type':     'MAINT',
+                            'label':    f'M{c}',
+                            'start':    t_start,
+                            'end':      t_start + self.check_dur[c],
+                            'day':      d,
+                            'check':    c,
+                        })
+        events.sort(key=lambda e: (e['aircraft'], e['start']))
+        return events
+
 
 # ----------------------------
 # EXECUTION

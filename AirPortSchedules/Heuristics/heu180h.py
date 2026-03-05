@@ -1259,7 +1259,8 @@ def _run_one_heuristic(fp, out_dir, stem, show_gantt):
 
 
 def _run_one_milp(fp, out_dir, stem, solver, tee, show_gantt, time_limit,
-                  allow_ferry=True, use_maintenance=True):
+                  allow_ferry=True, use_maintenance=True,
+                  use_overlap=True, use_sanity=True):
     """Run MILP on a single file; return metrics dict."""
     import time, os
     gantt_out = os.path.join(out_dir, f'{stem}_milp_gantt.png')
@@ -1271,6 +1272,8 @@ def _run_one_milp(fp, out_dir, stem, solver, tee, show_gantt, time_limit,
         out_txt=txt_out, gantt_path=gantt_out, show_gantt=show_gantt,
         allow_ferry=allow_ferry,
         use_maintenance=use_maintenance,
+        use_overlap=use_overlap,
+        use_sanity=use_sanity,
     )
     cpu = time.time() - t0
 
@@ -1342,7 +1345,8 @@ def _plot_comparison(rows, out_dir):
 
 def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
               solver='cplex', tee=False, show_gantt=False, time_limit=300,
-              allow_ferry=True, use_maintenance=True):
+              allow_ferry=True, use_maintenance=True,
+              use_overlap=True, use_sanity=True):
     """Process every JSON file in *input_dir* and write results to *output_dir*.
 
     For each dataset the following files are created in output_dir::
@@ -1367,6 +1371,8 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
     allow_ferry    : bool  When False, C2-C3 routing constraints omitted.
     use_maintenance: bool  When False, all maintenance constraints omitted
                            (pure flight-assignment relaxation; much smaller model).
+    use_overlap    : bool  When False, pairwise overlap constraints (c_overlap) omitted.
+    use_sanity     : bool  When False, sanity-fixing bounds constraints omitted.
     """
     import os, glob, time
 
@@ -1378,11 +1384,13 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
     run_heu  = mode in ('heuristic', 'both')
     run_milp_ = mode in ('milp', 'both')
 
-    ferry_label = "ON" if allow_ferry else "OFF (pure assignment)"
-    maint_label = "ON" if use_maintenance else "OFF (relaxed)"
+    ferry_label = "ON" if allow_ferry else "OFF"
+    maint_label = "ON" if use_maintenance else "OFF"
+    over_label  = "ON" if use_overlap else "OFF"
+    san_label   = "ON" if use_sanity  else "OFF"
     print(f"[batch] {len(json_files)} file(s) in '{input_dir}'")
     print(f"[batch] mode={mode}  solver={solver}  time_limit={time_limit}s")
-    print(f"[batch] ferry={ferry_label}  maintenance={maint_label}")
+    print(f"[batch] ferry={ferry_label}  maintenance={maint_label}  overlap={over_label}  sanity={san_label}")
     print(f"[batch] output -> '{output_dir}'\n")
 
     all_rows = []
@@ -1405,7 +1413,9 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
                 row = _run_one_milp(fp, output_dir, stem, solver, tee,
                                     show_gantt, time_limit,
                                     allow_ferry=allow_ferry,
-                                    use_maintenance=use_maintenance)
+                                    use_maintenance=use_maintenance,
+                                    use_overlap=use_overlap,
+                                    use_sanity=use_sanity)
                 all_rows.append(row)
             except Exception as exc:
                 print(f"  ✗ [milp] {exc}")
@@ -1492,9 +1502,13 @@ def main():
                              '(pure assignment; smaller/faster model).')
     parser.add_argument('--no-maintenance', dest='use_maintenance', action='store_false',
                         help='Omit ALL maintenance constraints from MILP '
-                             '(pure flight-assignment relaxation; much smaller/faster). '
-                             'Useful as a lower-bound / feasibility benchmark.')
-    parser.set_defaults(show=True, allow_ferry=True, use_maintenance=True)
+                             '(pure flight-assignment relaxation; much smaller/faster).')
+    parser.add_argument('--no-overlap',  dest='use_overlap', action='store_false',
+                        help='Omit pairwise time-overlap constraints (c_overlap) from MILP.')
+    parser.add_argument('--no-sanity',   dest='use_sanity', action='store_false',
+                        help='Omit sanity-fixing bound constraints from MILP.')
+    parser.set_defaults(show=True, allow_ferry=True, use_maintenance=True,
+                        use_overlap=True, use_sanity=True)
     args = parser.parse_args()
 
     if args.mode == 'heuristic':
@@ -1508,7 +1522,9 @@ def main():
                  time_limit=args.time_limit,
                  out_txt=args.out, gantt_path=args.gantt, show_gantt=args.show,
                  allow_ferry=args.allow_ferry,
-                 use_maintenance=args.use_maintenance)
+                 use_maintenance=args.use_maintenance,
+                 use_overlap=args.use_overlap,
+                 use_sanity=args.use_sanity)
     else:  # batch
         run_batch(input_dir=args.input_dir,
                   output_dir=args.output_dir,
@@ -1517,7 +1533,9 @@ def main():
                   time_limit=args.time_limit,
                   show_gantt=args.show,
                   allow_ferry=args.allow_ferry,
-                  use_maintenance=args.use_maintenance)
+                  use_maintenance=args.use_maintenance,
+                  use_overlap=args.use_overlap,
+                  use_sanity=args.use_sanity)
 
 
 if __name__ == '__main__':

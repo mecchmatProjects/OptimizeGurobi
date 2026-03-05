@@ -6,6 +6,15 @@ from matplotlib.patches import Patch
 import matplotlib.patches as mpatches
 import pandas as pd
 
+# Optional Pyomo imports (only needed for Optimizer)
+try:
+    from pyomo.environ import (ConcreteModel, Set, Var, Objective, ConstraintList,
+                                Binary, minimize, value as pyo_value)
+    from pyomo.opt import SolverFactory, TerminationCondition
+    PYOMO_AVAILABLE = True
+except ImportError:
+    PYOMO_AVAILABLE = False
+
 # ----------------------------
 # CORE SCHEDULER ENGINE
 # ----------------------------
@@ -121,6 +130,182 @@ class Scheduler:
                     assigned.add(fid)
 
         return ac_fids, [fid for fid in self.flights if fid not in assigned]
+
+# ----------------------------
+# MILP OPTIMIZER ENGINE
+# ----------------------------
+
+class Optimizer:
+    """MILP-based aircraft assignment with maintenance scheduling using Pyomo.
+
+    Reads the same JSON format as Scheduler.  Each constraint group is
+    implemented as a separate private method so they can be toggled or
+    extended independently.
+
+    JSON keys used
+    --------------
+    Flights           : [[fid, orig, dest, dep_min, arr_min], ...]
+    Aircrafts         : [aid, ...]  (integer IDs)
+    AIRCRAFT_INIT_POS : {str(aid): airport}
+    Initial_Checks    : {check_key: {str(aid): elapsed_minutes}}
+                        check_key ∈ {'A','B','C','D'}
+    Maintenance_Thresholds : {'A': min, 'B': min, 'C': days, 'D': days}
+    Maintenance_Durations  : {'A': min, 'B': min, 'C': min, 'D': min}
+    Station_Capacity  : {airport: capacity}
+    Cost_Matrix       : [[cost per (fid-1, aid_index)]]
+    """
+
+    CHECK_LIST = ['A', 'B', 'C', 'D']
+    DAY_SHIFT  = 24 * 60   # minutes in one planning day
+    MIN_TURN   = 30        # minimum ground turnaround (minutes)
+    M_BIG      = 9_999_999
+
+    # Hierarchy: performing check X also satisfies all lighter checks
+    CHECK_HIERARCHY = {
+        'A': ['A', 'B', 'C', 'D'],
+        'B': ['B', 'C', 'D'],
+        'C': ['C', 'D'],
+        'D': ['D'],
+    }
+
+    def __init__(self, data_path, maintenance_airports=None):
+        """Load data from *data_path* and prepare all MILP index sets.
+
+        Parameters
+        ----------
+        data_path : str
+            Path to the JSON data file.
+        maintenance_airports : list[str] | None
+            Airports where maintenance is allowed.  If None, derived from
+            Station_Capacity (those with capacity > 0).
+        """
+        if not PYOMO_AVAILABLE:
+            raise RuntimeError("Pyomo is not installed. Run: pip install pyomo")
+
+        with open(data_path) as f:
+            raw = json.load(f)
+
+        # ── Flights ──────────────────────────────────────────────────────────
+        self.flight_ids  = []
+        self.flight_data = {}
+        for fl in raw['Flights']:
+            fid, orig, dest = fl[0], fl[1], fl[2]
+            dep, arr = float(fl[3]), float(fl[4])
+            self.flight_ids.append(fid)
+            self.flight_data[fid] = {
+                'origin':        orig,
+                'destination':   dest,
+                'departureTime': dep,
+                'arrivalTime':   arr,
+                'duration':      arr - dep,
+                'day_departure': int(dep // self.DAY_SHIFT) + 1,
+                'day_arrival':   int(arr // self.DAY_SHIFT) + 1,
+            }
+
+        # ── Aircrafts & initial positions ────────────────────────────────────
+        self.aircraft_ids  = raw['Aircrafts']
+        self.aircraft_init = {int(k): v for k, v in raw['AIRCRAFT_INIT_POS'].items()}
+
+        # ── Airports ─────────────────────────────────────────────────────────
+        all_airports = sorted(set(
+            fd['origin']      for fd in self.flight_data.values()
+        ) | set(
+            fd['destination'] for fd in self.flight_data.values()
+        ))
+        self.airports = all_airports
+
+        cap = raw['Station_Capacity']
+        if maintenance_airports is not None:
+            self.maint_airports = maintenance_airports
+        else:
+            self.maint_airports = sorted(a for a in all_airports if cap.get(a, 0) > 0)
+
+        self.station_cap = {(a, d): cap.get(a, 0)
+                            for a in all_airports for d in range(1, 10000)}
+
+        # ── Thresholds & durations ───────────────────────────────────────────
+        thresh = raw['Maintenance_Thresholds']  # A/B in minutes, C/D in days
+        durs   = raw['Maintenance_Durations']   # all in minutes
+
+        # Hours thresholds used in cumulative flight-hour constraints
+        # A/B stored as minutes → convert; C/D stored as days → ×24
+        self.check_hrs = {
+            'A': thresh['A'] / 60.0,
+            'B': thresh['B'] / 60.0,
+            'C': thresh['C'] * 24.0,
+            'D': thresh['D'] * 24.0,
+        }
+        # Day-interval thresholds for spacing constraints
+        self.check_days = {
+            'A': max(1, int(thresh['A'] / 60.0 / 24.0)),
+            'B': max(1, int(thresh['B'] / 60.0 / 24.0)),
+            'C': int(thresh['C']),
+            'D': int(thresh['D']),
+        }
+        self.check_dur     = {k: float(durs[k]) for k in self.CHECK_LIST}  # minutes
+        self.check_dur_days = {k: int(durs[k] // self.DAY_SHIFT) for k in self.CHECK_LIST}
+
+        # ── Initial check state (elapsed flight minutes → hours) ─────────────
+        init_ck = raw.get('Initial_Checks', {})
+        self.init_check_hrs = {}
+        for ck in self.CHECK_LIST:
+            self.init_check_hrs[ck] = {
+                aid: float(init_ck.get(ck, {}).get(str(aid), 0)) / 60.0
+                for aid in self.aircraft_ids
+            }
+
+        # ── Cost matrix ───────────────────────────────────────────────────────
+        # cost_matrix[fid-1][aid_index]  (outer index = flight, inner = aircraft)
+        self.cost_matrix = raw['Cost_Matrix']
+        self._aid_index  = {aid: idx for idx, aid in enumerate(self.aircraft_ids)}
+
+        # ── Planning horizon (days) ───────────────────────────────────────────
+        max_day = max(fd['day_arrival'] for fd in self.flight_data.values()) + 1
+        max_day = max(8, max_day)
+        self.days = list(range(1, max_day + 1))
+
+        # Model and results (populated by build_model / solve)
+        self.model   = None
+        self.results = None
+
+    # ------------------------------------------------------------------
+    # Helper index sets (computed lazily from flight_data)
+    # ------------------------------------------------------------------
+    def _f_arr_k(self, k):
+        """Flights landing at airport k."""
+        return [i for i, fd in self.flight_data.items() if fd['destination'] == k]
+
+    def _f_dep_k(self, k):
+        """Flights departing from airport k."""
+        return [i for i, fd in self.flight_data.items() if fd['origin'] == k]
+
+    def _f_arr_before(self, k, t, delta):
+        """Flights landing at k with arrivalTime ≤ t − delta."""
+        return [i for i in self._f_arr_k(k)
+                if self.flight_data[i]['arrivalTime'] <= t - delta]
+
+    def _f_dep_before(self, k, t):
+        """Flights departing from k with departureTime < t."""
+        return [i for i in self._f_dep_k(k)
+                if self.flight_data[i]['departureTime'] < t]
+
+    def _f_dep_window(self, k, t0, t1):
+        """Flights departing from k with t0 < departureTime ≤ t1."""
+        return [i for i in self._f_dep_k(k)
+                if t0 < self.flight_data[i]['departureTime'] <= t1]
+
+    def _f_between_days(self, d1, d2):
+        """Flights whose day_departure is in (d1, d2]."""
+        return [i for i, fd in self.flight_data.items()
+                if d1 < fd['day_departure'] <= d2]
+
+    def _f_on_day(self, d):
+        """Flights departing on day d."""
+        return [i for i, fd in self.flight_data.items() if fd['day_departure'] == d]
+
+    def _flight_cost(self, fid, aid):
+        return self.cost_matrix[fid - 1][self._aid_index[aid]]
+
 
 # ----------------------------
 # EXECUTION

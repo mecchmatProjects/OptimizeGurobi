@@ -321,8 +321,8 @@ class Optimizer:
         else:
             self.maint_airports = sorted(a for a in all_airports if cap.get(a, 0) > 0)
 
-        self.station_cap = {(a, d): cap.get(a, 0)
-                            for a in all_airports for d in range(1, 10000)}
+        # station_cap[airport] = max concurrent maintenance slots (all check types combined)
+        self.station_cap = {a: cap.get(a, 0) for a in all_airports}
 
         # ── Thresholds & durations ───────────────────────────────────────────
         thresh = raw['Maintenance_Thresholds']  # A/B in minutes, C/D in days
@@ -599,19 +599,25 @@ class Optimizer:
     # ------------------------------------------------------------------
 
     def _add_c10_capacity(self, m):
+        """C10: total maintenance slots used at each maintenance airport on each
+        day cannot exceed Station_Capacity[airport].  Capacity is shared across
+        ALL check types (A/B/C/D combined), matching the JSON semantics."""
         m.c10 = ConstraintList()
-        cap = {a: self.station_cap[(a, 1)] for a in self.maint_airports}   # same every day
+        # Direct lookup: station_cap is now {airport: capacity}
+        cap = {a: self.station_cap[a] for a in self.maint_airports}
+        # Pre-compute flights arriving at each maintenance airport
         F_m = {a: [i for i, fd in self.flight_data.items() if fd['destination'] == a]
                for a in self.maint_airports}
-        for c in self.CHECK_LIST:
-            for d in m.D:
-                for a in m.MA:
-                    flights_a = F_m.get(a, [])
-                    if flights_a:
-                        m.c10.add(
-                            sum(m.z[i, j, d, c]
-                                for i in flights_a for j in m.P) <= cap[a]
-                        )
+        for d in m.D:
+            for a in m.MA:
+                flights_a = F_m.get(a, [])
+                if flights_a:
+                    # Sum across ALL check types: capacity is airport-wide, not per check
+                    m.c10.add(
+                        sum(m.z[i, j, d, c]
+                            for c in self.CHECK_LIST
+                            for i in flights_a for j in m.P) <= cap[a]
+                    )
 
     # ------------------------------------------------------------------
     # Constraint C11 – link z to y:

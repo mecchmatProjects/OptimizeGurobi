@@ -814,7 +814,7 @@ class MILP_Sheduler:
         days = sorted(self.days)
         n    = len(days)
         for c in self.CHECK_LIST:  # Only C/D have calendar-day intervals; A/B are flight-hour types
-            ival = self.check_days[c]
+            ival = self.check_dur_days[c]
             if ival is None or ival<=1:        # flight-hour threshold type: skip
                 continue
                         
@@ -831,10 +831,10 @@ class MILP_Sheduler:
                             m.c12days.add(m.z[i, j, d, c] >=  m.z[i, j, days_i, c])
 
                         for d in range(days_i + ival, days[-1] +1):
-                            m.c12days.add(m.z[i, j, d, c] <= (1 - m.z[i, j, days_i, c]))
+                            m.c12days.add(m.z[i, j, d, c] == 0)
 
                         for d in range(days[0],days_i):
-                            m.c12days.add(m.z[i, j, d, c] <= (1 - m.z[i, j, days_i, c]))
+                            m.c12days.add(m.z[i, j, d, c] == 0)
                                
 
     
@@ -925,15 +925,16 @@ class MILP_Sheduler:
                 d_i   = fd['day_arrival']
                 for j in m.P:
                     for i2 in self._f_dep_window(apt, t_arr, t_arr + dur):
-                        d = self.flight_data[i2]['day_departure']
-                        # m.c15.add(m.z[i, j, d, c] + m.x[i2, j] <= 1)
-                        # if(c == 'B' and i>200 and i<300 and j==0):
-                        #     print("aaa" + str(i) + " " + str(j) + " " + str(d) + " " + str(c))
-                        #     print(i2, apt, t_arr, dur)
-                        #     input() 
-                        if d >= d_i and d <= d_i + self.check_dur_days[c]:  # multi-day check duration window
-                            m.c15.add(m.z[i, j, d_i, c] + m.x[i2, j] <= 1)
-                            m.c15.add(m.z[i, j, d, c] + m.x[i2, j] <= 1) 
+                        # Block i2 for aircraft j when:
+                        #   x[i,j]=1  (j flew into apt via flight i)  AND
+                        #   y[j,d_i,c]=1 (j has maintenance c on arrival day)
+                        # Using z[i,j,d_i,c] as the guard is WRONG because C11
+                        # only requires sum_i z = y, so the solver can satisfy
+                        # C11 via a different trigger flight i' leaving
+                        # z[i,j,d_i,c]=0 while x[i,j]=1 and y active.
+                        # The correct linearisation of (x[i,j] AND y[j,d_i,c])
+                        # is:  x[i,j] + y[j,d_i,c] + x[i2,j] <= 2
+                        # m.c15.add(m.x[i, j] + m.y[j, d_i, c] + m.x[i2, j] <= 2)
 
             # b) Initial position at time zero
             days = sorted(self.days)
@@ -1150,6 +1151,8 @@ class MILP_Sheduler:
                         'end':      fd['arrivalTime'],
                         'day':      fd['day_departure'],
                         'check':    None,
+                        'origin':   fd.get('origin', ''),
+                        'destination': fd.get('destination', ''),
                     })
             for d in m.D:
                 for c in self.CHECK_LIST:
@@ -1176,18 +1179,19 @@ class MILP_Sheduler:
     # Gantt chart for MILP results
     # ------------------------------------------------------------------
 
-    def plot_gantt(self, save_path=None, show=True):
+    def plot_gantt(self, save_path=None, show=True, fname=None):
         """Render a Gantt chart from the solved model.
 
         Parameters
         ----------
         save_path : str | None  Path to save PNG; if None chart is not saved.
         show      : bool        Call plt.show() when True.
+        fname     : str | None  Path to save event details; if None details are not saved.
         """
         events    = self.get_events()
         aid_list  = sorted(self.aircraft_ids)
         _plot_gantt(events, aid_list, unassigned_ids=[], save_path=save_path,
-                    show=show, title='MILP Aircraft Schedule')
+                    show=show, title='MILP Aircraft Schedule', fname=fname)
 
 
 # ----------------------------
@@ -1207,7 +1211,7 @@ _GANTT_COLORS = {
 
 
 def _plot_gantt(events, aid_list, unassigned_flights=None, unassigned_ids=None,
-                flights_dict=None, save_path=None, show=True, title='Fleet Schedule'):
+                flights_dict=None, save_path=None, show=True, title='Fleet Schedule', fname=None):
     """Generic Gantt plotter used by both Scheduler and Optimizer.
 
     Parameters
@@ -1234,6 +1238,30 @@ def _plot_gantt(events, aid_list, unassigned_flights=None, unassigned_ids=None,
             if dur > 30:
                 ax.text(e['start'] + dur / 2, i * 10 + 4, e['label'],
                         ha='center', va='center', color='white', fontsize=7, clip_on=True)
+
+    # Write per-aircraft timeline text report
+    if fname is not None:
+        from collections import defaultdict
+        by_ac = defaultdict(list)
+        for e in events:
+            by_ac[e['aircraft']].append(e)
+        lines = []
+        for aid in aid_list:
+            ac_events = sorted(by_ac.get(aid, []), key=lambda e: e['start'])
+            if not ac_events:
+                continue
+            lines.append(f'Aircraft {aid}:')
+            for e in ac_events:
+                if e['type'] == 'FLIGHT':
+                    orig = e.get('origin', '')
+                    dest = e.get('destination', '')
+                    day = e.get('day', '')
+                    lines.append(f'  Flight  {e["label"]:6s}  {orig} -> {dest}  day {day}   start {e["start"]:7.1f} - end {e["end"]:7.1f}')
+                else:
+                    lines.append(f'  Maint   {e["label"]:6s}  day {day}   start {e["start"]:7.1f} - end {e["end"]:7.1f}')
+            lines.append('')
+        with open(fname, 'w', encoding='utf-8') as fh:
+            fh.write('\n'.join(lines))
 
     # Unassigned row (heuristic only)
     if unassigned_ids and flights_dict:
@@ -1346,7 +1374,7 @@ def run_heuristic(data_path='data18h.json', csv_path='final_schedule.csv',
     _plot_gantt(events, sorted(sc.aircrafts),
                 unassigned_ids=unassigned, flights_dict=sc.flights,
                 save_path=gantt_path, show=show_gantt,
-                title=f"Heuristic  {data_path}  (assigned {n_assigned}/{n_flights})")
+                title=f"Heuristic  {data_path}  (assigned {n_assigned}/{n_flights})", fname=f'{csv_path[:-4]}_events.txt' if csv_path else None)
 
     return sc, final_ac_fids, unassigned
 
@@ -1378,7 +1406,7 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
                     use_maintenance=use_maintenance)
     summary = opt.solve(solver_name=solver, tee=tee, out_path=out_txt,
                         time_limit=time_limit, warm_start=warm_start)
-    opt.plot_gantt(save_path=gantt_path, show=show_gantt)
+    opt.plot_gantt(save_path=gantt_path, show=show_gantt, fname=f'{out_txt[:-4]}_events.txt' if out_txt else None)
     return opt, summary
 
 

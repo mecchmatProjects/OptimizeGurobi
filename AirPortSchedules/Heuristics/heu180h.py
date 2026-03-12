@@ -2,6 +2,8 @@ import json
 import math
 import random
 import sys
+import logging
+
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
 import matplotlib.patches as mpatches
@@ -236,7 +238,7 @@ class Scheduler:
 # MILP OPTIMIZER ENGINE
 # ----------------------------
 
-class Optimizer:
+class MILP_Sheduler:
     """MILP-based aircraft assignment with maintenance scheduling using Pyomo.
 
     Reads the same JSON format as Scheduler.  Each constraint group is
@@ -259,7 +261,6 @@ class Optimizer:
     CHECK_LIST = ['A', 'B', 'C', 'D']
     DAY_SHIFT  = 24 * 60   # minutes in one planning day
     MIN_TURN   = 30        # minimum ground turnaround (minutes)
-    M_BIG      = 9_999_999
 
     # Hierarchy: performing check X also satisfies all lighter checks
     CHECK_HIERARCHY = {
@@ -283,9 +284,16 @@ class Optimizer:
         if not PYOMO_AVAILABLE:
             raise RuntimeError("Pyomo is not installed. Run: pip install pyomo")
 
+        logger = logging.getLogger(__name__)
+        
+        logging.basicConfig(filename="debug.log" , level=logging.DEBUG)
+
+    
+        self.data_path = data_path
         with open(data_path) as f:
             raw = json.load(f)
 
+        logger.debug(f"Loaded data from {data_path}")
         # ── Flights ──────────────────────────────────────────────────────────
         self.flight_ids  = []
         self.flight_data = {}
@@ -303,9 +311,12 @@ class Optimizer:
                 'day_arrival':   int(arr // self.DAY_SHIFT) + 1,
             }
 
+            logger.debug(f"Loaded flight {fid}: {orig} -> {dest}, dep={dep}, arr={arr}, dur={arr - dep}, days={self.flight_data[fid]['day_departure']}-{self.flight_data[fid]['day_arrival']}")
         # ── Aircrafts & initial positions ────────────────────────────────────
         self.aircraft_ids  = raw['Aircrafts']
+        logger.debug(f"Loaded aircrafts: {self.aircraft_ids}")
         self.aircraft_init = {int(k): v for k, v in raw['AIRCRAFT_INIT_POS'].items()}
+        logger.debug(f"Loaded initial positions: {self.aircraft_init}")
 
         # ── Airports ─────────────────────────────────────────────────────────
         all_airports = sorted(set(
@@ -314,19 +325,23 @@ class Optimizer:
             fd['destination'] for fd in self.flight_data.values()
         ))
         self.airports = all_airports
+        logger.debug(f"Loaded airports: {self.airports}")
 
         cap = raw['Station_Capacity']
         if maintenance_airports is not None:
             self.maint_airports = maintenance_airports
         else:
             self.maint_airports = sorted(a for a in all_airports if cap.get(a, 0) > 0)
+        logger.debug(f"Loaded maintenance airports: {self.maint_airports}")
 
         # station_cap[airport] = max concurrent maintenance slots (all check types combined)
         self.station_cap = {a: cap.get(a, 0) for a in all_airports}
+        logger.debug(f"Loaded station capacities: {self.station_cap}")
 
         # ── Thresholds & durations ───────────────────────────────────────────
         thresh = raw['Maintenance_Thresholds']  # A/B in minutes, C/D in days
         durs   = raw['Maintenance_Durations']   # all in minutes
+        logger.debug(f"Loaded maintenance thresholds: {thresh}:{durs}")
 
         # Hours thresholds used in cumulative flight-hour constraints
         # A/B stored as minutes -> convert; C/D stored as days -> ×24
@@ -336,6 +351,7 @@ class Optimizer:
             'C': thresh['C'] * 24.0,
             'D': thresh['D'] * 24.0,
         }
+        logger.debug(f"Converted check hour thresholds: {self.check_hrs}")
         # Day-interval thresholds for spacing constraints.
         # A and B thresholds are in flight-minutes (not calendar days);
         # their spacing is handled by C13 (hour accumulation), NOT C12.
@@ -343,12 +359,14 @@ class Optimizer:
         # Use None to mark check types with no calendar-day spacing constraint.
         self.check_days = {
             'A': None,          # flight-hour based -> no calendar-day spacing
-            'B': None,          # flight-hour based -> no calendar-day spacing
+            'B': int(thresh['B'] /60 / 24),    # flight-hour based -> no calendar-day spacing
             'C': int(thresh['C']),
             'D': int(thresh['D']),
         }
         self.check_dur     = {k: float(durs[k]) for k in self.CHECK_LIST}  # minutes
+        logger.debug(f"Loaded check durations (minutes): {self.check_dur}")
         self.check_dur_days = {k: int(durs[k] // self.DAY_SHIFT) for k in self.CHECK_LIST}
+        logger.debug(f"Converted check durations (days): {self.check_dur_days}")
 
         # ── Initial check state (convert all to hours) ───────────────────────
         # JSON may use 'A','B' (minutes) and 'C','D' or 'C_Days','D_Days' (days)
@@ -375,6 +393,7 @@ class Optimizer:
                     aid: float(init_ck.get(ck, {}).get(str(aid), 0)) / 60.0
                     for aid in self.aircraft_ids
                 }
+        logger.debug(f"Loaded initial check hours: {self.init_check_hrs}")
 
         # ── Cost matrix ───────────────────────────────────────────────────────
         # cost_matrix[fid-1][aid_index]  (outer index = flight, inner = aircraft)
@@ -385,6 +404,26 @@ class Optimizer:
         max_day = max(fd['day_arrival'] for fd in self.flight_data.values()) + 1
         max_day = max(8, max_day)
         self.days = list(range(1, max_day + 1))
+
+        # ── Big-M values ──────────────────────────────────────────────────────
+        # M_BIG is used in C13/C13b (hour-accumulation) big-M relaxations.
+        # Large M is intentional: C13b with tight M makes the LP relaxation
+        # harder (more simplex pivots), which slows CPLEX on large instances.
+        # M_C14b is used only in C14b (check duration); it only needs to exceed
+        # the max check duration in days.
+        self.M_BIG  = 9_999_999
+        self.M_C14b = max(self.check_dur_days.values()) + 1
+
+        # ── Maintenance-eligible flights (z index restriction) ─────────────────
+        # z[i,j,d,c] is only meaningful for flights i arriving at a maintenance
+        # airport.  Restricting the z domain reduces variables and constraints
+        # by ~42-50% compared to indexing z over all flights.
+        ma_set = set(self.maint_airports)
+        self.maint_flight_ids = [
+            fid for fid, fd in self.flight_data.items()
+            if fd['destination'] in ma_set
+        ]
+        logger.debug(f"Loaded maintenance-eligible flights: {self.maint_flight_ids}")
 
         # Model and results (populated by build_model / solve)
         self.model   = None
@@ -398,7 +437,7 @@ class Optimizer:
                     use_day_spacing=True,
                     use_existing_hrs=True,
                     use_check_hierarchy=True,
-                    use_sanity=True,
+                    use_sanity=False,
                     use_overlap=True,
                     allow_ferry=True,
                     use_maintenance=True):
@@ -427,6 +466,7 @@ class Optimizer:
             # C2-C3: equipment-flow balance (prevents implicit teleportation)
             self._add_c23_turn(m)
         if use_overlap:
+            
             self._add_overlap(m)
         if use_maintenance:
             self._add_c8_maint_blocks_flights(m)
@@ -436,8 +476,9 @@ class Optimizer:
             self._add_hierarchy(m, use_check_hierarchy)
             self._add_c14_one_check_per_day(m)
             self._add_c14b_check_duration(m)
-            if use_day_spacing:
-                self._add_c12_day_spacing(m)
+            #if use_day_spacing:
+            # self._add_c12_day_spacing(m)
+            self._add_c12_day_spacing_days(m)
             if use_existing_hrs:
                 self._add_c13b_existing_hrs(m)
             self._add_c13_hr_accumulation(m)
@@ -449,6 +490,7 @@ class Optimizer:
     def _add_sets_and_variables(self, m):
         """Define Pyomo Sets and Var declarations on model m."""
         m.F   = Set(initialize=self.flight_ids)
+        m.FM  = Set(initialize=self.maint_flight_ids)  # flights arriving at MA
         m.P   = Set(initialize=sorted(self.aircraft_ids))
         m.A   = Set(initialize=self.airports)
         m.MA  = Set(initialize=self.maint_airports)
@@ -458,7 +500,8 @@ class Optimizer:
         # x[i,j] = 1  iff flight i assigned to aircraft j
         m.x = Var(m.F, m.P, domain=Binary, initialize=0)
         # z[i,j,d,c] = 1  iff aircraft j does check c on day d triggered by flight i
-        m.z = Var(m.F, m.P, m.D, m.C, domain=Binary, initialize=0)
+        # Only indexed over FM (flights arriving at MA) to reduce model size.
+        m.z = Var(m.FM, m.P, m.D, m.C, domain=Binary, initialize=0)
         # y[j,d,c] = 1  iff aircraft j undergoes check c on day d
         m.y = Var(m.P, m.D, m.C, domain=Binary, initialize=0)
         # mega_check[j,d,c] = 1 if aircraft j has a check of type ≥c on day d (hierarchy)
@@ -472,7 +515,7 @@ class Optimizer:
                 sum(self._flight_cost(i, j) * m.x[i, j]
                     for i in m.F for j in m.P)
                 + sum(maint_cost * m.z[i, j, d, c]
-                      for i in m.F for j in m.P for d in m.D for c in m.C)
+                      for i in m.FM for j in m.P for d in m.D for c in m.C)
             ),
             sense=minimize,
         )
@@ -503,17 +546,29 @@ class Optimizer:
         return [i for i in self._f_dep_k(k)
                 if t0 < self.flight_data[i]['departureTime'] <= t1]
 
-    def _f_between_days(self, d1, d2):
+    def _f_dep_between_days(self, d1, d2):
         """Flights whose day_departure is in (d1, d2]."""
         return [i for i, fd in self.flight_data.items()
                 if d1 < fd['day_departure'] <= d2]
 
-    def _f_on_day(self, d):
+    def _f_dep_on_day(self, d):
         """Flights departing on day d."""
         return [i for i, fd in self.flight_data.items() if fd['day_departure'] == d]
 
     def _flight_cost(self, fid, aid):
         return self.cost_matrix[fid - 1][self._aid_index[aid]]
+    
+    # The set of flights for a given day when departureTime greater than arrivalTime of given flight
+    def _f_dep_after(self, d, i):
+        """Flights departing on day d with departureTime > arrivalTime of flight i."""
+        arr_i = self.flight_data[i]['arrivalTime']
+        return [i2 for i2 in self._f_dep_on_day(d)
+                if self.flight_data[i2]['departureTime'] > arr_i]
+
+    def F_m(self, a, d):
+        """Flights arriving at airport a with day_arrival <= d."""
+        return [i for i, fd in self.flight_data.items()
+                if fd['destination'] == a and fd['day_arrival'] <= d]
 
     # ------------------------------------------------------------------
     # Constraint C1 – every flight covered by exactly one aircraft
@@ -578,33 +633,37 @@ class Optimizer:
         Only add constraint for d == d_i (the actual arrival day of flight i);
         the original loop over all days was incorrect and exponentially wasteful."""
         m.c8 = ConstraintList()
-        # Pre-group: for each (arrival_airport, day), flights departing LATER
-        later_flights: dict = {}
-        for i2, fd2 in self.flight_data.items():
-            key = (fd2['origin'], fd2['day_departure'], fd2['departureTime'])
-            later_flights.setdefault(key, []).append(i2)
+        
+        for check in self.CHECK_LIST:
+                for i in m.FM:
+                    for j in m.P:
+                        for d in m.D:
+                            for i2 in self._f_dep_after(d, i):
+                                # d1 = self.flight_data[i]['day_departure']
+                                m.c8.add(m.z[i, j, d, check] + m.x[i2, j] <= 1)
 
-        for c in self.CHECK_LIST:
-            for i in m.F:
-                fd_i  = self.flight_data[i]
-                arr_i = fd_i['arrivalTime']
-                d_i   = fd_i['day_arrival']
-                dest_i = fd_i['destination']
-                # Only flights that depart from same airport as i's destination,
-                # same day, and AFTER i arrives
-                blocking = [
-                    i2 for i2, fd2 in self.flight_data.items()
-                    if fd2['origin'] == dest_i
-                    and fd2['day_departure'] == d_i
-                    and fd2['departureTime'] > arr_i
-                ]
-                if not blocking:
-                    continue
-                for j in m.P:
-                    # Only d == d_i is semantically correct
-                    if d_i in m.D:
-                        for i2 in blocking:
-                            m.c8.add(m.z[i, j, d_i, c] + m.x[i2, j] <= 1)
+
+        # for c in self.CHECK_LIST:
+        #     for i in m.FM:  # only maintenance-eligible flights (have z variables)
+        #         fd_i  = self.flight_data[i]
+        #         arr_i = fd_i['arrivalTime']
+        #         d_i   = fd_i['day_arrival']
+        #         dest_i = fd_i['destination']
+        #         # Only flights that depart from same airport as i's destination,
+        #         # same day, and AFTER i arrives
+        #         blocking = [
+        #             i2 for i2, fd2 in self.flight_data.items()
+        #             if fd2['origin'] == dest_i
+        #             and fd2['day_departure'] == d_i
+        #             and fd2['departureTime'] > arr_i
+        #         ]
+        #         if not blocking:
+        #             continue
+        #         for j in m.P:
+        #             # Only d == d_i is semantically correct
+        #             if d_i in m.D:
+        #                 for i2 in blocking:
+        #                     m.c8.add(m.z[i, j, d_i, c] + m.x[i2, j] <= 1)
 
     # ------------------------------------------------------------------
     # Constraint C9 – z[i,j,d,c] can only be 1 if x[i,j]=1
@@ -614,7 +673,7 @@ class Optimizer:
     def _add_c9_maint_assignment(self, m):
         m.c9 = ConstraintList()
         for c in self.CHECK_LIST:
-            for i in m.F:
+            for i in m.FM:  # only maintenance-eligible flights
                 for j in m.P:
                     for d in m.D:
                         m.c9.add(m.x[i, j] >= m.z[i, j, d, c])
@@ -630,12 +689,11 @@ class Optimizer:
         m.c10 = ConstraintList()
         # Direct lookup: station_cap is now {airport: capacity}
         cap = {a: self.station_cap[a] for a in self.maint_airports}
-        # Pre-compute flights arriving at each maintenance airport
-        F_m = {a: [i for i, fd in self.flight_data.items() if fd['destination'] == a]
-               for a in self.maint_airports}
+        # Pre-compute maintenance-eligible flights arriving at each maintenance airport
+        
         for d in m.D:
             for a in m.MA:
-                flights_a = F_m.get(a, [])
+                flights_a = self.F_m(a, d)  # flights arriving at a on or before day d
                 if flights_a:
                     # Sum across ALL check types: capacity is airport-wide, not per check
                     m.c10.add(
@@ -651,14 +709,11 @@ class Optimizer:
 
     def _add_c11_maint_link(self, m):
         m.c11 = ConstraintList()
-        ma_set = set(self.maint_airports)
         for c in self.CHECK_LIST:
             for d in m.D:
                 for j in m.P:
                     m.c11.add(
-                        sum(m.z[i, j, d, c]
-                            for i in self.flight_ids
-                            if self.flight_data[i]['destination'] in ma_set)
+                        sum(m.z[i, j, d, c] for i in m.FM)
                         == m.y[j, d, c]
                     )
 
@@ -699,7 +754,7 @@ class Optimizer:
         m.c14b = ConstraintList()
         days = sorted(self.days)
         for j in m.P:
-            for c in self.CHECK_LIST:
+            for c in self.CHECK_LIST:  # Only A/B have multi-day duration; C/D are single-day checks
                 K = self.check_dur_days[c]
                 if K <= 1:
                     continue
@@ -708,15 +763,15 @@ class Optimizer:
                     if di == 0:
                         m.c14b.add(
                             sum(m.mega[j, days[d1], c] for d1 in range(1, end))
-                            + self.M_BIG * (1 - m.mega[j, days[0], c]) >= end - 1
+                            + self.M_C14b * (1 - m.mega[j, days[0], c]) >= end - 1
                         )
                         continue
                     if di >= end:
                         continue
                     m.c14b.add(
                         sum(m.mega[j, days[d1], c] for d1 in range(di + 1, end))
-                        + self.M_BIG * m.mega[j, days[di - 1], c]
-                        + self.M_BIG * (1 - m.mega[j, days[di], c]) >= end - di - 1
+                        + self.M_C14b * m.mega[j, days[di - 1], c]
+                        + self.M_C14b * (1 - m.mega[j, days[di], c]) >= end - di - 1
                     )
 
     # ------------------------------------------------------------------
@@ -735,17 +790,54 @@ class Optimizer:
         m.c12 = ConstraintList()
         days = sorted(self.days)
         n    = len(days)
-        for c in self.CHECK_LIST:
+        for c in self.CHECK_LIST:  # Only C/D have calendar-day intervals; A/B are flight-hour types
             ival = self.check_days[c]
             if ival is None:        # flight-hour threshold type: skip
                 continue
             if ival >= n:           # interval >= horizon: window never filled, skip
-                continue
+                 continue
             for j in m.P:
                 for start in range(n - ival + 1):
                     m.c12.add(
                         sum(m.mega[j, days[r], c] for r in range(start, start + ival)) >= 1
                     )
+
+    def _add_c12_day_spacing_days(self, m):
+        """Sliding-window day-spacing: within every window of `ival` consecutive
+        days at least one maintenance check of type c must be scheduled.
+        Only applies to check types with a calendar-day interval (C, D).
+        A and B checks are regulated by flight-hour accumulation (C13), not
+        calendar-day spacing, so they are skipped here.
+        Also skips check types whose interval exceeds the planning horizon
+        (the constraint would be trivially inactive)."""
+        m.c12days = ConstraintList()
+        days = sorted(self.days)
+        n    = len(days)
+        for c in self.CHECK_LIST:  # Only C/D have calendar-day intervals; A/B are flight-hour types
+            ival = self.check_days[c]
+            if ival is None or ival<=1:        # flight-hour threshold type: skip
+                continue
+                        
+            for j in m.P:
+                for a in m.MA:
+                    flight_a = self._f_arr_k(a)
+                    if not flight_a:    
+                        continue
+
+                    for i in flight_a:
+                        days_i = self.flight_data[i]['day_arrival']
+
+                        for d in range(days_i+1, min(days_i + ival, days[-1] + 1)):
+                            m.c12days.add(m.z[i, j, d, c] >=  m.z[i, j, days_i, c])
+
+                        for d in range(days_i + ival, days[-1] +1):
+                            m.c12days.add(m.z[i, j, d, c] <= (1 - m.z[i, j, days_i, c]))
+
+                        for d in range(days[0],days_i):
+                            m.c12days.add(m.z[i, j, d, c] <= (1 - m.z[i, j, days_i, c]))
+                               
+
+    
 
     # ------------------------------------------------------------------
     # Constraint C13 – cumulative flight-hour accumulation between checks
@@ -760,7 +852,9 @@ class Optimizer:
         n     = len(days)
         for c in self.CHECK_LIST:
             hr_limit  = self.check_hrs[c]   # hours
-            # For A/B (flight-hour types) check_days is None -> use full horizon.
+            # if self.check_days[c] is not None:
+            #     continue
+            # # For A/B (flight-hour types) check_days is None -> use full horizon.
             # For C/D (calendar-day types) use their day interval as range bound.
             cd = self.check_days[c] if self.check_days[c] is not None else n
             for j in m.P:
@@ -769,7 +863,7 @@ class Optimizer:
                         d,  d_ = days[si], days[ei]
                         t_sum  = sum(
                             self.flight_data[i]['duration'] * m.x[i, j]
-                            for i in self._f_between_days(d, d_)
+                            for i in self._f_dep_between_days(d, d_)
                         )
                         y_mid  = sum(m.mega[j, days[r], c]
                                      for r in range(si + 1, ei))
@@ -803,7 +897,7 @@ class Optimizer:
                     d_   = days[ei]
                     t_sum = sum(
                         self.flight_data[i]['duration'] * m.x[i, j]
-                        for i in self._f_between_days(0, d_)
+                        for i in self._f_dep_between_days(0, d_)
                     )
                     y_mid = sum(m.mega[j, days[r], c] for r in range(ei - 1))
                     m.c13b.add(
@@ -824,16 +918,23 @@ class Optimizer:
         for c in self.CHECK_LIST:
             dur = self.check_dur[c]               # check duration in minutes
             # a) Triggered by an arriving flight
-            for i in self.flight_ids:
+            for i in m.FM:   # only flights arriving at MA have z vars
                 fd   = self.flight_data[i]
                 apt  = fd['destination']
-                d    = fd['day_arrival']
                 t_arr = fd['arrivalTime']
-                if apt not in self.maint_airports:
-                    continue
+                d_i   = fd['day_arrival']
                 for j in m.P:
                     for i2 in self._f_dep_window(apt, t_arr, t_arr + dur):
-                        m.c15.add(m.z[i, j, d, c] + m.x[i2, j] <= 1)
+                        d = self.flight_data[i2]['day_departure']
+                        # m.c15.add(m.z[i, j, d, c] + m.x[i2, j] <= 1)
+                        # if(c == 'B' and i>200 and i<300 and j==0):
+                        #     print("aaa" + str(i) + " " + str(j) + " " + str(d) + " " + str(c))
+                        #     print(i2, apt, t_arr, dur)
+                        #     input() 
+                        if d >= d_i and d <= d_i + self.check_dur_days[c]:  # multi-day check duration window
+                            m.c15.add(m.z[i, j, d_i, c] + m.x[i2, j] <= 1)
+                            m.c15.add(m.z[i, j, d, c] + m.x[i2, j] <= 1) 
+
             # b) Initial position at time zero
             days = sorted(self.days)
             d0   = days[0]
@@ -845,20 +946,12 @@ class Optimizer:
                 for j2 in m.P:
                     for i2 in self._f_dep_window(apt, 0, dur):
                         m.c15.add(m.mega[j2, d0, c] + m.x[i2, j2] <= 1)
-        # Multi-day checks additionally block departing flights on later days
-        m.c15b = ConstraintList()
-        for c in self.CHECK_LIST:
-            if self.check_dur_days[c] <= 1:
-                continue
-            for i in self.flight_ids:
-                fd  = self.flight_data[i]
-                apt = fd['origin']
-                d   = fd['day_departure']
-                if apt not in self.maint_airports:
-                    continue
-                for j in m.P:
-                    if d > sorted(self.days)[0]:
-                        m.c15b.add(m.y[j, d, c] + m.x[i, j] <= 1)
+        
+        # Note: Multi-day check blocking is already handled by C15a above,
+        # which uses absolute departure times (_f_dep_window) spanning the
+        # full check duration window across day boundaries.  A separate day-
+        # level "C15b" constraint using y[j,d,c] (start-day only) is both
+        # redundant and causes infeasibility with routing (C23), so it is omitted.
 
     # ------------------------------------------------------------------
     # Sanity: z[i,j,d,c]=0 when day d is after arrival day + check duration
@@ -867,20 +960,30 @@ class Optimizer:
     def _add_sanity(self, m):
         m.c_sanity = ConstraintList()
         for c in self.CHECK_LIST:
-            for i in m.F:
+            for i in m.FM:  # only maintenance-eligible flights
                 arr_day = self.flight_data[i]['day_arrival']
                 for j in m.P:
                     for d in m.D:
-                        if d < self.flight_data[i]['day_arrival']:
+                        if d < arr_day:
                             m.c_sanity.add(m.z[i, j, d, c] == 0)
-                        if d > arr_day + self.check_dur_days[c]:
-                            m.c_sanity.add(m.z[i, j, d, c] == 0)
+
+    # ------------------------------------------------------------------
+    # Warm-start helpers
+    # ------------------------------------------------------------------
+
+    def warm_start_from_heuristic(self):
+        """No-op: partial warm-start (x-only) causes CPLEX to reject the MIP
+        start as infeasible.  Feasibility-first tuning is applied in solve()
+        via solver.options instead.
+        """
+        pass
 
     # ------------------------------------------------------------------
     # Solve
     # ------------------------------------------------------------------
 
-    def solve(self, solver_name='cplex', tee=False, out_path=None, time_limit=None):
+    def solve(self, solver_name='cplex', tee=False, out_path=None,
+              time_limit=None, warm_start=False):
         """Invoke the solver on the built model.
 
         Parameters
@@ -901,11 +1004,19 @@ class Optimizer:
         if self.model is None:
             raise RuntimeError("Call build_model() first.")
 
+        if warm_start:
+            self.warm_start_from_heuristic()
+
         solver = SolverFactory(solver_name)
 
         # --- solver-specific time-limit options ---
         _sn = solver_name.lower()
         _solve_kwargs = dict(tee=tee)
+        if warm_start and 'cplex' in _sn:
+            # Skip root-node cut generation passes: the root LP already takes
+            # ~265-408s for h=15+; cut generation further delays the first B&C
+            # node.  Disable cuts so CPLEX branches immediately after root LP.
+            solver.options['mip limits cutpasses'] = 0
         if time_limit is not None:
             if 'gurobi' in _sn:
                 solver.options['TimeLimit'] = int(time_limit)
@@ -981,10 +1092,33 @@ class Optimizer:
 
         _p("\n--- Maintenance ---")
         for j in m.P:
+            for c in self.CHECK_LIST:
+                for d in m.D:
+                    val = pyo_value(m.y[j, d, c])
+                    if val > 0.5:
+                        for i in m.FM:
+                            if pyo_value(m.z[i, j, d, c]) > 0.5:
+                                _p(f"  Aircraft {j}  day {d:3d}  check {c} after flight:")
+                                _p(f"{i} arr {self.flight_data[i]['arrivalTime']} ")
+                                _p("\n")
+                        for d1 in m.D:
+                            for i1 in m.F:
+                                if self.flight_data[i1]['origin'] != self.flight_data[i]['destination'] or self.flight_data[i1]['day_departure'] <= d:
+                                    continue
+                                if pyo_value(m.x[i1, j]) > 0.5:
+                                    _p(f"  Aircraft {j}  day {d:3d}  check {c} triggered by initial position, assigned flight:")
+                                    _p(f"{i1} dep {self.flight_data[i1]['departureTime']} ")
+                                    _p("\n")
+
+        for j in m.P:
             for d in m.D:
                 for c in self.CHECK_LIST:
                     if pyo_value(m.y[j, d, c]) > 0.5:
-                        _p(f"  Aircraft {j}  day {d:3d}  check {c}")
+                        _p(f"y[{j},{d},{c}] = {pyo_value(m.y[j, d, c])}  (check {c} for aircraft {j} on day {d})")
+                    for i in m.FM:
+                        if pyo_value(m.z[i, j, d, c]) > 0.5:
+                            _p(f"z[{i},{j},{d},{c}] = {pyo_value(m.z[i, j, d, c])}  (flight {i} triggers check {c} for aircraft {j} on day {d})")
+              
 
         _p(f"\nTotal cost: {pyo_value(m.obj):.2f}")
         text = "\n".join(lines)
@@ -1022,7 +1156,7 @@ class Optimizer:
                     if pyo_value(m.y[j, d, c]) > 0.5:
                         # Find the trigger flight to get start time
                         t_start = (d - 1) * self.DAY_SHIFT
-                        for i in m.F:
+                        for i in m.FM:
                             if pyo_value(m.z[i, j, d, c]) > 0.5:
                                 t_start = self.flight_data[i]['arrivalTime']
                                 break
@@ -1221,8 +1355,8 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
              time_limit=None,
              out_txt=None, gantt_path=None, show_gantt=True,
              use_day_spacing=True, use_existing_hrs=True,
-             use_check_hierarchy=True, use_sanity=True, use_overlap=True,
-             allow_ferry=True, use_maintenance=True):
+             use_check_hierarchy=True, use_sanity=False, use_overlap=True,
+             allow_ferry=True, use_maintenance=True, warm_start=True):
     """Build and solve the MILP model, then display results.
 
     Parameters
@@ -1231,8 +1365,10 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
     allow_ferry    : bool        When False, C2-C3 routing constraints omitted.
     use_maintenance: bool        When False, all maintenance constraints omitted
                                  (pure flight-assignment relaxation).
+    warm_start     : bool        When True (default), seed MILP x-variables with
+                                 the greedy heuristic solution before solving.
     """
-    opt = Optimizer(data_path)
+    opt = MILP_Sheduler(data_path)
     opt.build_model(use_day_spacing=use_day_spacing,
                     use_existing_hrs=use_existing_hrs,
                     use_check_hierarchy=use_check_hierarchy,
@@ -1241,7 +1377,7 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
                     allow_ferry=allow_ferry,
                     use_maintenance=use_maintenance)
     summary = opt.solve(solver_name=solver, tee=tee, out_path=out_txt,
-                        time_limit=time_limit)
+                        time_limit=time_limit, warm_start=warm_start)
     opt.plot_gantt(save_path=gantt_path, show=show_gantt)
     return opt, summary
 
@@ -1300,7 +1436,7 @@ def _run_one_heuristic(fp, out_dir, stem, show_gantt):
 
 def _run_one_milp(fp, out_dir, stem, solver, tee, show_gantt, time_limit,
                   allow_ferry=True, use_maintenance=True,
-                  use_overlap=True, use_sanity=True):
+                  use_overlap=True, use_sanity=False, warm_start=True):
     """Run MILP on a single file; return metrics dict."""
     import time, os
     gantt_out = os.path.join(out_dir, f'{stem}_milp_gantt.png')
@@ -1314,6 +1450,7 @@ def _run_one_milp(fp, out_dir, stem, solver, tee, show_gantt, time_limit,
         use_maintenance=use_maintenance,
         use_overlap=use_overlap,
         use_sanity=use_sanity,
+        warm_start=warm_start,
     )
     cpu = time.time() - t0
 
@@ -1386,7 +1523,7 @@ def _plot_comparison(rows, out_dir):
 def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
               solver='cplex', tee=False, show_gantt=False, time_limit=300,
               allow_ferry=True, use_maintenance=True,
-              use_overlap=True, use_sanity=True):
+              use_overlap=True, use_sanity=False, warm_start=True):
     """Process every JSON file in *input_dir* and write results to *output_dir*.
 
     For each dataset the following files are created in output_dir::
@@ -1455,7 +1592,8 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
                                     allow_ferry=allow_ferry,
                                     use_maintenance=use_maintenance,
                                     use_overlap=use_overlap,
-                                    use_sanity=use_sanity)
+                                    use_sanity=use_sanity,
+                                    warm_start=warm_start)
                 all_rows.append(row)
             except Exception as exc:
                 print(f"  ✗ [milp] {exc}")
@@ -1547,8 +1685,10 @@ def main():
                         help='Omit pairwise time-overlap constraints (c_overlap) from MILP.')
     parser.add_argument('--no-sanity',   dest='use_sanity', action='store_false',
                         help='Omit sanity-fixing bound constraints from MILP.')
+    parser.add_argument('--no-warm-start', dest='warm_start', action='store_false',
+                        help='Do not seed MILP with heuristic solution (warm start OFF).')
     parser.set_defaults(show=True, allow_ferry=True, use_maintenance=True,
-                        use_overlap=True, use_sanity=True)
+                        use_overlap=True, use_sanity=False, warm_start=True)
     args = parser.parse_args()
 
     if args.mode == 'heuristic':
@@ -1564,7 +1704,8 @@ def main():
                  allow_ferry=args.allow_ferry,
                  use_maintenance=args.use_maintenance,
                  use_overlap=args.use_overlap,
-                 use_sanity=args.use_sanity)
+                 use_sanity=args.use_sanity,
+                 warm_start=args.warm_start)
     else:  # batch
         run_batch(input_dir=args.input_dir,
                   output_dir=args.output_dir,
@@ -1575,7 +1716,8 @@ def main():
                   allow_ferry=args.allow_ferry,
                   use_maintenance=args.use_maintenance,
                   use_overlap=args.use_overlap,
-                  use_sanity=args.use_sanity)
+                  use_sanity=args.use_sanity,
+                  warm_start=args.warm_start)
 
 
 if __name__ == '__main__':

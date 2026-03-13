@@ -3,6 +3,7 @@ import math
 import random
 import sys
 import logging
+from venv import logger
 
 import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
@@ -359,7 +360,7 @@ class MILP_Sheduler:
         # Use None to mark check types with no calendar-day spacing constraint.
         self.check_days = {
             'A': None,          # flight-hour based -> no calendar-day spacing
-            'B': int(thresh['B'] /60 / 24),    # flight-hour based -> no calendar-day spacing
+            'B': None,    # flight-hour based -> no calendar-day spacing
             'C': int(thresh['C']),
             'D': int(thresh['D']),
         }
@@ -474,17 +475,19 @@ class MILP_Sheduler:
             self._add_c10_capacity(m)
             self._add_c11_maint_link(m)
             self._add_hierarchy(m, use_check_hierarchy)
-            self._add_c14_one_check_per_day(m)
+            # self._add_c14_one_check_per_day(m)
             self._add_c14b_check_duration(m)
-            #if use_day_spacing:
-            # self._add_c12_day_spacing(m)
-            self._add_c12_day_spacing_days(m)
+            if use_day_spacing:
+                self._add_c12_day_spacing(m)
+            # self._add_c12_day_spacing_days(m)
             if use_existing_hrs:
                 self._add_c13b_existing_hrs(m)
             self._add_c13_hr_accumulation(m)
-            self._add_c15_no_flight_during_maint(m)
+            # self._add_c15_no_flight_during_maint(m)
         if use_sanity:
             self._add_sanity(m)
+        
+        #input("Model built. Press Enter to continue...")  # Debug pause to inspect model before solving
         return m
 
     def _add_sets_and_variables(self, m):
@@ -551,9 +554,13 @@ class MILP_Sheduler:
         return [i for i, fd in self.flight_data.items()
                 if d1 < fd['day_departure'] <= d2]
 
-    def _f_dep_on_day(self, d):
-        """Flights departing on day d."""
-        return [i for i, fd in self.flight_data.items() if fd['day_departure'] == d]
+    def _f_dep_on_day_airport(self, d, k):
+        """Flights departing on day d from airport k."""
+        return [i for i, fd in self.flight_data.items() if fd['day_departure'] == d and fd['origin'] == k]
+
+    def _f_dep_on_day_airport_after(self, d, k, t):
+        """Flights departing on day d from airport k after time t."""
+        return [i for i, fd in self.flight_data.items() if fd['day_departure'] == d and fd['origin'] == k and fd['departureTime'] > t]
 
     def _flight_cost(self, fid, aid):
         return self.cost_matrix[fid - 1][self._aid_index[aid]]
@@ -637,10 +644,20 @@ class MILP_Sheduler:
         for check in self.CHECK_LIST:
                 for i in m.FM:
                     for j in m.P:
+                        d_arr_i = self.flight_data[i]['day_arrival']
+                        airport = self.flight_data[i]['destination']
+                        arr_time_i = self.flight_data[i]['arrivalTime']
+                        for i2 in self._f_dep_on_day_airport_after(d_arr_i, airport, arr_time_i):
+                            m.c8.add(m.z[i, j, d_arr_i, check] + m.x[i2, j] <= 1)
+                            logger.debug(f"Added C8 constraint: if z[{i},{j},{d_arr_i},{check}]=1 then x[{i2},{j}]=0 (flight {i2} departs after flight {i} arrives on day {d_arr_i} at airport {airport})") 
+
                         for d in m.D:
-                            for i2 in self._f_dep_after(d, i):
-                                # d1 = self.flight_data[i]['day_departure']
-                                m.c8.add(m.z[i, j, d, check] + m.x[i2, j] <= 1)
+                            if d < d_arr_i:
+                                m.c8.add(m.z[i, j, d, check] == 0)
+                            # if d > d_arr_i:
+                            #     for i2 in self._f_dep_on_day_airport(d, airport):
+                            #         m.c8.add(m.z[i, j, d, check] + m.x[i2, j] <= 1)
+                            #         logger.debug(f"Added C8 constraint: if z[{i},{j},{d},{check}]=1 then x[{i2},{j}]=0 (flight {i2} departs on day {d} at airport {airport})")
 
 
         # for c in self.CHECK_LIST:
@@ -677,6 +694,9 @@ class MILP_Sheduler:
                 for j in m.P:
                     for d in m.D:
                         m.c9.add(m.x[i, j] >= m.z[i, j, d, c])
+                        
+                    # di = self.flight_data[i]['day_arrival']
+                    # m.c9.add(m.x[i, j] >= m.z[i, j, di, c])
 
     # ------------------------------------------------------------------
     # Constraint C10 – maintenance capacity per airport per day
@@ -815,8 +835,6 @@ class MILP_Sheduler:
         n    = len(days)
         for c in self.CHECK_LIST:  # Only C/D have calendar-day intervals; A/B are flight-hour types
             ival = self.check_dur_days[c]
-            if ival is None or ival<=1:        # flight-hour threshold type: skip
-                continue
                         
             for j in m.P:
                 for a in m.MA:
@@ -827,11 +845,16 @@ class MILP_Sheduler:
                     for i in flight_a:
                         days_i = self.flight_data[i]['day_arrival']
 
+                        if ival is None or ival<=1:       # flight-hour threshold type: skip
+                            for d in range(days[0], days_i):
+                                m.c12days.add(m.z[i, j, d, c] == 0)
+                            continue
+                        
                         for d in range(days_i+1, min(days_i + ival, days[-1] + 1)):
-                            m.c12days.add(m.z[i, j, d, c] >=  m.z[i, j, days_i, c])
+                            m.c12days.add(m.z[i, j, d, c] ==  m.z[i, j, days_i, c])
 
-                        for d in range(days_i + ival, days[-1] +1):
-                            m.c12days.add(m.z[i, j, d, c] == 0)
+                        # for d in range(days_i + ival, days[-1] +1):
+                        #     m.c12days.add(m.z[i, j, d, c] == 0)
 
                         for d in range(days[0],days_i):
                             m.c12days.add(m.z[i, j, d, c] == 0)
@@ -926,15 +949,16 @@ class MILP_Sheduler:
                 for j in m.P:
                     for i2 in self._f_dep_window(apt, t_arr, t_arr + dur):
                         # Block i2 for aircraft j when:
-                        #   x[i,j]=1  (j flew into apt via flight i)  AND
-                        #   y[j,d_i,c]=1 (j has maintenance c on arrival day)
-                        # Using z[i,j,d_i,c] as the guard is WRONG because C11
-                        # only requires sum_i z = y, so the solver can satisfy
-                        # C11 via a different trigger flight i' leaving
-                        # z[i,j,d_i,c]=0 while x[i,j]=1 and y active.
-                        # The correct linearisation of (x[i,j] AND y[j,d_i,c])
-                        # is:  x[i,j] + y[j,d_i,c] + x[i2,j] <= 2
-                        # m.c15.add(m.x[i, j] + m.y[j, d_i, c] + m.x[i2, j] <= 2)
+                        #   x[i,j]=1  (j flew into apt via flight i)
+                        d = self.flight_data[i2]['day_departure']
+                        if d !=d_i:
+                            m.c15.add(m.y[j, d, c] + m.x[i2, j] <= 1)
+
+                        # m.c15.add(m.mega[j, d, c] + m.x[i2, j] <= 1)
+
+                        logger.debug(f"Added C15 constraint: if flight {i} triggers check {c} for aircraft {j} on day {d_i}, then flight {i2} departing from {apt} within {dur} minutes is blocked.")
+                        
+                        
 
             # b) Initial position at time zero
             days = sorted(self.days)

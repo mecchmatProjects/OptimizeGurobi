@@ -475,15 +475,15 @@ class MILP_Sheduler:
             self._add_c10_capacity(m)
             self._add_c11_maint_link(m)
             self._add_hierarchy(m, use_check_hierarchy)
-            # self._add_c14_one_check_per_day(m)
+            self._add_c14_one_check_per_day(m)
             self._add_c14b_check_duration(m)
             if use_day_spacing:
                 self._add_c12_day_spacing(m)
-            # self._add_c12_day_spacing_days(m)
+            self._add_c12_day_spacing_days(m)
             if use_existing_hrs:
                 self._add_c13b_existing_hrs(m)
             self._add_c13_hr_accumulation(m)
-            # self._add_c15_no_flight_during_maint(m)
+            self._add_c15_no_flight_during_maint(m)
         if use_sanity:
             self._add_sanity(m)
         
@@ -561,6 +561,11 @@ class MILP_Sheduler:
     def _f_dep_on_day_airport_after(self, d, k, t):
         """Flights departing on day d from airport k after time t."""
         return [i for i, fd in self.flight_data.items() if fd['day_departure'] == d and fd['origin'] == k and fd['departureTime'] > t]
+
+    def _f_dep_on_day_after(self, d, t):
+        """Flights departing on day d after time t."""
+        return [i for i, fd in self.flight_data.items() if fd['day_departure'] == d and fd['departureTime'] > t]
+
 
     def _flight_cost(self, fid, aid):
         return self.cost_matrix[fid - 1][self._aid_index[aid]]
@@ -647,40 +652,40 @@ class MILP_Sheduler:
                         d_arr_i = self.flight_data[i]['day_arrival']
                         airport = self.flight_data[i]['destination']
                         arr_time_i = self.flight_data[i]['arrivalTime']
-                        for i2 in self._f_dep_on_day_airport_after(d_arr_i, airport, arr_time_i):
+                        for i2 in self._f_dep_on_day_after(d_arr_i, arr_time_i):
                             m.c8.add(m.z[i, j, d_arr_i, check] + m.x[i2, j] <= 1)
                             logger.debug(f"Added C8 constraint: if z[{i},{j},{d_arr_i},{check}]=1 then x[{i2},{j}]=0 (flight {i2} departs after flight {i} arrives on day {d_arr_i} at airport {airport})") 
 
                         for d in m.D:
                             if d < d_arr_i:
                                 m.c8.add(m.z[i, j, d, check] == 0)
-                            # if d > d_arr_i:
-                            #     for i2 in self._f_dep_on_day_airport(d, airport):
-                            #         m.c8.add(m.z[i, j, d, check] + m.x[i2, j] <= 1)
-                            #         logger.debug(f"Added C8 constraint: if z[{i},{j},{d},{check}]=1 then x[{i2},{j}]=0 (flight {i2} departs on day {d} at airport {airport})")
+                            if d > d_arr_i:
+                                for i2 in self._f_dep_on_day_airport(d, airport):
+                                    m.c8.add(m.z[i, j, d, check] + m.x[i2, j] <= 1)
+                                    logger.debug(f"Added C8 constraint: if z[{i},{j},{d},{check}]=1 then x[{i2},{j}]=0 (flight {i2} departs on day {d} at airport {airport})")
 
 
-        # for c in self.CHECK_LIST:
-        #     for i in m.FM:  # only maintenance-eligible flights (have z variables)
-        #         fd_i  = self.flight_data[i]
-        #         arr_i = fd_i['arrivalTime']
-        #         d_i   = fd_i['day_arrival']
-        #         dest_i = fd_i['destination']
-        #         # Only flights that depart from same airport as i's destination,
-        #         # same day, and AFTER i arrives
-        #         blocking = [
-        #             i2 for i2, fd2 in self.flight_data.items()
-        #             if fd2['origin'] == dest_i
-        #             and fd2['day_departure'] == d_i
-        #             and fd2['departureTime'] > arr_i
-        #         ]
-        #         if not blocking:
-        #             continue
-        #         for j in m.P:
-        #             # Only d == d_i is semantically correct
-        #             if d_i in m.D:
-        #                 for i2 in blocking:
-        #                     m.c8.add(m.z[i, j, d_i, c] + m.x[i2, j] <= 1)
+        for c in self.CHECK_LIST:
+            for i in m.FM:  # only maintenance-eligible flights (have z variables)
+                fd_i  = self.flight_data[i]
+                arr_i = fd_i['arrivalTime']
+                d_i   = fd_i['day_arrival']
+                dest_i = fd_i['destination']
+                # Only flights that depart from same airport as i's destination,
+                # same day, and AFTER i arrives
+                blocking = [
+                    i2 for i2, fd2 in self.flight_data.items()
+                    if fd2['origin'] == dest_i
+                    and fd2['day_departure'] == d_i
+                    and fd2['departureTime'] > arr_i
+                ]
+                if not blocking:
+                    continue
+                for j in m.P:
+                    # Only d == d_i is semantically correct
+                    if d_i in m.D:
+                        for i2 in blocking:
+                            m.c8.add(m.z[i, j, d_i, c] + m.x[i2, j] <= 1)
 
     # ------------------------------------------------------------------
     # Constraint C9 – z[i,j,d,c] can only be 1 if x[i,j]=1
@@ -837,24 +842,18 @@ class MILP_Sheduler:
             ival = self.check_dur_days[c]
                         
             for j in m.P:
-                for a in m.MA:
-                    flight_a = self._f_arr_k(a)
-                    if not flight_a:    
-                        continue
-
-                    for i in flight_a:
+                for i in m.FM:  # only maintenance-eligible flights (have z variables)
                         days_i = self.flight_data[i]['day_arrival']
 
-                        if ival is None or ival<=1:       # flight-hour threshold type: skip
-                            for d in range(days[0], days_i):
-                                m.c12days.add(m.z[i, j, d, c] == 0)
-                            continue
-                        
+                        #if ival is None or ival<=1:       # flight-hour threshold type: skip
+                        for d in range(days[0], days_i):
+                            m.c12days.add(m.z[i, j, d, c] == 0)
+                                                
                         for d in range(days_i+1, min(days_i + ival, days[-1] + 1)):
                             m.c12days.add(m.z[i, j, d, c] ==  m.z[i, j, days_i, c])
 
-                        # for d in range(days_i + ival, days[-1] +1):
-                        #     m.c12days.add(m.z[i, j, d, c] == 0)
+                        for d in range(days_i + ival, days[-1] +1):
+                            m.c12days.add(m.z[i, j, d, c] == 0)
 
                         for d in range(days[0],days_i):
                             m.c12days.add(m.z[i, j, d, c] == 0)
@@ -888,19 +887,22 @@ class MILP_Sheduler:
                             self.flight_data[i]['duration'] * m.x[i, j]
                             for i in self._f_dep_between_days(d, d_)
                         )
-                        y_mid  = sum(m.mega[j, days[r], c]
+                        y_mid  = sum(m.y[j, days[r], c]
                                      for r in range(si + 1, ei))
                         # Relax with big-M when either boundary day has a check
-                        m.c13.add(
-                            t_sum <= hr_limit * 60
-                                     + self.M_BIG * y_mid
-                                     + self.M_BIG * m.mega[j, d, c]
-                        )
-                        m.c13.add(
-                            t_sum <= hr_limit * 60
-                                     + self.M_BIG * y_mid
-                                     + self.M_BIG * m.mega[j, d_, c]
-                        )
+                        # m.c13.add(
+                        #     t_sum <= hr_limit * 60
+                        #              + self.M_BIG * y_mid
+                        #              + self.M_BIG * m.mega[j, d, c]
+                        # )
+                        # m.c13.add(
+                        #     t_sum <= hr_limit * 60
+                        #              + self.M_BIG * y_mid
+                        #              + self.M_BIG * m.mega[j, d_, c]
+                        # )
+                        m.c13.add(t_sum <= hr_limit*60 + self.M_BIG * y_mid +
+                                                                self.M_BIG*(2 - m.y[j, d, c] - m.y[j, d_, c]) )
+         
 
     # ------------------------------------------------------------------
     # Constraint C13b – existing flight hours at start of horizon
@@ -922,11 +924,11 @@ class MILP_Sheduler:
                         self.flight_data[i]['duration'] * m.x[i, j]
                         for i in self._f_dep_between_days(0, d_)
                     )
-                    y_mid = sum(m.mega[j, days[r], c] for r in range(ei - 1))
+                    y_mid = sum(m.y[j, days[r], c] for r in range(ei - 1))
                     m.c13b.add(
                         t_sum <= (hr_limit - prior_hrs) * 60
                                  + self.M_BIG * y_mid
-                                 + self.M_BIG * m.mega[j, d_, c]
+                                 + self.M_BIG * m.y[j, d_, c]
                     )
 
     # ------------------------------------------------------------------
@@ -1266,6 +1268,7 @@ def _plot_gantt(events, aid_list, unassigned_flights=None, unassigned_ids=None,
     # Write per-aircraft timeline text report
     if fname is not None:
         from collections import defaultdict
+        _CHECK_TYPES = ('A', 'B', 'C', 'D')
         by_ac = defaultdict(list)
         for e in events:
             by_ac[e['aircraft']].append(e)
@@ -1276,13 +1279,51 @@ def _plot_gantt(events, aid_list, unassigned_flights=None, unassigned_ids=None,
                 continue
             lines.append(f'Aircraft {aid}:')
             for e in ac_events:
+                day = e.get('day', '')
                 if e['type'] == 'FLIGHT':
                     orig = e.get('origin', '')
                     dest = e.get('destination', '')
-                    day = e.get('day', '')
                     lines.append(f'  Flight  {e["label"]:6s}  {orig} -> {dest}  day {day}   start {e["start"]:7.1f} - end {e["end"]:7.1f}')
                 else:
                     lines.append(f'  Maint   {e["label"]:6s}  day {day}   start {e["start"]:7.1f} - end {e["end"]:7.1f}')
+
+            # --- Per-check-type maintenance statistics ---
+            check_types_present = sorted(
+                {e.get('check') for e in ac_events if e.get('check') in _CHECK_TYPES}
+            )
+            if not check_types_present:
+                total_flight_mins = sum(
+                    e['end'] - e['start'] for e in ac_events if e['type'] == 'FLIGHT'
+                )
+                lines.append(f'  No maintenance scheduled  |  total flight mins = {total_flight_mins:.1f}')
+            else:
+                lines.append('  Maintenance statistics:')
+                for c in check_types_present:
+                    maint_c = sorted(
+                        [e for e in ac_events if e.get('check') == c],
+                        key=lambda e: e['start'],
+                    )
+                    if not maint_c:
+                        continue
+                    prev_end = 0.0
+                    parts = []
+                    for idx, mev in enumerate(maint_c, 1):
+                        # Flight minutes of FLIGHT events strictly within [prev_end, mev.start]
+                        flight_mins = sum(
+                            min(fe['end'], mev['start']) - max(fe['start'], prev_end)
+                            for fe in ac_events
+                            if fe['type'] == 'FLIGHT'
+                            and fe['start'] < mev['start']
+                            and fe['end'] > prev_end
+                        )
+                        cum_days = (mev['start'] - prev_end) / 1440.0
+                        parts.append(
+                            f'#{idx}: flight mins before = {flight_mins:7.1f}  '
+                            f'cum days before = {cum_days:6.2f}'
+                        )
+                        prev_end = mev['end']
+                    lines.append(f'    Check {c}:  ' + '   |   '.join(parts))
+
             lines.append('')
         with open(fname, 'w', encoding='utf-8') as fh:
             fh.write('\n'.join(lines))
@@ -1488,7 +1529,7 @@ def _run_one_heuristic(fp, out_dir, stem, show_gantt):
 
 def _run_one_milp(fp, out_dir, stem, solver, tee, show_gantt, time_limit,
                   allow_ferry=True, use_maintenance=True,
-                  use_overlap=True, use_sanity=False, warm_start=True):
+                  use_overlap=True, use_sanity=False, warm_start=True, use_check_hierarchy=True):
     """Run MILP on a single file; return metrics dict."""
     import time, os
     gantt_out = os.path.join(out_dir, f'{stem}_milp_gantt.png')
@@ -1503,6 +1544,7 @@ def _run_one_milp(fp, out_dir, stem, solver, tee, show_gantt, time_limit,
         use_overlap=use_overlap,
         use_sanity=use_sanity,
         warm_start=warm_start,
+        use_check_hierarchy=use_check_hierarchy,
     )
     cpu = time.time() - t0
 
@@ -1575,7 +1617,7 @@ def _plot_comparison(rows, out_dir):
 def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
               solver='cplex', tee=False, show_gantt=False, time_limit=300,
               allow_ferry=True, use_maintenance=True,
-              use_overlap=True, use_sanity=False, warm_start=True):
+              use_overlap=True, use_sanity=False, warm_start=True, use_check_hierarchy=True):
     """Process every JSON file in *input_dir* and write results to *output_dir*.
 
     For each dataset the following files are created in output_dir::
@@ -1602,6 +1644,7 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
                            (pure flight-assignment relaxation; much smaller model).
     use_overlap    : bool  When False, pairwise overlap constraints (c_overlap) omitted.
     use_sanity     : bool  When False, sanity-fixing bounds constraints omitted.
+    use_check_hierarchy: bool  When False, check hierarchy constraints omitted. 
     """
     import os, glob, time
 
@@ -1617,9 +1660,10 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
     maint_label = "ON" if use_maintenance else "OFF"
     over_label  = "ON" if use_overlap else "OFF"
     san_label   = "ON" if use_sanity  else "OFF"
+    check_label = "ON" if use_check_hierarchy else "OFF"
     print(f"[batch] {len(json_files)} file(s) in '{input_dir}'")
     print(f"[batch] mode={mode}  solver={solver}  time_limit={time_limit}s")
-    print(f"[batch] ferry={ferry_label}  maintenance={maint_label}  overlap={over_label}  sanity={san_label}")
+    print(f"[batch] ferry={ferry_label}  maintenance={maint_label}  overlap={over_label}  sanity={san_label}  check_hierarchy={check_label}")
     print(f"[batch] output -> '{output_dir}'\n")
 
     all_rows = []
@@ -1645,7 +1689,9 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
                                     use_maintenance=use_maintenance,
                                     use_overlap=use_overlap,
                                     use_sanity=use_sanity,
-                                    warm_start=warm_start)
+                                    warm_start=warm_start,
+                                    use_check_hierarchy=use_check_hierarchy,
+                                    )
                 all_rows.append(row)
             except Exception as exc:
                 print(f"  ✗ [milp] {exc}")
@@ -1739,8 +1785,10 @@ def main():
                         help='Omit sanity-fixing bound constraints from MILP.')
     parser.add_argument('--no-warm-start', dest='warm_start', action='store_false',
                         help='Do not seed MILP with heuristic solution (warm start OFF).')
+    parser.add_argument('--no-check-hierarchy', dest='use_check_hierarchy', action='store_false',
+                        help='Omit check hierarchy constraints from MILP.')
     parser.set_defaults(show=True, allow_ferry=True, use_maintenance=True,
-                        use_overlap=True, use_sanity=False, warm_start=True)
+                        use_overlap=True, use_sanity=False, warm_start=True, use_check_hierarchy=True)
     args = parser.parse_args()
 
     if args.mode == 'heuristic':
@@ -1757,7 +1805,9 @@ def main():
                  use_maintenance=args.use_maintenance,
                  use_overlap=args.use_overlap,
                  use_sanity=args.use_sanity,
-                 warm_start=args.warm_start)
+                 warm_start=args.warm_start,
+                 use_check_hierarchy=args.use_check_hierarchy,
+                 )
     else:  # batch
         run_batch(input_dir=args.input_dir,
                   output_dir=args.output_dir,
@@ -1769,7 +1819,9 @@ def main():
                   use_maintenance=args.use_maintenance,
                   use_overlap=args.use_overlap,
                   use_sanity=args.use_sanity,
-                  warm_start=args.warm_start)
+                  warm_start=args.warm_start,
+                  use_check_hierarchy=args.use_check_hierarchy,)
+        
 
 
 if __name__ == '__main__':

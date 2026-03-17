@@ -873,35 +873,40 @@ class MILP_Sheduler:
         days  = sorted(self.days)
         n     = len(days)
         for c in self.CHECK_LIST:
-            hr_limit  = self.check_hrs[c]   # hours
-            # if self.check_days[c] is not None:
-            #     continue
-            # # For A/B (flight-hour types) check_days is None -> use full horizon.
-            # For C/D (calendar-day types) use their day interval as range bound.
-            cd = self.check_days[c] if self.check_days[c] is not None else n
+            # C13 enforces flight-hour accumulation between checks.
+            # A/B thresholds are in flight-minutes; C/D thresholds are calendar
+            # days (handled by C12), so skip C/D here to avoid trivial constraints.
+            if self.check_days[c] is not None:   # C/D: calendar-day type -> skip
+                continue
+            hr_limit  = self.check_hrs[c]   # hours (A/B only)
+            # For A/B check_days is None; enforce over the full horizon.
             for j in m.P:
                 for si in range(n - 1):
-                    for ei in range(si + 2, min(si + cd, n)):
+                    for ei in range(si + 2, n):
                         d,  d_ = days[si], days[ei]
                         t_sum  = sum(
                             self.flight_data[i]['duration'] * m.x[i, j]
                             for i in self._f_dep_between_days(d, d_)
                         )
-                        y_mid  = sum(m.y[j, days[r], c]
+                        y_mid  = sum(m.mega[j, days[r], c]
                                      for r in range(si + 1, ei))
-                        # Relax with big-M when either boundary day has a check
-                        # m.c13.add(
-                        #     t_sum <= hr_limit * 60
-                        #              + self.M_BIG * y_mid
-                        #              + self.M_BIG * m.mega[j, d, c]
-                        # )
-                        # m.c13.add(
-                        #     t_sum <= hr_limit * 60
-                        #              + self.M_BIG * y_mid
-                        #              + self.M_BIG * m.mega[j, d_, c]
-                        # )
-                        m.c13.add(t_sum <= hr_limit*60 + self.M_BIG * y_mid +
-                                                                self.M_BIG*(2 - m.y[j, d, c] - m.y[j, d_, c]) )
+                        # Two separate constraints: each relaxed by one boundary
+                        # check so the pair is binding whenever either boundary
+                        # day (or the interior) has no check.
+                        #   row 1: relax when check AT d  (counter reset before window)
+                        #   row 2: relax when check AT d_ (counter reset at window end)
+                        # Without any check in [d, d_]: both reduce to
+                        #   t_sum <= hr_limit*60  → correctly enforced.
+                        m.c13.add(
+                            t_sum <= hr_limit * 60
+                                     + self.M_BIG * y_mid
+                                     + self.M_BIG * m.mega[j, d, c]
+                        )
+                        m.c13.add(
+                            t_sum <= hr_limit * 60
+                                     + self.M_BIG * y_mid
+                                     + self.M_BIG * m.mega[j, d_, c]
+                        )
          
 
     # ------------------------------------------------------------------
@@ -910,25 +915,33 @@ class MILP_Sheduler:
     # ------------------------------------------------------------------
 
     def _add_c13b_existing_hrs(self, m):
+        """C13b: account for hours accumulated since last check BEFORE the
+        planning horizon starts.  Only applies to A/B (flight-hour types);
+        C/D are calendar-day types handled by C12."""
         m.c13b = ConstraintList()
         days = sorted(self.days)
         n    = len(days)
         for c in self.CHECK_LIST:
+            if self.check_days[c] is not None:   # C/D: skip (calendar-day type)
+                continue
             hr_limit = self.check_hrs[c]
-            cd = self.check_days[c] if self.check_days[c] is not None else n
             for j in m.P:
                 prior_hrs = self.init_check_hrs[c].get(j, 0.0)
-                for ei in range(1, min(n - 1, cd)):
+                # Iterate up to and including the last day (fixed off-by-one:
+                # was range(1, min(n-1, cd)) which dropped the final window).
+                for ei in range(1, n):
                     d_   = days[ei]
                     t_sum = sum(
                         self.flight_data[i]['duration'] * m.x[i, j]
                         for i in self._f_dep_between_days(0, d_)
                     )
-                    y_mid = sum(m.y[j, days[r], c] for r in range(ei - 1))
+                    y_mid = sum(m.mega[j, days[r], c] for r in range(ei))
+                    # Relax when any check occurs in [day_1 .. d_] (y_mid covers
+                    # days[0]..days[ei-1]; mega[d_] covers the boundary itself).
                     m.c13b.add(
                         t_sum <= (hr_limit - prior_hrs) * 60
                                  + self.M_BIG * y_mid
-                                 + self.M_BIG * m.y[j, d_, c]
+                                 + self.M_BIG * m.mega[j, d_, c]
                     )
 
     # ------------------------------------------------------------------
@@ -954,7 +967,7 @@ class MILP_Sheduler:
                         #   x[i,j]=1  (j flew into apt via flight i)
                         d = self.flight_data[i2]['day_departure']
                         if d !=d_i:
-                            m.c15.add(m.y[j, d, c] + m.x[i2, j] <= 1)
+                            m.c15.add(m.mega[j, d, c] + m.x[i2, j] <= 1)
 
                         # m.c15.add(m.mega[j, d, c] + m.x[i2, j] <= 1)
 

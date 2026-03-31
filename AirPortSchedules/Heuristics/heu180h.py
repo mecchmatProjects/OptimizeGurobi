@@ -479,6 +479,7 @@ class MILP_Sheduler:
             self._add_c14b_check_duration(m)
             if use_day_spacing:
                 self._add_c12_day_spacing(m)
+            self._add_c12b_initial_days(m)   # enforce first C/D check within remaining-days window
             self._add_c12_day_spacing_days(m)
             if use_existing_hrs:
                 self._add_c13b_existing_hrs(m)
@@ -827,6 +828,47 @@ class MILP_Sheduler:
                         sum(m.mega[j, days[r], c] for r in range(start, start + ival)) >= 1
                     )
 
+    def _add_c12b_initial_days(self, m):
+        """C12b: enforce the *first* C/D calendar-day check within the planning
+        horizon when the aircraft's initial elapsed days are close to (or exceed)
+        the threshold.
+
+        Logic for each aircraft j and calendar-day check type c:
+          remaining = thresh_days - init_elapsed_days
+          • remaining <= 0  → already overdue: force a check on day 1
+          • 0 < remaining < horizon_length  → force ≥1 check in
+            days [days[0] .. first day ≥ remaining]
+          • remaining >= horizon_length  → C12 (sliding window) is not
+            triggered AND the check need not occur in this horizon → skip
+
+        This complements _add_c12_day_spacing, which is skipped entirely
+        when check_days[c] >= n (600 >> 20), but does NOT account for the
+        initial-elapsed-days offset that can bring the deadline into the horizon."""
+        m.c12b = ConstraintList()
+        days = sorted(self.days)
+        n    = len(days)
+        for c in self.CHECK_LIST:
+            thresh_days = self.check_days[c]
+            if thresh_days is None:       # A/B: flight-hour type, handled by C13b
+                continue
+            for j in m.P:
+                # init_check_hrs stores hours (converted from days×24 at load time)
+                init_days = self.init_check_hrs[c].get(j, 0.0) / 24.0  # hours → days
+                remaining = thresh_days - init_days
+                if remaining <= 0:
+                    # Already overdue – force a check on the very first horizon day
+                    m.c12b.add(m.mega[j, days[0], c] >= 1)
+                elif remaining < n:
+                    # Deadline falls within the horizon.
+                    # Collect all horizon days on or before the deadline.
+                    cutoff = int(math.ceil(remaining))
+                    window = [d for d in days if d <= cutoff]
+                    if window:
+                        m.c12b.add(
+                            sum(m.mega[j, d, c] for d in window) >= 1
+                        )
+                # else: remaining >= n → deadline beyond horizon, no constraint needed
+
     def _add_c12_day_spacing_days(self, m):
         """Sliding-window day-spacing: within every window of `ival` consecutive
         days at least one maintenance check of type c must be scheduled.
@@ -839,13 +881,14 @@ class MILP_Sheduler:
         days = sorted(self.days)
         n    = len(days)
         for c in self.CHECK_LIST:  # Only C/D have calendar-day intervals; A/B are flight-hour types
+            if self.check_days[c] is None:      # A/B: flight-hour type, skip calendar-day spacing
+                continue
             ival = self.check_dur_days[c]
                         
             for j in m.P:
                 for i in m.FM:  # only maintenance-eligible flights (have z variables)
                         days_i = self.flight_data[i]['day_arrival']
 
-                        #if ival is None or ival<=1:       # flight-hour threshold type: skip
                         for d in range(days[0], days_i):
                             m.c12days.add(m.z[i, j, d, c] == 0)
                                                 
@@ -853,9 +896,6 @@ class MILP_Sheduler:
                             m.c12days.add(m.z[i, j, d, c] ==  m.z[i, j, days_i, c])
 
                         for d in range(days_i + ival, days[-1] +1):
-                            m.c12days.add(m.z[i, j, d, c] == 0)
-
-                        for d in range(days[0],days_i):
                             m.c12days.add(m.z[i, j, d, c] == 0)
                                
 
@@ -1196,11 +1236,16 @@ class MILP_Sheduler:
             for d in m.D:
                 for c in self.CHECK_LIST:
                     if pyo_value(m.y[j, d, c]) > 0.5:
-                        # Find the trigger flight to get start time
+                        # Find the trigger flight to get start time.
+                        # Only use the trigger flight's arrivalTime if it arrives
+                        # on the same day d as the maintenance; otherwise fall back
+                        # to the start of day d so the event sorts correctly.
                         t_start = (d - 1) * self.DAY_SHIFT
                         for i in m.FM:
                             if pyo_value(m.z[i, j, d, c]) > 0.5:
-                                t_start = self.flight_data[i]['arrivalTime']
+                                fd_trig = self.flight_data[i]
+                                if fd_trig['day_arrival'] == d:
+                                    t_start = fd_trig['arrivalTime']
                                 break
                         events.append({
                             'aircraft': j,

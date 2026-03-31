@@ -1,0 +1,94 @@
+{
+    "_comment": [
+        "=== TEST FILE: All four maintenance check types (A, B, C, D) forced within horizon ===",
+        "",
+        "Design rationale:",
+        "  AC0 — A check forced:  A_init=27001 min  (1 min overdue, threshold=27000 min)",
+        "  AC1 — B check forced:  B_init=42001 min  (1 min overdue, threshold=42000 min)",
+        "  AC2 — C check forced:  C_Days_init=600   (at threshold=600 calendar days)",
+        "  AC3 — D check forced:  D_Days_init=2920  (at threshold=2920 calendar days)",
+        "  AC4, AC5 — free aircraft (all zeros)",
+        "",
+        "Horizon: 20 days (~28,800 min).  Only airport C has maintenance capacity.",
+        "",
+        "KEY DESIGN: AC0-AC3 start at B so they can fly B->C directly as their check trigger.",
+        "  C15(b) blocks aircraft AT C from departing C during their check window.",
+        "  By starting at B, AC0-AC3 bypass C15(b) entirely — they fly B->C directly.",
+        "  AC4, AC5 start at C to cover C->B outbound legs.",
+        "  No forced checks on AC4/AC5 so C15(b) for day-1 never activates for them.",
+        "",
+        "  Flights f1-f4: B->C day-1 trigger flights (one per check-needing aircraft).",
+        "  Flights f5-f8: C->B day-1 operational flights for AC4/AC5.",
+        "  Flights f9-f12: later operational round-trips for AC0/AC4/AC5 post-check.",
+        "",
+        "IMPORTANT: Run with --no-check-hierarchy so each aircraft gets its",
+        "           designated check type, not a higher substitute.",
+        "Example command:",
+        "  py -3 heu180h.py --data inpytABCD/ABCD_all_checks_test.json --no-check-hierarchy",
+        "",
+        "Expected output (all four check types in events file):",
+        "  AC0 -> A-check on day 1 (360 min, done by t=620)",
+        "  AC1 -> B-check on day 1 (2880 min, continues into day 2-3)",
+        "  AC2 -> C-check starting day 1 (20160 min = 14 days)",
+        "  AC3 -> D-check starting day 1 (60480 min = 42 days, beyond 20-day horizon)"
+    ],
+    "Aircrafts": [0, 1, 2, 3, 4, 5],
+    "AIRCRAFT_INIT_POS": {
+        "0": "B",
+        "1": "B",
+        "2": "B",
+        "3": "B",
+        "4": "C",
+        "5": "C"
+    },
+    "Flights": [
+        [1,  "B", "C",    60.0,   260.0],
+        [2,  "B", "C",   100.0,   300.0],
+        [3,  "B", "C",   200.0,   400.0],
+        [4,  "B", "C",   300.0,   500.0],
+        [5,  "C", "B",   330.0,   530.0],
+        [6,  "C", "B",   430.0,   630.0],
+        [7,  "C", "B",   530.0,   730.0],
+        [8,  "C", "B",   630.0,   830.0],
+        [9,  "B", "C",   800.0,  1000.0],
+        [10, "C", "B",  1100.0,  1300.0],
+        [11, "B", "C",  4400.0,  4600.0],
+        [12, "C", "B",  4700.0,  4900.0]
+    ],
+    "Cost_Matrix": [
+        [5000.0, 5000.0, 5000.0, 5000.0, 5000.0, 5000.0],
+        [5000.0, 5000.0, 5000.0, 5000.0, 5000.0, 5000.0],
+        [5000.0, 5000.0, 5000.0, 5000.0, 5000.0, 5000.0],
+        [5000.0, 5000.0, 5000.0, 5000.0, 5000.0, 5000.0],
+        [5000.0, 5000.0, 5000.0, 5000.0, 5000.0, 5000.0],
+        [5000.0, 5000.0, 5000.0, 5000.0, 5000.0, 5000.0],
+        [5000.0, 5000.0, 5000.0, 5000.0, 5000.0, 5000.0],
+        [5000.0, 5000.0, 5000.0, 5000.0, 5000.0, 5000.0],
+        [5000.0, 5000.0, 5000.0, 5000.0, 5000.0, 5000.0],
+        [5000.0, 5000.0, 5000.0, 5000.0, 5000.0, 5000.0],
+        [5000.0, 5000.0, 5000.0, 5000.0, 5000.0, 5000.0],
+        [5000.0, 5000.0, 5000.0, 5000.0, 5000.0, 5000.0]
+    ],
+    "Maintenance_Thresholds": {
+        "A": 27000,
+        "B": 42000,
+        "C": 600,
+        "D": 2920
+    },
+    "Maintenance_Durations": {
+        "A": 360,
+        "B": 2880,
+        "C": 20160,
+        "D": 60480
+    },
+    "Station_Capacity": {
+        "C": 6,
+        "B": 0
+    },
+    "Initial_Checks": {
+        "A":      {"0": 27001, "1":     0, "2": 0, "3":    0, "4": 0, "5": 0},
+        "B":      {"0":     0, "1": 42001, "2": 0, "3":    0, "4": 0, "5": 0},
+        "C_Days": {"0":     0, "1":     0, "2": 600, "3":  0, "4": 0, "5": 0},
+        "D_Days": {"0":     0, "1":     0, "2": 0, "3": 2920, "4": 0, "5": 0}
+    }
+}

@@ -1,0 +1,123 @@
+%% paper/main.tex
+%% Main paper file for:
+%%   "Revisiting the Compact Tail Assignment Model:
+%%    Corrections, Extensions to Full Maintenance Hierarchies,
+%%    and a Heuristic Benchmark Study"
+%%
+%% Compile with:  latexmk -pdf main.tex
+%% or:            pdflatex main && bibtex main && pdflatex main && pdflatex main
+%% ==========================================================================
+\documentclass[review, 12pt, authoryear]{elsarticle}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath, amssymb, amsthm, mathtools}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{tabularx}
+\usepackage{graphicx}
+\usepackage[ruled, vlined, linesnumbered]{algorithm2e}
+\usepackage{hyperref}
+\usepackage{cleveref}
+\usepackage{xcolor}
+\usepackage{siunitx}    % consistent number formatting in tables
+\usepackage{caption}
+\usepackage{subcaption}
+
+%% theorem environments
+\theoremstyle{plain}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{theorem}{Theorem}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\newtheorem{example}{Example}
+
+%% ---------- Notation macros ----------
+\newcommand{\F}{\mathcal{F}}          % flight set
+\newcommand{\Pc}{\mathcal{P}}         % aircraft set
+\newcommand{\A}{\mathcal{A}}          % airport set
+\newcommand{\D}{\mathcal{D}}          % day set
+\newcommand{\C}{\mathcal{C}}          % check type set {A,B,C,D}
+\newcommand{\MA}{\mathcal{M}}         % maintenance airport set
+\newcommand{\Fl}[2]{F^{\downarrow}_{#1}(#2)}
+\newcommand{\Fd}[2]{F^{\uparrow}_{#1}(#2)}
+\newcommand{\aI}[1]{a^{\downarrow}_{#1}}
+\newcommand{\aD}[1]{a^{\uparrow}_{#1}}
+\newcommand{\tI}[1]{t^{\downarrow}_{#1}}
+\newcommand{\tD}[1]{t^{\uparrow}_{#1}}
+\newcommand{\dt}{\Delta t}
+
+%% highlight corrections
+\newcommand{\corrected}[1]{\textcolor{blue}{#1}}
+\newcommand{\extended}[1]{\textcolor{teal}{#1}}
+
+%% ---------- Journal metadata (fill before submission) ----------
+\journal{European Journal of Operational Research}
+
+\begin{document}
+
+\begin{frontmatter}
+
+\title{Revisiting the Compact Tail Assignment Model: Corrections,
+  Extensions to Full Maintenance Hierarchies, and a Heuristic Benchmark Study}
+
+\author[lgi]{Your Name}
+\author[lip6]{Michel Minoux}   %% co-author placeholder
+
+\address[lgi]{Laboratoire Genie Industriel, CentraleSupélec,
+  Université Paris-Saclay, Chatenay-Malabry, France}
+\address[lip6]{Laboratoire d'Informatique de Paris 6,
+  Université Pierre et Marie Curie, Paris, France}
+
+\begin{abstract}
+This paper revisits the compact mixed-integer linear programming model for
+the Tail Assignment Problem (TAP) introduced by Khaled et al.\ (2018).  We
+make four contributions.  First, we show that the basic continuity/turn-time
+criteria (C2--C4; model constraints~(3)--(6) in Khaled et al.) admit a
+simultaneous-departure corner case that is mathematically feasible but
+physically infeasible, and we close this gap with explicit non-overlap
+constraints.  Second, we identify and formally correct a flaw in
+the paper's cumulative-flight-time constraint (Constraint~13): the original
+formulation allows maintenance intervals to be incorrectly relaxed, and we
+show that replacing the joint big-$M$ term with two endpoint-anchored
+constraints restores validity and tightens the LP relaxation.  Third, we
+extend the maintenance model beyond the type-A single-check framework to a
+full four-level $\{A, B, C, D\}$ maintenance hierarchy with correct counter
+resets and pre-horizon accumulated-hours accounting.  Fourth, we provide an
+extensive computational benchmark comparing the MILP against two constructive
+heuristics---a greedy/insertion procedure and a Dijkstra-based space-time
+network heuristic---on the same instance sets.  Reproduction experiments on
+Khaled et al.'s Tables~5, 6, 10, and~11 using the CPLEX solver confirm the
+original results for the basic model after enforcing physically executable
+aircraft trajectories; the corrected maintenance constraints yield measurably
+different and provably correct solutions on high-density, multi-check
+instances.  All code and instances are publicly available.
+\end{abstract}
+
+\begin{keyword}
+Tail assignment \sep Aircraft routing \sep Maintenance scheduling \sep
+Integer programming \sep Heuristics \sep Ant Colony Optimization
+\end{keyword}
+
+\end{frontmatter}
+
+%% ==========================================================================
+\input{sections/01_introduction}
+\input{sections/02_literature}
+\input{sections/03_basic_model}
+\input{sections/04_maintenance_model}
+\input{sections/05_hierarchy_extension}
+\input{sections/06_heuristics}
+\input{sections/07_computational}
+\input{sections/08_conclusion}
+%% ==========================================================================
+
+\bibliographystyle{elsarticle-harv}
+\bibliography{refs}
+
+\end{document}

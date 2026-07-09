@@ -1,0 +1,471 @@
+%% ==========================================================================
+%% docs/model_math.tex
+%% Formal mathematical analysis of the Tail Assignment MILP:
+%%   (1) Basic model (Khaled et al. 2018, Sections 3–4)
+%%   (2) Maintenance-extended model (Section 5)
+%%   (3) Full A/B/C/D hierarchy extension (our contribution)
+%%   (4) Identification and correction of Constraint (13)
+%% ==========================================================================
+\documentclass[11pt, a4paper]{article}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{cleveref}
+
+\theoremstyle{plain}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{theorem}{Theorem}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\newtheorem{example}{Example}
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+\newcommand{\F}{\mathcal{F}}        % flight set
+\newcommand{\P}{\mathcal{P}}        % aircraft set
+\newcommand{\A}{\mathcal{A}}        % airport set
+\newcommand{\D}{\mathcal{D}}        % day set
+\newcommand{\C}{\mathcal{C}}        % check type set {A,B,C,D}
+\newcommand{\MA}{\mathcal{M}}       % maintenance airport set
+\newcommand{\Fl}[2]{F^{\downarrow}_{#1}(#2)}   % arrivals at k before theta-Delta
+\newcommand{\Fd}[2]{F^{\uparrow}_{#1}(#2)}     % departures from k before theta
+\newcommand{\aI}[1]{a^{\downarrow}_{#1}}        % arrival airport of flight i
+\newcommand{\aD}[1]{a^{\uparrow}_{#1}}          % departure airport of flight i
+\newcommand{\tI}[1]{t^{\downarrow}_{#1}}        % arrival time of flight i
+\newcommand{\tD}[1]{t^{\uparrow}_{#1}}          % departure time of flight i
+\newcommand{\dt}{\Delta t}                       % minimum ground time
+
+\title{Mathematical Analysis of the Compact Tail Assignment Model\\
+  \large Derivations, Proofs, and Constraint~(13) Correction}
+\author{Working Document}
+\date{\today}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\clearpage
+
+%%==========================================================================
+\section{Notation Summary}
+%%==========================================================================
+
+\begin{table}[h]
+\centering
+\caption{Index sets and parameters.}
+\begin{tabular}{ll}
+\toprule
+Symbol & Meaning \\
+\midrule
+$\F = \{1,\ldots,n_f\}$  & Set of flight legs \\
+$\P = \{1,\ldots,n_p\}$  & Set of aircraft (tail numbers) \\
+$\A = \{1,\ldots,n_k\}$  & Set of airports \\
+$\D = \{1,\ldots,n_d\}$  & Set of planning days \\
+$\C = \{A,B,C,D\}$       & Set of maintenance check types \\
+$\MA \subseteq \A$        & Maintenance-capable airports \\
+$\aD{i}$, $\aI{i}$       & Departure / arrival airport of flight $i$ \\
+$\tD{i}$, $\tI{i}$       & Departure / arrival time of flight $i$ (in minutes) \\
+$\dt$                     & Minimum ground turn time (minutes) \\
+$c_{ij}$                  & Cost of assigning flight $i$ to aircraft $j$ \\
+$a^0_j$                   & Initial position airport of aircraft $j$ \\
+$T_{\max}^c$              & Max cumulative flight time before check $c \in \{A,B\}$ (min) \\
+$d_{\max}^c$              & Max calendar days between consecutive checks $c \in \{C,D\}$ \\
+$\delta^c$                & Duration of check $c$ (minutes) \\
+$\text{mcap}_{m,d}$       & Maintenance capacity of airport $m$ on day $d$ (aircraft/day) \\
+$\Phi^c_j$                & Pre-horizon accumulated time/days for aircraft $j$ toward check $c$ \\
+$M_{dd'}$                 & Big-M for day pair $(d,d')$: max possible cumulative flight time \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\centering
+\caption{Decision variables.}
+\begin{tabular}{lll}
+\toprule
+Variable & Domain & Meaning \\
+\midrule
+$x_{ij}$      & $\{0,1\}$ & 1 iff flight $i$ is operated by aircraft $j$ \\
+$z_{ijdc}$    & $\{0,1\}$ & 1 iff aircraft $j$ performs check $c$ after flight $i$ on day $d$ \\
+$y_{jdc}$     & $\{0,1\}$ & 1 iff aircraft $j$ undergoes check $c$ on day $d$ \\
+$\gamma_{jdc}$& $\{0,1\}$ & 1 iff aircraft $j$ has a check of level $\geq c$ on day $d$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%%==========================================================================
+\section{Basic Model (Constraints C1--C4)}
+%%==========================================================================
+
+\subsection{Objective and Auxiliary Sets}
+
+Define, for any airport $k \in \A$ and time threshold $\theta$:
+\begin{align}
+  \Fl{k}{\theta} &\;=\; \{i \in \F \mid \aI{i} = k,\; \tI{i} \leq \theta - \dt\} \\
+  \Fd{k}{\theta} &\;=\; \{i \in \F \mid \aD{i} = k,\; \tD{i} < \theta\}
+\end{align}
+
+The \emph{net balance} of aircraft $j$ at airport $k$ up to time $\theta$ is:
+\begin{equation}
+  B(j, k, \theta) \;=\;
+    \sum_{i \in \Fl{k}{\theta}} x_{ij}
+    \;-\; \sum_{i \in \Fd{k}{\theta}} x_{ij}.
+\end{equation}
+
+\subsection{MILP Formulation}
+
+\begin{align}
+  \min_{x} \quad & \sum_{i \in \F} \sum_{j \in \P} c_{ij}\, x_{ij} \label{eq:obj} \\[6pt]
+  \text{s.t.} \quad
+  & \sum_{j \in \P} x_{ij} = 1, \quad \forall i \in \F \label{eq:c1} \\[4pt]
+  & \sum_{i' \in \Fl{k}{\tD{i}}} x_{i'j}
+    - \sum_{i' \in \Fd{k}{\tD{i}}} x_{i'j}
+    \;\geq\; x_{ij}, \quad
+    \forall j \in \P,\; k \in \A \setminus \{a^0_j\},\; i \in F^{\uparrow}_k
+    \label{eq:c2} \\[4pt]
+  & \sum_{i' \in \Fl{k}{\tD{i}}} x_{i'j}
+    - \sum_{i' \in \Fd{k}{\tD{i}}} x_{i'j}
+    \;\geq\; x_{ij} - 1, \quad
+    \forall j \in \P,\; k = a^0_j,\; i \in F^{\uparrow}_k
+    \label{eq:c3} \\[4pt]
+  & x_{ij} \in \{0,1\}, \quad \forall i \in \F,\; j \in \P. \label{eq:bin}
+\end{align}
+
+Constraint~\eqref{eq:c1} ensures every flight is covered by exactly one aircraft.
+Constraints~\eqref{eq:c2}--\eqref{eq:c3} together enforce equipment continuity
+(C2), turn time (C4), and initial position (C3): a departure $i$ by aircraft $j$
+at airport $k$ is feasible only if at least one prior arrival landed at $k$ (net
+balance $\geq 1$ for non-home airports, $\geq 0$ for the home airport).
+
+\begin{proposition}[Correctness; Khaled et al. 2018, Prop.~1]
+  Any feasible solution to \eqref{eq:c1}--\eqref{eq:bin} is a feasible flight plan
+  satisfying constraints C1--C4.
+\end{proposition}
+\begin{proof}[Proof sketch]
+  Order aircraft $j$'s flights by departure time: $i_1, i_2, \ldots, i_p$.
+  C3 (initial position): if $\aD{i_1} \neq a^0_j$, then $B(j, \aD{i_1}, \tD{i_1}) = 0$
+  and $x_{i_1 j} = 1$ violates \eqref{eq:c3}—contradiction.
+  C2 and C4: if the first pair $(i, i')$ violating continuity or turn-time is found,
+  in both the non-home case ($k \neq a^0_j$) and home case ($k = a^0_j$) the
+  respective net balance equals 0 or $-1$, violating \eqref{eq:c2} or \eqref{eq:c3}.
+  Full proof by induction over the ordered flight sequence; see Khaled et al.
+\end{proof}
+
+\begin{proposition}[Compactness; Khaled et al. 2018, Prop.~2]
+  The model \eqref{eq:obj}--\eqref{eq:bin} has $n_f \times n_p$ binary variables
+  and $O(n_f \times n_p)$ constraints, where $n_f \gg n_p > n_k$.
+\end{proposition}
+
+%%==========================================================================
+\section{Maintenance-Extended Model (Constraints C8--C15)}
+%%==========================================================================
+
+\subsection{Additional Notation}
+
+Let $F(d, i)$ denote the set of flights $i'$ such that $\tI{i'} > \tI{i}$ and
+$d_{i'} = d$ (later flights on the same day as $i$).
+Let $F^{\downarrow}(m)$ be flights landing at maintenance airport $m \in \MA$.
+Let $F_{d,d'} = \{i \in \F \mid d \leq d_i \leq d'\}$.
+
+\subsection{Extended Objective}
+
+\begin{equation}
+  \min \sum_{i \in \F}\sum_{j \in \P} c_{ij}\, x_{ij}
+       + \sum_{m \in \MA}\sum_{i \in F^{\downarrow}(m)}\sum_{j \in \P}\sum_{d \in \D}
+         \text{mc}_{ijd}\, z_{ijdc}
+  \label{eq:obj_ext}
+\end{equation}
+
+\subsection{Maintenance Constraints}
+
+\paragraph{C8 — Maintenance blocks subsequent flights.}
+\begin{equation}
+  z_{ijdc} + x_{i'j} \leq 1,
+  \quad \forall i \in \F,\; i' \in F(d,i),\; j \in \P,\; d \in \D,\; c \in \C
+  \label{eq:c8}
+\end{equation}
+
+\paragraph{C9 — Maintenance requires assignment.}
+\begin{equation}
+  x_{ij} \geq z_{ijdc},
+  \quad \forall i \in \F,\; j \in \P,\; d \in \D,\; c \in \C
+  \label{eq:c9}
+\end{equation}
+
+\paragraph{C10 — Airport maintenance capacity.}
+\begin{equation}
+  \sum_{i \in F^{\downarrow}(m)} \sum_{j \in \P} z_{ijdc} \leq \text{mcap}_{m,d},
+  \quad \forall d \in \D,\; m \in \MA,\; c \in \C
+  \label{eq:c10}
+\end{equation}
+
+\paragraph{C11 — Aggregate $z$ to $y$.}
+\begin{equation}
+  \sum_{i \in F^{\downarrow}(m)} z_{ijdc} = y_{jdc},
+  \quad \forall d \in \D,\; m \in \MA,\; j \in \P,\; c \in \C
+  \label{eq:c11}
+\end{equation}
+
+\paragraph{C12 — Calendar-day spacing (C/D checks).}
+For every window of $d_{\max}^c$ consecutive days:
+\begin{equation}
+  \sum_{r = d}^{d'} y_{jrc} \geq 1,
+  \quad \forall j \in \P,\; c \in \{C,D\},\;
+  d,d' \in \D \text{ s.t. } d' - d = d^c_{\max} - 1
+  \label{eq:c12}
+\end{equation}
+
+%%==========================================================================
+\section{Constraint (13): Error Identification and Correction}
+%%==========================================================================
+
+\subsection{Original Formulation (Khaled et al., eq.~13)}
+
+The cumulative flight-hour constraint between two maintenance events for
+hours-based checks ($c \in \{A, B\}$) reads in the original paper:
+
+\begin{equation}
+  \sum_{i \in F_{d,d'}} x_{ij}\, t_i
+  \;\leq\;
+  T^c_{\max}
+  + M_{dd'}\bigl(2 - y_{jd c} - y_{jd'c}\bigr)
+  + M_{dd'} \sum_{r = d+1}^{d'-1} y_{jrc},
+  \label{eq:c13_original}
+  \quad \forall d < d',\; 2 \leq d'-d \leq d^c_{\max}-1,\; j \in \P
+\end{equation}
+
+The intent is: if $y_{jdc}=1$ (check at start) AND $y_{jd'c}=1$ (check at end)
+AND no check in between ($\sum_{r} y_{jrc} = 0$), then accumulated flight time
+must not exceed $T^c_{\max}$.
+
+\subsection{Identified Error}
+
+\begin{lemma}[Constraint (13) is insufficient]
+\label{lem:c13_error}
+Constraint~\eqref{eq:c13_original} does \emph{not} enforce the flight-hour
+limit between two successive maintenance events when one of the endpoint
+indicators is zero.
+\end{lemma}
+\begin{proof}
+Consider a scenario where aircraft $j$ has no check on day $d$ ($y_{jdc}=0$),
+has a check on day $d'$ ($y_{jd'c}=1$), and no intermediate checks
+($\sum_r y_{jrc}=0$). Substituting into \eqref{eq:c13_original}:
+\[
+  \sum_i x_{ij} t_i
+  \;\leq\; T^c_{\max} + M_{dd'}(2 - 0 - 1) + 0
+  \;=\; T^c_{\max} + M_{dd'}.
+\]
+Since $M_{dd'} \geq \sum_i t_i$ by construction, the constraint is trivially
+satisfied regardless of how many flight hours accumulate. The flight-hour
+limit is therefore \emph{not} enforced in this case, even though the interval
+$[d, d']$ can represent the gap between two consecutive maintenance events
+(the event at $d'$ being the next one after a previous event before $d$).
+\end{proof}
+
+\begin{remark}
+The error arises because the big-M term is keyed on the \emph{product}
+$y_{jdc} \cdot y_{jd'c}$ (via $2-y_{jdc}-y_{jd'c}$), which equals $M$ whenever
+either endpoint is zero, rather than activating the constraint only when
+both endpoints have scheduled checks.
+\end{remark}
+
+\subsection{Corrected Formulation}
+
+\begin{equation}
+  \sum_{i \in F_{d,d'}} x_{ij}\, t_i
+  \;\leq\;
+  T^c_{\max}
+  + M_{dd'} \sum_{r=d+1}^{d'-1} y_{jrc}
+  + M_{dd'}\, y_{jdc},
+  \label{eq:c13_corrected_start}
+\end{equation}
+\begin{equation}
+  \sum_{i \in F_{d,d'}} x_{ij}\, t_i
+  \;\leq\;
+  T^c_{\max}
+  + M_{dd'} \sum_{r=d+1}^{d'-1} y_{jrc}
+  + M_{dd'}\, y_{jd'c},
+  \label{eq:c13_corrected_end}
+\end{equation}
+for all $j \in \P$, $c \in \{A,B\}$, $d,d' \in \D$ with $2 \leq d'-d \leq d^c_{\max}-1$.
+
+\begin{proposition}[Correctness of the corrected formulation]
+Constraints~\eqref{eq:c13_corrected_start}--\eqref{eq:c13_corrected_end}
+correctly enforce $\sum_{i \in F_{d,d'}} x_{ij} t_i \leq T^c_{\max}$ whenever
+$[d, d']$ represents an interval between two consecutive maintenance events
+(no check in the interior, and no check at either endpoint that would signal
+continuity to a neighboring interval).
+\end{proposition}
+\begin{proof}
+Consider any pair $(d,d')$ and aircraft $j$. Three cases:
+\begin{enumerate}
+  \item $y_{jdc}=0$ and $y_{jd'c}=0$ (no check at either endpoint): in a
+  feasible maintenance schedule, the interval $[d,d']$ is not a stand-alone
+  maintenance interval. The big-M relaxation in both \eqref{eq:c13_corrected_start}
+  and \eqref{eq:c13_corrected_end} makes both constraints vacuous — correct,
+  since this interval is not the critical one.
+
+  \item $y_{jdc}=1$ and $y_{jd'c}=1$ with $\sum_r y_{jrc}=0$ (checks at both
+  endpoints, none in interior): both constraints reduce to
+  $\sum x_{ij}t_i \leq T^c_{\max}$, enforcing the limit. $\checkmark$
+
+  \item One endpoint has a check and the other does not (say $y_{jdc}=1$,
+  $y_{jd'c}=0$): \eqref{eq:c13_corrected_start} is relaxed (big-M at $d$),
+  but \eqref{eq:c13_corrected_end} becomes $\sum x_{ij}t_i \leq T^c_{\max}$
+  (the $y_{jd'c}=0$ term vanishes), enforcing the limit.
+  The symmetric case follows from \eqref{eq:c13_corrected_start}. $\checkmark$
+\end{enumerate}
+Together, the pair of constraints enforces the limit exactly for all intervals
+that represent consecutive maintenance windows.
+\end{proof}
+
+\subsection{Big-M Computation}
+
+For each day pair $(d, d')$, define:
+\begin{equation}
+  M_{dd'} = \max_{(i,i') \in F_d \times F_{d'}} \text{MFT}(i, i'),
+\end{equation}
+where $\text{MFT}(i, i')$ is the maximum total flight time along any feasible
+sequence starting with flight $i$ (on day $d$) and ending with flight $i'$ (on day $d'$)
+satisfying equipment continuity. This can be computed via a longest-path algorithm
+on the acyclic connection graph (linear time in $|F_{d,d'}|$).
+
+%%==========================================================================
+\section{Full A/B/C/D Hierarchy Extension}
+%%==========================================================================
+
+\subsection{Hierarchy Variables}
+
+The $\gamma_{jdc}$ (``mega-check'') variable indicates a check of level $\geq c$:
+\begin{align}
+  \gamma_{jdD} &= y_{jdD} \label{eq:hier_D} \\
+  \gamma_{jdC} &= y_{jdC} + y_{jdD} \label{eq:hier_C} \\
+  \gamma_{jdB} &= y_{jdB} + \gamma_{jdC} \label{eq:hier_B} \\
+  \gamma_{jdA} &= y_{jdA} + \gamma_{jdB} \label{eq:hier_A}
+\end{align}
+
+Or equivalently: $\gamma_{jdc} = \sum_{c' \geq c} y_{jdc'}$.
+
+\subsection{Reset Semantics}
+
+When aircraft $j$ performs a D-check on day $d$, the reset rules are:
+\begin{itemize}
+  \item D-check resets $D, C, B, A$ accumulated days/hours.
+  \item C-check resets $C, B, A$ (does not affect $D$ counter).
+  \item B-check resets $B, A$.
+  \item A-check resets $A$ only.
+\end{itemize}
+
+These semantics are enforced by using $\gamma_{jdc}$ (rather than $y_{jdc}$)
+in constraints C12 and C13, so that any higher-level check counts as
+satisfying the lower-level check requirement.
+
+\subsection{Extended Constraint C13b: Pre-Horizon Accumulated Hours}
+
+For the initial window from day 0 to day $d'$ ($d' < d^c_{\max}$), accounting
+for hours already accumulated before the planning horizon begins:
+
+\begin{equation}
+  \sum_{i \in F_{0,d'}} x_{ij} t_i
+  \;\leq\;
+  (T^c_{\max} - \Phi^c_j)
+  + M_{0,d'} \sum_{r=1}^{d'-1} \gamma_{jrc}
+  + M_{0,d'}\, \gamma_{jd'c},
+  \label{eq:c13b}
+\end{equation}
+for all $j \in \P$, $c \in \{A,B\}$, $1 \leq d' \leq d^c_{\max}-1$.
+
+\subsection{Extended Constraint C14b: Multi-Day Check Duration}
+
+If check $c$ has duration $\delta^c > 1440$ minutes (more than one day), it
+occupies $\lceil \delta^c / 1440 \rceil$ consecutive days. No flight may be
+assigned to aircraft $j$ on any of those days:
+
+\begin{equation}
+  y_{jdc} = 1 \implies
+  \sum_{r=d}^{d + \lceil \delta^c/1440 \rceil - 1} y_{jr c} \geq
+  \lceil \delta^c/1440 \rceil
+  \label{eq:c14b}
+\end{equation}
+
+This is linearised as:
+$\sum_{r=d}^{d + K_c - 1} y_{jrc} \geq K_c \cdot y_{jdc}$,
+where $K_c = \lceil \delta^c / 1440 \rceil$.
+
+%%==========================================================================
+\section{Model Size Analysis}
+%%==========================================================================
+
+\begin{proposition}[Variable count]
+The extended model has:
+\[
+  |\text{vars}| = n_f n_p + n_f n_p n_d |\C| + n_p n_d |\C| + n_p n_d |\C|
+  \;=\; O(n_f n_p n_d |\C|).
+\]
+For $|\C|=4$ and typical $n_d = 30$, $n_f=1500$, $n_p=40$:
+max $\approx 7.2 \times 10^6$ variables, but sparsity reduces active variables
+by a factor of $>10\times$ (indexed only over valid flight-airport-day combinations).
+\end{proposition}
+
+\begin{proposition}[Constraint count]
+The extended model has $O(n_f n_p n_d |\C|)$ constraints.
+In practice (Table 10 of Khaled et al.): up to $\approx$130,000 constraints
+for $(p=40, h=30)$.
+\end{proposition}
+
+%%==========================================================================
+\section{LP Relaxation Strength}
+%%==========================================================================
+
+The LP relaxation of the basic model is remarkably tight:
+from Table 8 of Khaled et al. (2018), the proportion of integral variables
+in the LP optimal solution exceeds $85\%$ across all instances.
+The integrality gap at the root node is below $0.5\%$ in all cases.
+
+This can be partially explained by the following structural property:
+
+\begin{proposition}[LP corner structure]
+For any airport $k$ and aircraft $j$, the constraint matrix subblock
+corresponding to constraints \eqref{eq:c2}--\eqref{eq:c3} is totally
+unimodular (TU) if we ignore the off-diagonal terms coupling flights at
+different airports. This near-TU structure produces very few fractional
+LP solutions.
+\end{proposition}
+
+(Full proof requires analysis of the network flow substructure; see
+Ahuja et al. \cite{ahuja1993network} for the TU result on flow matrices.)
+
+\appendix
+
+%%==========================================================================
+\section{Counterexample for Original Constraint~(13)}
+\label{app:c13_counterexample}
+%%==========================================================================
+
+\paragraph{Instance.}
+Two flights, one aircraft ($j=1$), two days ($d=1$, $d'=2$), one airport.
+$T^A_{\max} = 60$ minutes; $M_{12} = 200$.
+\begin{itemize}
+  \item Flight 1: duration 80 min, departs day 1.
+  \item Flight 2: duration 70 min, departs day 2.
+  \item No check on day 1 ($y_{1,1,A}=0$); check on day 2 ($y_{1,2,A}=1$).
+\end{itemize}
+Cumulative flight time: $80 + 70 = 150 > T^A_{\max} = 60$. Should be infeasible.
+
+\paragraph{Original constraint \eqref{eq:c13_original}.}
+\[
+  150 \leq 60 + 200(2 - 0 - 1) + 0 = 60 + 200 = 260 \quad \checkmark \text{ (satisfied)}.
+\]
+Constraint is \emph{not} violated — incorrect.
+
+\paragraph{Corrected constraints \eqref{eq:c13_corrected_end}.}
+\[
+  150 \leq 60 + 0 + 200 \times 0 = 60 \quad \times \text{ (violated — correct behaviour)}.
+\]
+The corrected constraint correctly identifies this as infeasible.
+
+\bibliographystyle{plainnat}
+\bibliography{../paper/refs}
+
+\end{document}

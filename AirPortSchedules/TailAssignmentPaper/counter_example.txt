@@ -1,0 +1,154 @@
+================================================================================
+COUNTER-EXAMPLE: FEASIBLE MATHEMATICAL SOLUTION VS. INFEASIBLE PHYSICAL PLAN
+For Khaled et al. (2018) Basic Tail Assignment Model, Equations (3)-(6)
+================================================================================
+
+This document presents a concrete counter-example showing that a solution can be 
+mathematically feasible under the constraints (3)-(6) of Khaled et al. (2018) 
+but correspond to a physically impossible flight plan.
+
+--------------------------------------------------------------------------------
+1. THE MATHEMATICAL MODEL (Equations 3-6)
+--------------------------------------------------------------------------------
+Let:
+- F be the set of flights, indexed by i.
+- P be the set of aircraft, indexed by j.
+- A be the set of airports, indexed by k.
+- a^0_j be the initial (home) airport for aircraft j.
+- Dt be the minimum ground turnaround time (turn time).
+- t_dep(i) and t_arr(i) be the departure and arrival times of flight i.
+
+The auxiliary sets are defined in the paper as:
+- F_arr(k, theta) = {i in F : arrival_airport(i) == k,  t_arr(i) <= theta - Dt}
+  (Flights landing at airport k at least Dt minutes before time theta)
+
+- F_dep(k, theta) = {i in F : departure_airport(i) == k, t_dep(i) < theta}
+  (Flights departing from airport k STICTLY before time theta)
+
+The basic MILP formulation consists of:
+- Objective: Minimize assignment costs.
+- Flight Coverage (3):
+    sum_{j in P} x_ij = 1,                 forall i in F
+- Non-home Equipment Continuity (4):
+    sum_{i' in F_arr(k, t_dep(i))} x_i'j - sum_{i' in F_dep(k, t_dep(i))} x_i'j >= x_ij,
+    forall j in P, forall k in A \ {a^0_j}, forall i departing from k
+- Home Equipment Continuity (5):
+    sum_{i' in F_arr(k, t_dep(i))} x_i'j - sum_{i' in F_dep(k, t_dep(i))} x_i'j >= x_ij - 1,
+    forall j in P, k = a^0_j, forall i departing from k
+- Integrality (6):
+    x_ij in {0, 1},                        forall i in F, j in P
+
+--------------------------------------------------------------------------------
+2. THE LOOPHOLE: STRICT INEQUALITY FOR DEPARTING FLIGHTS
+--------------------------------------------------------------------------------
+The key vulnerability lies in the definition of the set of previous departures:
+    F_dep(k, theta) = {i' : departure_airport(i') == k, t_dep(i') < theta}
+
+Here, "t_dep(i') < theta" uses strict inequality. 
+
+If two flights i_1 and i_2 depart from the same airport k at the EXACT SAME TIME, 
+then:
+- t_dep(i_1) = t_dep(i_2) = T
+- When evaluating the constraint for i_1, theta = T. Since t_dep(i_2) = T is 
+  not strictly less than T, i_2 is NOT included in F_dep(k, T).
+- When evaluating the constraint for i_2, theta = T. Since t_dep(i_1) = T is 
+  not strictly less than T, i_1 is NOT included in F_dep(k, T).
+
+This allows the mathematical model to assign BOTH flights to the same aircraft 
+without them subtracting from each other's net equipment balance!
+
+--------------------------------------------------------------------------------
+3. THE COUNTER-EXAMPLE
+--------------------------------------------------------------------------------
+Consider the following instance:
+- Fleet size: 1 aircraft (j = 1)
+- Home Airport of aircraft 1: A (a^0_1 = A)
+- Minimum ground turn time: Dt = 30 minutes
+- Flights:
+    * Flight 0: A -> A
+      departs: 08:20 (min 500)
+      arrives: 09:10 (min 550)
+      duration: 50 min
+
+    * Flight 1: A -> B
+      departs: 10:00 (min 600)
+      arrives: 11:40 (min 700)
+      duration: 100 min
+
+    * Flight 2: A -> C
+      departs: 10:00 (min 600)
+      arrives: 11:40 (min 700)
+      duration: 100 min
+
+We test the assignment: All flights operated by aircraft 1 (x_0,1 = x_1,1 = x_2,1 = 1).
+
+--------------------------------------------------------------------------------
+4. STEP-BY-STEP MATHEMATICAL VERIFICATION OF FEASIBILITY
+--------------------------------------------------------------------------------
+
+- FLIGHT COVERAGE (3):
+    sum_{j in P} x_ij = 1  forall i in {0, 1, 2}
+    * For i = 0: x_0,1 = 1                          (Satisfied)
+    * For i = 1: x_1,1 = 1                          (Satisfied)
+    * For i = 2: x_2,1 = 1                          (Satisfied)
+
+- CONTINUITY AT HOME AIRPORT A (5):
+  Since A is the home airport, we evaluate Constraint (5) for each departure 
+  from A: Flight 0, Flight 1, Flight 2.
+
+  * Case 1: Departure of Flight 0 (departing A at t_dep = 500)
+    We calculate the sets at theta = 500:
+    - F_arr(A, 500): No flights land before 500 - 30 = 470. So sum_{F_arr} = 0.
+    - F_dep(A, 500): No flights depart strictly before 500. So sum_{F_dep} = 0.
+    Constraint (5) requires:
+      0 - 0 >= x_0,1 - 1
+      0 >= 1 - 1  =>  0 >= 0                        (Satisfied!)
+
+  * Case 2: Departure of Flight 1 (departing A at t_dep = 600)
+    We calculate the sets at theta = 600:
+    - F_arr(A, 600): Flight 0 lands at A at 550, which is <= 600 - 30 = 570. So Flight 0 in F_arr.
+      sum_{i' in F_arr} x_i',1 = x_0,1 = 1.
+    - F_dep(A, 600): Flight 0 departs from A at 500, which is < 600. So Flight 0 in F_dep.
+      Flight 2 departs from A at 600, which is NOT < 600. So Flight 2 is NOT in F_dep.
+      sum_{i' in F_dep} x_i',1 = x_0,1 = 1.
+    Constraint (5) requires:
+      LHS = sum_{i' in F_arr} x_i',1 - sum_{i' in F_dep} x_i',1 = 1 - 1 = 0
+      RHS = x_1,1 - 1 = 1 - 1 = 0
+      LHS >= RHS  =>  0 >= 0                        (Satisfied!)
+
+  * Case 3: Departure of Flight 2 (departing A at t_dep = 600)
+    We calculate the sets at theta = 600:
+    - F_arr(A, 600) is the same: Flight 0 in F_arr. sum_{F_arr} = 1.
+    - F_dep(A, 600) is the same: Flight 0 departs at 500 is < 600, so Flight 0 in F_dep.
+      Flight 1 departs at 600 is NOT < 600, so Flight 1 is NOT in F_dep.
+      sum_{F_dep} = 1.
+    Constraint (5) requires:
+      LHS = 1 - 1 = 0
+      RHS = x_2,1 - 1 = 1 - 1 = 0
+      LHS >= RHS  =>  0 >= 0                        (Satisfied!)
+
+All mathematical constraints (3)-(6) are fully satisfied with no violations!
+
+--------------------------------------------------------------------------------
+5. THE PHYSICAL IMPOSSIBILITY
+--------------------------------------------------------------------------------
+This solution assigns a single tail number (Aircraft 1) to fly:
+- Flight 1 from A to B (10:00 - 11:40)
+- Flight 2 from A to C (10:00 - 11:40)
+
+A single real aircraft cannot physically separate itself to depart on two 
+different routes to two different destinations simultaneously, meaning this 
+solution does not correspond to a "feasible plan" in practice.
+
+--------------------------------------------------------------------------------
+6. REMEDIATION IN IMPLEMENTATION
+--------------------------------------------------------------------------------
+To resolve this logical gap, practical implementations and robust models must:
+1. Define a pairwise time-overlap constraint for all flight pairs (i1, i2) that 
+   overlap in time and share an aircraft:
+     x_i1,j + x_i2,j <= 1,  forall j, forall overlapping pairs
+   (This is implemented in our scheduler engine via `_add_overlap` in `src/model.py`)
+2. Or redefine the departure set to be non-strict (<= theta) and carefully adjust 
+   the indices to ensure that the current aircraft balance is checked using a
+   correct flow-conservation or network structure.
+================================================================================

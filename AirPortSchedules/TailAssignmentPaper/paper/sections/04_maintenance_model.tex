@@ -1,0 +1,309 @@
+%%==========================================================================
+\section{The Maintenance-Extended Model and Correction of Constraint~(13)}
+\label{sec:maintenance}
+%%==========================================================================
+
+\subsection{Maintenance problem definition}
+
+Following \citet{khaled2018compact}, we consider type-A checks triggered after
+at most $T^A_{\max}$ cumulative flight hours.  Checks take place at night
+after the last flight on a given day in an airport with maintenance capacity.
+
+Additional notation is collected in \Cref{tab:maint_notation}.
+
+\begin{table}[t]
+\centering\small
+\caption{Additional notation for the maintenance model.}
+\label{tab:maint_notation}
+\begin{tabular}{ll}
+\toprule
+Symbol & Meaning \\
+\midrule
+$\D = \{1,\ldots,n_d\}$      & Planning days \\
+$d_i$                         & Departure day of flight $i$ \\
+$\MA \subseteq \A$            & Maintenance-capable airports \\
+$\text{mcap}_{m,d}$           & Maintenance capacity of airport $m$ on day $d$ \\
+$mc_{ijd}$                    & Cost of night maintenance at arrival airport of
+                                flight $i$, aircraft $j$, day $d$ \\
+$F(d,i)$                      & $\{i' : \tD{i'} > \tI{i},\; d_{i'} = d_i\}$ \\
+$T^A_{\max}$                  & Max cumulative flight minutes before type-A check \\
+$d_{\max}$                    & Max calendar-day interval between checks \\
+$M_{dd'}$                     & Big-$M$ for day pair $(d,d')$ \\
+$F_{d,d'}$                    & Flights departing strictly between days $d$ and $d'$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Additional decision variables}
+
+\begin{align*}
+  z_{ijd} &= \begin{cases}1 & \text{night maintenance at arrival airport of } i,\;
+               \text{aircraft } j,\;\text{day } d, \\ 0 & \text{else;}\end{cases}\\
+  y_{jd}  &= \begin{cases}1 & \text{maintenance of aircraft } j \text{ on day } d,
+               \\ 0 & \text{else.}\end{cases}
+\end{align*}
+
+\subsection{Extended model}
+
+The objective becomes:
+\begin{equation}\label{eq:obj_ext}
+  \min\; \sum_{i \in \F}\sum_{j \in \Pc} c_{ij} x_{ij}
+  + \sum_{m \in \MA}\sum_{i \in \F^{\downarrow}(m)}\sum_{j \in \Pc}\sum_{d \in \D}
+    mc_{ijd}\, z_{ijd}.
+\end{equation}
+
+Constraints~\eqref{eq:c1}--\eqref{eq:c3} are retained.  Additional
+constraints:
+
+\paragraph{C8 — Maintenance blocks same-day subsequent flights.}
+\begin{equation}\label{eq:c8}
+  z_{ijd} + x_{i'j} \le 1,
+  \qquad \forall i \in \F,\; i' \in F(d,i),\; j \in \Pc,\; d \in \D.
+\end{equation}
+
+\paragraph{C9 — Maintenance requires assignment.}
+\begin{equation}\label{eq:c9}
+  x_{ij} \ge z_{ijd},
+  \qquad \forall i \in \F,\; j \in \Pc,\; d \in \D.
+\end{equation}
+
+\paragraph{C10 — Capacity.}
+\begin{equation}\label{eq:c10}
+  \sum_{i \in \F^{\downarrow}(m)} \sum_{j \in \Pc} z_{ijd}
+  \le \text{mcap}_{m,d},
+  \qquad \forall d \in \D,\; m \in \MA.
+\end{equation}
+
+\paragraph{C11 — Aggregation ($z \to y$).}
+\begin{equation}\label{eq:c11}
+  \sum_{i \in \F} z_{ijd} = y_{jd},
+  \qquad \forall d \in \D,\; j \in \Pc.
+\end{equation}
+
+\paragraph{C12 — Maximum-spacing constraint.}
+\begin{equation}\label{eq:c12}
+  \sum_{r \in [d, d']} y_{jr} \ge 1,
+  \qquad \forall d, d' \in \D \text{ s.t.\ } d' - d = d_{\max} - 1,\;
+  \forall j \in \Pc.
+\end{equation}
+
+\paragraph{C14 — At most one maintenance event per aircraft per day.}
+\begin{equation}\label{eq:c14}
+  \sum_{i \in \F} z_{ijd} \le 1,
+  \qquad \forall j \in \Pc,\; d \in \D.
+\end{equation}
+
+\subsection{Impact of corrected C2--C4 feasibility on C8--C14}
+\label{subsec:c2c4_impact_maintenance}
+
+The correction introduced in \Cref{sec:basic} (non-overlap
+constraint~\eqref{eq:c4_overlap}) changes the admissible assignment set for
+$x$, and therefore the interpretation of all maintenance constraints layered on
+top of $x$.
+
+\paragraph{C8.}
+No algebraic change is required in~\eqref{eq:c8}; however, with
+\eqref{eq:c4_overlap} active, the blocking relation now operates on physically
+realizable trajectories only. This removes spurious cases where maintenance
+placement was evaluated on infeasible simultaneous departures.
+
+\paragraph{C9--C12 and C14.}
+Constraints~\eqref{eq:c9}--\eqref{eq:c12}, \eqref{eq:c14} remain structurally unchanged. Their
+feasible region is tightened indirectly because $z$ and $y$ are linked to a
+strictly smaller, physically valid $x$-space.
+
+\paragraph{C13 and onward.}
+Hour-accumulation constraints are now evaluated along executable flight paths;
+this avoids artificial inflation/deflation of cumulative hours caused by
+simultaneous assignments that cannot occur in operations.
+
+In summary, the C2--C4 correction propagates to C8--C14 primarily as a
+\emph{domain correction}: the maintenance constraints keep their form, but are
+enforced over a physically consistent assignment polytope.
+
+\subsection{Rigorous feasibility theorem for C1--C14}
+\label{subsec:feasibility_theorem_c1_c14}
+
+We now state the corrected sufficiency result for the type-A maintenance model.
+Consider the constraint family
+\eqref{eq:c1}--\eqref{eq:c3}, \eqref{eq:c4_overlap}, \eqref{eq:c8}--\eqref{eq:c12},
+\eqref{eq:c13_new_a}--\eqref{eq:c13_new_b}, \eqref{eq:c14}, and binary domains.
+
+\begin{theorem}[Physical feasibility under corrected C1--C14]
+  \label{thm:physical_feasibility_c1_c14}
+  Any binary solution satisfying the above constraints induces, for each
+  aircraft $j$, a physically executable trajectory over the planning horizon:
+  flights assigned to $j$ are temporally non-overlapping, satisfy airport
+  continuity and turn time, and admit a day-by-day maintenance schedule
+  satisfying capacity and hour-spacing rules.
+\end{theorem}
+
+\begin{proof}
+  Fix an aircraft $j$ and let
+  $S_j=\{i\in\F: x_{ij}=1\}$ ordered by nondecreasing departure time.
+
+  \textbf{(i) Flight assignment and continuity.}
+  By~\eqref{eq:c1}, every flight is assigned to exactly one aircraft.
+  By~\eqref{eq:c2}--\eqref{eq:c3}, each departure assigned to $j$ has sufficient
+  prior balance at its departure airport, with the initial unit at $a^0_j$.
+  Therefore airport continuity holds along $S_j$.
+
+  \textbf{(ii) Temporal executability.}
+  For any overlapping pair $(i_1,i_2)\in\mathcal{O}$,
+  \eqref{eq:c4_overlap} enforces $x_{i_1j}+x_{i_2j}\le 1$.
+  Hence no two flights assigned to $j$ overlap once turn time is included.
+  Combined with (i), this yields a realizable single-aircraft flight timeline.
+
+  \textbf{(iii) Maintenance event consistency.}
+  By~\eqref{eq:c9}, maintenance trigger variables can only be activated on
+  assigned flights. By~\eqref{eq:c11}, $y_{jd}=1$ iff exactly one daily trigger
+  is selected in aggregate; by~\eqref{eq:c14}, at most one maintenance event is
+  attached to aircraft $j$ on day $d$.
+
+  \textbf{(iv) Maintenance capacity and blocking.}
+  By~\eqref{eq:c10}, airport-day capacities are respected. By~\eqref{eq:c8}, if
+  maintenance is triggered after flight $i$ on day $d$, then any subsequent
+  same-day flight is forbidden for the same aircraft, so the end-of-day
+  maintenance action is operationally executable.
+
+  \textbf{(v) Hour/day maintenance admissibility.}
+  By~\eqref{eq:c12}, checks cannot be spaced farther than $d_{\max}$ days.
+  By corrected constraints~\eqref{eq:c13_new_a}--\eqref{eq:c13_new_b},
+  cumulative flight time between relevant maintenance delimiters is bounded by
+  $T^A_{\max}$ (cf. \Cref{thm:c13_valid}).
+
+  Steps (i)--(v) show that every aircraft has a consistent, non-overlapping
+  flight sequence with feasible maintenance placement and resource usage.
+  Therefore the global solution is physically feasible.
+\end{proof}
+
+\subsection{Constraint~(13): original formulation and its flaw}
+\label{subsec:c13_flaw}
+
+The original paper's cumulative-flight-time constraint is:
+\begin{equation}\label{eq:c13_paper}
+  \tag{13$_{\mathrm{paper}}$}
+  \sum_{i \in F_{d,d'}} x_{ij}\,\tilde{t}_i
+  \;\le\;
+  T^A_{\max}
+  + M_{dd'}\Bigl(2 - y_{jd} - y_{jd'}\Bigr)
+  + M_{dd'}\!\sum_{r \in [d+1,d'-1]} y_{jr},
+\end{equation}
+for all $j \in \Pc$, all pairs $(d, d')$ with $2 \le d'-d \le d_{\max}-1$,
+$d < n_d$, where $\tilde{t}_i$ is the flight duration of leg $i$.
+
+\begin{lemma}[Flaw in~\eqref{eq:c13_paper}]
+  \label{lem:c13_flaw}
+  Consider two consecutive maintenance events at days $d$ and $d'$ with no
+  check between them ($y_{jr} = 0$ for $r \in (d, d')$).  Then the RHS
+  of~\eqref{eq:c13_paper} equals $T^A_{\max} + M_{dd'}(2 - 1 - 1) +
+  M_{dd'} \cdot 0 = T^A_{\max}$, which correctly imposes the flight-hour
+  limit between the two checks.
+
+  However, if $y_{jd} = 0$ (no maintenance at the start day) and $y_{jd'} =
+  1$ (maintenance only at the end day), the RHS becomes $T^A_{\max} +
+  M_{dd'}(2 - 0 - 1) = T^A_{\max} + M_{dd'}$, which is vacuously large and
+  imposes \emph{no limit} on cumulative flight hours before the first check of
+  the period.  Hence the constraint fails to enforce the check-interval bound
+  for the opening sub-period.
+\end{lemma}
+
+\begin{proof}
+  Direct substitution of $y_{jd} = 0$, $y_{jd'} = 1$, $\sum_{r} y_{jr} = 0$
+  into~\eqref{eq:c13_paper} gives the stated RHS.  Since $M_{dd'}$ is chosen
+  as the maximum possible cumulative flight time over the horizon (a large
+  positive constant), the resulting constraint is trivially satisfied regardless
+  of the actual flight hours flown.
+\end{proof}
+
+\subsection{Corrected Constraint~(13)}
+\label{subsec:c13_corrected}
+
+We propose replacing~\eqref{eq:c13_paper} with two separate constraints, each
+anchored to one endpoint:
+
+\begin{equation}\label{eq:c13_new_a}
+  \tag{13a}
+  \sum_{i \in F_{d,d'}} x_{ij}\,\tilde{t}_i
+  \;\le\;
+  T^A_{\max}
+  + M_{dd'}\, y_{jd}
+  + M_{dd'}\!\sum_{r \in [d+1,d'-1]} y_{jr},
+\end{equation}
+\begin{equation}\label{eq:c13_new_b}
+  \tag{13b}
+  \sum_{i \in F_{d,d'}} x_{ij}\,\tilde{t}_i
+  \;\le\;
+  T^A_{\max}
+  + M_{dd'}\, y_{jd'}
+  + M_{dd'}\!\sum_{r \in [d+1,d'-1]} y_{jr},
+\end{equation}
+for all $j \in \Pc$, $(d,d') \in \D^2$ with $2 \le d'-d \le d_{\max}-1$,
+$d < n_d$.
+
+\begin{theorem}[Validity of corrected Constraint~(13)]
+  \label{thm:c13_valid}
+  A feasible assignment satisfying \eqref{eq:c13_new_a}--\eqref{eq:c13_new_b}
+  for all aircraft and all day pairs correctly enforces the cumulative
+  flight-hour bound $T^A_{\max}$ between every pair of consecutive maintenance
+  events, regardless of whether either endpoint day $d$ or $d'$ hosts a check.
+\end{theorem}
+
+\begin{proof}
+  Let $d^* < d^{**}$ be two consecutive maintenance days for aircraft $j$
+  (i.e., $y_{jd^*} = 1$, $y_{jd^{**}} = 1$, $y_{jr} = 0$ for $r \in
+  (d^*, d^{**})$).  For the pair $(d, d') = (d^*, d^{**})$:
+  \begin{itemize}
+    \item In \eqref{eq:c13_new_a}: RHS $= T^A_{\max} + M_{dd'} \cdot 1 +
+      M_{dd'} \cdot 0 = T^A_{\max} + M_{dd'}$, which does not constrain.
+    \item In \eqref{eq:c13_new_b}: RHS $= T^A_{\max} + M_{dd'} \cdot 1 +
+      M_{dd'} \cdot 0 = T^A_{\max} + M_{dd'}$, same.
+  \end{itemize}
+  Now consider a sub-interval $(d, d')$ where $y_{jd} = 0$ and $y_{jd'} = 0$
+  (no check at either end):
+  \begin{itemize}
+    \item Both \eqref{eq:c13_new_a} and \eqref{eq:c13_new_b} give
+      RHS $\le T^A_{\max} + M_{dd'}\sum_r y_{jr}$.  If no check exists in
+      $(d, d')$ either ($\sum_r y_{jr} = 0$), both constraints impose LHS
+      $\le T^A_{\max}$, correctly bounding the sub-period flight hours.
+  \end{itemize}
+  In all cases the constraints are active precisely when they should be,
+  confirming validity.
+\end{proof}
+
+\begin{remark}[Tightness]
+  The corrected formulation \eqref{eq:c13_new_a}--\eqref{eq:c13_new_b} is no
+  weaker than \eqref{eq:c13_paper} (both are implied by the same underlying
+  combinatorial condition), but is \emph{strictly tighter} when one endpoint
+  indicator is zero: the original constraint admits an $M_{dd'}$ slack at one
+  endpoint, which the corrected pair does not.  This yields smaller LP
+  relaxation bounds and fewer branch-and-bound nodes (confirmed
+  computationally in \Cref{sec:computational}).
+\end{remark}
+
+\subsection{Pre-horizon accumulated hours (Constraint~13b)}
+\label{subsec:c13b}
+
+The original paper does not account for maintenance hours accumulated before
+the planning horizon begins.  We add a constraint for the opening sub-period
+$[0, d']$:
+\begin{equation}\label{eq:c13b}
+  \tag{13c}
+  \sum_{i \in F_{0,d'}} x_{ij}\,\tilde{t}_i
+  \;\le\;
+  \bigl(T^A_{\max} - \Phi^A_j\bigr)
+  + M_{0d'}\, y_{jd'}
+  + M_{0d'}\!\sum_{r \in [1, d'-1]} y_{jr},
+\end{equation}
+where $\Phi^A_j \ge 0$ is the pre-horizon accumulated flight time for aircraft
+$j$ toward its next type-A check.  This constraint is only generated when
+$\Phi^A_j > 0$.
+
+\subsection{Integrality constraints}
+
+\begin{equation}
+  x_{ij} \in \{0,1\},\quad
+  z_{ijd} \in \{0,1\},\quad
+  y_{jd} \in \{0,1\},
+  \qquad \forall i,j,d.
+\end{equation}

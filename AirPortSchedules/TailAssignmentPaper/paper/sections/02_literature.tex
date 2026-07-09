@@ -1,0 +1,70 @@
+%%==========================================================================
+\section{Literature Review}
+\label{sec:literature}
+%%==========================================================================
+
+\subsection{Mathematical programming formulations}
+
+Three main modelling paradigms underlie TAP research:
+
+\paragraph{Set partitioning / column generation.}
+The non-compact formulation enumerates \emph{strings} (feasible flight
+sequences per aircraft) as 0--1 variables.  Because the number of strings is
+exponential, column generation is required
+\citep{lavoie1988new, minoux1984column, barnhart1998flight, sarac2006branch}.
+Combining column generation with branch-and-bound (\emph{branch-and-price})
+gives exact solutions but at significant algorithmic overhead.  Robust
+extensions appear in \citet{borndorfer2010robust} and
+\citet{froyland2013recoverable}.
+
+\paragraph{Multi-commodity flow.}
+\citet{levin1971scheduling} introduced the compact multi-commodity flow
+formulation with $O(n_f^2 n_p)$ binary variables.  This remains the standard
+benchmark for compact models and is the primary comparison point in
+\citet{khaled2018compact}.
+
+\paragraph{Time-space networks.}
+\citet{hane1995fleet} proposed the time-space network for the \emph{fleet
+assignment problem}.  Nodes represent airport--time events; arcs encode
+ground waits, flights, and overnight stays.  Extensions to aircraft routing
+appear in \citet{clarke1996maintenance}.  Preprocessing by node aggregation
+and island isolation reduces model size
+\citep{hane1995fleet, sherali2006airline}.  Daily and weekly maintenance
+routing variants are studied in \citet{liang2011new} and
+\citet{liang2012network}; the latter also integrates fleet assignment
+decisions, but only approximate solutions are obtained via variable fixing.
+
+\paragraph{Nonlinear / lifted formulations.}
+\citet{haouari2012lifted} present a compact formulation with nonlinear
+constraints that are linearised via the Reformulation--Linearisation Technique
+(RLT).  The largest instances solved involve 344 flights, an order of magnitude
+below the instances handled by the model of \citet{khaled2018compact}.
+
+\subsection{Maintenance constraints}
+
+Maintenance scheduling within aircraft routing has been studied since the
+early work of \citet{clarke1997aircraft}.  The FAA mandates four check types
+(A, B, C, D) varying in scope and frequency.  The column-generation framework
+of \citet{barnhart1998flight} can embed type-A constraints through constrained
+shortest-path pricing.  \citet{cordeau2001benders} apply Benders decomposition
+to simultaneous routing and crew scheduling with non-linear maintenance
+resources.  \citet{lacasse2010aircraft} consider maintenance under different
+business-process models.  None of these works addresses the full four-level
+hierarchy with explicit hierarchical counter resets, which is the subject of
+\Cref{sec:hierarchy}.
+
+\subsection{Heuristic approaches}
+
+Constructive heuristics for TAP are comparatively under-studied relative to
+exact methods.  \citet{gronkvist2005tail} provides a comprehensive treatment
+including local-search improvements.  The Dijkstra-based and ACO-based
+heuristics studied in the present paper are adapted from a space-time network
+framework for the Locomotive Assignment Problem.
+
+\subsection{Position of the present paper}
+
+The compact formulation of \citet{khaled2018compact} represents the
+state-of-the-art for exact, cyclic-constraint-free TAP.  The present work
+builds directly upon it, providing: (i) a mathematical correction to
+Constraint~(13), (ii) a hierarchical maintenance extension, and (iii) the
+first systematic heuristic benchmark on the same instance family.

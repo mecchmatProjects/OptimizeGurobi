@@ -1,0 +1,76 @@
+%%==========================================================================
+\section{Introduction}
+\label{sec:intro}
+%%==========================================================================
+
+The airline planning process is traditionally decomposed into a sequence of
+sub-problems: timetable design, fleet assignment, crew rostering, tail
+assignment, and recovery planning~\citep{barnhart2003applications,
+gopalan1998mathematical}.  The \emph{tail assignment problem} (TAP)—assigning
+a specific aircraft (identified by its tail number) to each flight leg—is the
+penultimate planning step and is tightly coupled with aircraft maintenance
+scheduling.  Poor tail assignment decisions directly inflate operational costs
+through unnecessary ferry (repositioning) flights, suboptimal maintenance
+routing, and safety-margin violations.
+
+\citet{khaled2018compact} proposed a compact 0--1 linear programming
+formulation for the TAP, featuring only $O(n_f n_p)$ binary variables (where
+$n_f$ is the number of flights and $n_p$ the fleet size).  This is a
+significant reduction over the classic multi-commodity flow model of
+\citet{levin1971scheduling}, which requires $O(n_f^2 n_p)$ variables.
+Computational experiments reported in that paper show that instances with up
+to 1\,500 flight legs and 40 aircraft can be solved to certified optimality
+within one hour on a standard workstation.
+
+\subsection*{Our contributions}
+
+The present paper makes four contributions that check, correct, and extend
+those results:
+
+\begin{enumerate}
+\item \textbf{Basic feasibility correction (C2--C4 / constraints (3)--(6)).}
+  We show that the strict-time balance definition used in the compact basic
+  model admits a simultaneous-departure corner case: one aircraft can be
+  assigned to two flights departing at the same airport and same time without
+  violating the balance inequalities.  We formalize this counter-example and
+  enforce physical executability by adding explicit pairwise non-overlap
+  constraints.
+
+\item \textbf{Constraint~(13) correction.}  We show that the cumulative-flight-
+  time maintenance constraint (Constraint~13 in \citet{khaled2018compact})
+  contains a logical flaw: the big-$M$ linearisation term $M(2 - y_{jd} -
+  y_{jd'})$ allows the constraint to be vacuously satisfied even when the pair
+  $(d, d')$ constitutes two consecutive maintenance events without an
+  intervening check.  We provide a corrected formulation using two split
+  endpoint constraints, prove its validity, and show that the corrected
+  formulation yields strictly tighter LP relaxations on high-density instances.
+
+\item \textbf{Full $\{A, B, C, D\}$ maintenance hierarchy.}  The model of
+  \citet{khaled2018compact} handles type-A checks (cumulative flight hours).
+  We extend the formulation to the full four-level hierarchy mandated by
+  aviation regulators (FAA/EASA): type-A and~B checks are flight-hour
+  triggered; type-C and~D checks are calendar-day triggered.  A heavier check
+  subsumes all lighter checks (hierarchical counter resets).  We further add
+  a constraint accounting for pre-horizon accumulated maintenance hours/days
+  per aircraft.
+
+\item \textbf{Heuristic benchmark.}  We implement and evaluate two
+  constructive heuristics: (a) a greedy/insertion heuristic operating
+  directly on flight lists, and (b) a Dijkstra-based heuristic on the
+  space-time network representation (adapted from
+  \citet{gronkvist2005tail}).  Both heuristics respect the full maintenance
+  hierarchy.  We report optimality gaps against the MILP on the same instance
+  sets and show the Dijkstra heuristic consistently outperforms an ACO
+  alternative.
+\end{enumerate}
+
+\subsection*{Paper organisation}
+
+\Cref{sec:literature} reviews related work.  \Cref{sec:basic} restates the
+basic TAP model and proves a C2--C4 corner-case correction.  \Cref{sec:maintenance}
+presents the maintenance-extended model, the Constraint~(13) correction, and
+the induced interpretation updates for C8--C14 under the corrected basic model.
+\Cref{sec:hierarchy} describes the
+full $\{A,B,C,D\}$ extension.  \Cref{sec:heuristics} analyses the heuristic
+algorithms.  \Cref{sec:computational} reports all computational results.
+\Cref{sec:conclusion} concludes.

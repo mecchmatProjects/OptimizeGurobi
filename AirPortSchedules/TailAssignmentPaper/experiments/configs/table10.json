@@ -1,0 +1,72 @@
+{
+  "_comment": "Config for reproducing Khaled et al. Table 10 (maintenance constraints, density=100%).",
+  "table": 10,
+  "description": "Computational results WITH maintenance constraints (dmax=4/5, Tmax=64/72)",
+  "mode": "milp",
+  "use_maintenance": true,
+  "use_overlap": true,
+  "use_ferry": true,
+  "use_check_hierarchy": true,
+  "solver": "cplex",
+  "time_limit": 10800,
+  "presolve_variants": [true],
+  "variants": [
+    {
+      "label": "dmax4_Tmax64",
+      "dmax": 4,
+      "Tmax_hours": 64,
+      "check_types": ["A"]
+    },
+    {
+      "label": "dmax5_Tmax72",
+      "dmax": 5,
+      "Tmax_hours": 72,
+      "check_types": ["A"]
+    }
+  ],
+  "grid": [
+    {"density": 1.0, "p": 10, "h": 15, "instances": 10},
+    {"density": 1.0, "p": 10, "h": 21, "instances": 10},
+    {"density": 1.0, "p": 10, "h": 30, "instances": 10},
+    {"density": 1.0, "p": 20, "h": 15, "instances": 10},
+    {"density": 1.0, "p": 20, "h": 21, "instances": 10},
+    {"density": 1.0, "p": 20, "h": 30, "instances": 10},
+    {"density": 1.0, "p": 30, "h": 15, "instances": 10},
+    {"density": 1.0, "p": 30, "h": 21, "instances": 10},
+    {"density": 1.0, "p": 30, "h": 30, "instances": 10},
+    {"density": 1.0, "p": 40, "h": 15, "instances": 10},
+    {"density": 1.0, "p": 40, "h": 21, "instances": 10},
+    {"density": 1.0, "p": 40, "h": 30, "instances": 10}
+  ],
+  "reference_table": {
+    "_comment": "From Khaled et al. Table 10 (dmax=4, Tmax=64 / dmax=5, Tmax=72).",
+    "dmax4": {
+      "p10_h15": {"vars": 4708,  "constraints": 7134,  "nodes": 2468, "gap_pct": 0.0,  "cpu_s": 908},
+      "p10_h21": {"vars": 6002,  "constraints": 8625,  "nodes": 4673, "gap_pct": 0.0,  "cpu_s": 1756},
+      "p10_h30": {"vars": 7555,  "constraints": 9813,  "nodes": 5775, "gap_pct": 0.0,  "cpu_s": 2578},
+      "p20_h15": {"vars": 17174, "constraints": 32866, "nodes": 4599, "gap_pct": 0.0,  "cpu_s": 3376},
+      "p20_h21": {"vars": 21746, "constraints": 39482, "nodes": 6899, "gap_pct": 0.0,  "cpu_s": 5670},
+      "p20_h30": {"vars": 26574, "constraints": 44755, "nodes": 6851, "gap_pct": 0.0,  "cpu_s": 6867},
+      "p30_h15": {"vars": 35678, "constraints": 67529, "nodes": 8245, "gap_pct": 0.0,  "cpu_s": 8054},
+      "p30_h21": {"vars": 43388, "constraints": 77899, "nodes": 9009, "gap_pct": 0.0,  "cpu_s": 10800},
+      "p30_h30": {"vars": 49692, "constraints": 82739, "nodes": 9755, "gap_pct": 0.31, "cpu_s": 10800},
+      "p40_h15": {"vars": 56962, "constraints": 107172,"nodes": 10710,"gap_pct": 0.30, "cpu_s": 10800},
+      "p40_h21": {"vars": 64066, "constraints": 114266,"nodes": 10841,"gap_pct": 0.40, "cpu_s": 10800},
+      "p40_h30": {"vars": 78892, "constraints": 130684,"nodes": 10873,"gap_pct": 0.46, "cpu_s": 10800}
+    },
+    "dmax5": {
+      "p10_h15": {"vars": 4708,  "constraints": 6688,  "nodes": 2350, "gap_pct": 0.0,  "cpu_s": 865},
+      "p10_h21": {"vars": 6002,  "constraints": 8086,  "nodes": 4450, "gap_pct": 0.0,  "cpu_s": 1672},
+      "p10_h30": {"vars": 7555,  "constraints": 9200,  "nodes": 5500, "gap_pct": 0.0,  "cpu_s": 2455},
+      "p20_h15": {"vars": 17174, "constraints": 30812, "nodes": 4380, "gap_pct": 0.0,  "cpu_s": 3215},
+      "p20_h21": {"vars": 21746, "constraints": 37014, "nodes": 6570, "gap_pct": 0.0,  "cpu_s": 5400},
+      "p20_h30": {"vars": 26574, "constraints": 41958, "nodes": 6525, "gap_pct": 0.0,  "cpu_s": 6540},
+      "p30_h15": {"vars": 35678, "constraints": 63308, "nodes": 7852, "gap_pct": 0.0,  "cpu_s": 7670},
+      "p30_h21": {"vars": 43388, "constraints": 73030, "nodes": 8580, "gap_pct": 0.0,  "cpu_s": 9700},
+      "p30_h30": {"vars": 49692, "constraints": 77568, "nodes": 9290, "gap_pct": 0.20, "cpu_s": 10800},
+      "p40_h15": {"vars": 56962, "constraints": 100474,"nodes": 10200,"gap_pct": 0.23, "cpu_s": 10800},
+      "p40_h21": {"vars": 64066, "constraints": 107124,"nodes": 10325,"gap_pct": 0.31, "cpu_s": 10800},
+      "p40_h30": {"vars": 78892, "constraints": 122516,"nodes": 10355,"gap_pct": 0.40, "cpu_s": 10800}
+    }
+  }
+}

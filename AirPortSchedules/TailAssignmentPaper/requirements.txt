@@ -1,0 +1,29 @@
+# ============================================================
+# TailAssignmentPaper — Python dependencies
+# Python 3.8+
+# ============================================================
+
+# Optimisation framework (model builder / solver interface)
+pyomo>=6.6.0
+
+# Scientific / data
+numpy>=1.24
+pandas>=2.0
+scipy>=1.11          # used for statistical analysis of results
+
+# Plotting (Gantt charts, result figures for paper)
+matplotlib>=3.7
+
+# Utilities
+tqdm>=4.65           # progress bars for batch runs
+
+# ---- Optional: install the solver separately ----
+# CPLEX (IBM): download from IBM site, then:
+#   pip install cplex  (or set CPLEX path in system)
+# Gurobi: pip install gurobipy
+# CBC (free): conda install -c conda-forge coincbc  OR  pip install cylp
+# GLPK (free): conda install -c conda-forge glpk
+
+# ---- Development / paper writing ----
+# pytest>=7.0        # run validation tests
+# jupyterlab         # notebook exploration

@@ -1,0 +1,55 @@
+{
+  "_comment": "Config for the constraint-13 correction experiment (our key contribution).",
+  "experiment": "c13_correction",
+  "description": "Compare paper C13 vs corrected C13 on a targeted instance set",
+  "mode": "milp",
+  "use_maintenance": true,
+  "use_overlap": true,
+  "use_ferry": true,
+  "use_check_hierarchy": true,
+  "solver": "cplex",
+  "time_limit": 3600,
+  "presolve_variants": [true],
+  "variants": [
+    {
+      "label": "paper_c13",
+      "use_paper_c13": true,
+      "description": "Original Khaled et al. constraint (13): t_sum <= Tmax + M*(2 - y[j,d] - y[j,d'])"
+    },
+    {
+      "label": "corrected_c13",
+      "use_paper_c13": false,
+      "description": "Corrected formulation: two split constraints, one per endpoint indicator"
+    },
+    {
+      "label": "corrected_c13_with_initial",
+      "use_paper_c13": false,
+      "use_existing_hrs": true,
+      "description": "Corrected C13 plus pre-horizon accumulated hours (C13b, our extension)"
+    }
+  ],
+  "grid": [
+    {"density": 1.0, "p": 10, "h":  7, "instances": 10},
+    {"density": 1.0, "p": 10, "h": 15, "instances": 10},
+    {"density": 1.0, "p": 20, "h":  7, "instances": 10},
+    {"density": 1.0, "p": 20, "h": 15, "instances": 10},
+    {"density": 0.95, "p": 10, "h":  7, "instances": 10},
+    {"density": 0.95, "p": 10, "h": 15, "instances": 10}
+  ],
+  "targeted_instances": [
+    "data/instances/ABCD_all_checks_test.json",
+    "data/instances/ABCD_multi_check_test.json",
+    "data/instances/ABCD_check_hierarchy_test.json",
+    "data/instances/ABCD_near_threshold_test.json"
+  ],
+  "metrics_to_compare": [
+    "feasibility_status",
+    "objective_value",
+    "optimality_gap_pct",
+    "num_variables",
+    "num_constraints",
+    "cpu_seconds",
+    "bnb_nodes"
+  ],
+  "expected_outcome": "The paper C13 may produce solutions that violate the cumulative flight-hour constraint (infeasible when checked post-hoc). The corrected C13 should tighten the bound and produce stricter, correct maintenance schedules."
+}

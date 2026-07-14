@@ -1,0 +1,7 @@
+{
+  "methods": [
+    "greedy_baseline",
+    "dijkstra_heuristic",
+    "aco_heuristic"
+  ]
+}

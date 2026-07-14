@@ -1,0 +1,98 @@
+
+=== MILP Aircraft Assignment Report ===
+  Status : optimal
+  Vars   : 2232   Constraints: 5280
+  Gap    : 0.0000%   CPU: 0.12s
+  Obj    : 21100.0
+
+--- Assignment ---
+  Flight    1  -> Aircraft 0
+  Flight    2  -> Aircraft 3
+  Flight    3  -> Aircraft 1
+  Flight    4  -> Aircraft 2
+  Flight    5  -> Aircraft 5
+  Flight    6  -> Aircraft 3
+  Flight    7  -> Aircraft 4
+  Flight    8  -> Aircraft 2
+  Flight    9  -> Aircraft 5
+  Flight   10  -> Aircraft 3
+  Flight   11  -> Aircraft 3
+  Flight   12  -> Aircraft 1
+  Flight   13  -> Aircraft 3
+  Flight   14  -> Aircraft 4
+  Flight   15  -> Aircraft 3
+  Flight   16  -> Aircraft 0
+  Flight   17  -> Aircraft 2
+  Flight   18  -> Aircraft 5
+  Flight   19  -> Aircraft 3
+  Flight   20  -> Aircraft 4
+
+--- Maintenance ---
+  Aircraft 2  day   3  check D after flight:
+17 arr 3700.0 
+
+
+  Aircraft 2  day   4  check D after flight:
+17 arr 3700.0 
+
+
+  Aircraft 2  day   5  check D after flight:
+17 arr 3700.0 
+
+
+  Aircraft 2  day   6  check D after flight:
+17 arr 3700.0 
+
+
+  Aircraft 2  day   7  check D after flight:
+17 arr 3700.0 
+
+
+  Aircraft 2  day   8  check D after flight:
+17 arr 3700.0 
+
+
+  Aircraft 3  day   4  check D after flight:
+19 arr 4360.0 
+
+
+  Aircraft 3  day   5  check D after flight:
+19 arr 4360.0 
+
+
+  Aircraft 3  day   6  check D after flight:
+19 arr 4360.0 
+
+
+  Aircraft 3  day   7  check D after flight:
+19 arr 4360.0 
+
+
+  Aircraft 3  day   8  check D after flight:
+19 arr 4360.0 
+
+
+y[2,3,D] = 1.0  (check D for aircraft 2 on day 3)
+z[17,2,3,D] = 1.0  (flight 17 triggers check D for aircraft 2 on day 3)
+y[2,4,D] = 1.0  (check D for aircraft 2 on day 4)
+z[17,2,4,D] = 1.0  (flight 17 triggers check D for aircraft 2 on day 4)
+y[2,5,D] = 1.0  (check D for aircraft 2 on day 5)
+z[17,2,5,D] = 1.0  (flight 17 triggers check D for aircraft 2 on day 5)
+y[2,6,D] = 1.0  (check D for aircraft 2 on day 6)
+z[17,2,6,D] = 1.0  (flight 17 triggers check D for aircraft 2 on day 6)
+y[2,7,D] = 1.0  (check D for aircraft 2 on day 7)
+z[17,2,7,D] = 1.0  (flight 17 triggers check D for aircraft 2 on day 7)
+y[2,8,D] = 1.0  (check D for aircraft 2 on day 8)
+z[17,2,8,D] = 1.0  (flight 17 triggers check D for aircraft 2 on day 8)
+y[3,4,D] = 1.0  (check D for aircraft 3 on day 4)
+z[19,3,4,D] = 1.0  (flight 19 triggers check D for aircraft 3 on day 4)
+y[3,5,D] = 1.0  (check D for aircraft 3 on day 5)
+z[19,3,5,D] = 1.0  (flight 19 triggers check D for aircraft 3 on day 5)
+y[3,6,D] = 1.0  (check D for aircraft 3 on day 6)
+z[19,3,6,D] = 1.0  (flight 19 triggers check D for aircraft 3 on day 6)
+y[3,7,D] = 1.0  (check D for aircraft 3 on day 7)
+z[19,3,7,D] = 1.0  (flight 19 triggers check D for aircraft 3 on day 7)
+y[3,8,D] = 1.0  (check D for aircraft 3 on day 8)
+z[19,3,8,D] = 1.0  (flight 19 triggers check D for aircraft 3 on day 8)
+
+Total cost: 21100.00

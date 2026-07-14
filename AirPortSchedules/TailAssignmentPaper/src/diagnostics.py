@@ -91,7 +91,7 @@ def find_iis(data_path: str,
     print("\nRunning CPLEX conflict refiner...")
     try:
         from pyomo.opt import SolverFactory
-        solver = SolverFactory('cplex')
+        solver = SolverFactory(os.environ.get('TAP_PYOMO_SOLVER', 'cplex_direct'))
         if not solver.available():
             raise RuntimeError("CPLEX solver not available on PATH.")
         solver.options['conflict'] = 1
@@ -109,7 +109,7 @@ def find_iis(data_path: str,
 # ---------------------------------------------------------------------------
 
 def deactivation_scan(data_path: str,
-                      solver_name: str = 'cplex',
+                      solver_name: str = 'cplex_direct',
                       time_limit: int = 30,
                       build_kwargs: dict | None = None) -> dict:
     """
@@ -202,7 +202,7 @@ Examples:
     p.add_argument('--data',     required=True, help='Path to JSON instance')
     p.add_argument('--mode',     default='scan',
                    choices=['iis', 'scan', 'both'], help='Diagnostic mode')
-    p.add_argument('--solver',   default='cplex', help='Solver name (scan mode)')
+    p.add_argument('--solver',   default=os.environ.get('TAP_PYOMO_SOLVER', 'cplex_direct'), help='Solver name (scan mode)')
     p.add_argument('--time-limit', type=int, default=30,
                    help='Time limit per sub-problem in scan mode (s)')
     p.add_argument('--out-lp',   default=None,

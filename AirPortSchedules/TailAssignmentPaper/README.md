@@ -51,19 +51,23 @@ QUICK START
         # Free fallback:
         conda install -c conda-forge coincbc glpk
 
-4.  Verify the solver is on PATH:
+4.  Verify the configured CPLEX Studio backend is visible to Pyomo:
 
-        python -c "from pyomo.opt import SolverFactory; print(SolverFactory('cplex').available())"
+  python -c "import pyomo.environ as pyo; from pyomo.opt import SolverFactory; print(SolverFactory('cplex').available())"
 
 5.  Run a single instance (small, quick sanity check):
 
         python src/model.py --mode milp \
                --data data/instances/DataCplex_density=1_p=10_h=7_test_0.json \
-               --solver cplex --time-limit 60
+           --solver cplex --time-limit 60
 
 6.  Reproduce Table 5 (small subset, ~5 min):
 
         python experiments/reproduce_tables.py --table 5 --quick --solver cplex
+
+      This workspace is configured to default to `cplex` through
+      `TAP_PYOMO_SOLVER`, with the CPLEX Studio `bin\x64_win64` directory added
+      to the integrated terminal `PATH`.
 
 7.  Compile the paper (requires a LaTeX installation):
 
@@ -92,7 +96,7 @@ KEY MODEL FLAGS (src/model.py)
   --no-ferry              Disable repositioning (ferry) flights
   --no-overlap            Disable non-overlapping flights check
   --no-check-hierarchy    Disable check hierarchy (D resets C,B,A; etc.)
-  --solver NAME           cplex | gurobi | cbc | glpk  (default: cplex)
+  --solver NAME           cplex_direct | cplex_persistent | cplex | gurobi | cbc | glpk
   --time-limit N          MIP solver time limit in seconds (default: 300)
   --out FILE              Write schedule/events output to FILE
   --gantt FILE            Save Gantt chart to FILE (.png)

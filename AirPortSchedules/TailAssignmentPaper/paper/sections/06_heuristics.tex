@@ -93,8 +93,9 @@ instances (see \Cref{tab:heuristic_comparison}).
 
 \begin{table}[t]
 \centering\small
-\caption{Empirical heuristic summary (to be filled from
-  \texttt{results/tables/} after experiments run).}
+\caption{Empirical heuristic summary from the current benchmark suite
+  (\texttt{ABCD\_capacity\_bottleneck\_test}, heavy density-$0.5$ cases,
+  and dense density-$1.0$ cases; 8 instances total).}
 \label{tab:heuristic_comparison}
 \begin{tabular}{lccc}
 \toprule
@@ -102,9 +103,9 @@ Property & Greedy+Ins. & Dijkstra & ACO \\
 \midrule
 Solver required? & No  & No  & No \\
 Deterministic?   & Yes & Yes & No (seeded) \\
-Average gap vs.\ MILP (\%) & TBD & TBD & TBD \\
-Max gap vs.\ MILP (\%)     & TBD & TBD & TBD \\
-Avg.\ CPU (s)              & TBD & TBD & TBD \\
+Avg. unassigned flights & 68.38 & 130.75 & 233.00 \\
+Complete assignments (of 8) & 3 & 3 & 0 \\
+Avg. wall time (s) & 3.800 & 11.384 & 121.024 \\
 \bottomrule
 \end{tabular}
 \end{table}

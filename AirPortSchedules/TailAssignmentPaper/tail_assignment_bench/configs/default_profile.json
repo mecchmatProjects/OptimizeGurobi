@@ -1,0 +1,5 @@
+{
+  "unassigned_penalty": 100000.0,
+  "violation_penalty": 1000000.0,
+  "runtime_weight": 0.0
+}

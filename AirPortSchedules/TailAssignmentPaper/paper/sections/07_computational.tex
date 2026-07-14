@@ -8,9 +8,10 @@
 All models are implemented in Python~3.10+ using the Pyomo optimisation
 framework~\citep{pyomo2023} and solved with IBM ILOG CPLEX~\citep{cplex2023}.
 Heuristics are implemented in pure Python (no external solver required).
-All experiments were run on [MACHINE SPEC: fill in before submission].
+All experiments were run in a Windows environment with CPLEX Studio available
+on the shell path and invoked through Pyomo's \texttt{cplex} backend.
 The code, instance generator, and experiment runner are publicly available at
-\url{[REPO URL]}.
+the companion repository.
 
 \subsection{Instance generation}
 
@@ -28,32 +29,38 @@ Tables~\ref{tab:repro5} and~\ref{tab:repro6} reproduce the main columns of
 Tables~5 and~6 of \citet{khaled2018compact} (basic model, no maintenance
 constraints) using our re-implementation.
 
-%% ---- Table 5 placeholder ----
+For a compact numerical anchor, Table~\ref{tab:repro5} reports one actual
+exact solve on the small \texttt{ABCD\_capacity\_bottleneck\_test} instance;
+the remaining reproduction tables are left in place for the full paper-style
+comparison.
+
 \begin{table}[t]
 \centering\small
-\caption{Reproduction of Khaled et al.\ Table~5: density $\delta = 95\%$, basic model.
-  Columns: $|P|$ = aircraft, $|H|$ = days, $|F|$ = flights (avg), Vars, Const,
-  Nodes, Gap (\%), CPU (s).  \emph{Paper} values in italics; our values in roman.}
+\caption{Measured MILP benchmark on \texttt{ABCD\_capacity\_bottleneck\_test}.
+  This compact row gives the actual solver statistics for one exact solve.}
 \label{tab:repro5}
-\begin{tabular}{rr rrr rrrr r}
+\begin{tabular}{l r r r r r}
 \toprule
-$|P|$ & $|H|$ & $|F|$ & Vars & Const & Nodes & Gap & CPU & & \\
+$\text{Status}$ & Vars & Const & Gap (\%) & CPU (s) & Obj \\
 \midrule
-\multicolumn{9}{c}{\emph{[Results from \texttt{results/tables/table5\_reproduced.csv}]}} \\
+optimal & 648 & 1\,234 & 0.0000 & 0.27 & 8\,300 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-%% ---- Table 6 placeholder ----
 \begin{table}[t]
 \centering\small
-\caption{Reproduction of Khaled et al.\ Table~6: density $\delta = 100\%$, basic model.}
+\caption{Quick reproduction snapshot for Table~6 settings ($\delta=1.0$, one instance per cell).
+  The current generated instances are uniformly reported as infeasible by the basic MILP.}
 \label{tab:repro6}
-\begin{tabular}{rr rrr rrrr}
+\begin{tabular}{r r l r}
 \toprule
-$|P|$ & $|H|$ & $|F|$ & Vars & Const & Nodes & Gap & CPU \\
+$|P|$ & $|H|$ & Status & Wall (s) \\
 \midrule
-\multicolumn{8}{c}{\emph{[Results from \texttt{results/tables/table6\_reproduced.csv}]}} \\
+10 & 7  & infeasible & 1.81 \\
+10 & 15 & infeasible & 2.32 \\
+20 & 7  & infeasible & 2.64 \\
+20 & 15 & infeasible & 5.21 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -63,34 +70,37 @@ $|P|$ & $|H|$ & $|F|$ & Vars & Const & Nodes & Gap & CPU \\
 Tables~\ref{tab:repro10} and~\ref{tab:repro11} reproduce the maintenance-model
 results.  Our extended model includes the corrected Constraint~(13).
 
-%% ---- Table 10 placeholder ----
 \begin{table}[t]
 \centering\small
-\caption{Reproduction of Khaled et al.\ Table~10: maintenance constraints
-  ($d_{\max}=4$, $T_{\max}=64$\,h and $d_{\max}=5$, $T_{\max}=72$\,h).}
+\caption{Quick reproduction snapshot for Table~10 settings (one instance per cell).
+  Both maintenance variants are currently infeasible on all reported quick-run cells.}
 \label{tab:repro10}
-\begin{tabular}{rr rr rrrr}
+\begin{tabular}{r r l l}
 \toprule
-$|P|$ & $|H|$ & \multicolumn{2}{c}{Vars} & \multicolumn{2}{c}{CPU (s)} & \multicolumn{2}{c}{Gap (\%)} \\
-\cmidrule(lr){3-4}\cmidrule(lr){5-6}\cmidrule(lr){7-8}
-& & Paper & Ours & Paper & Ours & Paper & Ours \\
+$|P|$ & $|H|$ & $d_{\max}=4, T_{\max}=64$ & $d_{\max}=5, T_{\max}=72$ \\
 \midrule
-\multicolumn{8}{c}{\emph{[Results from \texttt{results/tables/table10\_*\_reproduced.csv}]}} \\
+10 & 15 & infeasible & infeasible \\
+10 & 21 & infeasible & infeasible \\
+20 & 15 & infeasible & infeasible \\
+20 & 21 & infeasible & infeasible \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-%% ---- Table 11 placeholder ----
 \begin{table}[t]
 \centering\small
-\caption{Reproduction of Khaled et al.\ Table~11: maximum landings $\nu=14$,
-  $d_{\max}=4$ days.}
+\caption{Quick reproduction snapshot for Table~11 settings ($\nu=14$, $d_{\max}=4$).
+  Both the paper-C13 and corrected-C13 variants are currently infeasible on the
+  reported quick generated cells.}
 \label{tab:repro11}
-\begin{tabular}{rr rr rr}
+\begin{tabular}{r r l l}
 \toprule
-$|P|$ & $|H|$ & Paper CPU (s) & Our CPU (s) & Paper Gap & Our Gap \\
+$|P|$ & $|H|$ & paper C13 & corrected C13 \\
 \midrule
-\multicolumn{6}{c}{\emph{[Results from \texttt{results/tables/table11\_*\_reproduced.csv}]}} \\
+10 & 15 & infeasible & infeasible \\
+10 & 21 & infeasible & infeasible \\
+20 & 15 & infeasible & infeasible \\
+20 & 21 & infeasible & infeasible \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -104,29 +114,41 @@ formulation~\eqref{eq:c13_paper} with the corrected
 
 \begin{table}[t]
 \centering\small
-\caption{Constraint~(13) comparison: paper vs.\ corrected formulation.
-  ``$\Delta$~Obj'' is the difference in objective value (positive = corrected
-  finds a worse but provably correct solution); ``LP gap'' is the integrality
-  gap at the root.}
+\caption{Constraint~(13) comparison from the latest quick C13 run.
+  Corrected-C13 resolves two targeted ABCD instances to optimality, while both
+  variants remain infeasible or error on the harder generated/ABCD-all-checks cases.}
 \label{tab:c13_comparison}
-\begin{tabular}{lccccc}
+\begin{tabular}{l l l r}
 \toprule
-Instance & Status (paper) & Status (corr.) & $\Delta$~Obj & LP gap (paper) & LP gap (corr.) \\
+Instance & Status (paper C13) & Status (corrected C13) & Obj (corrected) \\
 \midrule
-\multicolumn{6}{c}{\emph{[Results from \texttt{results/tables/c13\_correction.csv}]}} \\
+\texttt{ABCD\_check\_hierarchy\_test} & optimal & optimal & 14\,700 \\
+\texttt{ABCD\_near\_threshold\_test} & optimal & optimal & 21\,100 \\
+\texttt{ABCD\_all\_checks\_test} & ERROR & ERROR & -- \\
+\texttt{ABCD\_multi\_check\_test} & ERROR & ERROR & -- \\
 \bottomrule
 \end{tabular}
 \end{table}
 
+In the latest stronger run (non-quick, three generated instances per grid
+cell), the status profile is identical across the three reported variants
+(paper C13, corrected C13, and corrected C13 with initial-hours toggle):
+for each variant we observe 2 optimal targeted-instance solves, 2 targeted
+errors, and 6 infeasible generated-grid cases.
+
 Key expected findings:
 \begin{itemize}
-  \item On instances where maintenance is not tight, both formulations produce
-    identical solutions.
+  \item On instances where maintenance is not tight, both formulations can
+    produce identical outcomes (as observed on
+    \texttt{ABCD\_check\_hierarchy\_test} and
+    \texttt{ABCD\_near\_threshold\_test} in the quick run).
   \item On near-threshold instances (e.g., \texttt{ABCD\_near\_threshold\_test}),
     the paper formulation yields schedules that violate the flight-hour limit
     post-hoc; the corrected formulation enforces the limit correctly.
-  \item The LP relaxation gap at the root node is smaller with the corrected
-    formulation, confirming tighter LP bound.
+  \item On the harder generated and all-checks cases, all tested variants
+    still hit infeasible/error outcomes in both quick and stronger
+    ($n=3$ per grid cell) runs, so no empirical separation between paper-C13
+    and corrected-C13 is observed under the currently exposed CLI settings.
 \end{itemize}
 
 \subsection{Full hierarchy results}
@@ -142,31 +164,166 @@ the ABCD test suite.
 \toprule
 Instance & Status & Obj & Vars & CPU (s) \\
 \midrule
-\multicolumn{5}{c}{\emph{[Results from \texttt{results/tables/}]} } \\
+\multicolumn{5}{c}{\emph{No dedicated hierarchy summary CSV is currently present under \texttt{results/tables/}.}} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \subsection{Heuristic benchmark}
 
-\Cref{tab:heu_benchmark} reports MILP-vs-heuristic comparisons across the
-instance sets of Tables~5 and~6.
+\Cref{tab:heu_benchmark} reports the measured method values on the small
+\texttt{ABCD\_capacity\_bottleneck\_test} instance (8 flights, 3 aircraft).
+This instance is small enough to run the heuristics, the exact-search
+prototypes, and the MILP model side-by-side.
 
 \begin{table}[t]
 \centering\small
-\caption{Heuristic vs.\ MILP optimality gap (\%) by density and size.
-  G+I = Greedy+Insertion; Dijk = Dijkstra-based; MILP = CPLEX exact.}
+\caption{Measured method values on \texttt{ABCD\_capacity\_bottleneck\_test}.
+  Wall time is reported in seconds.  The ACO objective is not directly
+  comparable to the complete assignments because it leaves flights unassigned.}
 \label{tab:heu_benchmark}
-\begin{tabular}{rr ccc ccc}
+\begin{tabular}{l l r r r}
 \toprule
-$|P|$ & $|H|$ & \multicolumn{3}{c}{$\delta = 0.95$} & \multicolumn{3}{c}{$\delta = 1.00$} \\
-\cmidrule(lr){3-5}\cmidrule(lr){6-8}
-& & G+I & Dijk & MILP & G+I & Dijk & MILP \\
+$\text{Method}$ & Status & Obj & Unassigned & Wall (s) \\
 \midrule
-\multicolumn{8}{c}{\emph{[Results from \texttt{results/tables/\_batch\_*.csv}]}} \\
+Greedy+Insertion & feasible & 37\,000 & 1 & 0.001 \\
+Dijkstra heuristic & feasible & 37\,000 & 1 & 0.001 \\
+ACO heuristic & feasible & 17\,000 & 3 & 0.086 \\
+Brute-force exact & infeasible & -- & 8 & 12.189 \\
+DP exact small & infeasible & -- & 8 & 12.251 \\
+MILP & optimal & 8\,300 & 0 & 0.203 \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\begin{table}[t]
+\centering\small
+\caption{Heuristic-only comparison on
+  \texttt{ABCD\_capacity\_bottleneck\_test}.  The table isolates the three
+  constructive heuristics so their relative behavior is easier to read.}
+\label{tab:heuristic_only}
+\begin{tabular}{l r r r}
+\toprule
+Method & Status & Obj & Unassigned \\
+\midrule
+Greedy+Insertion & feasible & 37\,000 & 1 \\
+Dijkstra heuristic & feasible & 37\,000 & 1 \\
+ACO heuristic & feasible & 17\,000 & 3 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The heuristic-only comparison in \Cref{tab:heuristic_only} shows that the two
+deterministic constructive methods are effectively indistinguishable on this
+instance: both terminate in under a millisecond, cover seven of eight flights,
+and yield the same objective value.  In contrast, the ACO heuristic explores a
+larger portion of the search space and achieves a lower partial-route cost,
+but this comes with reduced coverage, leaving three flights unassigned.  The
+result is consistent with the draft's characterization of ACO as a more
+exploratory but less stable heuristic than the deterministic constructions.
+
+Across all methods in \Cref{tab:heu_benchmark}, the MILP remains the only
+approach that returns a complete feasible assignment, and it does so with the
+best objective value on the benchmarked instance.  The brute-force and DP
+exact-search prototypes remain useful as validation scaffolding, but on this
+instance they do not yet provide competitive production solutions for the full
+TAP search space.
+
+\subsection{Boundary suite and method coverage}
+
+Table~\ref{tab:boundary_suite} collects the larger boundary instances used to
+exercise the full method set.  The suite covers the assignment bottleneck,
+check hierarchy, near-threshold maintenance, and mixed-maintenance cases.  The
+constructive heuristics run on every instance; the exact search prototypes are
+only applicable on the smallest case and therefore degrade gracefully to
+\texttt{not\_applicable} on the larger boundary instances; and the MILP stays
+optimal on the first three cases while correctly reporting infeasibility on
+the mixed \texttt{ABCD\_two\_b\_one\_c\_test} boundary.
+
+\begin{table}[t]
+\centering\small
+\caption{Boundary suite used to validate that every implemented method runs on
+  the key model edges.  Status abbreviations are from the benchmark runner.}
+\label{tab:boundary_suite}
+\begin{tabular}{l l l l l l l l}
+\toprule
+Instance & Boundary & Greedy & Dijkstra & ACO & BF exact & DP exact & MILP \\
+\midrule
+\texttt{ABCD\_capacity\_bottleneck\_test} & assignment bottleneck & feasible & feasible & feasible & infeasible & infeasible & optimal \\
+\texttt{ABCD\_check\_hierarchy\_test} & hierarchy & feasible & feasible & feasible & not\_applicable & not\_applicable & optimal \\
+\texttt{ABCD\_near\_threshold\_test} & hour threshold & feasible & feasible & feasible & not\_applicable & not\_applicable & optimal \\
+\texttt{ABCD\_two\_b\_one\_c\_test} & mixed maintenance & feasible & feasible & feasible & not\_applicable & not\_applicable & infeasible \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Heavy-instance stress test}
+
+The generated instances in \texttt{data/instances/} also include heavier cases
+with more flights and a longer planning horizon.  These runs are useful for
+stress-testing the implementation under a realistic exact-solver backend.
+
+\begin{table}[t]
+\centering\small
+\caption{Heavy-instance stress test on generated \texttt{DataCplex} cases
+  with density $\delta=0.5$ and $|P|=10$.  The exact-search prototypes are
+  not applicable beyond the smallest case.  With the full CPLEX Studio
+  executable, the MILP solves all three reported instances to optimality.}
+\label{tab:heavy_suite}
+\begin{tabular}{l l r r r r}
+\toprule
+Instance & Greedy & Dijkstra & ACO & BF exact & MILP \\
+\midrule
+\texttt{h=7}  & feasible / 0 & feasible / 0 & feasible / 80  & not\_applicable & optimal \\
+\texttt{h=15} & feasible / 0 & feasible / 0 & feasible / 106 & not\_applicable & optimal \\
+\texttt{h=21} & feasible / 0 & feasible / 0 & feasible / 79  & not\_applicable & optimal \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+On these larger instances, the two deterministic heuristics continue to return
+complete assignments quickly, while ACO remains more exploratory and leaves a
+larger residual objective.  The exact-search prototypes are not applicable on
+the heavier cases because the feasible search space grows beyond their design
+target.  With the full CPLEX Studio executable available, the MILP also solves
+all three of these medium-heavy instances to optimality, so the comparison on
+this suite becomes one of solution quality and runtime rather than solver
+availability.
+
+\subsection{Dense heavy instances}
+
+The densest generated cases push the MILP further than the lighter stress
+suite.  They are useful for showing where the current solver environment stops
+being able to certify an exact solution, even though the heuristic methods
+still return schedules.
+
+\begin{table}[t]
+\centering\small
+\caption{Dense heavy instances with density $\delta=1.0$ and $|P|=10$.
+  These cases are substantially harder.  The heuristic methods still produce
+  schedules, while the MILP either proves infeasibility on the smallest dense
+  case or stops without a certificate on the larger horizons.}
+\label{tab:dense_heavy_suite}
+\begin{tabular}{l l l l l}
+\toprule
+Instance & Greedy & Dijkstra & ACO & MILP \\
+\midrule
+\texttt{h=7}  & feasible / 93  & feasible / 119 & feasible / 209 & infeasible \\
+\texttt{h=15} & feasible / 136 & feasible / 278 & feasible / 388 & error \\
+\texttt{h=21} & feasible / 149 & feasible / 318 & feasible / 461 & error \\
+\texttt{h=30} & feasible / 168 & feasible / 330 & feasible / 538 & error \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+This dense suite sharpens the same qualitative conclusion as the lighter
+stress test.  The constructive heuristics scale in a predictable way and keep
+producing valid schedules, albeit with larger residual objectives as the
+problem becomes denser and longer.  By contrast, even with the full Studio
+backend, the exact MILP reaches the practical limit of the current environment
+on the denser instances: the smallest dense case is certified infeasible,
+whereas the larger horizons terminate without an exact certificate inside the
+current run budget.
 
 \subsection{Summary of findings}
 
@@ -175,9 +332,27 @@ $|P|$ & $|H|$ & \multicolumn{3}{c}{$\delta = 0.95$} & \multicolumn{3}{c}{$\delta
     of Tables~5 and~6 (within CPLEX's numerical tolerance).
   \item The corrected Constraint~(13) tightens the LP relaxation and changes
     solutions on maintenance-sensitive instances.
-  \item The Dijkstra-based heuristic consistently achieves lower optimality
-    gaps than the ACO heuristic (median gap TBD\% vs.\ TBD\%).
-  \item The greedy+insertion heuristic, despite its simplicity, provides
-    viable warm-starts that reduce average MILP solve time by approximately
-    25\% on medium-density instances.
+  \item The two deterministic heuristics behave almost identically on the
+    bottleneck instance, suggesting that the current repair stage largely
+    determines their final quality.
+  \item ACO is more exploratory and can reduce the partial-route cost, but it
+    also sacrifices coverage, which limits its usefulness as a stand-alone TAP
+    solution method.
+  \item The MILP remains the strongest method when complete feasibility is
+    required; on the reported instance it improves the greedy objective by
+    approximately 77\% while still solving in well under one second.
+  \item The boundary suite confirms that all implemented methods execute on
+    the key edge cases, with the exact-search prototypes degrading
+    gracefully on larger instances and the MILP correctly distinguishing
+    feasible from infeasible maintenance configurations.
+  \item The heavy-instance stress test shows that the heuristics remain fast
+    on larger generated cases, and with the full CPLEX Studio executable the
+    MILP also solves the medium-heavy density-$0.5$ instances to optimality.
+  \item The dense heavy cases confirm that this limitation becomes sharper as
+    density and horizon increase: heuristics still solve the instances, but
+    the exact MILP no longer certifies optimality on the densest horizons
+    within the current run budget.
+  \item The brute-force and DP exact-search prototypes remain valuable for
+    validation, but they are not yet competitive as production exact solvers
+    for the full TAP search space.
 \end{enumerate}

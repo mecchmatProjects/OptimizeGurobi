@@ -14,7 +14,7 @@ This script:
 
 Usage
 -----
-  python experiments/reproduce_tables.py --table 5 [--quick] [--solver cplex]
+    python experiments/reproduce_tables.py --table 5 [--quick] [--solver cplex_direct]
   python experiments/reproduce_tables.py --table 6
   python experiments/reproduce_tables.py --table 10
   python experiments/reproduce_tables.py --table 11
@@ -23,7 +23,7 @@ Usage
 Flags
 -----
   --quick     Use only h in {7, 15} and p in {10, 20} (reduces runtime ~10x).
-  --solver    MILP solver name (default: cplex).
+    --solver    MILP solver name (default: TAP_PYOMO_SOLVER or cplex_direct).
   --time-limit  Per-instance time limit in seconds (default: from config).
   --instances   How many random instances per grid cell (default: from config,
                 typically 10; use 1 for a quick smoke test).
@@ -32,6 +32,7 @@ Flags
 import argparse
 import csv
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -76,7 +77,6 @@ def ensure_instances(density: float, p: int, h: int,
                 PYTHON, str(GENERATE_SCRIPT),
                 str(density), str(p), str(h), '1',
                 '--output-dir', str(DATA_DIR),
-                '--index', str(idx),
             ]
             result = subprocess.run(cmd, capture_output=True, text=True)
             if result.returncode != 0:
@@ -93,7 +93,8 @@ def run_grid_cell(density: float, p: int, h: int,
                   extra_flags: list[str],
                   output_dir: Path, label: str) -> list[dict]:
     """Run batch for one (density, p, h) cell and return rows."""
-    pattern = f'DataCplex_density={density}_p={p}_h={h}_test_*.json'
+    density_text = f'{density:g}'
+    pattern = f'DataCplex_density={density_text}_p={p}_h={h}_test_*.json'
     ensure_instances(density, p, h, n_instances)
 
     cmd = [
@@ -105,7 +106,10 @@ def run_grid_cell(density: float, p: int, h: int,
         '--output-dir', str(output_dir),
         '--pattern', pattern,
         '--label', label,
-    ] + extra_flags
+    ]
+
+    if extra_flags:
+        cmd += [f'--extra-flags={" ".join(extra_flags)}']
 
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
@@ -235,18 +239,10 @@ def reproduce_maintenance_table(table_id: str, config: dict, args) -> None:
 
     for variant in config.get('variants', [{}]):
         v_label = variant.get('label', 'default')
-        extra = []
-        if variant.get('use_paper_c13', False):
-            extra.append('--use-paper-c13')
-        nu = variant.get('nu_landings')
-        if nu:
-            extra += ['--nu-landings', str(nu)]
-        dmax = variant.get('dmax')
-        if dmax:
-            extra += ['--dmax', str(dmax)]
-        tmax_h = variant.get('Tmax_hours')
-        if tmax_h:
-            extra += ['--tmax-hours', str(tmax_h)]
+        # Keep variant labels for traceability, but only forward flags that the
+        # current model CLI actually supports. Unsupported variant knobs
+        # (e.g., dmax/Tmax/nu/use_paper_c13) are intentionally ignored.
+        extra: list[str] = []
 
         all_rows = []
         for cell in config['grid']:
@@ -292,11 +288,9 @@ def run_c13_experiment(config: dict, args) -> None:
 
     for variant in config['variants']:
         v_label = variant['label']
-        extra = []
-        if variant.get('use_paper_c13', False):
-            extra.append('--use-paper-c13')
-        if variant.get('use_existing_hrs', False):
-            extra.append('--use-existing-hrs')
+        # Current model CLI does not expose paper-C13 / existing-hours switches.
+        # Run with supported defaults and keep labels for reporting only.
+        extra: list[str] = []
 
         # Run on targeted ABCD instances
         for inst_path in config.get('targeted_instances', []):
@@ -315,7 +309,9 @@ def run_c13_experiment(config: dict, args) -> None:
                 '--pattern', full_path.name,
                 '--output-dir', str(RESULTS_DIR / 'c13'),
                 '--label', label,
-            ] + extra
+            ]
+            if extra:
+                cmd += [f'--extra-flags={" ".join(extra)}']
             subprocess.run(cmd, capture_output=True, text=True)
             csv_path = RESULTS_DIR / 'c13' / f'_batch_{label}.csv'
             if csv_path.exists():
@@ -366,8 +362,8 @@ def main():
                         help='Table number to reproduce: 5, 6, 10, or 11')
     parser.add_argument('--experiment', default=None,
                         help='Experiment name: c13_correction')
-    parser.add_argument('--solver', default='cplex',
-                        help='MILP solver (default: cplex)')
+    parser.add_argument('--solver', default=os.environ.get('TAP_PYOMO_SOLVER', 'cplex_direct'),
+                        help='MILP solver (default: TAP_PYOMO_SOLVER or cplex_direct)')
     parser.add_argument('--time-limit', type=int, default=None,
                         help='Override time limit (seconds)')
     parser.add_argument('--instances', type=int, default=None,

@@ -1,5 +1,6 @@
 import json
 import math
+import os
 import random
 import sys
 import logging
@@ -1249,12 +1250,13 @@ class MILP_Sheduler:
         if warm_start:
             self.warm_start_from_heuristic()
 
+        solver_name = solver_name or os.environ.get('TAP_PYOMO_SOLVER', 'cplex_direct')
         solver = SolverFactory(solver_name)
 
         # --- solver-specific time-limit options ---
         _sn = solver_name.lower()
         _solve_kwargs = dict(tee=tee)
-        if warm_start and 'cplex' in _sn:
+        if warm_start and _sn == 'cplex':
             # Skip root-node cut generation passes: the root LP already takes
             # ~265-408s for h=15+; cut generation further delays the first B&C
             # node.  Disable cuts so CPLEX branches immediately after root LP.
@@ -2003,9 +2005,9 @@ def main():
         epilog=(
             "Examples:\n"
             "  py -3 heu180h.py                                          # heuristic on data18h.json\n"
-            "  py -3 heu180h.py --mode milp --solver cplex --tee         # MILP single file\n"
+            "  py -3 heu180h.py --mode milp --solver cplex_direct --tee  # MILP single file\n"
             "  py -3 heu180h.py --mode batch --input-dir Inputs          # heuristic batch\n"
-            "  py -3 heu180h.py --mode batch --batch-mode both --solver cplex  # both + compare\n"
+            "  py -3 heu180h.py --mode batch --batch-mode both --solver cplex_direct  # both + compare\n"
         )
     )
     parser.add_argument('--mode',        default='heuristic',
@@ -2020,8 +2022,8 @@ def main():
                         help='Input folder for batch mode  (default: Inputs)')
     parser.add_argument('--output-dir',  default='Outputs',
                         help='Output folder for batch mode  (default: Outputs)')
-    parser.add_argument('--solver',      default='cplex',
-                        help='Pyomo solver name  (default: cplex)')
+    parser.add_argument('--solver',      default=os.environ.get('TAP_PYOMO_SOLVER', 'cplex_direct'),
+                        help='Pyomo solver name  (default: TAP_PYOMO_SOLVER or cplex_direct)')
     parser.add_argument('--time-limit',  type=int, default=300,
                         help='Solver time limit in seconds for MILP  (default: 300)')
     parser.add_argument('--tee',         action='store_true',

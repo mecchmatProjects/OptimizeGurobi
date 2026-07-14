@@ -177,8 +177,8 @@ def main():
     parser.add_argument('--mode', default='both',
                         choices=['heuristic', 'milp', 'both'],
                         help='Solver mode (default: both)')
-    parser.add_argument('--solver', default='cplex',
-                        help='MILP solver name (default: cplex)')
+    parser.add_argument('--solver', default=os.environ.get('TAP_PYOMO_SOLVER', 'cplex_direct'),
+                        help='MILP solver name (default: TAP_PYOMO_SOLVER or cplex_direct)')
     parser.add_argument('--time-limit', type=int, default=300,
                         help='MILP time limit in seconds (default: 300)')
     parser.add_argument('--input-dir', default='data/instances',

@@ -63,7 +63,7 @@ toggle via `use_paper_c13=True/False`.
 
 ## Code Conventions
 
-- **Solver**: CPLEX via Pyomo (`SolverFactory('cplex')`). Always pass `time_limit`.
+- **Solver**: Use the installed CPLEX Studio executable via Pyomo (`SolverFactory('cplex')`) in this workspace. Always pass `time_limit`.
 - **Instance naming**: `DataCplex_density={d}_p={p}_h={h}_test_{idx}.json`.
   `density` ∈ {0.5, 0.75, 0.8, 1.0}, `p` = # aircraft, `h` = horizon in days.
 - **Outputs**: Every script writes to `results/tables/` (CSV) or `results/figures/` (PNG).

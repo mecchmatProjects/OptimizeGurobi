@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+*.whl
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Solver outputs / temp
+*.lp
+*.mps
+*.sol
+*.log
+*.nlp
+cplex.log
+
+# Editor / OS
+.vscode/settings.json
+.idea/
+*.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Generated results (large, re-runnable)
+results/tables/*.csv
+results/figures/*.png
+results/figures/*.pdf
+!results/reference/
+
+# LaTeX build artefacts
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.log
+paper/*.fls
+paper/*.fdb_latexmk
+paper/*.synctex.gz
+paper/*.out
+paper/**/*.aux
+docs/*.aux
+docs/*.log
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Temporary
+tmp/
+__tmp_gen/
+*.tmp

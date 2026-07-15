@@ -48,19 +48,24 @@ large-scale implementation:
 \begin{itemize}
 	\item \textbf{Arc-flow MILP (time-indexed or event-indexed):} decision
 	variables are attached to feasible flight-connection arcs instead of flight--aircraft
-	assignment pairs, often yielding stronger network-structure constraints.
+	assignment pairs, often yielding stronger network-structure constraints
+	\citep{levin1971scheduling, hane1995fleet, sherali2006airline}.
 	\item \textbf{Route-based master MILP (set partitioning):} aircraft duties are
 	represented as columns in a master MILP, typically solved with
-	branch-and-price; this is exact but algorithmically heavier.
+	branch-and-price; this is exact but algorithmically heavier
+	\citep{barnhart1998flight, sarac2006branch, klabjan2005large}.
 	\item \textbf{Decomposed MILP frameworks:} Benders- or
 	Dantzig--Wolfe-style decompositions separate assignment/routing from
-	maintenance-resource feasibility, improving scalability on larger fleets.
+	maintenance-resource feasibility, improving scalability on larger fleets
+	\citep{cordeau2001benders, mercier2005computational, desaulniers1997daily}.
 	\item \textbf{Two-stage or rolling-horizon MILP:} first assign flights, then
 	repair/optimize maintenance and turnaround feasibility in a second MILP,
-	trading global optimality for tractable runtime.
+	trading global optimality for tractable runtime
+	\citep{clarke1996maintenance, liang2011new, liang2012network}.
 	\item \textbf{Robust/scenario MILP variants:} delay and disruption uncertainty
 	is modelled through multiple scenarios with non-anticipativity-style linking
-	constraints, producing schedules that are less brittle operationally.
+	constraints, producing schedules that are less brittle operationally
+	\citep{borndorfer2010robust, froyland2013recoverable}.
 \end{itemize}
 
 In this taxonomy, the Khaled model is best viewed as a compact, directly

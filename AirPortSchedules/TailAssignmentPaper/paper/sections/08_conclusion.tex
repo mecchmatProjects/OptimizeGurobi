@@ -55,6 +55,16 @@ publicly available.  The modular Pyomo implementation supports straightforward
 extension to new constraint families (e.g., crew connectivity, slot
 restrictions) via the constraint-toggle API.
 
+\paragraph{Threats to validity.}
+The reported computational comparisons are intentionally scoped to
+instance-matched, objective-matched evaluations on the generated benchmark
+family used in this study.  As a result, performance conclusions should be
+interpreted as within-scope (compact MILP plus the implemented heuristics)
+rather than universal rankings across all TAP paradigms.  In particular,
+decomposition-heavy and robust/scenario alternatives may exhibit different
+trade-offs when evaluated under their native uncertainty assumptions,
+decomposition settings, and tuning protocols.
+
 \subsection*{Future directions}
 
 \begin{itemize}

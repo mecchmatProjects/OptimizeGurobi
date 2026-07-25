@@ -1,0 +1,404 @@
+%% ======================================================================
+%% docs/update_improve.tex
+%% Revised notes for the updated C1--C14 formulation.
+%% ======================================================================
+
+\documentclass[11pt,a4paper]{article}
+
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage[nameinlink]{cleveref}
+
+\newtheorem{proposition}{Proposition}
+\newtheorem{remark}{Remark}
+
+\newcommand{\F}{\mathcal{F}}
+\newcommand{\Pset}{\mathcal{P}}
+\newcommand{\Aset}{\mathcal{A}}
+\newcommand{\Cset}{\mathcal{C}}
+\newcommand{\Eset}{\mathcal{E}}
+\newcommand{\Mset}{\mathcal{M}}
+
+\title{Event-Based Reformulation of Tail Assignment Constraints C1--C14}
+\author{Working Document}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Modeling Principle}
+
+The original maintenance model repeats the planning-day index in several
+variables even though each flight already has an absolute departure and
+arrival timestamp. If all times are measured from the beginning of the
+planning horizon, the calendar day of flight $i$ is derived data,
+$\lfloor t_i^{\mathrm{dep}}/1440\rfloor$, rather than a decision index.
+
+Maintenance is therefore represented as a virtual flight from an airport to
+the same airport. It starts immediately after a scheduled flight, has a fixed
+duration, occupies the aircraft, and consumes station capacity. The new binary
+variable $z_{ijk}$ selects maintenance type $k$ after flight $i$ for aircraft
+$j$. This removes the day dimension from the maintenance variables while
+preserving all calendar information in the timestamps.
+
+\section{Sets and Parameters}
+
+Let $\F$ be the scheduled flights, $\Pset$ the aircraft, $\Aset$ the airports,
+$\Mset\subseteq\Aset$ the maintenance-capable airports, and
+$\Cset=\{A,B,C,D\}$ the check types. Indices $i$ and $\ell$ denote flights,
+$j$ denotes an aircraft, and $k$ denotes a check type. Define
+$\Cset_H=\{A,B\}$ for flight-hour checks and $\Cset_T=\{C,D\}$ for
+calendar-time checks.
+
+For flight $i$, let $o_i$, $a_i$, $t_i^{\mathrm{dep}}$,
+$t_i^{\mathrm{arr}}$, and $p_i=t_i^{\mathrm{arr}}-t_i^{\mathrm{dep}}$
+be its origin, destination, departure time, arrival time, and flying time.
+For aircraft $j$, let $a^0_j$ be its initial airport and $r_j$ its initial
+availability time. Let $\Delta$ be the minimum turn time and $\delta_k$ the
+fixed duration of check $k$. Maintenance attached to flight $i$ starts at
+$\sigma_i=t_i^{\mathrm{arr}}$ and is the virtual leg
+
+\begin{equation}
+  m(i,j,k)=\bigl(a_i,a_i,\sigma_i,\sigma_i+\delta_k\bigr).
+  \label{eq:virtual_leg}
+\end{equation}
+
+Only flights in $\F^M=\{i\in\F:a_i\in\Mset\}$ may be followed by
+maintenance. The sparse connection set is
+
+\begin{equation}
+  \Eset=\left\{(i,\ell)\in\F\times\F:
+  a_i=o_\ell,\quad
+  t_\ell^{\mathrm{dep}}\geq t_i^{\mathrm{arr}}+\Delta\right\}.
+  \label{eq:connection_set}
+\end{equation}
+
+For each check type, define the connections that leave enough time for that
+maintenance event:
+
+\begin{equation}
+  \Eset_k=\left\{(i,\ell)\in\Eset:
+  t_\ell^{\mathrm{dep}}\geq\sigma_i+\delta_k+\Delta\right\}.
+  \label{eq:maintenance_connection_set}
+\end{equation}
+
+The aircraft-specific set of feasible first flights is
+
+\begin{equation}
+  \F^0_j=\left\{i\in\F:o_i=a^0_j,\quad
+  t_i^{\mathrm{dep}}\geq r_j\right\}.
+  \label{eq:first_flight_set}
+\end{equation}
+
+Let $T_k$ be the maximum flying time between qualifying checks for
+$k\in\Cset_H$, and let $L_k$ be the maximum elapsed time between qualifying
+checks for $k\in\Cset_T$. A limit specified as $d_k$ calendar days is stored as
+$L_k=1440d_k$ minutes. Parameters $\Phi_{jk}$ and $\Psi_{jk}$ are the
+pre-horizon accumulated flying time and elapsed calendar time, respectively.
+The relation $k'\succeq k$ means that check $k'$ is at least as heavy as $k$.
+
+\section{Decision Variables and Objective}
+
+\begin{align}
+  x_{ij}&\in\{0,1\},
+  &&\text{flight $i$ is assigned to aircraft $j$},
+  \label{eq:x_definition}\\
+  y_{i\ell j}&\in\{0,1\},
+  &&\text{aircraft $j$ operates $\ell$ immediately after $i$},
+  \label{eq:y_definition}\\
+  z_{ijk}&\in\{0,1\},
+  &&\text{aircraft $j$ receives check $k$ immediately after $i$},
+  \label{eq:z_definition}\\
+  u_{ijk}&\geq0,
+  &&\text{flying time accumulated after $i$, before its check},
+  \quad k\in\Cset_H.
+  \label{eq:u_definition}
+\end{align}
+
+Variables $y_{0ij}$ and $y_{i\omega j}$ indicate the first and last flight of
+aircraft $j$. The hierarchy-reset indicator is not stored as a variable; it is
+the derived expression
+
+\begin{equation}
+  q_{ijk}=\sum_{k'\in\Cset:\,k'\succeq k}z_{ijk'}.
+  \label{eq:q_definition}
+\end{equation}
+
+With assignment costs $c_{ij}$ and maintenance costs $g_{ijk}$, the objective
+is
+
+\begin{equation}
+  \min
+  \sum_{i\in\F}\sum_{j\in\Pset}c_{ij}x_{ij}
+  +\sum_{i\in\F^M}\sum_{j\in\Pset}\sum_{k\in\Cset}g_{ijk}z_{ijk}.
+  \label{eq:event_objective}
+\end{equation}
+
+\section{Complete Event-Based Criteria C1--C14}
+
+\paragraph{C1: Flight coverage.}
+Every scheduled flight is assigned to exactly one aircraft:
+
+\begin{equation}
+  \sum_{j\in\Pset}x_{ij}=1,
+  \qquad \forall i\in\F.
+  \tag{C1}\label{eq:event_c1}
+\end{equation}
+
+\paragraph{C2: Unique predecessor.}
+Every assigned flight has one predecessor or is the first route flight:
+
+\begin{equation}
+  \mathbb{1}_{\{\ell\in\F^0_j\}}y_{0\ell j}
+  +\sum_{i:(i,\ell)\in\Eset}y_{i\ell j}=x_{\ell j},
+  \qquad \forall \ell\in\F,\ j\in\Pset.
+  \tag{C2}\label{eq:event_c2}
+\end{equation}
+
+Source variables $y_{0\ell j}$ are instantiated only for
+$\ell\in\F^0_j$; the indicator in C2 is notation for this sparse domain.
+
+\paragraph{C3: Unique successor.}
+Every assigned flight has one successor or is the last route flight:
+
+\begin{equation}
+  y_{i\omega j}+\sum_{\ell:(i,\ell)\in\Eset}y_{i\ell j}=x_{ij},
+  \qquad \forall i\in\F,\ j\in\Pset.
+  \tag{C3}\label{eq:event_c3}
+\end{equation}
+
+\paragraph{C4: One time-ordered route per aircraft.}
+
+\begin{align}
+  \sum_{i\in\F}y_{0ij}&\leq1,
+  &\forall j\in\Pset,\notag\\
+  \sum_{i\in\F}y_{i\omega j}&=\sum_{i\in\F}y_{0ij},
+  &\forall j\in\Pset.
+  \tag{C4}\label{eq:event_c4}
+\end{align}
+
+Airport continuity, turn time, and non-overlap are embedded in $\Eset$. Since
+all arcs move forward in time, C2--C4 cannot produce a subtour.
+
+\paragraph{C5: Maintenance requires assignment.}
+
+\begin{equation}
+  z_{ijk}\leq x_{ij},
+  \qquad \forall i\in\F^M,\ j\in\Pset,\ k\in\Cset.
+  \tag{C5}\label{eq:event_c5}
+\end{equation}
+
+\paragraph{C6: At most one physical check after a flight.}
+
+\begin{equation}
+  \sum_{k\in\Cset}z_{ijk}\leq1,
+  \qquad \forall i\in\F^M,\ j\in\Pset.
+  \tag{C6}\label{eq:event_c6}
+\end{equation}
+
+A heavy check satisfies lighter requirements through $q_{ijk}$, so separate
+simultaneous A, B, C, and D checks are unnecessary.
+
+\paragraph{C7: Maintenance-airport eligibility.}
+Variables $z_{ijk}$ are instantiated only for $i\in\F^M$. A dense equivalent
+is
+
+\begin{equation}
+  z_{ijk}=0,
+  \qquad \forall i\in\F\setminus\F^M,\ j\in\Pset,\ k\in\Cset.
+  \tag{C7}\label{eq:event_c7}
+\end{equation}
+
+\paragraph{C8: Maintenance duration and the next flight.}
+An insufficient connection and a maintenance action cannot both be selected:
+
+\begin{equation}
+  y_{i\ell j}+z_{ijk}\leq1,
+  \qquad
+  \forall(i,\ell)\in\Eset\setminus\Eset_k,\ j\in\Pset,\ k\in\Cset.
+  \tag{C8}\label{eq:event_c8}
+\end{equation}
+
+For a terminal flight, $z_{ijk}$ is created only if
+$\sigma_i+\delta_k$ is within the planning horizon. Thus a multi-day check is
+one fixed-duration virtual leg, not one binary variable per occupied day.
+
+\paragraph{C9: Continuous-time station capacity.}
+Let $b_a(\theta)$ be the available maintenance positions at airport $a$ and
+time $\theta$. Let $\Theta$ contain all possible maintenance start times and
+all breakpoints at which $b_a(\theta)$ changes. These are the only times at
+which the left-hand side can increase or the right-hand side can decrease:
+
+\begin{equation}
+  \sum_{\substack{i\in\F^M:a_i=a\\
+                    k\in\Cset:\,\sigma_i\leq\theta<\sigma_i+\delta_k}}
+  \sum_{j\in\Pset}z_{ijk}
+  \leq b_a(\theta),
+  \quad \forall a\in\Mset,\ \theta\in\Theta.
+  \tag{C9}\label{eq:event_c9}
+\end{equation}
+
+\paragraph{C10: Maintenance hierarchy.}
+
+\begin{equation}
+  q_{ijk}=\sum_{k'\succeq k}z_{ijk'},
+  \qquad \forall i\in\F^M,\ j\in\Pset,\ k\in\Cset.
+  \tag{C10}\label{eq:event_c10}
+\end{equation}
+
+C10 is a derived expression and replaces the old daily hierarchy variable.
+
+\paragraph{C11: Flight-hour threshold.}
+For A and B requirements, the flight-indexed counter is active only for an
+assigned flight and never exceeds the threshold:
+
+\begin{equation}
+  p_i x_{ij}\leq u_{ijk}\leq T_kx_{ij},
+  \qquad \forall i\in\F,\ j\in\Pset,\ k\in\Cset_H.
+  \tag{C11}\label{eq:event_c11}
+\end{equation}
+
+\paragraph{C12: Flight-hour accumulation and reset.}
+Let $M^H_k$ be a valid upper bound. For each route connection,
+
+\begin{align}
+  u_{\ell jk}
+  &\geq u_{ijk}+p_\ell
+    -M^H_k(1-y_{i\ell j})-M^H_kq_{ijk},
+    \notag\\
+  u_{\ell jk}
+  &\leq u_{ijk}+p_\ell
+    +M^H_k(1-y_{i\ell j})+M^H_kq_{ijk},
+    \notag\\
+  u_{\ell jk}
+  &\leq p_\ell+M^H_k(2-y_{i\ell j}-q_{ijk}),
+  \quad
+  \forall(i,\ell)\in\Eset,\ j\in\Pset,\ k\in\Cset_H.
+  \tag{C12}\label{eq:event_c12}
+\end{align}
+
+If $y_{i\ell j}=1$ and no qualifying check follows $i$, the first two
+inequalities give $u_{\ell jk}=u_{ijk}+p_\ell$. If a qualifying check follows
+$i$, the third inequality and C11 give $u_{\ell jk}=p_\ell$. The counter is
+therefore accumulated and reset on the actual aircraft route, with no day-pair
+constraints and no endpoint ambiguity.
+
+\paragraph{C13: Pre-horizon accumulated flying time.}
+For a first-flight arc, initialize the counter from known aircraft history:
+
+\begin{align}
+  u_{ijk}&\geq\Phi_{jk}+p_i-M^H_k(1-y_{0ij}),
+  \notag\\
+  u_{ijk}&\leq\Phi_{jk}+p_i+M^H_k(1-y_{0ij}),
+  \quad \forall i\in\F,\ j\in\Pset,\ k\in\Cset_H.
+  \tag{C13}\label{eq:event_c13}
+\end{align}
+
+C11--C13 replace the old cumulative-flight criterion completely.
+
+\paragraph{C14: Calendar-time spacing without day variables.}
+Let $H_0$ and $H_1$ be the horizon boundaries. For $k\in\Cset_T$, the first
+deadline is $d^0_{jk}=H_0+L_k-\Psi_{jk}$. If $d^0_{jk}\leq H_1$, require
+
+\begin{equation}
+  \sum_{\substack{i\in\F^M:\,H_0\leq\sigma_i\leq d^0_{jk}}}q_{ijk}\geq1,
+  \qquad \forall j\in\Pset,\ k\in\Cset_T.
+  \tag{C14a}\label{eq:event_c14a}
+\end{equation}
+
+Every selected check whose next deadline lies in the horizon must be followed
+by another qualifying check within $L_k$ time units:
+
+\begin{equation}
+  \sum_{\substack{\ell\in\F^M:\,
+                    \sigma_i<\sigma_\ell\leq\sigma_i+L_k}}
+  q_{\ell jk}\geq q_{ijk},
+  \quad
+  \forall i\in\F^M:\sigma_i+L_k\leq H_1,\ j\in\Pset,\ k\in\Cset_T.
+  \tag{C14b}\label{eq:event_c14b}
+\end{equation}
+
+These timestamp windows require a qualifying check to begin by its due time,
+matching the application convention used by the day-indexed model. The virtual
+leg then blocks the aircraft for its complete fixed duration. Thus calendar
+requirements are preserved without an explicit day set.
+
+\section{Obsolete Variables and Constraints}
+
+The reformulation removes the explicit day index $d$, the old variable
+$z_{ijdk}$, the daily maintenance variable $y_{jdk}$, and the daily hierarchy
+variable $\gamma_{jdk}$ or $\eta_{jdk}$. It also removes one binary per day of
+a multi-day check and all day-pair accumulation constraints.
+
+The symbol $y$ is retained with a new and precise meaning: $y_{i\ell j}$ is a
+sparse successor arc. It provides the aircraft sequence required to propagate
+the flight-hour counter exactly. The maintenance variable is now only
+$z_{ijk}$.
+
+\section{Complexity and Memory Reduction}
+
+Let $n_f=|\F|$, $n_p=|\Pset|$, $n_c=|\Cset|$, $n_d$ be the old number of
+days, and $n_e=|\Eset|$. The old maintenance-choice tensor contains
+$O(n_fn_pn_dn_c)$ binaries. The new tensor contains only
+$O(n_fn_pn_c)$ binaries and is instantiated sparsely over $\F^M$:
+
+\begin{equation}
+  O(n_fn_pn_dn_c)\quad\longrightarrow\quad O(n_fn_pn_c).
+  \label{eq:maintenance_reduction}
+\end{equation}
+
+The complete event-based model contains
+
+\begin{equation}
+  O\!\left(n_fn_p+n_en_p+n_fn_pn_c\right)
+  \label{eq:event_complexity}
+\end{equation}
+
+binary variables, plus $O(n_fn_p|\Cset_H|)$ continuous counters. The sparse
+successor variables add $O(n_en_p)$, but $n_e$ is normally much smaller than
+$n_f^2$ because airport and time incompatibilities eliminate most arcs. Most
+importantly, the maintenance model no longer scales multiplicatively with the
+number of planning days.
+
+\begin{table}[ht]
+\centering
+\caption{Principal variable counts.}
+\begin{tabular}{lll}
+\toprule
+Component & Day-indexed model & Event-based model \\
+\midrule
+Flight assignment & $n_fn_p$ & $n_fn_p$ \\
+Maintenance choice & $n_fn_pn_dn_c$ & $n_fn_pn_c$ \\
+Daily maintenance & $n_pn_dn_c$ & removed \\
+Daily hierarchy & $n_pn_dn_c$ & derived, not stored \\
+Route sequence & implicit & $n_en_p$ sparse binaries \\
+Hour state & day-pair constraints & $2n_fn_p$ continuous variables \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{remark}
+The day dimension is removed, but calendar information is not. All timestamps
+must use one absolute, horizon-wide time scale; otherwise overnight gaps and
+C/D elapsed-time requirements cannot be recovered correctly.
+\end{remark}
+
+\begin{proposition}
+Assume that $\Eset$ contains exactly the feasible ordinary connections and C8
+is imposed for every maintenance-incompatible connection. Every integral
+solution of C1--C14 then defines time-feasible aircraft routes whose selected
+maintenance events satisfy duration, station capacity, hierarchy, cumulative
+flight-hour limits, and calendar-time limits.
+\end{proposition}
+
+\begin{proof}
+C1 assigns every flight once. C2--C4 form time-ordered aircraft routes.
+C5--C8 attach each maintenance event to an assigned flight at an eligible
+station and reserve its duration. C9 enforces station capacity and C10 applies
+hierarchy resets. C11--C13 propagate and bound the flight-hour counter along
+each selected route. C14 links qualifying calendar-time checks from the known
+pre-horizon state through the planning horizon. Hence all stated operating and
+maintenance conditions hold.
+\end{proof}
+
+\end{document}

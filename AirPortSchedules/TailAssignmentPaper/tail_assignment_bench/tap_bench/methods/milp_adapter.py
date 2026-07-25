@@ -5,7 +5,13 @@ from typing import Any
 
 from tap_bench.contracts.method import MethodConfig, SchedulerMethod
 from tap_bench.contracts.types import ResultStatus
-from tap_bench.domain.models import Assignment, ObjectiveBreakdown, SchedulingInstance, Solution, SolutionTiming
+from tap_bench.domain.models import (
+    Assignment,
+    ObjectiveBreakdown,
+    SchedulingInstance,
+    Solution,
+    SolutionTiming,
+)
 
 
 def _map_status(status: str) -> ResultStatus:
@@ -30,14 +36,14 @@ class MilpCompactMethodAdapter(SchedulerMethod):
         return True
 
     def solve(self, instance: SchedulingInstance, config: MethodConfig) -> Solution:
-        from src.model import MILP_Sheduler  # type: ignore
+        from src.model import LegacyEndpointSplitMILPScheduler  # type: ignore
 
         data_path = instance.metadata.get("source_path")
         if not data_path:
             raise ValueError("Missing source_path metadata for adapter execution.")
 
         t0 = time.perf_counter()
-        m = MILP_Sheduler(data_path)
+        m = LegacyEndpointSplitMILPScheduler(data_path)
         m.build_model(use_maintenance=True)
         fallback_order = ["cplex_direct", "cplex_persistent", "cplex", "gurobi", "glpk", "cbc"]
         # Keep deterministic fallback order; if caller passes one of these solvers,
@@ -82,7 +88,7 @@ class MilpCompactMethodAdapter(SchedulerMethod):
                     ),
                 },
                 metadata={
-                    "adapter": "MILP_Sheduler",
+                    "adapter": "LegacyEndpointSplitMILPScheduler",
                     "solver": "",
                     "solver_attempt_order": ",".join(solver_order),
                     "num_vars": str(getattr(m, "_n_vars", "")),
@@ -128,7 +134,7 @@ class MilpCompactMethodAdapter(SchedulerMethod):
             timing=SolutionTiming(wall_s=wall, cpu_s=float(cpu_s) if cpu_s is not None else None),
             gap_pct=float(gap_pct) if gap_pct is not None else None,
             metadata={
-                "adapter": "MILP_Sheduler",
+                "adapter": "LegacyEndpointSplitMILPScheduler",
                 "solver": selected_solver,
                 "solver_attempt_order": ",".join(solver_order),
                 "num_vars": str(summary.get("vars", "")),

@@ -4,10 +4,12 @@
 \label{sec:hierarchy}
 %%==========================================================================
 
-Aviation regulations (FAA/EASA) mandate four check levels.  Type-A and~B
-checks are triggered by cumulative flight hours; type-C and~D are triggered
-by calendar days.  A heavier check subsumes all lighter checks (a D-check
-also satisfies the C-, B-, and A-check requirement for the same period).
+We model a traditional packaged maintenance program with four check levels.
+Type-A and~B checks are triggered by cumulative flight hours; type-C and~D are
+triggered by calendar days. A heavier check subsumes all lighter checks (a
+D-check also satisfies the C-, B-, and A-check requirement for the same
+period). This hierarchy is a modeling convention for the benchmark, not a
+claim that regulators require every operator to use these labels or triggers.
 
 \subsection{Extended notation}
 
@@ -29,8 +31,10 @@ is defined such that $\eta_{jdc} = 1$ whenever $y_{jdc'} = 1$ for any $c'
 
 \paragraph{H1 — Heaviest check subsumes lighter checks.}
 \begin{equation}\label{eq:hier1}
-  \eta_{jdc} \le \eta_{jdc'}, \qquad \forall j,d,\; c \prec c'.
+  \eta_{jdc} \ge \eta_{jdc'}, \qquad \forall j,d,\; c \prec c'.
 \end{equation}
+Thus, for example, a type-D event makes all four effective-check indicators
+equal to one, while a type-A event affects only $\eta_{jdA}$.
 
 \paragraph{H2 — Check indicator consistency.}
 \begin{equation}\label{eq:hier2}
@@ -40,6 +44,12 @@ is defined such that $\eta_{jdc} = 1$ whenever $y_{jdc'} = 1$ for any $c'
 In practice implemented as: $\eta_{jdA} = y_{jdA} + y_{jdB} + y_{jdC} +
 y_{jdD}$, $\eta_{jdB} = y_{jdB} + y_{jdC} + y_{jdD}$, etc.
 
+For multi-day checks, let $s_{jmdc}=1$ when check $c\in\{C,D\}$ starts for
+aircraft $j$ at maintenance airport $m$ on day $d$, and impose
+$y_{jdc}=\sum_{m\in\MA}s_{jmdc}$. Let $q_{jmrc}=1$ when that aircraft occupies
+the maintenance resource at airport $m$ on day $r$. Both $s$ and $q$ are
+binary.
+
 \paragraph{H3 — At most one check type per aircraft per day.}
 \begin{equation}\label{eq:hier3}
   \sum_{c \in \C} y_{jdc} \le 1, \qquad \forall j \in \Pc,\; d \in \D.
@@ -47,29 +57,31 @@ y_{jdD}$, $\eta_{jdB} = y_{jdB} + y_{jdC} + y_{jdD}$, etc.
 
 \subsection{Flight-hour triggered checks (A and B)}
 
-Constraints~\eqref{eq:c12}--\eqref{eq:c13_new_b} are applied separately for
-check types $c \in \{A, B\}$ with thresholds $T^c_{\max}$ and spacing limits
-$d^c_{\max}$.  The hierarchy indicator $\eta_{jdc}$ replaces $y_{jd}$:
-
-\paragraph{Maximum-spacing (generalised C12).}
-\begin{equation}\label{eq:c12_abcd}
-  \sum_{r \in [d,d']} \eta_{jrc} \ge 1,
-  \qquad \forall d,d' \text{ s.t.\ } d'-d = d^c_{\max}-1,\;
-  \forall j,\; c \in \{A,B\}.
-\end{equation}
-
-\paragraph{Cumulative flight hours (corrected C13a/b, generalised).}
+For each $c\in\{A,B\}$, let $h^c_{jd}$ be the accumulated flying time after
+day $d$ and before that night's maintenance, let
+$h^c_{j0}=\Phi^c_j$, and use the daily flying time $v_{jd}$ from
+\eqref{eq:daily_flight_time}. The exact recursion is
 \begin{align}
-  \sum_{i \in F_{d,d'}} x_{ij}\,\tilde{t}_i
-  &\le T^c_{\max} + M_{dd'}\,\eta_{jdc}
-  + M_{dd'}\!\sum_{r \in (d,d')} \eta_{jrc},
-  \label{eq:c13a_abcd}\\
-  \sum_{i \in F_{d,d'}} x_{ij}\,\tilde{t}_i
-  &\le T^c_{\max} + M_{dd'}\,\eta_{jd'c}
-  + M_{dd'}\!\sum_{r \in (d,d')} \eta_{jrc},
-  \label{eq:c13b_abcd}
+  h^c_{jd}
+  &\ge h^c_{j,d-1}+v_{jd}-M^c\eta_{j,d-1,c},
+  \label{eq:c13_state_ab_lower}\\
+  h^c_{jd}
+  &\le h^c_{j,d-1}+v_{jd}+M^c\eta_{j,d-1,c},
+  \label{eq:c13_state_ab_upper}\\
+  h^c_{jd}&\ge v_{jd},
+  \label{eq:c13_state_ab_reset_lower}\\
+  h^c_{jd}
+  &\le v_{jd}+M^c(1-\eta_{j,d-1,c}),
+  \label{eq:c13_state_ab_reset_upper}\\
+  0\le h^c_{jd}&\le T^c_{\max},
+  \qquad \forall j\in\Pc,\ d\in\D,\ c\in\{A,B\}.
+  \label{eq:c13_state_ab_bound}
 \end{align}
-for $c \in \{A, B\}$, all valid $(d,d')$ pairs, all $j$.
+A type-B, C, or D event resets the A counter because it activates
+$\eta_{jdA}$; type-C and D events similarly reset both A and B counters.
+No calendar-day spacing constraint is imposed on A/B checks unless the
+maintenance policy supplies a separate calendar threshold in addition to the
+flight-hour threshold.
 
 \subsection{Calendar-day triggered checks (C and D)}
 
@@ -82,24 +94,38 @@ For checks $c \in \{C, D\}$, the constraint is on calendar-day spacing only:
 \end{equation}
 
 \paragraph{Multi-day check duration (C14b).}
-A C- or D-check occupies multiple consecutive days.  Let $\delta^c$ denote
-the duration in days.  If check $c$ starts on day $d$ then aircraft $j$ is
-grounded for days $d, d+1, \ldots, d+\delta^c-1$:
+A C- or D-check occupies multiple consecutive days. Let $\delta^c$ denote
+the duration in days. Start and occupancy indicators are linked by
 \begin{equation}\label{eq:c14b}
-  y_{jd+k,c} \ge y_{jdc}, \qquad
-  \forall j,\; d \in \D,\; c \in \{C,D\},\; k \in \{1,\ldots,\delta^c-1\}.
+  q_{jmrc}=\sum_{d\in\D:\ d\le r<d+\delta^c}s_{jmdc},
+  \quad \forall j,\ m\in\MA,\ r\in\D,\ c\in\{C,D\}.
 \end{equation}
+where starts extending beyond the planning horizon are disallowed unless
+post-horizon occupancy is explicitly represented. The following rows prevent
+overlap for one aircraft and enforce airport-day capacity $\kappa_{mr}$:
+\begin{align}
+  \sum_{m\in\MA}\sum_{c\in\{C,D\}}q_{jmrc}&\le1,
+  &&\forall j,\ r\in\D,
+  \label{eq:c14b_no_overlap}\\
+  \sum_{j\in\Pc}\sum_{c\in\{C,D\}}q_{jmrc}&\le\kappa_{mr},
+  &&\forall m\in\MA,\ r\in\D.
+  \label{eq:c14b_capacity}
+\end{align}
+The start variable $s_{jmdc}$ is permitted only when the aircraft can reach
+$m$ by day $d$; this uses the same assignment-to-location linking principle
+as C9. Capacity is imposed on occupancy, not only on starts.
 
 Under the corrected basic feasibility criterion
 (\Cref{eq:c4_overlap}), \eqref{eq:c14b} is interpreted over physically
 executable aircraft trajectories; no additional linearization is needed.
 
 \paragraph{C15 — No flight during active maintenance.}
-No flight $i$ departing on day $d+k$ for $k < \delta^c$ may be assigned to
-aircraft $j$ when it is undergoing check $c$ started on day $d$:
+No flight operating while a C- or D-check is active may be assigned to the
+aircraft. Let $\mathcal D(i)$ be the set of calendar days intersected by the
+operating interval of flight $i$; then
 \begin{equation}\label{eq:c15}
-  \sum_{i:\, d_i = d+k} x_{ij} \le 1 - y_{jdc},
-  \qquad \forall j,\; d,\; c \in \{C,D\},\; k \in \{0,\ldots,\delta^c-1\}.
+  x_{ij}\le 1-\sum_{m\in\MA}q_{jmrc},
+  \qquad \forall i\in\F,\ j\in\Pc,\ r\in\mathcal D(i),\ c\in\{C,D\}.
 \end{equation}
 
 \subsection{Pre-horizon accumulated values}
@@ -111,20 +137,23 @@ For aircraft $j$ and check $c$:
   \item $\Psi^c_j$ ($c \in \{C,D\}$): elapsed calendar days before horizon
     start.
 \end{itemize}
-These shift the effective threshold in constraints~\eqref{eq:c13a_abcd} and
-\eqref{eq:c12_cd} for the opening sub-period only (analogous to
-\eqref{eq:c13b}).
+The values $\Phi^c_j$ are the initial conditions in
+\eqref{eq:c13_state_ab_lower}--\eqref{eq:c13_state_ab_bound}. For C/D, the
+opening sliding windows in \eqref{eq:c12_cd} are shortened according to
+$\Psi^c_j$ so that a check due near the horizon start cannot be deferred by a
+full new interval.
 
 \subsection{Model size impact}
 
 \begin{proposition}
   Adding the full $\{A,B,C,D\}$ hierarchy over the basic maintenance model of
-  \Cref{sec:maintenance} increases the number of variables by a factor of at
-  most $|\C| = 4$ and the number of constraints by a factor of at most
-  $2|\C| = 8$.  The model remains $O(n_f n_p n_d)$ in size.
+  \Cref{sec:maintenance} adds $O(n_pn_d|\C|+n_pn_mn_d|\{C,D\}|)$ check,
+  hierarchy, location, occupancy, and state variables and
+  $O(n_pn_d|\C|+n_pn_mn_d|\{C,D\}|+n_fn_p|\{C,D\}|)$ linking, capacity, and
+  flight-exclusion constraints. The assignment variables remain unchanged.
 \end{proposition}
 
-In practice (see \Cref{sec:computational}), the number of active variables and
-constraints in the extended model is approximately $2.2\times$ that of the
-type-A-only model, consistent with the findings of \citet{khaled2018compact}
-for their maintenance extension.
+The actual size multiplier depends on the number of feasible maintenance
+events, the durations $\delta^c$, and whether sparse flight-exclusion rows are
+generated. The current result artifacts do not support a general empirical
+multiplier for the exact hierarchy formulation.

@@ -81,20 +81,18 @@ simultaneous-departure corner case that is mathematically feasible but
 physically infeasible, and we close this gap with explicit non-overlap
 constraints.  Second, we identify and formally correct a flaw in
 the paper's cumulative-flight-time constraint (Constraint~13): the original
-formulation allows maintenance intervals to be incorrectly relaxed, and we
-show that replacing the joint big-$M$ term with two endpoint-anchored
-constraints restores validity and tightens the LP relaxation.  Third, we
+formulation allows maintenance intervals to be incorrectly relaxed. We show
+that a two-row endpoint split is also insufficient and give an exact
+cumulative-state formulation. Third, we
 extend the maintenance model beyond the type-A single-check framework to a
 full four-level $\{A, B, C, D\}$ maintenance hierarchy with correct counter
-resets and pre-horizon accumulated-hours accounting.  Fourth, we provide an
-extensive computational benchmark comparing the MILP against two constructive
-heuristics---a greedy/insertion procedure and a Dijkstra-based space-time
-network heuristic---on the same instance sets.  Reproduction experiments on
-Khaled et al.'s Tables~5, 6, 10, and~11 using the CPLEX solver confirm the
-original results for the basic model after enforcing physically executable
-aircraft trajectories; the corrected maintenance constraints yield measurably
-different and provably correct solutions on high-density, multi-check
-instances.  All code and instances are publicly available.
+resets and pre-horizon accumulated-hours accounting. Fourth, we report an
+instance-matched benchmark of greedy/insertion, Dijkstra-based, and ant-colony
+heuristics alongside the available legacy MILP implementation. The current
+computational tables are validation snapshots rather than a completed
+reproduction of Khaled et al.'s tables; several dense cells remain infeasible
+or unresolved and exact-state MILP experiments remain future work. All code
+and instances used for these snapshots accompany the project.
 \end{abstract}
 
 \begin{keyword}

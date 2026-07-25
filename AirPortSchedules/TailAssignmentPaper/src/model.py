@@ -247,6 +247,10 @@ class Scheduler:
 # ----------------------------
 
 class MILP_Sheduler:
+    """Legacy day-indexed MILP with the endpoint-split C13 formulation."""
+
+    FORMULATION_ID = "legacy_endpoint_split"
+
     """MILP-based aircraft assignment with maintenance scheduling using Pyomo.
 
     Reads the same JSON format as Scheduler.  Each constraint group is
@@ -1304,8 +1308,15 @@ class MILP_Sheduler:
         cpu    = getattr(res.solver, 'time', None)
         obj_v  = pyo_value(m.obj) if tc == TerminationCondition.optimal else None
 
-        summary = dict(status=str(tc), n_vars=n_var, n_cons=n_con,
-                       gap=gap, cpu=cpu, obj=obj_v)
+        summary = dict(
+            formulation=self.FORMULATION_ID,
+            status=str(tc),
+            n_vars=n_var,
+            n_cons=n_con,
+            gap=gap,
+            cpu=cpu,
+            obj=obj_v,
+        )
         self.print_report(out_path=out_path, summary=summary)
         return summary
 
@@ -1319,7 +1330,7 @@ class MILP_Sheduler:
         lines = []
         _p = lines.append
 
-        _p("\n=== MILP Aircraft Assignment Report ===")
+        _p("\n=== Legacy Endpoint-Split MILP Aircraft Assignment Report ===")
         if summary:
             g = f"{summary['gap']*100:.4f}%" if summary.get('gap') is not None else '-'
             t = f"{summary['cpu']:.2f}s"     if summary.get('cpu') is not None else '-'
@@ -1603,6 +1614,10 @@ def _plot_gantt(events, aid_list, unassigned_flights=None, unassigned_ids=None,
         plt.close()
 
 
+class LegacyEndpointSplitMILPScheduler(MILP_Sheduler):
+    """Explicit compatibility name for the preserved legacy formulation."""
+
+
 # ----------------------------
 # RESULT HELPERS
 # ----------------------------
@@ -1706,7 +1721,7 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
     warm_start     : bool        When True (default), seed MILP x-variables with
                                  the greedy heuristic solution before solving.
     """
-    opt = MILP_Sheduler(
+    opt = LegacyEndpointSplitMILPScheduler(
         data_path,
         max_hour_check_deferral_days=max_hour_check_deferral_days,
     )

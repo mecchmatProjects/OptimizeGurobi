@@ -3,9 +3,11 @@
 \label{sec:heuristics}
 %%==========================================================================
 
-We study three heuristic approaches.  All respect the full
-$\{A,B,C,D\}$ maintenance hierarchy via the timeline simulator described
-below.
+We study three heuristic approaches. Candidate routes are screened by the
+$\{A,B,C,D\}$ counter logic in the timeline simulator described below. A run
+that leaves flights unassigned is a partial assignment, not a feasible TAP
+solution, and its raw route cost is not directly comparable with a complete
+MILP objective.
 
 \subsection{Timeline simulator}
 
@@ -82,12 +84,13 @@ Pheromone evaporates by $\tau_{ij} \leftarrow (1-\alpha)\tau_{ij} +
 $\tau_{ij} = 0$ and this zero propagates backward to all arcs that lead
 exclusively to the exhausted arc.
 
-\paragraph{Why Dijkstra outperforms ACO.}
+\paragraph{Observed deterministic--stochastic ordering.}
 The space-time network has a strict temporal ordering (no back-edges in time).
-This acyclicity removes the feedback loops that ACO exploits most effectively.
-Dijkstra's farthest-distance criterion is near-optimal for acyclic networks,
-which explains its consistent quality advantage over ACO on all tested
-instances (see \Cref{tab:heuristic_comparison}).
+On the current suite, the deterministic methods cover more flights and run
+faster than ACO. This observation does not establish near-optimality of the
+modified Dijkstra rule: its lexicographic coverage/cost update differs from
+standard shortest-path Dijkstra, and the greedy method has better aggregate
+coverage in \Cref{tab:heuristic_comparison}.
 
 \subsection{Quality summary}
 
@@ -109,3 +112,7 @@ Avg. wall time (s) & 3.800 & 11.384 & 121.024 \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+Only the three complete assignments per deterministic method admit direct
+cost comparisons with complete solutions. The averages over all eight rows
+primarily measure coverage and runtime; they are not optimality-gap evidence.

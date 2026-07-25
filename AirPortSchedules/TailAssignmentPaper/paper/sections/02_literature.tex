@@ -88,15 +88,17 @@ reference paradigms rather than strict one-to-one benchmarks.
 \subsection{Maintenance constraints}
 
 Maintenance scheduling within aircraft routing has been studied since the
-early work of \citet{clarke1997aircraft}.  The FAA mandates four check types
-(A, B, C, D) varying in scope and frequency.  The column-generation framework
+early work of \citet{clarke1997aircraft}. Aircraft maintenance programs have
+traditionally grouped tasks into A, B, C, and D check packages with different
+scopes and frequencies, although operators may use task-based programs rather
+than these historical labels. The column-generation framework
 of \citet{barnhart1998flight} can embed type-A constraints through constrained
 shortest-path pricing.  \citet{cordeau2001benders} apply Benders decomposition
 to simultaneous routing and crew scheduling with non-linear maintenance
 resources.  \citet{lacasse2010aircraft} consider maintenance under different
-business-process models.  None of these works addresses the full four-level
-hierarchy with explicit hierarchical counter resets, which is the subject of
-\Cref{sec:hierarchy}.
+business-process models. \Cref{sec:hierarchy} develops one explicit
+four-level counter-reset formulation; we do not claim that hierarchical
+maintenance has not appeared in other routing frameworks.
 
 \subsection{Heuristic approaches}
 
@@ -111,6 +113,6 @@ framework for the Locomotive Assignment Problem.
 The compact formulation of \citet{khaled2018compact} represents the
 reference compact baseline for exact, cyclic-constraint-free TAP in this
 study.  The present work builds directly upon it, providing: (i) a
-mathematical correction to
-Constraint~(13), (ii) a hierarchical maintenance extension, and (iii) the
-first systematic heuristic benchmark on the same instance family.
+diagnosis of Constraint~(13) and an exact state-based replacement, (ii) a
+hierarchical maintenance extension, and (iii) an instance-matched benchmark
+of the implemented formulations and heuristics.

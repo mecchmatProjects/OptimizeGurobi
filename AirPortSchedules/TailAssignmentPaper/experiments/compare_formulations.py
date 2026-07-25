@@ -1,4 +1,4 @@
-"""Compare the legacy day-indexed MILP with the event-based MILP.
+"""Compare the legacy endpoint-split MILP with the exact-state event MILP.
 
 Examples
 --------
@@ -47,6 +47,7 @@ REQUIRED_COLUMNS = [
 ]
 EXTRA_COLUMNS = [
     "formulation",
+    "routing_scope",
     "status",
     "build_s",
     "wall_s",
@@ -54,6 +55,12 @@ EXTRA_COLUMNS = [
     "time_limit_s",
     "error",
 ]
+
+FORMULATIONS = ("legacy_endpoint_split", "event_exact_state")
+ROUTING_SCOPES = {
+    "legacy_endpoint_split": "legacy_day_indexed_routing",
+    "event_exact_state": "connected_event_arcs_no_ferry",
+}
 
 
 def finite_number(value):
@@ -92,15 +99,21 @@ def model_size(model):
 def build_scheduler(formulation, instance_path):
     """Construct one formulation and return its scheduler and build time."""
     from src.event_model import EventMILPScheduler
-    from src.model import MILP_Sheduler
+    from src.model import LegacyEndpointSplitMILPScheduler
 
     started = time.perf_counter()
-    if formulation == "legacy":
-        scheduler = MILP_Sheduler(str(instance_path))
+    if formulation == "legacy_endpoint_split":
+        scheduler = LegacyEndpointSplitMILPScheduler(str(instance_path))
         scheduler.build_model()
-    else:
+    elif formulation == "event_exact_state":
         scheduler = EventMILPScheduler(str(instance_path))
         scheduler.build_model()
+    else:
+        raise ValueError(f"Unknown formulation: {formulation}")
+    if scheduler.FORMULATION_ID != formulation:
+        raise RuntimeError(
+            f"Selected {formulation}, built {scheduler.FORMULATION_ID}"
+        )
     return scheduler, time.perf_counter() - started
 
 
@@ -116,6 +129,7 @@ def benchmark_one(
     row = instance_metadata(instance_path)
     row.update({
         "formulation": formulation,
+        "routing_scope": ROUTING_SCOPES[formulation],
         "solver": solver_name,
         "time_limit_s": time_limit,
         "nodes_max": "",
@@ -149,6 +163,10 @@ def benchmark_one(
             time_limit=time_limit,
             warm_start=False,
         )
+        if summary.get("formulation") != formulation:
+            raise RuntimeError(
+                f"Solved {summary.get('formulation')}, expected {formulation}"
+            )
         gap_value = finite_number(summary.get("gap"))
         cpu_value = finite_number(summary.get("cpu"))
         objective_value = finite_number(summary.get("obj"))
@@ -233,6 +251,13 @@ def main():
         nargs="+",
         help="Explicit instance paths; overrides quick/full discovery.",
     )
+    parser.add_argument(
+        "--formulations",
+        nargs="+",
+        choices=FORMULATIONS,
+        default=list(FORMULATIONS),
+        help="Formulations to run; defaults to the paired comparison.",
+    )
     parser.add_argument("--input-dir", default="data/instances")
     parser.add_argument("--pattern", default="DataCplex_*.json")
     parser.add_argument("--solver", default="cplex")
@@ -259,7 +284,7 @@ def main():
     jobs = [
         (instance, formulation)
         for instance in instances
-        for formulation in ("legacy", "event")
+        for formulation in args.formulations
     ]
     rows = []
     for instance, formulation in tqdm(jobs, desc="Comparing formulations"):

@@ -259,19 +259,21 @@ assigned flight and never exceeds the threshold:
 \end{equation}
 
 \paragraph{C12: Flight-hour accumulation and reset.}
-Let $M^H_k$ be a valid upper bound. For each route connection,
+For each route connection, let $R_{\ell k}=T_k+p_\ell$ deactivate propagation
+when the successor arc is not selected. The reset term needs only the state
+bound $T_k$:
 
 \begin{align}
   u_{\ell jk}
   &\geq u_{ijk}+p_\ell
-    -M^H_k(1-y_{i\ell j})-M^H_kq_{ijk},
+    -R_{\ell k}(1-y_{i\ell j})-T_kq_{ijk},
     \notag\\
   u_{\ell jk}
   &\leq u_{ijk}+p_\ell
-    +M^H_k(1-y_{i\ell j})+M^H_kq_{ijk},
+    +R_{\ell k}(1-y_{i\ell j})+T_kq_{ijk},
     \notag\\
   u_{\ell jk}
-  &\leq p_\ell+M^H_k(2-y_{i\ell j}-q_{ijk}),
+  &\leq p_\ell+T_k(2-y_{i\ell j}-q_{ijk}),
   \quad
   \forall(i,\ell)\in\Eset,\ j\in\Pset,\ k\in\Cset_H.
   \tag{C12}\label{eq:event_c12}
@@ -287,9 +289,9 @@ constraints and no endpoint ambiguity.
 For a first-flight arc, initialize the counter from known aircraft history:
 
 \begin{align}
-  u_{ijk}&\geq\Phi_{jk}+p_i-M^H_k(1-y_{0ij}),
+  u_{ijk}&\geq\Phi_{jk}+p_i-(\Phi_{jk}+p_i)(1-y_{0ij}),
   \notag\\
-  u_{ijk}&\leq\Phi_{jk}+p_i+M^H_k(1-y_{0ij}),
+  u_{ijk}&\leq\Phi_{jk}+p_i+(\Phi_{jk}+p_i)(1-y_{0ij}),
   \quad \forall i\in\F,\ j\in\Pset,\ k\in\Cset_H.
   \tag{C13}\label{eq:event_c13}
 \end{align}

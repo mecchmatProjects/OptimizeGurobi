@@ -30,7 +30,9 @@ except ImportError:
 
 
 class EventMILPScheduler(MILP_Sheduler):
-    """Flight-event formulation corresponding to ``docs/update_improve.tex``."""
+    """Exact-state flight-event formulation from ``docs/update_improve.tex``."""
+
+    FORMULATION_ID = "event_exact_state"
 
     HOUR_CHECKS = ("A", "B")
     CALENDAR_CHECKS = ("C", "D")
@@ -102,7 +104,7 @@ class EventMILPScheduler(MILP_Sheduler):
 
     def build_model(self):
         """Build the complete event-based C1--C14 formulation."""
-        model = ConcreteModel(name="event_tail_assignment")
+        model = ConcreteModel(name=self.FORMULATION_ID)
         self.model = model
         self._add_event_sets_and_variables(model)
         self._add_event_objective(model)
@@ -253,13 +255,15 @@ class EventMILPScheduler(MILP_Sheduler):
         model.CAP = Set(dimen=2, initialize=capacity_points)
 
         def capacity_rule(current_model, airport, timestamp):
-            active = (
+            active = [
                 current_model.z[flight, aircraft, check]
                 for flight, aircraft, check in self.z_arcs
                 if self.flight_data[flight]["destination"] == airport
                 and self.flight_data[flight]["arrivalTime"] <= timestamp
                 < self._maintenance_end(flight, check)
-            )
+            ]
+            if not active:
+                return Constraint.Feasible
             return sum(active) <= self.station_cap[airport]
 
         model.c9_capacity = Constraint(model.CAP, rule=capacity_rule)
@@ -283,6 +287,7 @@ class EventMILPScheduler(MILP_Sheduler):
             second_duration = self.flight_data[second]["duration"]
             for check in self.HOUR_CHECKS:
                 threshold = self.check_hrs[check] * 60.0
+                route_big_m = threshold + second_duration
                 reset = (
                     model.q[first, aircraft, check]
                     if (first, aircraft) in self.maintenance_pairs
@@ -291,13 +296,13 @@ class EventMILPScheduler(MILP_Sheduler):
                 model.c12_hour_flow.add(
                     model.u[second, aircraft, check]
                     >= model.u[first, aircraft, check] + second_duration
-                    - threshold * (1 - model.y[first, second, aircraft])
+                    - route_big_m * (1 - model.y[first, second, aircraft])
                     - threshold * reset
                 )
                 model.c12_hour_flow.add(
                     model.u[second, aircraft, check]
                     <= model.u[first, aircraft, check] + second_duration
-                    + threshold * (1 - model.y[first, second, aircraft])
+                    + route_big_m * (1 - model.y[first, second, aircraft])
                     + threshold * reset
                 )
                 model.c12_hour_flow.add(
@@ -312,15 +317,16 @@ class EventMILPScheduler(MILP_Sheduler):
             for check in self.HOUR_CHECKS:
                 initial = self.init_check_hrs[check][aircraft] * 60.0
                 threshold = self.check_hrs[check] * 60.0
+                initial_big_m = initial + duration
                 model.c13_initial_hours.add(
                     model.u[flight, aircraft, check]
                     >= initial + duration
-                    - threshold * (1 - model.first[flight, aircraft])
+                    - initial_big_m * (1 - model.first[flight, aircraft])
                 )
                 model.c13_initial_hours.add(
                     model.u[flight, aircraft, check]
                     <= initial + duration
-                    + threshold * (1 - model.first[flight, aircraft])
+                    + initial_big_m * (1 - model.first[flight, aircraft])
                 )
 
     def _add_event_calendar_limits(self, model):
@@ -343,7 +349,9 @@ class EventMILPScheduler(MILP_Sheduler):
                     if candidates:
                         model.c14_initial_calendar.add(sum(candidates) >= 1)
                     else:
-                        model.c14_initial_calendar.add(Constraint.Infeasible)
+                        model.c14_initial_calendar.add(
+                            sum(model.x[key] for key in model.X) <= -1
+                        )
 
                 for flight, candidate_aircraft, selected_check in self.z_arcs:
                     if (

@@ -15,55 +15,52 @@ This correction also clarifies the domain on which maintenance constraints are
 evaluated.
 
 \paragraph{Constraint~(13) correction.}
-We identified and formally proved that the cumulative-flight-time constraint in
-the original paper admits vacuous satisfaction when only one of the two
-endpoint maintenance indicators is active.  The corrected formulation---two
-split constraints, each anchored to one endpoint---restores validity, strictly
-tightens the LP relaxation, and requires no additional variables.  Computational
-experiments confirm that high-density instances with tight maintenance
-requirements yield different (and verifiably correct) solutions under the
-corrected model.
+We proved that the original cumulative-flight-time constraint can leave the
+opening maintenance interval unbounded. We then showed that the natural
+two-row endpoint split is also insufficient: it can miss flying time between
+consecutive check nights. The exact replacement uses a continuous daily
+cumulative state with maintenance-triggered resets and explicit initial
+conditions. The legacy computational runs use the endpoint split and therefore
+do not certify the exact between-check bound.
 
 \paragraph{Effect on C8--C14.}
-Once C2--C4 are corrected, maintenance constraints C8--C14 do not require
-structural reformulation; instead, they operate on a stricter and physically
-valid assignment polytope.  This removes spurious maintenance schedules that
-were artifacts of simultaneous infeasible flight assignments.
-Equivalently, \Cref{thm:physical_feasibility_c1_c14} provides a formal
-corollary-level guarantee that any binary solution satisfying corrected
-C1--C14 is operationally executable.
+The non-overlap correction changes the assignment domain on which C8--C14
+operate but does not repair cumulative-hour propagation by itself.
+\Cref{thm:physical_feasibility_c1_c14} therefore relies specifically on the
+exact state constraints, together with the corrected basic feasibility and
+maintenance-event constraints.
 
 \paragraph{Full $\{A,B,C,D\}$ hierarchy.}
-We extended the maintenance model from the single-type (type-A, flight-hour)
-framework to the full four-level hierarchy mandated by aviation regulators.
-The extension adds $O(n_f n_p n_d |\C|)$ constraints and variables and
-increases model solve times by a factor of approximately $2\times$, consistent
-with the trend observed for the type-A extension in the original paper.  The
-hierarchical counter-reset logic and pre-horizon accumulated hours/days are
-correctly handled.
+We extended the single-type framework to an explicit four-level A/B/C/D
+hierarchy. Effective-check indicators encode heavier-check resets, separate
+start and occupancy variables represent multi-day C/D checks, and initial
+hour/day values carry maintenance history into the horizon. The extension adds
+$O(n_pn_d|\C|)$ state and event structure plus sparse flight-exclusion rows;
+its solve-time multiplier has not yet been established empirically.
 
 \paragraph{Heuristic benchmark.}
-We provided the first systematic comparison of constructive heuristics against
-the compact MILP on the same instance family.  The Dijkstra-based heuristic
-reliably outperforms the ACO alternative on the temporal acyclic structure of
-the space-time network.  The greedy+insertion heuristic doubles as an effective
-warm-start provider for the MILP solver.
+The benchmark compares three constructive methods with the legacy MILP on the
+same synthetic JSON instances. Greedy+insertion and the modified Dijkstra
+method provide better coverage and shorter runtimes than ACO in the reported
+runs; greedy has the best aggregate coverage of the three. Because many rows
+are partial assignments, their raw objectives are not optimality gaps and no
+universal method ranking is claimed.
 
 \paragraph{Reproducibility.}
-All code, instance generators, experiment configurations, and result tables are
-publicly available.  The modular Pyomo implementation supports straightforward
-extension to new constraint families (e.g., crew connectivity, slot
-restrictions) via the constraint-toggle API.
+The project contains the code, deterministic instance generator, experiment
+configurations, and result tables needed to rerun the reported snapshots. The
+legacy split formulation and the separate event/state formulation are retained
+as distinct implementations so their future performance can be compared
+without conflating their maintenance semantics.
 
 \paragraph{Threats to validity.}
 The reported computational comparisons are intentionally scoped to
-instance-matched, objective-matched evaluations on the generated benchmark
-family used in this study.  As a result, performance conclusions should be
-interpreted as within-scope (compact MILP plus the implemented heuristics)
-rather than universal rankings across all TAP paradigms.  In particular,
-decomposition-heavy and robust/scenario alternatives may exhibit different
-trade-offs when evaluated under their native uncertainty assumptions,
-decomposition settings, and tuning protocols.
+the synthetic benchmark family used in this study. The quick grids use few
+instances, several dense runs end in infeasible/error states, and no completed
+paper-versus-split-versus-exact C13 experiment is reported. Performance
+conclusions are therefore descriptive of these runs only. Decomposition-heavy
+and robust/scenario alternatives may exhibit different trade-offs under their
+native assumptions and tuning protocols.
 
 \subsection*{Future directions}
 
@@ -75,10 +72,10 @@ decomposition settings, and tuning protocols.
   \item \textbf{Robust and recoverable variants:} extending
     \citet{borndorfer2010robust, froyland2013recoverable} to the compact
     formulation with full maintenance hierarchy is an open problem.
-  \item \textbf{Parallel branch-and-bound:} the compact model's very low
-    branch-and-bound node counts (average $< 15$ for the basic model) suggest
-    that warm-starting with multiple heuristic solutions in parallel could
-    eliminate branching entirely on medium-sized instances.
+  \item \textbf{Controlled formulation benchmark:} implement separately
+    selectable paper-C13, endpoint-split, and exact-state builders, validate
+    every solution by replaying its maintenance counters, and compare model
+    size, relaxation bounds, runtime, and feasibility on identical instances.
   \item \textbf{Learning-based heuristics:} the greedy+insertion heuristic
     makes locally greedy decisions; reinforcement-learning or graph-neural-
     network approaches may improve solution quality without sacrificing speed.

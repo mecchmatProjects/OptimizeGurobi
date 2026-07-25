@@ -9,8 +9,8 @@ Tail Assignment Problem (TAP):
 
   1. A scientific paper (paper/main.tex) that reproduces, corrects, and
      extends the compact MILP formulation of Khaled et al. (2018).
-  2. Supporting Python code (src/) that implements the corrected model and
-     validates every claimed result.
+    2. Supporting Python code (src/) containing the preserved endpoint-split
+      baseline and a separate exact-state event formulation.
   3. Reusable AI-agent instructions (.github/, AGENTS.md, skills/) that
      automate paper-writing, experiment running, and result validation tasks.
 
@@ -79,13 +79,53 @@ MAIN ENTRY POINTS
 --------------------------------------------------------------------------------
 
   src/model.py  heuristic  --data FILE          Greedy/insertion heuristic (fast, no solver)
-  src/model.py  milp        --data FILE          Exact MILP (requires solver)
+  src/model.py  milp        --data FILE          Legacy endpoint-split MILP
   src/model.py  batch       --input-dir DIR      Run both modes on all JSON files in DIR
 
   experiments/run_batch.py          Parameterised batch runner (grid over p, h, density)
   experiments/reproduce_tables.py   Reproduce Tables 5, 6, 10, 11 from Khaled et al.
+  experiments/compare_formulations.py  Compare split and exact-state MILPs
+  src/event_model.py                Exact-state event MILP
   src/generate_instances.py         Generate fresh instances (deterministic seed)
   src/diagnostics.py                IIS finder + constraint-group deactivation
+
+
+--------------------------------------------------------------------------------
+LEGACY ENDPOINT-SPLIT VS EXACT-STATE MILP COMPARISON
+--------------------------------------------------------------------------------
+
+  Compare model construction time and size on the quick grid:
+
+      python experiments/compare_formulations.py --quick --build-only
+
+  Solve the quick grid with identical CPLEX limits:
+
+      python experiments/compare_formulations.py --quick \
+             --solver cplex --time-limit 300
+
+  Compare every canonical instance:
+
+      python experiments/compare_formulations.py --full \
+             --solver cplex --time-limit 600
+
+  Compare one explicit instance:
+
+      python experiments/compare_formulations.py \
+             --instances data/instances/DataCplex_density=1_p=10_h=7_test_0.json \
+             --solver cplex --time-limit 300
+
+  Run only the exact-state formulation:
+
+      python experiments/compare_formulations.py \
+             --instances data/instances/DataCplex_density=1_p=10_h=7_test_0.json \
+             --formulations event_exact_state \
+             --solver cplex --time-limit 300
+
+  Results are written to results/tables/formulation_comparison.csv. Each
+  instance produces paired `legacy_endpoint_split` and `event_exact_state`
+  rows with formulation status, build time, wall/CPU solve time, objective,
+  gap, variables, and constraints. Use `--formulations` to select either model
+  independently and `--output PATH` to keep separate experiment runs.
 
 
 --------------------------------------------------------------------------------
@@ -106,17 +146,18 @@ KEY MODEL FLAGS (src/model.py)
 PAPER CONTRIBUTION SUMMARY
 --------------------------------------------------------------------------------
 
-This paper makes three contributions relative to Khaled et al. (2018):
+This paper studies three contributions relative to Khaled et al. (2018):
 
-  1. REPRODUCTION: Exact re-run of Tables 5 and 6 (basic model, δ=0.95/1.00)
-     and Tables 10 and 11 (maintenance model) under identical solver conditions.
+    1. VALIDATION: Synthetic configurations named after Tables 5, 6, 10, and 11
+      provide implementation snapshots; they are not exact reproductions of the
+      published data or averages.
 
   2. CORRECTION: Identifies and corrects an error in paper constraint (13),
      the cumulative flight-hour constraint between successive maintenances.
-     The original formulation uses a single big-M relaxation that allows
-     violations when either endpoint is 0; the corrected version splits
-     into two constraints, each anchored at one endpoint (see docs/model_math.tex,
-     Section 4.2 and src/model.py, MILP_Sheduler._add_c13_hr_accumulation()).
+    The original formulation and the two-row endpoint split are both
+    insufficient. `src/model.py` preserves the endpoint split as
+    `legacy_endpoint_split`; `src/event_model.py` implements the separate
+    `event_exact_state` counter formulation.
 
   3. EXTENSION: Full A/B/C/D maintenance-check hierarchy, multi-day check
      durations, pre-horizon accumulated-hours accounting (C13b), and a

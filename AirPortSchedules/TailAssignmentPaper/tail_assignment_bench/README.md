@@ -5,7 +5,7 @@ OOP benchmark package scaffold for comparing tail assignment methods.
 ## Included v1 methods
 
 - `greedy_baseline` (adapter to current `Scheduler`)
-- `milp_compact` (adapter to current `MILP_Sheduler`)
+- `milp_compact` (compatibility ID for `LegacyEndpointSplitMILPScheduler`)
 - `dp_exact_small` (exact tiny-instance exhaustive method)
 
 ## Quick run
@@ -21,7 +21,10 @@ py -3 tail_assignment_bench/run_benchmark.py \
   --time-limit 30
 ```
 
-Add `milp_compact` to `--methods` when a solver is configured.
+Add `milp_compact` to `--methods` when a solver is configured. This method is
+the preserved endpoint-split baseline; use
+`experiments/compare_formulations.py` for paired baseline versus
+`event_exact_state` runs.
 
 To run only a curated subset of methods, pass a methods config file:
 

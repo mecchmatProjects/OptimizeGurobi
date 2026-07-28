@@ -93,13 +93,78 @@ KEY MODEL FLAGS (src/model.py)
 --------------------------------------------------------------------------------
 
   --no-maintenance        Disable all maintenance constraints (lower bound)
+  --only-checks ...       Enable only selected check types (A/B/C/D)
+  --disable-checks ...    Disable selected check types (A/B/C/D)
   --no-ferry              Disable repositioning (ferry) flights
   --no-overlap            Disable non-overlapping flights check
   --no-check-hierarchy    Disable check hierarchy (D resets C,B,A; etc.)
+  --max-hour-check-deferral-days N
+                  Cap A/B check deferral after arrival (0 = same-day only)
   --solver NAME           cplex_direct | cplex_persistent | cplex | gurobi | cbc | glpk
   --time-limit N          MIP solver time limit in seconds (default: 300)
   --out FILE              Write schedule/events output to FILE
   --gantt FILE            Save Gantt chart to FILE (.png)
+
+
+--------------------------------------------------------------------------------
+MAINTENANCE CONTROL DETAILS
+--------------------------------------------------------------------------------
+
+1. Full maintenance OFF:
+
+    python src/model.py --mode milp --data <instance.json> --no-maintenance
+
+  This removes the entire maintenance block (C8+), leaving a pure
+  assignment/routing model.
+
+2. Full maintenance ON (default):
+
+    python src/model.py --mode milp --data <instance.json>
+
+3. Correct flag spelling:
+
+  The implemented flag is `--no-maintenance`.
+  `--no-maintance` (missing "e") is not recognized by argparse.
+
+4. Can we switch A/B/C/D individually from CLI?
+
+  Yes. Two flags are available:
+
+  - `--only-checks ...` to keep only selected types active.
+  - `--disable-checks ...` to remove selected types from the active set.
+
+  Examples:
+
+    python src/model.py --mode milp --data <instance.json> --only-checks A B
+    python src/model.py --mode milp --data <instance.json> --disable-checks C D
+
+5. Precedence when both are provided:
+
+  - Start from `--only-checks` subset if provided; otherwise start from A/B/C/D.
+  - Remove any types listed in `--disable-checks`.
+
+  Example:
+
+    --only-checks A B C --disable-checks B
+
+  Final active set is A,C.
+
+6. Accepted value formats:
+
+  - Case-insensitive values (A/B/C/D).
+  - Space-separated: `--only-checks A B`
+  - Comma-separated: `--only-checks A,B`
+
+7. Empty set protection:
+
+  If the final active set is empty after applying both flags, argparse exits
+  with a validation error.
+
+8. Interaction with `--no-maintenance`:
+
+  `--no-maintenance` still disables the full maintenance block regardless of
+  selected types. Per-type flags are validated but have no effect when global
+  maintenance is OFF.
 
 
 --------------------------------------------------------------------------------

@@ -279,7 +279,7 @@ class MILP_Sheduler:
     }
 
     def __init__(self, data_path, maintenance_airports=None,
-                 max_hour_check_deferral_days=None):
+                 max_hour_check_deferral_days=None, enabled_checks=None):
         """Load data from *data_path* and prepare all MILP index sets.
 
         Parameters
@@ -299,6 +299,28 @@ class MILP_Sheduler:
 
     
         self.data_path = data_path
+        base_checks = list(type(self).CHECK_LIST)
+        if enabled_checks is None:
+            active_checks = base_checks
+        else:
+            requested = []
+            for check in enabled_checks:
+                check_up = str(check).upper()
+                if check_up not in requested:
+                    requested.append(check_up)
+            invalid = [check for check in requested if check not in base_checks]
+            if invalid:
+                raise ValueError(
+                    f"Invalid check type(s): {invalid}. Allowed: {base_checks}"
+                )
+            active_checks = [check for check in base_checks if check in requested]
+            if not active_checks:
+                raise ValueError(
+                    "enabled_checks resolved to an empty set; "
+                    "select at least one of A,B,C,D."
+                )
+        # Instance-level override used by all constraint builders.
+        self.CHECK_LIST = active_checks
         with open(data_path) as f:
             raw = json.load(f)
 
@@ -916,7 +938,8 @@ class MILP_Sheduler:
             for d in m.D:
                 for c in self.CHECK_LIST:
                     if use_hierarchy:
-                        covers = self.CHECK_HIERARCHY[c]
+                        covers = [c2 for c2 in self.CHECK_HIERARCHY[c]
+                                  if c2 in self.CHECK_LIST]
                         m.c_hierarchy.add(
                             m.mega[j, d, c] == sum(m.y[j, d, c2] for c2 in covers)
                         )
@@ -1694,7 +1717,7 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
              use_day_spacing=True, use_existing_hrs=True,
              use_check_hierarchy=True, use_sanity=False, use_overlap=True,
              allow_ferry=True, use_maintenance=True, warm_start=True,
-             max_hour_check_deferral_days=None):
+             max_hour_check_deferral_days=None, enabled_checks=None):
     """Build and solve the MILP model, then display results.
 
     Parameters
@@ -1705,10 +1728,14 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
                                  (pure flight-assignment relaxation).
     warm_start     : bool        When True (default), seed MILP x-variables with
                                  the greedy heuristic solution before solving.
+    enabled_checks : list[str] | None
+        Active maintenance check types to model (subset of A,B,C,D).
+        None keeps all four checks active.
     """
     opt = MILP_Sheduler(
         data_path,
         max_hour_check_deferral_days=max_hour_check_deferral_days,
+        enabled_checks=enabled_checks,
     )
     opt.build_model(use_day_spacing=use_day_spacing,
                     use_existing_hrs=use_existing_hrs,
@@ -1778,7 +1805,8 @@ def _run_one_heuristic(fp, out_dir, stem, show_gantt):
 def _run_one_milp(fp, out_dir, stem, solver, tee, show_gantt, time_limit,
                   allow_ferry=True, use_maintenance=True,
                   use_overlap=True, use_sanity=False, warm_start=True,
-                  use_check_hierarchy=True, max_hour_check_deferral_days=None):
+                  use_check_hierarchy=True, max_hour_check_deferral_days=None,
+                  enabled_checks=None):
     """Run MILP on a single file; return metrics dict."""
     import time, os
     gantt_out = os.path.join(out_dir, f'{stem}_milp_gantt.png')
@@ -1795,6 +1823,7 @@ def _run_one_milp(fp, out_dir, stem, solver, tee, show_gantt, time_limit,
         warm_start=warm_start,
         use_check_hierarchy=use_check_hierarchy,
         max_hour_check_deferral_days=max_hour_check_deferral_days,
+        enabled_checks=enabled_checks,
     )
     cpu = time.time() - t0
 
@@ -1875,7 +1904,8 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
               solver='cplex', tee=False, show_gantt=False, time_limit=300,
               allow_ferry=True, use_maintenance=True,
               use_overlap=True, use_sanity=False, warm_start=True,
-              use_check_hierarchy=True, max_hour_check_deferral_days=None):
+              use_check_hierarchy=True, max_hour_check_deferral_days=None,
+              enabled_checks=None):
     """Process every JSON file in *input_dir* and write results to *output_dir*.
 
     For each dataset the following files are created in output_dir::
@@ -1903,6 +1933,8 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
     use_overlap    : bool  When False, pairwise overlap constraints (c_overlap) omitted.
     use_sanity     : bool  When False, sanity-fixing bounds constraints omitted.
     use_check_hierarchy: bool  When False, check hierarchy constraints omitted. 
+    enabled_checks : list[str] | None
+        Active maintenance check types to model (subset of A,B,C,D).
     """
     import os, glob, time
 
@@ -1924,6 +1956,8 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
     print(f"[batch] ferry={ferry_label}  maintenance={maint_label}  overlap={over_label}  sanity={san_label}  check_hierarchy={check_label}")
     if max_hour_check_deferral_days is not None:
         print(f"[batch] max_hour_check_deferral_days={max_hour_check_deferral_days}")
+    if enabled_checks is not None:
+        print(f"[batch] enabled_checks={','.join(enabled_checks)}")
     print(f"[batch] output -> '{output_dir}'\n")
 
     all_rows = []
@@ -1952,6 +1986,7 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
                                     warm_start=warm_start,
                                     use_check_hierarchy=use_check_hierarchy,
                                     max_hour_check_deferral_days=max_hour_check_deferral_days,
+                                    enabled_checks=enabled_checks,
                                     )
                 all_rows.append(row)
             except Exception as exc:
@@ -1999,6 +2034,38 @@ def main():
                           --solver cplex
     """
     import argparse
+
+    def _parse_check_tokens(tokens):
+        checks = []
+        for token in tokens or []:
+            for part in str(token).split(','):
+                check = part.strip().upper()
+                if check:
+                    checks.append(check)
+        return checks
+
+    def _resolve_enabled_checks(only_tokens, disable_tokens):
+        base = ['A', 'B', 'C', 'D']
+        only_checks = _parse_check_tokens(only_tokens)
+        disable_checks = _parse_check_tokens(disable_tokens)
+
+        invalid = [c for c in only_checks + disable_checks if c not in base]
+        if invalid:
+            parser.error(
+                f"Invalid check type(s): {sorted(set(invalid))}. Allowed: A,B,C,D."
+            )
+
+        enabled = base if not only_checks else [c for c in base if c in only_checks]
+        if disable_checks:
+            disabled = set(disable_checks)
+            enabled = [c for c in enabled if c not in disabled]
+
+        if not enabled:
+            parser.error(
+                "Selected checks are empty after applying --only-checks/--disable-checks."
+            )
+        return enabled
+
     parser = argparse.ArgumentParser(
         description='Aircraft Schedule Optimizer',
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -2051,9 +2118,18 @@ def main():
     parser.add_argument('--max-hour-check-deferral-days', type=int, default=None,
                         help='Cap how many days after arrival an A/B check may be deferred. '
                              'Use 0 for same-day only; default keeps the full horizon.')
+    parser.add_argument('--only-checks', nargs='+', default=None,
+                        metavar='CHECK',
+                        help='Enable only selected maintenance check types (A B C D). '
+                             'Comma-separated values are also accepted.')
+    parser.add_argument('--disable-checks', nargs='+', default=None,
+                        metavar='CHECK',
+                        help='Disable selected maintenance check types (A B C D). '
+                             'Comma-separated values are also accepted.')
     parser.set_defaults(show=True, allow_ferry=True, use_maintenance=True,
                         use_overlap=True, use_sanity=False, warm_start=True, use_check_hierarchy=True)
     args = parser.parse_args()
+    enabled_checks = _resolve_enabled_checks(args.only_checks, args.disable_checks)
 
     if args.mode == 'heuristic':
         run_heuristic(data_path=args.data,
@@ -2072,6 +2148,7 @@ def main():
                  warm_start=args.warm_start,
                  use_check_hierarchy=args.use_check_hierarchy,
                  max_hour_check_deferral_days=args.max_hour_check_deferral_days,
+                 enabled_checks=enabled_checks,
                  )
     else:  # batch
         run_batch(input_dir=args.input_dir,
@@ -2087,6 +2164,7 @@ def main():
                   warm_start=args.warm_start,
                   use_check_hierarchy=args.use_check_hierarchy,
                   max_hour_check_deferral_days=args.max_hour_check_deferral_days,
+                  enabled_checks=enabled_checks,
                   )
         
 

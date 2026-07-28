@@ -52,7 +52,7 @@ class Scheduler:
       A check -> resets A only         (B, C, D counters keep running)
     """
 
-    def __init__(self, data_path):
+    def __init__(self, data_path, allow_ferry=True, heuristic='greedy+insertion'):
         with open(data_path, 'r') as f:
             self.data = json.load(f)
 
@@ -79,9 +79,26 @@ class Scheduler:
         self.durations   = {k: float(v) for k, v in self.data['Maintenance_Durations'].items()}
         self.station_cap = self.data['Station_Capacity']
         self.cost_matrix = self.data['Cost_Matrix']
+        self.allow_ferry = bool(allow_ferry)
+        self.heuristic = self._normalize_heuristic(heuristic)
 
         self.ferry_time = 60
         self.ferry_cost = 6000
+
+    @staticmethod
+    def _normalize_heuristic(heuristic):
+        if heuristic is None:
+            return 'greedy+insertion'
+        key = str(heuristic).strip().lower().replace(' ', '')
+        if key in {'greedy', 'greedyonly'}:
+            return 'greedy'
+        if key in {'insertion', 'bestinsertion'}:
+            return 'insertion'
+        if key in {'greedy+insertion', 'greedyinsertion', 'hybrid', 'combined'}:
+            return 'greedy+insertion'
+        raise ValueError(
+            f"Unsupported heuristic '{heuristic}'. Choose one of: greedy, insertion, greedy+insertion"
+        )
 
     # ------------------------------------------------------------------
     def _init_counters(self, aid):
@@ -140,6 +157,8 @@ class Scheduler:
 
             # ── 1. Ferry / repositioning ──────────────────────────────────
             if curr_apt != fl['orig']:
+                if not self.allow_ferry:
+                    return None
                 if curr_time + self.ferry_time > fl['dep']:
                     return None
                 events.append({
@@ -214,7 +233,35 @@ class Scheduler:
         ac_fids = {aid: [] for aid in self.aircrafts}
         assigned = set()
         sorted_fids = sorted(self.flights.keys(), key=lambda x: self.flights[x]['dep'])
-        
+
+        if self.heuristic == 'greedy':
+            for fid in sorted_fids:
+                best_opt = None
+                for aid in self.aircrafts:
+                    res = self.get_timeline(aid, ac_fids[aid] + [fid])
+                    if res and (best_opt is None or res['cost'] < best_opt[0]):
+                        best_opt = (res['cost'], aid)
+                if best_opt:
+                    ac_fids[best_opt[1]].append(fid)
+                    assigned.add(fid)
+            return ac_fids, [fid for fid in self.flights if fid not in assigned]
+
+        if self.heuristic == 'insertion':
+            for fid in sorted_fids:
+                best_ins = None
+                for aid in self.aircrafts:
+                    for i in range(len(ac_fids[aid]) + 1):
+                        trial = ac_fids[aid][:i] + [fid] + ac_fids[aid][i:]
+                        res = self.get_timeline(aid, trial)
+                        if res and (best_ins is None or res['cost'] < best_ins[2]):
+                            best_ins = (aid, i, res['cost'])
+                if best_ins:
+                    aid, idx, _ = best_ins
+                    ac_fids[aid].insert(idx, fid)
+                    assigned.add(fid)
+            return ac_fids, [fid for fid in self.flights if fid not in assigned]
+
+        # Default: greedy first, then iterative insertion refinement.
         for fid in sorted_fids:
             best_opt = None
             for aid in self.aircrafts:
@@ -225,7 +272,7 @@ class Scheduler:
                 ac_fids[best_opt[1]].append(fid)
                 assigned.add(fid)
 
-        for _ in range(5): 
+        for _ in range(5):
             still_unassigned = [fid for fid in self.flights if fid not in assigned]
             for fid in still_unassigned:
                 best_ins = None
@@ -283,7 +330,7 @@ class MILP_Sheduler:
     }
 
     def __init__(self, data_path, maintenance_airports=None,
-                 max_hour_check_deferral_days=None):
+                 max_hour_check_deferral_days=None, enabled_checks=None):
         """Load data from *data_path* and prepare all MILP index sets.
 
         Parameters
@@ -303,6 +350,28 @@ class MILP_Sheduler:
 
     
         self.data_path = data_path
+        base_checks = list(type(self).CHECK_LIST)
+        if enabled_checks is None:
+            active_checks = base_checks
+        else:
+            requested = []
+            for check in enabled_checks:
+                check_up = str(check).upper()
+                if check_up not in requested:
+                    requested.append(check_up)
+            invalid = [check for check in requested if check not in base_checks]
+            if invalid:
+                raise ValueError(
+                    f"Invalid check type(s): {invalid}. Allowed: {base_checks}"
+                )
+            active_checks = [check for check in base_checks if check in requested]
+            if not active_checks:
+                raise ValueError(
+                    "enabled_checks resolved to an empty set; "
+                    "select at least one of A,B,C,D."
+                )
+        # Instance-level override used by all constraint builders.
+        self.CHECK_LIST = active_checks
         with open(data_path) as f:
             raw = json.load(f)
 
@@ -920,7 +989,8 @@ class MILP_Sheduler:
             for d in m.D:
                 for c in self.CHECK_LIST:
                     if use_hierarchy:
-                        covers = self.CHECK_HIERARCHY[c]
+                        covers = [c2 for c2 in self.CHECK_HIERARCHY[c]
+                                  if c2 in self.CHECK_LIST]
                         m.c_hierarchy.add(
                             m.mega[j, d, c] == sum(m.y[j, d, c2] for c2 in covers)
                         )
@@ -1664,9 +1734,10 @@ def _heuristic_df(sc, final_ac_fids):
 
 
 def run_heuristic(data_path='data18h.json', csv_path='final_schedule.csv',
-                  gantt_path=None, show_gantt=True, verbose=True):
-    """Run the greedy+insertion heuristic and display results."""
-    sc = Scheduler(data_path)
+                  gantt_path=None, show_gantt=True, verbose=True,
+                  allow_ferry=True, heuristic='greedy+insertion'):
+    """Run a heuristic strategy and display results."""
+    sc = Scheduler(data_path, allow_ferry=allow_ferry, heuristic=heuristic)
     final_ac_fids, unassigned = sc.optimize()
 
     n_flights  = len(sc.flights)
@@ -1709,7 +1780,7 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
              use_day_spacing=True, use_existing_hrs=True,
              use_check_hierarchy=True, use_sanity=False, use_overlap=True,
              allow_ferry=True, use_maintenance=True, warm_start=True,
-             max_hour_check_deferral_days=None):
+             max_hour_check_deferral_days=None, enabled_checks=None):
     """Build and solve the MILP model, then display results.
 
     Parameters
@@ -1720,10 +1791,14 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
                                  (pure flight-assignment relaxation).
     warm_start     : bool        When True (default), seed MILP x-variables with
                                  the greedy heuristic solution before solving.
+    enabled_checks : list[str] | None
+        Active maintenance check types to model (subset of A,B,C,D).
+        None keeps all four checks active.
     """
     opt = LegacyEndpointSplitMILPScheduler(
         data_path,
         max_hour_check_deferral_days=max_hour_check_deferral_days,
+        enabled_checks=enabled_checks,
     )
     opt.build_model(use_day_spacing=use_day_spacing,
                     use_existing_hrs=use_existing_hrs,
@@ -1742,7 +1817,8 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
 # BATCH RUNNER
 # ----------------------------
 
-def _run_one_heuristic(fp, out_dir, stem, show_gantt):
+def _run_one_heuristic(fp, out_dir, stem, show_gantt, allow_ferry=True,
+                       heuristic='greedy+insertion'):
     """Run heuristic on a single file; return metrics dict."""
     import time, os
     csv_out   = os.path.join(out_dir, f'{stem}_heu_schedule.csv')
@@ -1752,6 +1828,7 @@ def _run_one_heuristic(fp, out_dir, stem, show_gantt):
     sc, ac_fids, unassigned = run_heuristic(
         data_path=fp, csv_path=csv_out,
         gantt_path=gantt_out, show_gantt=show_gantt, verbose=False,
+        allow_ferry=allow_ferry, heuristic=heuristic,
     )
     cpu = time.time() - t0
     n   = len(sc.flights)
@@ -1793,7 +1870,8 @@ def _run_one_heuristic(fp, out_dir, stem, show_gantt):
 def _run_one_milp(fp, out_dir, stem, solver, tee, show_gantt, time_limit,
                   allow_ferry=True, use_maintenance=True,
                   use_overlap=True, use_sanity=False, warm_start=True,
-                  use_check_hierarchy=True, max_hour_check_deferral_days=None):
+                  use_check_hierarchy=True, max_hour_check_deferral_days=None,
+                  enabled_checks=None):
     """Run MILP on a single file; return metrics dict."""
     import time, os
     gantt_out = os.path.join(out_dir, f'{stem}_milp_gantt.png')
@@ -1810,6 +1888,7 @@ def _run_one_milp(fp, out_dir, stem, solver, tee, show_gantt, time_limit,
         warm_start=warm_start,
         use_check_hierarchy=use_check_hierarchy,
         max_hour_check_deferral_days=max_hour_check_deferral_days,
+        enabled_checks=enabled_checks,
     )
     cpu = time.time() - t0
 
@@ -1888,9 +1967,11 @@ def _plot_comparison(rows, out_dir):
 
 def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
               solver='cplex', tee=False, show_gantt=False, time_limit=300,
-              allow_ferry=True, use_maintenance=True,
+              allow_ferry=True, heuristic='greedy+insertion',
+              use_maintenance=True,
               use_overlap=True, use_sanity=False, warm_start=True,
-              use_check_hierarchy=True, max_hour_check_deferral_days=None):
+              use_check_hierarchy=True, max_hour_check_deferral_days=None,
+              enabled_checks=None):
     """Process every JSON file in *input_dir* and write results to *output_dir*.
 
     For each dataset the following files are created in output_dir::
@@ -1918,6 +1999,8 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
     use_overlap    : bool  When False, pairwise overlap constraints (c_overlap) omitted.
     use_sanity     : bool  When False, sanity-fixing bounds constraints omitted.
     use_check_hierarchy: bool  When False, check hierarchy constraints omitted. 
+    enabled_checks : list[str] | None
+        Active maintenance check types to model (subset of A,B,C,D).
     """
     import os, glob, time
 
@@ -1939,6 +2022,8 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
     print(f"[batch] ferry={ferry_label}  maintenance={maint_label}  overlap={over_label}  sanity={san_label}  check_hierarchy={check_label}")
     if max_hour_check_deferral_days is not None:
         print(f"[batch] max_hour_check_deferral_days={max_hour_check_deferral_days}")
+    if enabled_checks is not None:
+        print(f"[batch] enabled_checks={','.join(enabled_checks)}")
     print(f"[batch] output -> '{output_dir}'\n")
 
     all_rows = []
@@ -1950,7 +2035,9 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
 
         if run_heu:
             try:
-                row = _run_one_heuristic(fp, output_dir, stem, show_gantt)
+                row = _run_one_heuristic(fp, output_dir, stem, show_gantt,
+                                         allow_ferry=allow_ferry,
+                                         heuristic=heuristic)
                 all_rows.append(row)
             except Exception as exc:
                 print(f"  ✗ [heuristic] {exc}")
@@ -1967,6 +2054,7 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
                                     warm_start=warm_start,
                                     use_check_hierarchy=use_check_hierarchy,
                                     max_hour_check_deferral_days=max_hour_check_deferral_days,
+                                    enabled_checks=enabled_checks,
                                     )
                 all_rows.append(row)
             except Exception as exc:
@@ -2014,6 +2102,38 @@ def main():
                           --solver cplex
     """
     import argparse
+
+    def _parse_check_tokens(tokens):
+        checks = []
+        for token in tokens or []:
+            for part in str(token).split(','):
+                check = part.strip().upper()
+                if check:
+                    checks.append(check)
+        return checks
+
+    def _resolve_enabled_checks(only_tokens, disable_tokens):
+        base = ['A', 'B', 'C', 'D']
+        only_checks = _parse_check_tokens(only_tokens)
+        disable_checks = _parse_check_tokens(disable_tokens)
+
+        invalid = [c for c in only_checks + disable_checks if c not in base]
+        if invalid:
+            parser.error(
+                f"Invalid check type(s): {sorted(set(invalid))}. Allowed: A,B,C,D."
+            )
+
+        enabled = base if not only_checks else [c for c in base if c in only_checks]
+        if disable_checks:
+            disabled = set(disable_checks)
+            enabled = [c for c in enabled if c not in disabled]
+
+        if not enabled:
+            parser.error(
+                "Selected checks are empty after applying --only-checks/--disable-checks."
+            )
+        return enabled
+
     parser = argparse.ArgumentParser(
         description='Aircraft Schedule Optimizer',
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -2049,9 +2169,12 @@ def main():
                         help='Save Gantt chart PNG to this path')
     parser.add_argument('--no-show',     dest='show', action='store_false',
                         help='Do not display Gantt interactively')
+    parser.add_argument('--heuristic', default='greedy+insertion',
+                        choices=['greedy', 'insertion', 'greedy+insertion'],
+                        help='Heuristic strategy to use in heuristic and batch modes '
+                             '(default: greedy+insertion).')
     parser.add_argument('--no-ferry',    dest='allow_ferry', action='store_false',
-                        help='Omit C2-C3 routing constraints from MILP '
-                             '(pure assignment; smaller/faster model).')
+                        help='Disable repositioning (ferry) legs in heuristic and MILP modes.')
     parser.add_argument('--no-maintenance', dest='use_maintenance', action='store_false',
                         help='Omit ALL maintenance constraints from MILP '
                              '(pure flight-assignment relaxation; much smaller/faster).')
@@ -2066,15 +2189,26 @@ def main():
     parser.add_argument('--max-hour-check-deferral-days', type=int, default=None,
                         help='Cap how many days after arrival an A/B check may be deferred. '
                              'Use 0 for same-day only; default keeps the full horizon.')
+    parser.add_argument('--only-checks', nargs='+', default=None,
+                        metavar='CHECK',
+                        help='Enable only selected maintenance check types (A B C D). '
+                             'Comma-separated values are also accepted.')
+    parser.add_argument('--disable-checks', nargs='+', default=None,
+                        metavar='CHECK',
+                        help='Disable selected maintenance check types (A B C D). '
+                             'Comma-separated values are also accepted.')
     parser.set_defaults(show=True, allow_ferry=True, use_maintenance=True,
                         use_overlap=True, use_sanity=False, warm_start=True, use_check_hierarchy=True)
     args = parser.parse_args()
+    enabled_checks = _resolve_enabled_checks(args.only_checks, args.disable_checks)
 
     if args.mode == 'heuristic':
         run_heuristic(data_path=args.data,
                       csv_path=args.out or 'final_schedule.csv',
                       gantt_path=args.gantt,
-                      show_gantt=args.show)
+                      show_gantt=args.show,
+                      allow_ferry=args.allow_ferry,
+                      heuristic=args.heuristic)
     elif args.mode == 'milp':
         run_milp(data_path=args.data,
                  solver=args.solver, tee=args.tee,
@@ -2087,12 +2221,14 @@ def main():
                  warm_start=args.warm_start,
                  use_check_hierarchy=args.use_check_hierarchy,
                  max_hour_check_deferral_days=args.max_hour_check_deferral_days,
+                 enabled_checks=enabled_checks,
                  )
     else:  # batch
         run_batch(input_dir=args.input_dir,
                   output_dir=args.output_dir,
                   mode=args.batch_mode,
                   solver=args.solver, tee=args.tee,
+                  heuristic=args.heuristic,
                   time_limit=args.time_limit,
                   show_gantt=args.show,
                   allow_ferry=args.allow_ferry,
@@ -2102,6 +2238,7 @@ def main():
                   warm_start=args.warm_start,
                   use_check_hierarchy=args.use_check_hierarchy,
                   max_hour_check_deferral_days=args.max_hour_check_deferral_days,
+                  enabled_checks=enabled_checks,
                   )
         
 

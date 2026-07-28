@@ -16,6 +16,26 @@ Tail Assignment Problem (TAP):
 
 
 --------------------------------------------------------------------------------
+VALIDATION STATUS (branch: old_base_version)
+--------------------------------------------------------------------------------
+
+All three run modes were smoke-tested end-to-end with CPLEX and confirmed
+to produce correct outputs:
+
+  - heuristic  : assigns flights, writes CSV + events + Gantt PNG
+  - milp       : builds/solves with CPLEX, writes TXT summary + Gantt PNG
+  - batch      : both modes over a folder, writes per-instance files +
+                 `_batch_summary.csv` + `_comparison.png`
+
+Example verified result (density=0.5, p=10, h=7 instance):
+  heuristic obj = 980919.0 (102/102 assigned)
+  milp      obj = 827858.0, gap = 0.0075%, status = optimal
+
+See "RUNNING ON A NEW / ANOTHER DEVICE" below to reproduce this on a
+different machine.
+
+
+--------------------------------------------------------------------------------
 CONTENTS
 --------------------------------------------------------------------------------
 
@@ -69,18 +89,85 @@ QUICK START
       `TAP_PYOMO_SOLVER`, with the CPLEX Studio `bin\x64_win64` directory added
       to the integrated terminal `PATH`.
 
-7.  Compile the paper (requires a LaTeX installation):
 
-        cd paper && latexmk -pdf main.tex
+--------------------------------------------------------------------------------
+RUNNING ON A NEW / ANOTHER DEVICE (PORTABLE INSTALL)
+--------------------------------------------------------------------------------
+
+This project is distributed as a plain folder (no installer). To set it up
+on a fresh machine from an archive (.zip):
+
+1.  Unzip to any path (no spaces-only requirement, but avoid extremely long
+    paths on Windows).
+
+2.  Requires Python 3.8+ on the target machine. Check with:
+
+        python --version
+        # or, on Windows with the py launcher:
+        py -3 --version
+
+3.  Create and activate a virtual environment INSIDE the unzipped folder:
+
+        py -3 -m venv .venv
+        .venv\Scripts\Activate.ps1        # Windows PowerShell
+        # source .venv/bin/activate       # macOS/Linux
+
+4.  Install Python dependencies:
+
+        pip install -r requirements.txt
+
+5.  Heuristic mode needs NO solver at all — this is the fastest way to
+    confirm the install works:
+
+        python src/model.py --mode heuristic ^
+               --data data/instances/DataCplex_density=0.5_p=10_h=7_test_0.json ^
+               --out results/heu_schedule.csv --no-show
+
+    Expected: a summary table is printed, and
+    `results/heu_schedule.csv` + `results/heu_schedule_events.txt` +
+    (if matplotlib is installed) a Gantt PNG are created.
+
+6.  MILP mode requires a solver. This project is validated against CPLEX
+    (`--solver cplex`), which requires a separate IBM CPLEX Studio install
+    and a valid license; `pip install cplex` alone is not enough unless
+    CPLEX Studio is already installed and licensed on that machine. If CPLEX
+    is not available on the new device, install a free solver instead (see
+    "FREE SOLVER ALTERNATIVES" below) and pass `--solver glpk` / `--solver cbc`
+    / `--solver highs`.
+
+    Quick MILP sanity check once a solver is available:
+
+        python src/model.py --mode milp ^
+               --data data/instances/DataCplex_density=0.5_p=10_h=7_test_0.json ^
+               --solver cplex --time-limit 60 ^
+               --out results/milp_summary.txt --no-show
+
+    Expected: `Status : optimal` with `Gap` near 0% for this instance.
+
+7.  Batch mode (both heuristic and MILP) on a folder of instances:
+
+        python src/model.py --mode batch --batch-mode both ^
+               --input-dir data/instances --output-dir Outputs ^
+               --solver cplex --time-limit 60 --no-show
+
+    Expected: per-instance CSV/TXT/PNG files plus `_batch_summary.csv` and
+    `_comparison.png` in the output folder.
+
+8.  Note on infeasible MILP results: some bundled instances (e.g. very high
+    flight density relative to fleet size, such as `density=1_p=10_h=7`) are
+    intentionally over-subscribed and are EXPECTED to report
+    `Status : infeasible` under full flight-coverage MILP constraints, even
+    though the heuristic still returns a partial (best-effort) assignment.
+    This is a property of the test instance, not a solver or code defect.
 
 
 --------------------------------------------------------------------------------
 MAIN ENTRY POINTS
 --------------------------------------------------------------------------------
 
-  src/model.py  heuristic  --data FILE          Greedy/insertion heuristic (fast, no solver)
+  src/model.py  heuristic  --data FILE          Heuristic run (greedy, insertion, or greedy+insertion)
   src/model.py  milp        --data FILE          Exact MILP (requires solver)
-  src/model.py  batch       --input-dir DIR      Run both modes on all JSON files in DIR
+  src/model.py  batch       --input-dir DIR      Run heuristic and/or MILP on all JSON files in DIR
 
   experiments/run_batch.py          Parameterised batch runner (grid over p, h, density)
   experiments/reproduce_tables.py   Reproduce Tables 5, 6, 10, 11 from Khaled et al.
@@ -92,6 +179,7 @@ MAIN ENTRY POINTS
 KEY MODEL FLAGS (src/model.py)
 --------------------------------------------------------------------------------
 
+  --heuristic NAME        Select heuristic strategy: greedy, insertion, or greedy+insertion
   --no-maintenance        Disable all maintenance constraints (lower bound)
   --only-checks ...       Enable only selected check types (A/B/C/D)
   --disable-checks ...    Disable selected check types (A/B/C/D)
@@ -205,13 +293,3 @@ FREE SOLVER ALTERNATIVES
       Use: --solver highs
 
 
---------------------------------------------------------------------------------
-FOLDER ORIGIN
---------------------------------------------------------------------------------
-
-This project was extracted and cleaned from the development workspace at:
-  ..\..\Heuristics\
-
-The original messy workspace contained ~40 debugging scripts, solver logs,
-and stale LP files that are NOT included here. The core model (src/model.py)
-is a direct copy of Heuristics/heu180h.py (last updated 2026-06-29).

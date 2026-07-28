@@ -52,7 +52,7 @@ class Scheduler:
       A check -> resets A only         (B, C, D counters keep running)
     """
 
-    def __init__(self, data_path):
+    def __init__(self, data_path, allow_ferry=True):
         with open(data_path, 'r') as f:
             self.data = json.load(f)
 
@@ -79,6 +79,7 @@ class Scheduler:
         self.durations   = {k: float(v) for k, v in self.data['Maintenance_Durations'].items()}
         self.station_cap = self.data['Station_Capacity']
         self.cost_matrix = self.data['Cost_Matrix']
+        self.allow_ferry = bool(allow_ferry)
 
         self.ferry_time = 60
         self.ferry_cost = 6000
@@ -140,6 +141,8 @@ class Scheduler:
 
             # ── 1. Ferry / repositioning ──────────────────────────────────
             if curr_apt != fl['orig']:
+                if not self.allow_ferry:
+                    return None
                 if curr_time + self.ferry_time > fl['dep']:
                     return None
                 events.append({
@@ -1672,9 +1675,10 @@ def _heuristic_df(sc, final_ac_fids):
 
 
 def run_heuristic(data_path='data18h.json', csv_path='final_schedule.csv',
-                  gantt_path=None, show_gantt=True, verbose=True):
+                  gantt_path=None, show_gantt=True, verbose=True,
+                  allow_ferry=True):
     """Run the greedy+insertion heuristic and display results."""
-    sc = Scheduler(data_path)
+    sc = Scheduler(data_path, allow_ferry=allow_ferry)
     final_ac_fids, unassigned = sc.optimize()
 
     n_flights  = len(sc.flights)
@@ -1754,7 +1758,7 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
 # BATCH RUNNER
 # ----------------------------
 
-def _run_one_heuristic(fp, out_dir, stem, show_gantt):
+def _run_one_heuristic(fp, out_dir, stem, show_gantt, allow_ferry=True):
     """Run heuristic on a single file; return metrics dict."""
     import time, os
     csv_out   = os.path.join(out_dir, f'{stem}_heu_schedule.csv')
@@ -1764,6 +1768,7 @@ def _run_one_heuristic(fp, out_dir, stem, show_gantt):
     sc, ac_fids, unassigned = run_heuristic(
         data_path=fp, csv_path=csv_out,
         gantt_path=gantt_out, show_gantt=show_gantt, verbose=False,
+        allow_ferry=allow_ferry,
     )
     cpu = time.time() - t0
     n   = len(sc.flights)
@@ -1969,7 +1974,8 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
 
         if run_heu:
             try:
-                row = _run_one_heuristic(fp, output_dir, stem, show_gantt)
+                row = _run_one_heuristic(fp, output_dir, stem, show_gantt,
+                                         allow_ferry=allow_ferry)
                 all_rows.append(row)
             except Exception as exc:
                 print(f"  ✗ [heuristic] {exc}")
@@ -2102,8 +2108,7 @@ def main():
     parser.add_argument('--no-show',     dest='show', action='store_false',
                         help='Do not display Gantt interactively')
     parser.add_argument('--no-ferry',    dest='allow_ferry', action='store_false',
-                        help='Omit C2-C3 routing constraints from MILP '
-                             '(pure assignment; smaller/faster model).')
+                        help='Disable repositioning (ferry) legs in heuristic and MILP modes.')
     parser.add_argument('--no-maintenance', dest='use_maintenance', action='store_false',
                         help='Omit ALL maintenance constraints from MILP '
                              '(pure flight-assignment relaxation; much smaller/faster).')
@@ -2135,7 +2140,8 @@ def main():
         run_heuristic(data_path=args.data,
                       csv_path=args.out or 'final_schedule.csv',
                       gantt_path=args.gantt,
-                      show_gantt=args.show)
+                      show_gantt=args.show,
+                      allow_ferry=args.allow_ferry)
     elif args.mode == 'milp':
         run_milp(data_path=args.data,
                  solver=args.solver, tee=args.tee,

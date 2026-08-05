@@ -1,0 +1,67 @@
+{
+    "_comment": [
+        "=== TARGETED TEST: Constraint (13) loophole demonstration ===",
+        "",
+        "Purpose: prove the original Khaled et al. (2018) Eq.(13) is vacuous when",
+        "no maintenance check has ever occurred (mega=0 at both window endpoints),",
+        "while the corrected split formulation correctly forces infeasibility.",
+        "",
+        "Design: a SINGLE aircraft (0) must fly ALL 4 flights (no alternative",
+        "aircraft to redistribute load to). All 4 flights depart on day 2",
+        "(dep in [1440,2880) minutes) -- NOT day 1 -- so that constraint C13b",
+        "(existing/prior-hours window, which is always corrected-style and would",
+        "otherwise mask the bug) does not interfere; the window under test is",
+        "purely the main C13 constraint (days[0]=1 .. some later day).",
+        "Total flight time = 4 x 350 = 1400 min, exceeding the A-check",
+        "threshold of 1000 min. Station_Capacity is EMPTY (no airport can host",
+        "any maintenance), so a check can never physically be performed --",
+        "mega[0,d,'A'] = 0 for every day d.",
+        "",
+        "IMPORTANT: run with use_existing_hrs=False (not exposed on the CLI;",
+        "call run_milp()/build_model() directly) to isolate the main C13",
+        "constraint from C13b. Also use enabled_checks=['A'] and",
+        "use_check_hierarchy=False to remove confounds.",
+        "",
+        "Expected result:",
+        "  use_paper_c13=True   : status = optimal  (bug: unlimited flight hours",
+        "                         allowed once mega=0 at both window endpoints)",
+        "  use_paper_c13=False  : status = infeasible (correctly rejects a",
+        "                         schedule that flies 1400 min with a 1000 min",
+        "                         cap and zero maintenance opportunities)"
+    ],
+    "Aircrafts": [0],
+    "AIRCRAFT_INIT_POS": {
+        "0": "X"
+    },
+    "Flights": [
+        [1, "X", "Y", 1500.0, 1850.0],
+        [2, "Y", "X", 1900.0, 2250.0],
+        [3, "X", "Y", 2300.0, 2650.0],
+        [4, "Y", "X", 2700.0, 3050.0]
+    ],
+    "Cost_Matrix": [
+        [100.0],
+        [100.0],
+        [100.0],
+        [100.0]
+    ],
+    "Maintenance_Thresholds": {
+        "A": 1000,
+        "B": 999999,
+        "C": 999999,
+        "D": 999999
+    },
+    "Maintenance_Durations": {
+        "A": 360,
+        "B": 2880,
+        "C": 20160,
+        "D": 60480
+    },
+    "Station_Capacity": {},
+    "Initial_Checks": {
+        "A":      {"0": 0},
+        "B":      {"0": 0},
+        "C_Days": {"0": 0},
+        "D_Days": {"0": 0}
+    }
+}

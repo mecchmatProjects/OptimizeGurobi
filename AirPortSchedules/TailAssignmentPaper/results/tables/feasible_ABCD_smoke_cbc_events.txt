@@ -1,0 +1,27 @@
+Aircraft 0:
+  Flight  F1      S0 -> MRO  day 1   start   360.0 - end   450.0
+  Maint   MB      day 1   start   450.0 - end   570.0
+  Flight  F2      MRO -> S0  day 1   start   870.0 - end   960.0
+  Maintenance statistics:
+    Check B:  #1: flight mins before =    90.0  cum days before =   0.31
+
+Aircraft 1:
+  Flight  F3      S1 -> MRO  day 2   start  1815.0 - end  1905.0
+  Maint   MC      day 2   start  1905.0 - end  2145.0
+  Flight  F4      MRO -> S1  day 2   start  2325.0 - end  2415.0
+  Maintenance statistics:
+    Check C:  #1: flight mins before =    90.0  cum days before =   1.32
+
+Aircraft 2:
+  Flight  F5      S2 -> MRO  day 3   start  3270.0 - end  3360.0
+  Maint   MD      day 3   start  3360.0 - end  3720.0
+  Flight  F6      MRO -> S2  day 3   start  3780.0 - end  3870.0
+  Maintenance statistics:
+    Check D:  #1: flight mins before =    90.0  cum days before =   2.33
+
+Aircraft 3:
+  Flight  F7      S3 -> MRO  day 4   start  4725.0 - end  4815.0
+  Maint   MD      day 4   start  4815.0 - end  5175.0
+  Flight  F8      MRO -> S3  day 4   start  5235.0 - end  5325.0
+  Maintenance statistics:
+    Check D:  #1: flight mins before =    90.0  cum days before =   3.34

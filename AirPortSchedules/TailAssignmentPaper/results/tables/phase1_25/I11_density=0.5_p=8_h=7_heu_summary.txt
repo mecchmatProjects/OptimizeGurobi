@@ -1,0 +1,15 @@
+Dataset : data/phase1_25\I11_density=0.5_p=8_h=7.json
+Mode    : heuristic
+Flights : 28/28 assigned  (0 unassigned)
+Cost    : 105419
+CPU     : 1.1s
+
+  AID    Flt   Busy(min)   Free(min)
+    0      3         422        9068
+    1      4         525        8965
+    2      4         569        8921
+    3      3         523        8967
+    4      4         549        8941
+    5      4         582        8908
+    6      3         605        8885
+    7      3         523        8967

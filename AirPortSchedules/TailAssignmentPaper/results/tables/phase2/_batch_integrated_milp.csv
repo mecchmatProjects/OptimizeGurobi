@@ -1,0 +1,6 @@
+stem,method,mode,flights,assigned,unassigned,status,objective,gap_pct,cpu_s,wall_s,num_vars,num_constraints,returncode
+I11_density=0.5_p=8_h=7,integrated_milp,milp,,,,infeasible,,,,3.12,,,0
+I12_density=0.65_p=8_h=7,integrated_milp,milp,,,,infeasible,,,,4.32,,,0
+I13_density=0.8_p=8_h=7,integrated_milp,milp,,,,infeasible,,,,12.88,,,0
+I14_density=0.95_p=8_h=7,integrated_milp,milp,,,,infeasible,,,,11.94,,,0
+I15_density=1_p=8_h=7,integrated_milp,milp,,,,infeasible,,,,8.2,,,0

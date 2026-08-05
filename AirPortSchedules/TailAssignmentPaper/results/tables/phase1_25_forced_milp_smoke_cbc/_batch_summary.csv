@@ -1,0 +1,11 @@
+stem,mode,flights,assigned,unassigned,cost,obj,gap_%,status,cpu_s
+I11_density=0.5_p=8_h=7,milp,28,0,28,0,0,,infeasible,1.48
+I12_density=0.65_p=8_h=7,milp,36,0,36,0,0,,infeasible,2.79
+I13_density=0.8_p=8_h=7,milp,45,0,45,0,0,,infeasible,11.18
+I14_density=0.95_p=8_h=7,milp,53,0,53,0,0,,infeasible,10.23
+I15_density=1_p=8_h=7,milp,56,0,56,0,0,,infeasible,6.74
+I21_density=0.5_p=10_h=10,milp,50,0,50,0,0,,infeasible,40.68
+I22_density=0.65_p=10_h=10,milp,65,0,65,0,0,,infeasible,14.7
+I23_density=0.8_p=10_h=10,milp,80,0,80,0,0,,infeasible,176.26
+I24_density=0.95_p=10_h=10,milp,95,0,95,0,0,,infeasible,302.37
+I25_density=1_p=10_h=10,milp,100,0,100,0,0,,infeasible,323.77

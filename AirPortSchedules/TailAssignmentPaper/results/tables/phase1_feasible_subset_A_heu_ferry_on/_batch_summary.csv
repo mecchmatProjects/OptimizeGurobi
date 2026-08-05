@@ -1,0 +1,4 @@
+stem,mode,flights,assigned,unassigned,cost,obj,gap_%,status,cpu_s
+DataCplex_density=0.5_p=4_h=7_test_0,heuristic,28,28,0,20513.0,20513.0,,heuristic,0.45
+DataCplex_density=0.5_p=6_h=10_test_0,heuristic,54,54,0,60121.0,60121.0,,heuristic,0.49
+DataCplex_density=0.8_p=4_h=7_test_0,heuristic,30,30,0,22954.0,22954.0,,heuristic,0.38

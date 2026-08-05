@@ -1,0 +1,130 @@
+%%==========================================================================
+\section{Extension to the Full \texorpdfstring{$\{A, B, C, D\}$}{ABCD}
+         Maintenance Hierarchy}
+\label{sec:hierarchy}
+%%==========================================================================
+
+Aviation regulations (FAA/EASA) mandate four check levels.  Type-A and~B
+checks are triggered by cumulative flight hours; type-C and~D are triggered
+by calendar days.  A heavier check subsumes all lighter checks (a D-check
+also satisfies the C-, B-, and A-check requirement for the same period).
+
+\subsection{Extended notation}
+
+We introduce the check-type index set $\C = \{A, B, C, D\}$ and the binary
+variable
+\begin{equation}
+  y_{jdc} = \begin{cases} 1 & \text{aircraft } j \text{ undergoes check }
+    c \text{ on day } d, \\ 0 & \text{else.} \end{cases}
+\end{equation}
+A \emph{hierarchy indicator} variable
+\begin{equation}
+  \eta_{jdc} = \begin{cases} 1 & \text{aircraft } j \text{ undergoes a check
+    of level} \ge c \text{ on day } d, \\ 0 & \text{else,} \end{cases}
+\end{equation}
+is defined such that $\eta_{jdc} = 1$ whenever $y_{jdc'} = 1$ for any $c'
+\succeq c$ (where $D \succ C \succ B \succ A$).
+
+\subsection{Hierarchy constraints}
+
+\paragraph{H1 — Heaviest check subsumes lighter checks.}
+\begin{equation}\label{eq:hier1}
+  \eta_{jdc} \le \eta_{jdc'}, \qquad \forall j,d,\; c \prec c'.
+\end{equation}
+
+\paragraph{H2 — Check indicator consistency.}
+\begin{equation}\label{eq:hier2}
+  \eta_{jdc} = \sum_{c' \succeq c} y_{jdc'}, \qquad \forall j,d,c
+  \quad \text{(exactly one check level per event, or none)}.
+\end{equation}
+In practice implemented as: $\eta_{jdA} = y_{jdA} + y_{jdB} + y_{jdC} +
+y_{jdD}$, $\eta_{jdB} = y_{jdB} + y_{jdC} + y_{jdD}$, etc.
+
+\paragraph{H3 — At most one check type per aircraft per day.}
+\begin{equation}\label{eq:hier3}
+  \sum_{c \in \C} y_{jdc} \le 1, \qquad \forall j \in \Pc,\; d \in \D.
+\end{equation}
+
+\subsection{Flight-hour triggered checks (A and B)}
+
+Constraints~\eqref{eq:c12}--\eqref{eq:c13_new_b} are applied separately for
+check types $c \in \{A, B\}$ with thresholds $T^c_{\max}$ and spacing limits
+$d^c_{\max}$.  The hierarchy indicator $\eta_{jdc}$ replaces $y_{jd}$:
+
+\paragraph{Maximum-spacing (generalised C12).}
+\begin{equation}\label{eq:c12_abcd}
+  \sum_{r \in [d,d']} \eta_{jrc} \ge 1,
+  \qquad \forall d,d' \text{ s.t.\ } d'-d = d^c_{\max}-1,\;
+  \forall j,\; c \in \{A,B\}.
+\end{equation}
+
+\paragraph{Cumulative flight hours (corrected C13a/b, generalised).}
+\begin{align}
+  \sum_{i \in F_{d,d'}} x_{ij}\,\tilde{t}_i
+  &\le T^c_{\max} + M_{dd'}\,\eta_{jdc}
+  + M_{dd'}\!\sum_{r \in (d,d')} \eta_{jrc},
+  \label{eq:c13a_abcd}\\
+  \sum_{i \in F_{d,d'}} x_{ij}\,\tilde{t}_i
+  &\le T^c_{\max} + M_{dd'}\,\eta_{jd'c}
+  + M_{dd'}\!\sum_{r \in (d,d')} \eta_{jrc},
+  \label{eq:c13b_abcd}
+\end{align}
+for $c \in \{A, B\}$, all valid $(d,d')$ pairs, all $j$.
+
+\subsection{Calendar-day triggered checks (C and D)}
+
+For checks $c \in \{C, D\}$, the constraint is on calendar-day spacing only:
+
+\paragraph{Maximum-spacing (C12 for C/D).}
+\begin{equation}\label{eq:c12_cd}
+  \sum_{r \in [d,d']} \eta_{jrc} \ge 1,
+  \qquad d'-d = d^c_{\max}-1,\; \forall j,\; c \in \{C,D\}.
+\end{equation}
+
+\paragraph{Multi-day check duration (C14b).}
+A C- or D-check occupies multiple consecutive days.  Let $\delta^c$ denote
+the duration in days.  If check $c$ starts on day $d$ then aircraft $j$ is
+grounded for days $d, d+1, \ldots, d+\delta^c-1$:
+\begin{equation}\label{eq:c14b}
+  y_{jd+k,c} \ge y_{jdc}, \qquad
+  \forall j,\; d \in \D,\; c \in \{C,D\},\; k \in \{1,\ldots,\delta^c-1\}.
+\end{equation}
+
+Under the corrected basic feasibility criterion
+(\Cref{eq:c4_overlap}), \eqref{eq:c14b} is interpreted over physically
+executable aircraft trajectories; no additional linearization is needed.
+
+\paragraph{C15 — No flight during active maintenance.}
+No flight $i$ departing on day $d+k$ for $k < \delta^c$ may be assigned to
+aircraft $j$ when it is undergoing check $c$ started on day $d$:
+\begin{equation}\label{eq:c15}
+  \sum_{i:\, d_i = d+k} x_{ij} \le 1 - y_{jdc},
+  \qquad \forall j,\; d,\; c \in \{C,D\},\; k \in \{0,\ldots,\delta^c-1\}.
+\end{equation}
+
+\subsection{Pre-horizon accumulated values}
+
+For aircraft $j$ and check $c$:
+\begin{itemize}
+  \item $\Phi^c_j$ ($c \in \{A,B\}$): accumulated flight minutes before
+    horizon start.
+  \item $\Psi^c_j$ ($c \in \{C,D\}$): elapsed calendar days before horizon
+    start.
+\end{itemize}
+These shift the effective threshold in constraints~\eqref{eq:c13a_abcd} and
+\eqref{eq:c12_cd} for the opening sub-period only (analogous to
+\eqref{eq:c13b}).
+
+\subsection{Model size impact}
+
+\begin{proposition}
+  Adding the full $\{A,B,C,D\}$ hierarchy over the basic maintenance model of
+  \Cref{sec:maintenance} increases the number of variables by a factor of at
+  most $|\C| = 4$ and the number of constraints by a factor of at most
+  $2|\C| = 8$.  The model remains $O(n_f n_p n_d)$ in size.
+\end{proposition}
+
+In practice (see \Cref{sec:computational}), the number of active variables and
+constraints in the extended model is approximately $2.2\times$ that of the
+type-A-only model, consistent with the findings of \citet{khaled2018compact}
+for their maintenance extension.

@@ -12,11 +12,10 @@ try:
     import matplotlib.pyplot as plt
     import matplotlib.patches as mpatches
     PLOTTING_AVAILABLE = True
-except Exception:
+except ImportError:
     plt = None
     mpatches = None
     PLOTTING_AVAILABLE = False
-
 # Force UTF-8 output on Windows (avoids UnicodeEncodeError for box-drawing chars)
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8')
@@ -630,7 +629,8 @@ class MILP_Sheduler:
                     use_sanity=False,
                     use_overlap=True,
                     allow_ferry=True,
-                    use_maintenance=True):
+                    use_maintenance=True,
+                    use_paper_c13=False):
         """Construct the ConcreteModel.  Call before solve().
 
         Parameters
@@ -646,6 +646,12 @@ class MILP_Sheduler:
             added.  Set to *False* to solve a pure flight-assignment model
             (no check scheduling) — dramatically fewer constraints, much
             faster to solve, useful as an upper-bound / relaxation benchmark.
+        use_paper_c13 : bool
+            When *True*, add the original Khaled et al. (2018) Eq. (13)
+            single-constraint form (vacuous when either endpoint indicator
+            is 0; see docs/model_math.tex, Lemma on Constraint (13)) instead
+            of the corrected split formulation.  Default *False* uses the
+            corrected constraint.
         """
         m = ConcreteModel()
         self.model = m
@@ -672,7 +678,7 @@ class MILP_Sheduler:
             self._add_c12_day_spacing_days(m)
             if use_existing_hrs:
                 self._add_c13b_existing_hrs(m)
-            self._add_c13_hr_accumulation(m)
+            self._add_c13_hr_accumulation(m, use_paper_c13=use_paper_c13)
             self._add_c15_no_flight_during_maint(m)
         if use_sanity:
             self._add_sanity(m)
@@ -1137,7 +1143,7 @@ class MILP_Sheduler:
     # unless a check occurs in between (uses big-M relaxation).
     # ------------------------------------------------------------------
 
-    def _add_c13_hr_accumulation(self, m):
+    def _add_c13_hr_accumulation(self, m, use_paper_c13=False):
         m.c13 = ConstraintList()
         days  = sorted(self.days)
         n     = len(days)
@@ -1160,6 +1166,17 @@ class MILP_Sheduler:
                         )
                         y_mid  = sum(m.mega[j, days[r], c]
                                      for r in range(si + 1, ei))
+                        if use_paper_c13:
+                            # Original Khaled et al. (2018) Eq. (13): a single
+                            # constraint keyed on (2 - mega[d] - mega[d_]), which
+                            # is trivially satisfied whenever either endpoint
+                            # indicator is 0 (docs/model_math.tex, Lemma).
+                            m.c13.add(
+                                t_sum <= hr_limit * 60
+                                         + self.M_BIG * (2 - m.mega[j, d, c] - m.mega[j, d_, c])
+                                         + self.M_BIG * y_mid
+                            )
+                            continue
                         # Two separate constraints: each relaxed by one boundary
                         # check so the pair is binding whenever either boundary
                         # day (or the interior) has no check.
@@ -1349,16 +1366,16 @@ class MILP_Sheduler:
         try:
             self.results = solver.solve(self.model, **_solve_kwargs)
         except Exception as _exc:
-            # CBC with timelimit kwarg may raise ApplicationError when the CBC
-            # binary rejects '-sec'.  Retry without any time limit.
+            # CBC with timelimit kwarg may raise when the selected binary or
+            # wrapper cannot enforce the requested limit. Never re-solve
+            # without a limit: fail fast to avoid silent unlimited runs.
             if 'cbc' in _sn and 'timelimit' in _solve_kwargs:
-                import warnings
-                warnings.warn(
-                    f"[CBC] setting time limit failed ({_exc}); "
-                    "re-solving without time limit.", stacklevel=2
-                )
-                _solve_kwargs.pop('timelimit')
-                self.results = solver.solve(self.model, **_solve_kwargs)
+                raise RuntimeError(
+                    "[CBC] Failed to enforce time_limit. "
+                    "Aborting instead of re-solving without a limit. "
+                    "Use a CBC binary/wrapper that supports time limits or "
+                    "run without --time-limit if unlimited runtime is intended."
+                ) from _exc
             else:
                 raise
 
@@ -1765,7 +1782,8 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
              use_day_spacing=True, use_existing_hrs=True,
              use_check_hierarchy=True, use_sanity=False, use_overlap=True,
              allow_ferry=True, use_maintenance=True, warm_start=True,
-             max_hour_check_deferral_days=None, enabled_checks=None):
+             max_hour_check_deferral_days=None, enabled_checks=None,
+             use_paper_c13=False):
     """Build and solve the MILP model, then display results.
 
     Parameters
@@ -1779,6 +1797,9 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
     enabled_checks : list[str] | None
         Active maintenance check types to model (subset of A,B,C,D).
         None keeps all four checks active.
+    use_paper_c13  : bool        When True, use the original (buggy) Khaled
+                                 et al. (2018) Constraint (13) instead of the
+                                 corrected split formulation.
     """
     opt = MILP_Sheduler(
         data_path,
@@ -1791,7 +1812,8 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
                     use_sanity=use_sanity,
                     use_overlap=use_overlap,
                     allow_ferry=allow_ferry,
-                    use_maintenance=use_maintenance)
+                    use_maintenance=use_maintenance,
+                    use_paper_c13=use_paper_c13)
     summary = opt.solve(solver_name=solver, tee=tee, out_path=out_txt,
                         time_limit=time_limit, warm_start=warm_start)
     opt.plot_gantt(save_path=gantt_path, show=show_gantt, fname=f'{out_txt[:-4]}_events.txt' if out_txt else None)
@@ -1856,7 +1878,7 @@ def _run_one_milp(fp, out_dir, stem, solver, tee, show_gantt, time_limit,
                   allow_ferry=True, use_maintenance=True,
                   use_overlap=True, use_sanity=False, warm_start=True,
                   use_check_hierarchy=True, max_hour_check_deferral_days=None,
-                  enabled_checks=None):
+                  enabled_checks=None, use_paper_c13=False):
     """Run MILP on a single file; return metrics dict."""
     import time, os
     gantt_out = os.path.join(out_dir, f'{stem}_milp_gantt.png')
@@ -1874,6 +1896,7 @@ def _run_one_milp(fp, out_dir, stem, solver, tee, show_gantt, time_limit,
         use_check_hierarchy=use_check_hierarchy,
         max_hour_check_deferral_days=max_hour_check_deferral_days,
         enabled_checks=enabled_checks,
+        use_paper_c13=use_paper_c13,
     )
     cpu = time.time() - t0
 
@@ -1956,7 +1979,7 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
               use_maintenance=True,
               use_overlap=True, use_sanity=False, warm_start=True,
               use_check_hierarchy=True, max_hour_check_deferral_days=None,
-              enabled_checks=None):
+              enabled_checks=None, use_paper_c13=False):
     """Process every JSON file in *input_dir* and write results to *output_dir*.
 
     For each dataset the following files are created in output_dir::
@@ -2040,6 +2063,7 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
                                     use_check_hierarchy=use_check_hierarchy,
                                     max_hour_check_deferral_days=max_hour_check_deferral_days,
                                     enabled_checks=enabled_checks,
+                                    use_paper_c13=use_paper_c13,
                                     )
                 all_rows.append(row)
             except Exception as exc:
@@ -2182,8 +2206,12 @@ def main():
                         metavar='CHECK',
                         help='Disable selected maintenance check types (A B C D). '
                              'Comma-separated values are also accepted.')
+    parser.add_argument('--use-paper-c13', dest='use_paper_c13', action='store_true',
+                        help='Use the original (buggy) Khaled et al. (2018) Constraint (13) '
+                             'instead of the corrected split formulation.')
     parser.set_defaults(show=True, allow_ferry=True, use_maintenance=True,
-                        use_overlap=True, use_sanity=False, warm_start=True, use_check_hierarchy=True)
+                        use_overlap=True, use_sanity=False, warm_start=True,
+                        use_check_hierarchy=True, use_paper_c13=False)
     args = parser.parse_args()
     enabled_checks = _resolve_enabled_checks(args.only_checks, args.disable_checks)
 
@@ -2207,6 +2235,7 @@ def main():
                  use_check_hierarchy=args.use_check_hierarchy,
                  max_hour_check_deferral_days=args.max_hour_check_deferral_days,
                  enabled_checks=enabled_checks,
+                 use_paper_c13=args.use_paper_c13,
                  )
     else:  # batch
         run_batch(input_dir=args.input_dir,
@@ -2224,6 +2253,7 @@ def main():
                   use_check_hierarchy=args.use_check_hierarchy,
                   max_hour_check_deferral_days=args.max_hour_check_deferral_days,
                   enabled_checks=enabled_checks,
+                  use_paper_c13=args.use_paper_c13,
                   )
         
 

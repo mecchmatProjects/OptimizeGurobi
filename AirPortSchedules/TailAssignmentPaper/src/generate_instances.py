@@ -55,6 +55,7 @@ def build_instance(
     index: int,
     airport_override: int | None = None,
     flights_override: int | None = None,
+    maintenance_profile: str = "default",
 ) -> dict:
     rng = random.Random(stable_seed(density, p, h, index))
 
@@ -83,31 +84,67 @@ def build_instance(
     aircrafts = list(range(p))
     init_pos = {str(aid): rng.choice(airports) for aid in aircrafts}
 
-    # A/B are in minutes; C/D are in days.
-    # Keep C/D comfortably beyond the horizon so the generated tests remain
-    # easy to solve while still matching the solver's expected schema.
-    thresholds = {
-        "A": 900,
-        "B": 1800,
-        "C": max(h + 2, 10),
-        "D": max(h + 5, 14),
-    }
+    if maintenance_profile == "forced_checks":
+        # Tight thresholds and shorter maintenance durations force activity
+        # while keeping timeline feasibility likely for heuristic runs.
+        thresholds = {
+            "A": 240,
+            "B": 420,
+            "C": max(2, min(4, h // 3 if h >= 3 else 2)),
+            "D": max(4, min(7, h // 2 if h >= 4 else 4)),
+        }
+        durations = {
+            "A": 45,
+            "B": 90,
+            "C": 240,
+            "D": 420,
+        }
+    else:
+        # A/B are in minutes; C/D are in days.
+        # Keep C/D comfortably beyond the horizon so the generated tests remain
+        # easy to solve while still matching the solver's expected schema.
+        thresholds = {
+            "A": 900,
+            "B": 1800,
+            "C": max(h + 2, 10),
+            "D": max(h + 5, 14),
+        }
 
-    durations = {
-        "A": 90,
-        "B": 180,
-        "C": 1440,
-        "D": 2880,
-    }
+        durations = {
+            "A": 90,
+            "B": 180,
+            "C": 1440,
+            "D": 2880,
+        }
 
     station_capacity = {airport: 1 for airport in airports}
 
-    initial_checks = {
-        "A": {str(aid): 0 for aid in aircrafts},
-        "B": {str(aid): 0 for aid in aircrafts},
-        "C_Days": {str(aid): 0 for aid in aircrafts},
-        "D_Days": {str(aid): 0 for aid in aircrafts},
-    }
+    if maintenance_profile == "forced_checks":
+        initial_checks = {
+            "A": {
+                str(aid): rng.randint(int(0.65 * thresholds["A"]), int(0.92 * thresholds["A"]))
+                for aid in aircrafts
+            },
+            "B": {
+                str(aid): rng.randint(int(0.60 * thresholds["B"]), int(0.90 * thresholds["B"]))
+                for aid in aircrafts
+            },
+            "C_Days": {
+                str(aid): rng.randint(max(0, thresholds["C"] - 2), thresholds["C"])
+                for aid in aircrafts
+            },
+            "D_Days": {
+                str(aid): rng.randint(max(0, thresholds["D"] - 2), thresholds["D"])
+                for aid in aircrafts
+            },
+        }
+    else:
+        initial_checks = {
+            "A": {str(aid): 0 for aid in aircrafts},
+            "B": {str(aid): 0 for aid in aircrafts},
+            "C_Days": {str(aid): 0 for aid in aircrafts},
+            "D_Days": {str(aid): 0 for aid in aircrafts},
+        }
 
     cost_matrix = []
     for flight in flights:
@@ -317,6 +354,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--flights", type=int, default=None, help="Override number of flights in test files")
     parser.add_argument("--output-dir", default="Inputs", help="Directory that will receive the JSON files")
     parser.add_argument("--summary-file", default=None, help="CSV file that stores objective values for the generated files")
+    parser.add_argument(
+        "--maintenance-profile",
+        choices=["default", "forced_checks"],
+        default="default",
+        help="Maintenance generation profile. Use 'forced_checks' to tighten thresholds and seed counters for frequent A/B/C/D checks.",
+    )
     return parser.parse_args()
 
 
@@ -351,6 +394,7 @@ def main() -> None:
             index,
             airport_override=args.airports,
             flights_override=args.flights,
+            maintenance_profile=args.maintenance_profile,
         )
         path = output_dir / output_name(args.density, planes, args.h, index)
         with path.open("w", encoding="utf-8") as handle:

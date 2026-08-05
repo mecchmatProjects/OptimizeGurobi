@@ -1,0 +1,27 @@
+Aircraft 0:
+  Flight  F2       ->   day    start   792.0 - end   960.0
+  Flight  F10      ->   day    start  2570.0 - end  2705.0
+  No maintenance scheduled  |  total flight mins = 303.0
+
+Aircraft 1:
+  Flight  F5       ->   day    start  2271.0 - end  2378.0
+  Flight  F9       ->   day    start  2533.0 - end  2653.0
+  Flight  F15      ->   day    start  4030.0 - end  4099.0
+  No maintenance scheduled  |  total flight mins = 296.0
+
+Aircraft 2:
+  Flight  F8       ->   day    start  2521.0 - end  2690.0
+  No maintenance scheduled  |  total flight mins = 169.0
+
+Aircraft 4:
+  Flight  F12      ->   day    start  3415.0 - end  3582.0
+  No maintenance scheduled  |  total flight mins = 167.0
+
+Aircraft 5:
+  Flight  F3       ->   day    start   824.0 - end   916.0
+  Flight  F4       ->   day    start  1109.0 - end  1277.0
+  No maintenance scheduled  |  total flight mins = 260.0
+
+Aircraft 6:
+  Flight  F27      ->   day    start  9370.0 - end  9459.0
+  No maintenance scheduled  |  total flight mins = 89.0

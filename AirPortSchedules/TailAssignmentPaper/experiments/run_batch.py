@@ -50,7 +50,7 @@ def find_instances(input_dir: str, pattern: str) -> list[str]:
 
 
 def run_one(instance_path: str, mode: str, solver: str, time_limit: int,
-            output_dir: str, extra_flags: list[str]) -> dict:
+            output_dir: str, extra_flags: list[str], method: str = '') -> dict:
     """Invoke src/model.py for a single instance and return result dict."""
     stem = os.path.splitext(os.path.basename(instance_path))[0]
     out_prefix = os.path.join(output_dir, stem)
@@ -87,6 +87,7 @@ def run_one(instance_path: str, mode: str, solver: str, time_limit: int,
     # ---- parse stdout for key metrics ----
     result = {
         'stem': stem,
+        'method': method or mode,
         'mode': mode,
         'returncode': returncode,
         'wall_s': round(elapsed, 2),
@@ -157,7 +158,7 @@ def write_summary(rows: list[dict], output_dir: str, label: str) -> str:
     out_path = os.path.join(output_dir, f'_batch_{label}.csv')
 
     fieldnames = [
-        'stem', 'mode', 'flights', 'assigned', 'unassigned',
+        'stem', 'method', 'mode', 'flights', 'assigned', 'unassigned',
         'status', 'objective', 'gap_pct', 'cpu_s', 'wall_s',
         'num_vars', 'num_constraints', 'returncode',
     ]
@@ -189,6 +190,8 @@ def main():
                         help='Shell glob pattern for instance file names (default: *.json)')
     parser.add_argument('--label', default='batch',
                         help='Label for the output CSV file')
+    parser.add_argument('--method', default='',
+                        help='Method label written to the method column (default: mode value)')
     parser.add_argument('--extra-flags', default='',
                         help='Extra flags forwarded verbatim to src/model.py')
     parser.add_argument('--dry-run', action='store_true',
@@ -218,7 +221,7 @@ def main():
             print(f'  Running {os.path.basename(inst)}  mode={m} ...', end=' ',
                   flush=True)
             row = run_one(inst, m, args.solver, args.time_limit,
-                          args.output_dir, extra)
+                          args.output_dir, extra, method=args.method)
             rows.append(row)
             status = row.get('status', '?')
             obj = row.get('objective', '-')

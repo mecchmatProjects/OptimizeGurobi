@@ -1,0 +1,3 @@
+stem,mode,flights,assigned,unassigned,cost,obj,gap_%,status,cpu_s
+data18h6,heuristic,176,176,0,1787652.0,1787652.0,,heuristic,1.12
+data18h7,heuristic,270,270,0,2798204.0,2798204.0,,heuristic,1.4

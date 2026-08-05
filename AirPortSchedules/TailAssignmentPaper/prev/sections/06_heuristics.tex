@@ -1,0 +1,111 @@
+%%==========================================================================
+\section{Heuristic Algorithms}
+\label{sec:heuristics}
+%%==========================================================================
+
+We study three heuristic approaches.  All respect the full
+$\{A,B,C,D\}$ maintenance hierarchy via the timeline simulator described
+below.
+
+\subsection{Timeline simulator}
+
+The core primitive is a function \textsc{GetTimeline}$(j, [f_1,\ldots,f_k])$
+that evaluates the feasibility and cost of assigning an ordered flight sequence
+to aircraft~$j$.  Maintenance triggers follow priority $D \succ C \succ B
+\succ A$ per the counter logic of \Cref{sec:hierarchy}.  The simulator returns
+\textsc{Infeasible} if any of the following occur:
+\begin{itemize}
+  \item A required ferry (repositioning) cannot complete before the next flight
+    departure.
+  \item A triggered maintenance check cannot complete before the next flight
+    departure.
+  \item Maintenance station capacity is exhausted at the current airport.
+  \item The current time exceeds a flight's departure time.
+\end{itemize}
+Otherwise it returns the complete event timeline and total cost.
+
+\subsection{Heuristic 1: Greedy + Insertion}
+
+\paragraph{Phase 1 — Greedy.}
+Flights are sorted by departure time.  Each flight $f$ is appended to the
+route of the aircraft minimising incremental cost:
+\begin{equation}
+  j^* = \arg\min_{j \in \Pc}\;
+  \mathrm{cost}\!\left(\textsc{GetTimeline}(j, R_j \Vert [f])\right).
+\end{equation}
+Infeasible assignments are skipped.
+
+\paragraph{Phase 2 — Insertion repair.}
+Up to 5 repair passes attempt to insert each unassigned flight into all
+possible positions in all aircraft routes, accepting the least-cost feasible
+insertion.
+
+\paragraph{Complexity.}
+$O(n_f^3 n_p)$ in the worst case (5 passes, $O(n_f)$ positions, $O(n_f)$
+simulator cost).  In practice, significantly cheaper due to early termination
+and sparse routes.
+
+\subsection{Heuristic 2: Dijkstra-Based Space-Time Heuristic}
+
+\paragraph{Network structure.}
+The space-time network $G = (V, E)$ has nodes $(k, t)$ for airport $k$ at
+time $t$ and arcs of five types: flight arcs (TrArcs), ground-wait arcs
+(WArcs), repositioning arcs (DArcs), coupling/decoupling arcs (CDArcs), and
+maintenance arcs.
+
+\paragraph{Proxy costs.}
+Arc costs are ranked to encode priority: flight arcs receive the lowest cost
+(rank of actual cost among unserved flight arcs); CDArcs receive the second
+lowest; ground arcs are proportional to wait duration; depot arcs are very high;
+maintenance arcs are highest (to be traversed only when triggered).
+
+\paragraph{Modified Dijkstra.}
+The update rule is \emph{longest-distance first}: paths are updated when the
+new route covers more flight arcs, or the same number at lower cost.  Arcs
+served by the required number of aircraft are removed (cost~$\to\infty$).
+The algorithm terminates at maintenance events or the horizon end.
+
+\paragraph{Complexity.}
+$O(n_p n_d n_f^2)$ using a binary heap.
+
+\subsection{Heuristic 3: Ant Colony Optimization (ACO)}
+
+Each ant simulates an aircraft route.  The next node is selected according to:
+\begin{equation}
+  p_{ij} = \frac{\tau_{ij}\,(\eta_{ij})^\beta}
+  {\displaystyle\sum_{u \in N(i)} \tau_{iu}\,(\eta_{iu})^\beta},
+\end{equation}
+where $\tau_{ij}$ is pheromone, $\eta_{ij} = 1/w(i,j)$ is heuristic
+desirability, and $\beta \ge 1$ balances exploration vs.\ exploitation.
+Pheromone evaporates by $\tau_{ij} \leftarrow (1-\alpha)\tau_{ij} +
+\alpha\tau_0$ after each route is built.  Fully served arcs receive
+$\tau_{ij} = 0$ and this zero propagates backward to all arcs that lead
+exclusively to the exhausted arc.
+
+\paragraph{Why Dijkstra outperforms ACO.}
+The space-time network has a strict temporal ordering (no back-edges in time).
+This acyclicity removes the feedback loops that ACO exploits most effectively.
+Dijkstra's farthest-distance criterion is near-optimal for acyclic networks,
+which explains its consistent quality advantage over ACO on all tested
+instances (see \Cref{tab:heuristic_comparison}).
+
+\subsection{Quality summary}
+
+\begin{table}[t]
+\centering\small
+\caption{Empirical heuristic summary from the current benchmark suite
+  (\texttt{ABCD\_capacity\_bottleneck\_test}, heavy density-$0.5$ cases,
+  and dense density-$1.0$ cases; 8 instances total).}
+\label{tab:heuristic_comparison}
+\begin{tabular}{lccc}
+\toprule
+Property & Greedy+Ins. & Dijkstra & ACO \\
+\midrule
+Solver required? & No  & No  & No \\
+Deterministic?   & Yes & Yes & No (seeded) \\
+Avg. unassigned flights & 68.38 & 130.75 & 233.00 \\
+Complete assignments (of 8) & 3 & 3 & 0 \\
+Avg. wall time (s) & 3.800 & 11.384 & 121.024 \\
+\bottomrule
+\end{tabular}
+\end{table}

@@ -1,0 +1,33 @@
+We will work on old_base_version and with paper files in prev/ subfolder.
+Check if the code corresponds to that prev/ paper version (if not changhe paper there correcpondingly).
+
+I would structure the computational study around three approaches:
+
+Classical Tail Assignment (baseline)
+Integrated MILP (optimal benchmark for smaller instances)
+Integrated Memetic Algorithm (scalable solution for larger instances)
+
+1. Comparing tables of Kahled/2018 model vs our model needs to be added and discussed;
+
+2. The main need for heuristic models need to be introduced...saying LP models exceed variable limit for large instances and thus resorting to heuristic solutions
+
+3. The limit of LP models need to be established by either variables count/flights/date-range etc..
+
+4. C13 correction has not shown any difference on the chosen test data instances (pg27) and is inconclusive on the improvement....what can be done better here?
+
+5. For the Heuristics model do thorough comparisons and results discussion
+
+6. For the 25data sets we will create; make it such that the all A,B,C,D checks appear on the results....and that there is some classification of the data sets (by complexity, by converging, etc..) so datasets are logically valid....
+
+7. For the current 50% density datasets I have ; most of the time the MILP is not assigning any checks....it is just assigning one check on one aircraft
+
+8. Datasets are too small and the difference between Heuristic and MILP is negligible....he wants to run on proper data...
+ results to show our model is working well and scheduling all checks accurately
+
+9. For the Detailed mathematical model - do thorough sensitivity analysis (for which it will converge/ does not converge) which parameters are influencing the most; any variable inequalities can be used to improve?
+
+Optional point: create alterntive option for adjusting our MILP to soft constraints and introduce unassigned flights and maximum aircraft utilization then compare with heuristic models
+with changing objective to - maximize aircraft utilization
+
+
+ 

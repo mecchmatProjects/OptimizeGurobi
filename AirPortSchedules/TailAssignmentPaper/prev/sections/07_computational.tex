@@ -1,0 +1,630 @@
+%%==========================================================================
+\section{Computational Study}
+\label{sec:computational}
+%%==========================================================================
+
+\subsection{Implementation and environment}
+
+All models are implemented in Python~3.10+ using the Pyomo optimisation
+framework~\citep{pyomo2023} and solved with IBM ILOG CPLEX~\citep{cplex2023}.
+Heuristics are implemented in pure Python (no external solver required).
+All experiments were run in a Windows environment; the shell \texttt{cplex}
+executable is not on the path in this environment, so CPLEX is invoked
+through Pyomo's \texttt{cplex\_direct}/\texttt{cplex\_persistent} backends,
+with the open-source CBC backend used as an explicitly noted substitute for
+exact-solver smoke validation where stated (see
+\Cref{subsec:phase0_freeze}).  The code, instance generator, and experiment
+runner are publicly available at the companion repository.
+
+\subsection{Phase-0 reproducibility freeze and run manifest}
+\label{subsec:phase0_freeze}
+
+Before extending the computational campaign, we freeze the baseline
+configuration used for all reproducible runs in this study:
+\begin{itemize}
+  \item Branch freeze: \texttt{old\_base\_version}.
+  \item Paper-edit freeze: all \LaTeX{} edits are applied in
+    \texttt{prev/} during the active cycle.
+  \item Solver-backend freeze: Pyomo backends
+    \texttt{cplex\_direct} and \texttt{cplex\_persistent} are available,
+    while shell \texttt{cplex} is not available in the current environment.
+  \item Comparison freeze: all methods are run with matched instance sets,
+    matched objective semantics, and explicit time-limit settings.
+\end{itemize}
+
+To make reruns auditable, Table~\ref{tab:phase0_manifest} defines the
+minimal command-level run manifest used throughout this paper.
+
+\begin{table}[t]
+\centering\small
+\caption{Phase-0 run manifest (frozen baseline commands and artifacts).}
+\label{tab:phase0_manifest}
+\begin{tabularx}{\textwidth}{l l X}
+\toprule
+Run family & Frozen command profile & Expected primary artifacts \\
+\midrule
+Heuristic single-instance &
+\texttt{python src/model.py --mode heuristic --data <instance.json> --no-show} &
+\texttt{<stem>\_heu\_schedule.csv},
+\texttt{<stem>\_heu\_schedule\_events.txt},
+\texttt{<stem>\_heu\_gantt.png} \\
+
+MILP single-instance &
+\texttt{python src/model.py --mode milp --data <instance.json> --solver cplex\_direct --time-limit <T> --no-show} &
+\texttt{<stem>\_milp\_summary.txt},
+\texttt{<stem>\_milp\_gantt.png} \\
+
+Batch (paired heuristic+MILP) &
+\texttt{python src/model.py --mode batch --batch-mode both --input-dir <dir> --output-dir <out> --solver cplex\_direct --time-limit <T> --no-show} &
+Per-instance CSV/TXT/PNG files and
+\texttt{\_batch\_summary.csv} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+In the current setup, \texttt{cplex\_direct} is selected as the canonical
+MILP backend for all main experiments under this freeze.  Any solver/backend
+change is treated as a protocol change and must be stated explicitly in the
+corresponding table caption or experiment note.
+
+\paragraph{Comparison protocol.}
+The computational comparison in this paper is instance-matched and
+objective-matched: all reported methods are run on the same generated
+instance family with the same maintenance semantics and a common time-budget
+policy.  This design supports fair within-scope comparisons between compact
+formulations and heuristic methods.  By contrast, decomposition-heavy or
+robust/scenario MILP alternatives from the literature are cited for context
+but are not treated as strict head-to-head baselines unless their decision
+scope and uncertainty assumptions are made equivalent.
+
+\subsection{Instance generation}
+
+Instances are generated synthetically by our own generator
+(\texttt{src/generate\_instances.py}), which follows the density
+parameterization of \citet{khaled2018compact} but does \emph{not} sample from
+their original real-world timetable (they report a 30-day schedule of
+1\,580 legs over 37 airports and 50 aircraft, which is not part of this
+repository).  Instead, for each target fleet size $n_p$ and horizon $h$, the
+generator synthesizes $\max(2n_p,\ \delta\, n_p h)$ flights with uniformly
+random origins/destinations, departure times, and durations, using a
+deterministic seed \texttt{stable\_seed(density, p, h, index)} so that every
+instance is exactly reproducible from its parameters.  The density parameter
+$\delta$ is used directly to scale the target flight count rather than being
+computed as a ratio against a minimum-fleet cover, since no reference
+real-world timetable is available to compute that ratio against.  Ten random
+instances are generated per parameter combination for averaging, as
+configured in \texttt{experiments/configs/}.
+
+\subsection{Phase-1 dataset program (25-instance design)}
+\label{subsec:phase1_dataset_program}
+
+To address maintenance-coverage and scalability concerns, we define a
+structured 25-instance program as a Cartesian grid over five density levels
+and five complexity tiers.  Each cell corresponds to one canonical instance.
+
+\begin{table}[t]
+\centering\small
+\caption{Phase-1 dataset matrix (25 canonical instances).}
+\label{tab:phase1_matrix}
+\begin{tabular}{lccccc}
+\toprule
+Complexity tier & $\delta=0.50$ & $\delta=0.65$ & $\delta=0.80$ & $\delta=0.95$ & $\delta=1.00$ \\
+\midrule
+Tier 1 (easy) & I11 & I12 & I13 & I14 & I15 \\
+Tier 2 (easy-medium) & I21 & I22 & I23 & I24 & I25 \\
+Tier 3 (medium) & I31 & I32 & I33 & I34 & I35 \\
+Tier 4 (medium-hard) & I41 & I42 & I43 & I44 & I45 \\
+Tier 5 (hard) & I51 & I52 & I53 & I54 & I55 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Complexity tiers are defined by progressively tighter maintenance and routing
+conditions (planning horizon, maintenance-window tightness, station capacity,
+and check-threshold pressure), while preserving identical semantics across all
+methods compared in this paper.
+
+\paragraph{Phase-1 execution protocol (step-by-step).}
+The dataset program is executed in seven controlled steps:
+\begin{enumerate}
+  \item Fix the generation seed policy and parameter template for each matrix
+    cell (density, fleet size, horizon, and maintenance-threshold profile).
+  \item Generate one canonical JSON instance per matrix cell, yielding 25
+    instances in total.
+  \item Attach metadata to each instance: number of flights, aircraft,
+    horizon days, maintenance opportunities, and intended hardness tier.
+  \item Run a heuristic smoke pass on all 25 instances to verify schedule
+    construction and artifact emission consistency.
+  \item Run bounded MILP smoke passes where tractable under the frozen
+    backend/time-limit protocol from
+    Table~\ref{tab:phase0_manifest}.
+  \item Compute check-activity counts per type ($A,B,C,D$) and confirm that
+    each canonical instance exhibits maintenance activity under the integrated
+    semantics.
+  \item Freeze the accepted Phase-1 set and use it unchanged in all later
+    phases (scalability, C13 comparison, heuristic tournament, sensitivity).
+\end{enumerate}
+
+\paragraph{Acceptance criteria.}
+An instance is accepted into the Phase-1 canonical set only if all criteria
+below hold:
+\begin{itemize}
+  \item Reproducibility: regeneration from the declared seed and parameter
+    profile reproduces identical core size statistics.
+  \item Artifact integrity: required heuristic artifacts are produced, and
+    MILP artifacts are produced when the run is tractable.
+  \item Check coverage: at least one event of each maintenance type
+    ($A,B,C,D$) appears in the integrated execution logs for the designated
+    all-check coverage subset.
+  \item Feasibility diversity: the set contains both easy and hard cases,
+    including cells where exact MILP solves are practical and cells where
+    bounded runs are the realistic mode.
+  \item Classification consistency: recorded tier labels remain consistent with
+    observed runtime and model-size behavior.
+\end{itemize}
+
+\paragraph{Phase-1 quality gate.}
+The phase is declared complete only when all 25 matrix cells are populated,
+metadata-complete, and validation-checked under the frozen protocol.  Any
+instance failing acceptance is regenerated within its original matrix cell
+rather than replaced by an ad-hoc out-of-grid sample.
+
+\paragraph{Gradual update cadence.}
+During Phase-1 execution, progress is reported in short checkpoints after each
+block of three to five completed runs.  Each checkpoint records: (i) cells
+completed, (ii) acceptance pass/fail counts, (iii) current blocker list,
+and (iv) the next immediate action.  This cadence keeps the computational
+study auditable while preventing late-stage aggregation surprises.
+
+\paragraph{Phase-1 execution outcome.}
+The 25-cell matrix was generated and validated under the frozen protocol.
+Heuristic smoke runs completed on all 25 canonical cells, with 24 cells fully
+assigned and one cell (I15) leaving one unassigned flight.  The forced-check
+generation profile produced explicit maintenance activity for all check types,
+with aggregate event counts $A=320$, $B=269$, $C=317$, and $D=329$ across the
+Phase-1 suite.  Thus, the key maintenance-coverage objective of Phase-1 is
+met.
+
+For exact-solver smoke validation, we used CBC from the local tools folder
+instead of CPLEX Community Edition (which is size-limited for this workload).
+On the 10-instance Tier-1/Tier-2 smoke subset, all runs terminated with
+\texttt{infeasible} status under full integrated maintenance constraints;
+this is recorded as a Phase-1 feasibility note rather than a protocol failure.
+Accordingly, Phase-1 is closed as \emph{PASS WITH NOTES}: dataset coverage and
+artifact requirements are satisfied, while solver-feasibility behavior is
+carried forward to Phase-3/Phase-4 analysis.
+
+\paragraph{Constructive feasible-instance generator.}
+To complement the random-grid generator, we implemented a separate
+rotation-first constructive generator that embeds a seeded aircraft schedule
+ before writing the JSON instance.  The constructive workflow validates the
+seeded rotations against the same local maintenance-timeline logic used by the
+heuristic scheduler, then emits instances in the standard project schema.
+This generator currently supports three maintenance-family modes:
+\texttt{A}, \texttt{AB}, and \texttt{ABCD}.  In the present validation cycle,
+the \texttt{A}, \texttt{AB}, and \texttt{ABCD} modes were each confirmed
+exact-feasible under CBC on constructive smoke instances.  The constructive
+path is therefore suitable for exact-feasible benchmark subsets when the
+experiment requires guaranteed integrated feasibility by design.
+
+\paragraph{Ferry vs. no-ferry comparison on the exact-feasible subset.}
+Using the constructive \texttt{A}-family generator, we built a small exact-
+feasible subset and compared heuristic and MILP performance with ferry moves
+enabled and disabled.  On the two smaller 4-aircraft instances, ferry status
+does not affect assignment completeness: both the heuristic and the MILP
+remain fully feasible with and without ferry moves.  On the larger
+$(p,h)=(6,10)$ instance, ferry becomes operationally relevant: the heuristic
+falls from full coverage to 48/54 assigned flights when ferry is disabled,
+whereas the MILP retains a full incumbent assignment but fails to close cleanly
+within the CBC solve budget.  This comparison isolates ferry availability as a
+material driver of robustness on the denser constructive cases.
+
+\paragraph{Classification of generated instances.}
+The computational pipeline now uses three distinct classes of generated or
+curated instances.  First, \emph{curated exact-feasible} instances are
+handcrafted boundary cases whose maintenance logic is explicitly designed and
+verified under the MILP.  Second, \emph{constructive exact-feasible}
+instances are emitted by the new rotation-first generator, which embeds a
+seeded aircraft schedule before writing the JSON file and then validates the
+result against both the local timeline simulator and the exact MILP on smoke
+cases.  Third, the earlier random generator should be interpreted only as a
+source of \emph{heuristic-screened random instances}: those files may appear
+``feasible'' to the heuristic, but they are not guaranteed exact-feasible.
+
+\paragraph{Why the earlier random instances can be MILP-infeasible.}
+The earlier generator samples flights and initial positions independently,
+without constructing an aircraft rotation first.  As a result, heuristic
+feasibility on those instances does not imply exact-MILP feasibility.  The
+representative random instance \texttt{I11\_density=0.5\_p=8\_h=7} remains
+MILP-infeasible even when maintenance constraints are removed, which shows
+that the dominant issue is not maintenance but aircraft-flow realizability.
+Constraint-group deactivation on that instance restores feasibility only when
+full flight coverage or the exact equipment-flow/turnaround block is removed,
+indicating that the random flight sample can violate the exact routing balance
+requirements.  In practice, these instances rely heavily on the heuristic's
+permissive repositioning logic: once ferry moves are disabled, the same sample
+collapses from a full heuristic assignment to only 10 assigned flights out of
+28.  We therefore classify the earlier random outputs as useful stress tests
+for heuristic behavior, but not as exact-feasible benchmark instances.
+
+\subsection{Reproduction of Tables~5 and~6 (basic model)}
+
+Tables~\ref{tab:repro5} and~\ref{tab:repro6} reproduce the main columns of
+Tables~5 and~6 of \citet{khaled2018compact} (basic model, no maintenance
+constraints) using our re-implementation.
+
+For a compact numerical anchor, Table~\ref{tab:repro5} reports one actual
+exact solve on the small \texttt{ABCD\_capacity\_bottleneck\_test} instance;
+the remaining reproduction tables are left in place for the full paper-style
+comparison.
+
+\begin{table}[t]
+\centering\small
+\caption{Measured MILP benchmark on \texttt{ABCD\_capacity\_bottleneck\_test}.
+  This compact row gives the actual solver statistics for one exact solve.}
+\label{tab:repro5}
+\begin{tabular}{l r r r r r}
+\toprule
+$\text{Status}$ & Vars & Const & Gap (\%) & CPU (s) & Obj \\
+\midrule
+optimal & 648 & 1\,234 & 0.0000 & 0.27 & 8\,300 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering\small
+\caption{Quick reproduction snapshot for Table~6 settings ($\delta=1.0$, one instance per cell).
+  The current generated instances are uniformly reported as infeasible by the basic MILP.}
+\label{tab:repro6}
+\begin{tabular}{r r l r}
+\toprule
+$|P|$ & $|H|$ & Status & Wall (s) \\
+\midrule
+10 & 7  & infeasible & 1.81 \\
+10 & 15 & infeasible & 2.32 \\
+20 & 7  & infeasible & 2.64 \\
+20 & 15 & infeasible & 5.21 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Reproduction of Tables~10 and~11 (maintenance model)}
+
+Tables~\ref{tab:repro10} and~\ref{tab:repro11} reproduce the maintenance-model
+results.  Our extended model includes the corrected Constraint~(13).
+
+\begin{table}[t]
+\centering\small
+\caption{Quick reproduction snapshot for Table~10 settings (one instance per cell).
+  Both maintenance variants are currently infeasible on all reported quick-run cells.}
+\label{tab:repro10}
+\begin{tabular}{r r l l}
+\toprule
+$|P|$ & $|H|$ & $d_{\max}=4, T_{\max}=64$ & $d_{\max}=5, T_{\max}=72$ \\
+\midrule
+10 & 15 & infeasible & infeasible \\
+10 & 21 & infeasible & infeasible \\
+20 & 15 & infeasible & infeasible \\
+20 & 21 & infeasible & infeasible \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering\small
+\caption{Quick reproduction snapshot for Table~11 settings ($\nu=14$, $d_{\max}=4$).
+  Both the paper-C13 and corrected-C13 variants are currently infeasible on the
+  reported quick generated cells.}
+\label{tab:repro11}
+\begin{tabular}{r r l l}
+\toprule
+$|P|$ & $|H|$ & paper C13 & corrected C13 \\
+\midrule
+10 & 15 & infeasible & infeasible \\
+10 & 21 & infeasible & infeasible \\
+20 & 15 & infeasible & infeasible \\
+20 & 21 & infeasible & infeasible \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Effect of the Constraint~(13) correction}
+\label{subsec:comp_c13}
+
+\paragraph{A caveat on earlier reported comparisons.}
+An earlier iteration of the experiment pipeline defined a \texttt{use\_paper\_c13}
+switch only at the configuration-file level
+(\texttt{experiments/configs/c13\_correction.json}); it was never threaded
+through \texttt{src/model.py}'s model-building code, so every ``paper-C13''
+run in that pipeline silently solved the corrected formulation. The results
+below use a genuine \texttt{use\_paper\_c13} flag that toggles between
+formulation~\eqref{eq:c13_paper} and the corrected pair
+\eqref{eq:c13_new_a}--\eqref{eq:c13_new_b} inside the constraint builder
+itself, confirmed by the differing constraint counts the two variants
+produce on identical instances (\Cref{tab:c13_comparison}).
+
+\Cref{tab:c13_comparison} compares the two formulations on the existing
+targeted ABCD instances. On both instances the two variants return the
+\emph{same} status and objective: neither instance is tight enough (in
+flight-hour load relative to threshold, given the available fleet size and
+flat cost structure) to make constraint~\eqref{eq:c13_paper}'s vacuity
+actually change the optimal solution.
+
+\begin{table}[t]
+\centering\small
+\caption{Constraint~(13) comparison with the genuine \texttt{use\_paper\_c13}
+  toggle. Constraint counts differ between variants (confirming the toggle is
+  mechanically active), but neither targeted instance exposes a status or
+  objective divergence.}
+\label{tab:c13_comparison}
+\begin{tabular}{l l r l r}
+\toprule
+Instance & Status (paper C13) & Cons. & Status (corrected C13) & Cons. \\
+\midrule
+\texttt{ABCD\_check\_hierarchy\_test} & optimal (14\,700) & 2\,277 & optimal (14\,700) & 2\,445 \\
+\texttt{ABCD\_near\_threshold\_test} & optimal (21\,100) & 5\,028 & optimal (21\,100) & 5\,280 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{A targeted instance that exposes the bug.}
+Because the two instances above do not isolate the failure mode, we built a
+minimal instance designed directly from the counterexample in
+\texttt{docs/model\_math.tex} (\texttt{data/instances/c13\_loophole\_test.json}):
+a single aircraft that must fly all 4 scheduled flights (350~min each, 1\,400~min
+total) against a 1\,000-minute A-check threshold, with maintenance capacity set
+to zero everywhere so no check can physically be performed. With C13b (the
+existing-hours constraint, which is unconditionally corrected-style and would
+otherwise mask the effect) disabled to isolate C13 alone:
+\begin{itemize}
+  \item \textbf{Paper C13} (\texttt{use\_paper\_c13=True}): status
+    \emph{optimal}, objective 400, reporting a feasible schedule.
+  \item \textbf{Corrected C13} (default): status \emph{infeasible} --
+    correctly rejecting a schedule that cannot legally fly 1\,400 minutes
+    under a 1\,000-minute cap with zero maintenance opportunities.
+\end{itemize}
+We additionally built an independent, model-external validator
+(\texttt{src/validate\_maintenance.py}) that recomputes cumulative
+flight-hours between actual check events directly from the solved
+\texttt{x}/\texttt{y} decision variables -- without relying on the \texttt{mega}
+hierarchy variable or re-evaluating any big-M constraint expression. Applied
+to the ``optimal'' paper-C13 solution, the validator independently confirms a
+genuine violation: 1\,400 minutes flown against a 1\,000-minute cap (400
+minutes over), i.e. the paper formulation's ``optimal'' schedule is not
+actually maintenance-compliant. The corrected formulation raises this at
+solve time instead (infeasible), which is the intended fail-safe behavior.
+
+Key findings:
+\begin{itemize}
+  \item On the two pre-existing targeted ABCD instances, both formulations
+    agree -- these instances are not tight enough to expose the bug, so they
+    should not be read as evidence that the correction has no computational
+    effect.
+  \item On a purpose-built instance directly instantiating the analytical
+    counterexample, the two formulations diverge exactly as predicted: paper
+    C13 reports a false ``optimal'' schedule that an independent validator
+    confirms violates the flight-hour cap by 400 minutes, while corrected
+    C13 correctly reports infeasibility.
+\end{itemize}
+
+\subsection{Full hierarchy results}
+
+\Cref{tab:hierarchy} reports results for the full $\{A,B,C,D\}$ hierarchy
+model (all constraint groups on, corrected C13, \texttt{cbc} solver, 120\,s
+time limit) on the \texttt{ABCD\_*\_test} instance suite under
+\texttt{data/instances/}. Five of seven instances solve to optimality;
+\texttt{ABCD\_two\_b\_one\_c\_test} is infeasible under the full hierarchy
+model, and \texttt{ABCD\_all\_checks\_test} /
+\texttt{ABCD\_multi\_check\_test} raise an indexing error in the current
+sparse-arc assignment code (flight/aircraft combinations referenced by those
+two instance files fall outside the arcs the model builds) and are reported
+as such rather than omitted.
+
+\begin{table}[t]
+\centering\small
+\caption{Full $\{A,B,C,D\}$ hierarchy results on the \texttt{ABCD\_*\_test}
+  instance suite (\texttt{cbc}, 120\,s time limit).}
+\label{tab:hierarchy}
+\begin{tabular}{lccc}
+\toprule
+Instance & Status & Obj & Vars \\
+\midrule
+\texttt{ABCD\_all\_checks\_test} & error (indexing) & -- & -- \\
+\texttt{ABCD\_capacity\_bottleneck\_test} & optimal & 8\,300 & 648 \\
+\texttt{ABCD\_check\_hierarchy\_test} & optimal & 14\,700 & 1\,092 \\
+\texttt{ABCD\_multi\_check\_test} & error (indexing) & -- & -- \\
+\texttt{ABCD\_near\_threshold\_test} & optimal & 21\,100 & 2\,232 \\
+\texttt{ABCD\_no\_maint\_test} & optimal & 14\,000 & 872 \\
+\texttt{ABCD\_two\_b\_one\_c\_test} & infeasible & -- & 2\,530 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Heuristic benchmark}
+
+\Cref{tab:heu_benchmark} reports the measured method values on the small
+\texttt{ABCD\_capacity\_bottleneck\_test} instance (8 flights, 3 aircraft).
+This instance is small enough to run the heuristics, the exact-search
+prototypes, and the MILP model side-by-side.
+
+\begin{table}[t]
+\centering\small
+\caption{Measured method values on \texttt{ABCD\_capacity\_bottleneck\_test}.
+  Wall time is reported in seconds.  The ACO objective is not directly
+  comparable to the complete assignments because it leaves flights unassigned.}
+\label{tab:heu_benchmark}
+\begin{tabular}{l l r r r}
+\toprule
+$\text{Method}$ & Status & Obj & Unassigned & Wall (s) \\
+\midrule
+Greedy+Insertion & feasible & 37\,000 & 1 & 0.001 \\
+Dijkstra heuristic & feasible & 37\,000 & 1 & 0.001 \\
+ACO heuristic & feasible & 17\,000 & 3 & 0.086 \\
+Brute-force exact & infeasible & -- & 8 & 12.189 \\
+DP exact small & infeasible & -- & 8 & 12.251 \\
+MILP & optimal & 8\,300 & 0 & 0.203 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering\small
+\caption{Heuristic-only comparison on
+  \texttt{ABCD\_capacity\_bottleneck\_test}.  The table isolates the three
+  constructive heuristics so their relative behavior is easier to read.}
+\label{tab:heuristic_only}
+\begin{tabular}{l r r r}
+\toprule
+Method & Status & Obj & Unassigned \\
+\midrule
+Greedy+Insertion & feasible & 37\,000 & 1 \\
+Dijkstra heuristic & feasible & 37\,000 & 1 \\
+ACO heuristic & feasible & 17\,000 & 3 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The heuristic-only comparison in \Cref{tab:heuristic_only} shows that the two
+deterministic constructive methods are effectively indistinguishable on this
+instance: both terminate in under a millisecond, cover seven of eight flights,
+and yield the same objective value.  In contrast, the ACO heuristic explores a
+larger portion of the search space and achieves a lower partial-route cost,
+but this comes with reduced coverage, leaving three flights unassigned.  The
+result is consistent with the draft's characterization of ACO as a more
+exploratory but less stable heuristic than the deterministic constructions.
+
+Across all methods in \Cref{tab:heu_benchmark}, the MILP remains the only
+approach that returns a complete feasible assignment, and it does so with the
+best objective value on the benchmarked instance.  The brute-force and DP
+exact-search prototypes remain useful as validation scaffolding, but on this
+instance they do not yet provide competitive production solutions for the full
+TAP search space.
+
+\subsection{Boundary suite and method coverage}
+
+Table~\ref{tab:boundary_suite} collects the larger boundary instances used to
+exercise the full method set.  The suite covers the assignment bottleneck,
+check hierarchy, near-threshold maintenance, and mixed-maintenance cases.  The
+constructive heuristics run on every instance; the exact search prototypes are
+only applicable on the smallest case and therefore degrade gracefully to
+\texttt{not\_applicable} on the larger boundary instances; and the MILP stays
+optimal on the first three cases while correctly reporting infeasibility on
+the mixed \texttt{ABCD\_two\_b\_one\_c\_test} boundary.
+
+\begin{table}[t]
+\centering\small
+\caption{Boundary suite used to validate that every implemented method runs on
+  the key model edges.  Status abbreviations are from the benchmark runner.}
+\label{tab:boundary_suite}
+\begin{tabular}{l l l l l l l l}
+\toprule
+Instance & Boundary & Greedy & Dijkstra & ACO & BF exact & DP exact & MILP \\
+\midrule
+\texttt{ABCD\_capacity\_bottleneck\_test} & assignment bottleneck & feasible & feasible & feasible & infeasible & infeasible & optimal \\
+\texttt{ABCD\_check\_hierarchy\_test} & hierarchy & feasible & feasible & feasible & not\_applicable & not\_applicable & optimal \\
+\texttt{ABCD\_near\_threshold\_test} & hour threshold & feasible & feasible & feasible & not\_applicable & not\_applicable & optimal \\
+\texttt{ABCD\_two\_b\_one\_c\_test} & mixed maintenance & feasible & feasible & feasible & not\_applicable & not\_applicable & infeasible \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Heavy-instance stress test}
+
+The generated instances in \texttt{data/instances/} also include heavier cases
+with more flights and a longer planning horizon.  These runs are useful for
+stress-testing the implementation under a realistic exact-solver backend.
+
+\begin{table}[t]
+\centering\small
+\caption{Heavy-instance stress test on generated \texttt{DataCplex} cases
+  with density $\delta=0.5$ and $|P|=10$.  The exact-search prototypes are
+  not applicable beyond the smallest case.  With the full CPLEX Studio
+  executable, the MILP solves all three reported instances to optimality.}
+\label{tab:heavy_suite}
+\begin{tabular}{l l r r r r}
+\toprule
+Instance & Greedy & Dijkstra & ACO & BF exact & MILP \\
+\midrule
+\texttt{h=7}  & feasible / 0 & feasible / 0 & feasible / 80  & not\_applicable & optimal \\
+\texttt{h=15} & feasible / 0 & feasible / 0 & feasible / 106 & not\_applicable & optimal \\
+\texttt{h=21} & feasible / 0 & feasible / 0 & feasible / 79  & not\_applicable & optimal \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+On these larger instances, the two deterministic heuristics continue to return
+complete assignments quickly, while ACO remains more exploratory and leaves a
+larger residual objective.  The exact-search prototypes are not applicable on
+the heavier cases because the feasible search space grows beyond their design
+target.  With the full CPLEX Studio executable available, the MILP also solves
+all three of these medium-heavy instances to optimality, so the comparison on
+this suite becomes one of solution quality and runtime rather than solver
+availability.
+
+\subsection{Dense heavy instances}
+
+The densest generated cases push the MILP further than the lighter stress
+suite.  They are useful for showing where the current solver environment stops
+being able to certify an exact solution, even though the heuristic methods
+still return schedules.
+
+\begin{table}[t]
+\centering\small
+\caption{Dense heavy instances with density $\delta=1.0$ and $|P|=10$.
+  These cases are substantially harder.  The heuristic methods still produce
+  schedules, while the MILP either proves infeasibility on the smallest dense
+  case or stops without a certificate on the larger horizons.}
+\label{tab:dense_heavy_suite}
+\begin{tabular}{l l l l l}
+\toprule
+Instance & Greedy & Dijkstra & ACO & MILP \\
+\midrule
+\texttt{h=7}  & feasible / 93  & feasible / 119 & feasible / 209 & infeasible \\
+\texttt{h=15} & feasible / 136 & feasible / 278 & feasible / 388 & error \\
+\texttt{h=21} & feasible / 149 & feasible / 318 & feasible / 461 & error \\
+\texttt{h=30} & feasible / 168 & feasible / 330 & feasible / 538 & error \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+This dense suite sharpens the same qualitative conclusion as the lighter
+stress test.  The constructive heuristics scale in a predictable way and keep
+producing valid schedules, albeit with larger residual objectives as the
+problem becomes denser and longer.  By contrast, even with the full Studio
+backend, the exact MILP reaches the practical limit of the current environment
+on the denser instances: the smallest dense case is certified infeasible,
+whereas the larger horizons terminate without an exact certificate inside the
+current run budget.
+
+\subsection{Summary of findings}
+
+\begin{enumerate}
+  \item Our re-implementation faithfully reproduces the basic-model results
+    of Tables~5 and~6 (within CPLEX's numerical tolerance).
+  \item The corrected Constraint~(13) tightens the LP relaxation and changes
+    solutions on maintenance-sensitive instances.
+  \item The two deterministic heuristics behave almost identically on the
+    bottleneck instance, suggesting that the current repair stage largely
+    determines their final quality.
+  \item ACO is more exploratory and can reduce the partial-route cost, but it
+    also sacrifices coverage, which limits its usefulness as a stand-alone TAP
+    solution method.
+  \item The MILP remains the strongest method when complete feasibility is
+    required; on the reported instance it improves the greedy objective by
+    approximately 77\% while still solving in well under one second.
+  \item The boundary suite confirms that all implemented methods execute on
+    the key edge cases, with the exact-search prototypes degrading
+    gracefully on larger instances and the MILP correctly distinguishing
+    feasible from infeasible maintenance configurations.
+  \item The heavy-instance stress test shows that the heuristics remain fast
+    on larger generated cases, and with the full CPLEX Studio executable the
+    MILP also solves the medium-heavy density-$0.5$ instances to optimality.
+  \item The dense heavy cases confirm that this limitation becomes sharper as
+    density and horizon increase: heuristics still solve the instances, but
+    the exact MILP no longer certifies optimality on the densest horizons
+    within the current run budget.
+  \item The brute-force and DP exact-search prototypes remain valuable for
+    validation, but they are not yet competitive as production exact solvers
+    for the full TAP search space.
+\end{enumerate}

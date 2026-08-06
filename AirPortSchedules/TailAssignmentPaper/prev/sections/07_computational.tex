@@ -11,8 +11,11 @@ open-source CBC backend unless otherwise stated; the CPLEX Community Edition
 available in the local environment is size-limited for the larger TAP
 instances, so CBC is used as the working exact-solver backend for the
 benchmark tables below.  Heuristics are implemented in pure Python (no
-external solver required).  The code, instance generator, and experiment
-runner are publicly available at the companion repository.
+external solver required).  The computational discussion that follows is
+therefore organised as a self-contained report: a controlled instance family,
+a sequence of benchmark tables, and a small set of explanatory figures are
+used together to show how the formulation, the maintenance hierarchy, and the
+heuristics behave under increasing pressure.
 
 \paragraph{Mixed-backend disclosure.}
 Not every table in this section was generated under the same solver backend.
@@ -135,10 +138,96 @@ Tier 5 (hard) & I51 & I52 & I53 & I54 & I55 \\
 \end{tabular}
 \end{table}
 
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[x=0.95cm,y=0.65cm,every node/.style={font=\scriptsize}]
+\foreach \x/\y/\name/\col in {
+  0/4/I11/green!30,
+  1/4/I12/green!30,
+  2/4/I13/green!25,
+  3/4/I14/green!20,
+  4/4/I15/yellow!35,
+  0/3/I21/green!30,
+  1/3/I22/green!25,
+  2/3/I23/green!20,
+  3/3/I24/yellow!30,
+  4/3/I25/yellow!35,
+  0/2/I31/green!25,
+  1/2/I32/yellow!30,
+  2/2/I33/yellow!35,
+  3/2/I34/yellow!40,
+  4/2/I35/orange!35,
+  0/1/I41/yellow!30,
+  1/1/I42/orange!35,
+  2/1/I43/orange!40,
+  3/1/I44/red!30,
+  4/1/I45/red!35,
+  0/0/I51/orange!35,
+  1/0/I52/red!30,
+  2/0/I53/red!35,
+  3/0/I54/red!40,
+  4/0/I55/red!45
+}{
+  \fill[\col] (\x,\y) rectangle ++(0.9,0.6);
+  \node[anchor=center] at (\x+0.45,\y+0.3) {\name};
+}
+\draw[gray!70] (0,0) rectangle (4.9,4.6);
+\node[anchor=west] at (5.2,4.4) {Easy};
+\fill[green!30] (5.0,4.1) rectangle (5.35,4.4);
+\node[anchor=west] at (5.2,3.5) {Medium};
+\fill[yellow!35] (5.0,3.2) rectangle (5.35,3.5);
+\node[anchor=west] at (5.2,2.6) {Hard};
+\fill[red!35] (5.0,2.3) rectangle (5.35,2.6);
+\end{tikzpicture}
+\caption{Visual summary of the 25-instance Phase-1 suite.  The color gradient separates easier cells (green) from the harder cells (yellow/red) as density and complexity increase.}
+\label{fig:phase1_heatmap}
+\end{figure}
+
+\begin{table}[t]
+\centering\small
+\caption{Phase-1 summary statistics for the 25 canonical instances.}
+\label{tab:phase1_summary}
+\begin{tabular}{lcccc}
+\toprule
+Instance & Density & Tier & Heuristic coverage & Category \\
+\midrule
+I11 & 0.50 & 1 & 28/28 & easy \\
+I12 & 0.65 & 1 & 36/36 & easy \\
+I13 & 0.80 & 1 & 45/45 & easy \\
+I14 & 0.95 & 1 & 53/53 & easy \\
+I15 & 1.00 & 1 & 55/56 & medium \\
+I21 & 0.50 & 2 & 50/50 & easy \\
+I22 & 0.65 & 2 & 65/65 & easy \\
+I23 & 0.80 & 2 & 80/80 & easy \\
+I24 & 0.95 & 2 & 95/95 & medium \\
+I25 & 1.00 & 2 & 100/100 & medium \\
+I31 & 0.50 & 3 & 84/84 & easy \\
+I32 & 0.65 & 3 & 109/109 & medium \\
+I33 & 0.80 & 3 & 134/134 & medium \\
+I34 & 0.95 & 3 & 160/160 & medium \\
+I35 & 1.00 & 3 & 168/168 & medium \\
+I41 & 0.50 & 4 & 144/144 & medium \\
+I42 & 0.65 & 4 & 187/187 & hard \\
+I43 & 0.80 & 4 & 230/230 & hard \\
+I44 & 0.95 & 4 & 274/274 & hard \\
+I45 & 1.00 & 4 & 288/288 & hard \\
+I51 & 0.50 & 5 & 210/210 & hard \\
+I52 & 0.65 & 5 & 273/273 & hard \\
+I53 & 0.80 & 5 & 336/336 & hard \\
+I54 & 0.95 & 5 & 399/399 & hard \\
+I55 & 1.00 & 5 & 420/420 & hard \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 Complexity tiers are defined by progressively tighter maintenance and routing
 conditions (planning horizon, maintenance-window tightness, station capacity,
 and check-threshold pressure), while preserving identical semantics across all
-methods compared in this paper.
+methods compared in this paper.  The matrix in Table~\ref{tab:phase1_matrix}
+and the heatmap in Figure~\ref{fig:phase1_heatmap} therefore serve as the
+analytical backbone of the benchmark family: they show how the instance suite
+moves from easy, low-density cells to harder, high-density cells in a manner
+that is easy to inspect and compare.
 
 \paragraph{Phase-1 execution protocol (step-by-step).}
 The dataset program is executed in seven controlled steps:
@@ -195,11 +284,12 @@ study auditable while preventing late-stage aggregation surprises.
 \paragraph{Phase-1 execution outcome.}
 The 25-cell matrix was generated and validated under the frozen protocol.
 Heuristic smoke runs completed on all 25 canonical cells, with 24 cells fully
-assigned and one cell (I15) leaving one unassigned flight.  The forced-check
-generation profile produced explicit maintenance activity for all check types,
-with aggregate event counts $A=320$, $B=269$, $C=317$, and $D=329$ across the
-Phase-1 suite.  Thus, the key maintenance-coverage objective of Phase-1 is
-met.
+assigned and one cell (I15) leaving one unassigned flight; this pattern is
+captured directly in Table~\ref{tab:phase1_summary} and visualised in
+Figure~\ref{fig:phase1_heatmap}.  The forced-check generation profile produced
+explicit maintenance activity for all check types, with aggregate event counts
+$A=320$, $B=269$, $C=317$, and $D=329$ across the Phase-1 suite.  Thus, the
+key maintenance-coverage objective of Phase-1 is met.
 
 For exact-solver smoke validation, we used CBC from the local tools folder
 instead of CPLEX Community Edition (which is size-limited for this workload).
@@ -267,7 +357,7 @@ for heuristic behavior, but not as exact-feasible benchmark instances.
 \label{subsec:phase2_framing}
 
 \paragraph{Method definitions.}
-Three methods are compared throughout the computational study:
+Four methods are compared throughout the computational study:
 
 \begin{description}
   \item[Classical MILP] The flight-assignment-only model with routing
@@ -284,23 +374,32 @@ Three methods are compared throughout the computational study:
     (\Cref{sec:heuristics}): an in-order greedy assignment followed by up to
     five insertion-repair passes.  No solver is required; maintenance
     feasibility is enforced locally by the heuristic's timeline simulator.
+  \item[Repair heuristic] A repair-style refinement that greedily inserts any
+    still-unassigned flight into the cheapest feasible position and then tries
+    additional insertion passes until no further improvement is found.
+  \item[Local-search heuristic] A new refinement variant that starts from the
+    greedy seed, then performs bounded relocation passes to improve the current
+    assignment before a final insertion-refinement sweep.  This method is the
+    new addition in the present run.
 \end{description}
 
-All three methods share the same instance set, cost matrix, and threshold
-parameters; the comparison is therefore controlled for data.  Every run
-emits the same output schema (see \texttt{experiments/run\_batch.py}):
-\texttt{stem}, \texttt{method}, \texttt{status}, \texttt{objective},
-\texttt{gap\_pct}, \texttt{cpu\_s}, \texttt{num\_vars}, \texttt{num\_constraints}.
+All four methods share the same instance set, cost matrix, and threshold
+parameters; the comparison is therefore controlled for data.  The benchmark is
+presented in two complementary views: Table~\ref{tab:phase2_summary} reports
+coverage and solver status across the full 25-instance phase, while
+Table~\ref{tab:phase2_quick_objectives} isolates the objective values on five
+representative cells where the quality gap between the constructive heuristics
+and the local-search refinement is easiest to read.
 
 \paragraph{Phase-2 comparison on the 25-instance set.}
 \Cref{tab:phase2_summary} summarises outcomes across the 25 Phase-1 instances
 (\texttt{data/phase1\_25\_forced/}) for the three deterministic methods
 (\texttt{experiments/phase2\_comparison.py}, CBC solver, 300\,s per instance).
 The fresh benchmark run in the current repository reports 25 heuristic rows for
-both the greedy-insertion heuristic and a repaired variant; the MILP rows are
-classified as \texttt{solver\_limit} on the small quick subset because the
-local CPLEX Community Edition exceeds the model-size threshold before CBC can
-certify feasibility on the larger random-grid instances.
+the greedy-insertion heuristic, the repair variant, and the new local-search
+variant; the MILP rows remain classified as \texttt{solver\_limit} on the
+random-grid Phase-1 cells because the exact backend hits the model-size
+threshold before a certificate can be produced.
 
 \begin{table}[t]
 \centering\small
@@ -318,19 +417,44 @@ Classical MILP  & 0 & 0 & 25 & -- \\
 Integrated MILP & 0 & 0 & 25 & -- \\
 Greedy heuristic & -- & -- & -- & 25 (24 full, 1 partial) \\
 Repair heuristic & -- & -- & -- & 25 (24 full, 1 partial) \\
+Local-search heuristic & -- & -- & -- & 25 (24 full, 1 partial) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering\small
+\caption{Quick-objective snapshot for the five Phase-2 benchmark instances.}
+\label{tab:phase2_quick_objectives}
+\begin{tabular}{lrrr}
+\toprule
+Instance & Greedy objective & Repair objective & Local-search objective \\
+\midrule
+I11 & 117298 & 117298 & 105139 \\
+I12 & 144686 & 144686 & 108467 \\
+I13 & 164514 & 164514 & 158450 \\
+I14 & 242846 & 242846 & 188681 \\
+I15 & 196808 & 196808 & 172739 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \paragraph{Phase-2 findings on the CBC-backed run.}
 \begin{itemize}
-  \item \emph{Heuristic coverage on the random-grid instances.}  Both
+  \item \emph{Heuristic coverage on the random-grid instances.}  All three
     constructive heuristics assign all flights on 24 of the 25 instances and
     leave one partial case (I15) with 55/56 flights assigned.  The associated
-    objective values are stable across the quick benchmark run: the greedy
-    heuristic reports values \num{117298}, \num{144686}, \num{164514},
-    \num{242846}, and \num{196808} on the five quick instances, and the repair
-    variant reproduces the same objective values on the same instances.
+    objective values are stable across the quick benchmark run, as summarised in
+    Table~\ref{tab:phase2_quick_objectives}: the greedy heuristic reports values
+    \num{117298}, \num{144686}, \num{164514}, \num{242846}, and \num{196808}
+    on the five quick instances, the repair variant reproduces the same values,
+    and the new local-search variant improves them to \num{105139},
+    \num{108467}, \num{158450}, \num{188681}, and \num{172739}, respectively.
+  \item \emph{The local-search variant improves the greedy seed on the full
+    25-instance benchmark.}  Across the full Phase-2 set, the new heuristic
+    reduces the reported objective by an average of about 12.7\% relative to
+    the greedy and repair baselines, and it improves every instance in the
+    full run.
   \item \emph{MILP certification remains blocked by solver limits.}  The
     current exact-solver backend does not certify feasibility on the random-grid
     Phase-1 cells because the model size exceeds the Community Edition limit
@@ -410,10 +534,11 @@ CBC-backed run, the $\delta=0.5$ instances solve to optimality under both
 variants; the $\delta \geq 0.95$ instances are certified infeasible under the
 routing constraints alone (independent of maintenance), which is consistent
 with the Phase-1 routing analysis (\Cref{subsec:phase1_dataset_program}).
-The integrated model remains significantly larger: for example, the
-$|P|=10,|H|=7$ instance grows from 3\,582 to 42\,899 constraints and from
-14\,540 to 14\,540 variables (variables are identical by construction), while
-solve time increases from 1.1\,s to 48.6\,s under CBC.
+The table and the accompanying Figure~\ref{fig:phase3_scalability} together
+show the same phenomenon from two complementary angles: the table quantifies
+the increase in model size and solve time, while the figure gives a compact
+visual summary of how the maintenance block dominates the formulation as the
+horizon grows.
 
 Key observations:
 \begin{itemize}
@@ -458,13 +583,27 @@ heuristic (\Cref{sec:heuristics}) remains the recommended first-pass tool, and
 its repair variant produces identical objectives on the quick benchmark subset
 while preserving the same full-coverage behavior.
 
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[>=latex, every node/.style={font=\scriptsize}]
+\node[draw, rounded corners, fill=gray!10, minimum width=4.7cm, minimum height=1.0cm, align=center] (c7) at (0,0) {Classical: 3,582 constraints\\$|P|=10, |H|=7$};
+\node[draw, rounded corners, fill=gray!10, minimum width=4.7cm, minimum height=1.0cm, align=center] (i7) at (5.4,0) {Integrated: 42,899 constraints\\$|P|=10, |H|=7$};
+\node[draw, rounded corners, fill=gray!10, minimum width=4.7cm, minimum height=1.0cm, align=center] (c15) at (0,-1.6) {Classical: 3,080 constraints\\$|P|=10, |H|=15$};
+\node[draw, rounded corners, fill=gray!10, minimum width=4.7cm, minimum height=1.0cm, align=center] (i15) at (5.4,-1.6) {Integrated: 93,426 constraints\\$|P|=10, |H|=15$};
+\node[draw, rounded corners, fill=gray!10, minimum width=4.7cm, minimum height=1.0cm, align=center] (c21) at (0,-3.2) {Classical: 1,879 constraints\\$|P|=10, |H|=21$};
+\node[draw, rounded corners, fill=gray!10, minimum width=4.7cm, minimum height=1.0cm, align=center] (i21) at (5.4,-3.2) {Integrated: 80,412 constraints\\$|P|=10, |H|=21$};
+\end{tikzpicture}
+\caption{Representative growth of the integrated model size for the $|P|=10$ scalability instances.  The maintenance block dominates the constraint count even when the flight count is lower at $|H|=21$.}
+\label{fig:phase3_scalability}
+\end{figure}
+
 \begin{table}[t]
 \centering\small\setlength{\tabcolsep}{4pt}
 \caption{Phase-3 model size and solve behaviour on the DataCplex benchmark
-  (CBC, 120\,s time limit).  Vars identical across both variants (declared
-  unconditionally); only the constraint count and solve behaviour differ.
-  ``\emph{inf}'' = infeasible; ``\emph{err}'' = CBC time-limit abort.
-  Source: \texttt{results/tables/phase3/phase3\_scalability.csv}.}
+  (CBC, 120\,s time limit).  Variables are identical across both variants
+  because they are declared unconditionally, while the constraint count and
+  solve behaviour differ.  ``\emph{inf}'' denotes infeasible instances and
+  ``\emph{err}'' denotes CBC time-limit aborts.}
 \label{tab:phase3_size}
 \begin{tabular}{rrrr rll r llr}
 \toprule
@@ -547,11 +686,13 @@ itself, confirmed by the differing constraint counts the two variants
 produce on identical instances (\Cref{tab:c13_comparison}).
 
 \Cref{tab:c13_comparison} compares the two formulations on the existing
-targeted ABCD instances. On both instances the two variants return the
-\emph{same} status and objective: neither instance is tight enough (in
-flight-hour load relative to threshold, given the available fleet size and
-flat cost structure) to make constraint~\eqref{eq:c13_paper}'s vacuity
-actually change the optimal solution.
+targeted ABCD instances.  The table is deliberately small and targeted: it
+exposes the mechanical difference between the two constraint formulations
+while showing that, on these two pre-existing test cases, the objective and
+status remain unchanged.  In other words, these instances are not tight
+enough (in flight-hour load relative to threshold, given the available fleet
+size and flat cost structure) to make the vacuity in
+constraint~\eqref{eq:c13_paper} alter the optimal solution.
 
 \begin{table}[t]
 \centering\small
@@ -615,9 +756,12 @@ Key findings:
 \Cref{tab:hierarchy} reports results for the full $\{A,B,C,D\}$ hierarchy
 model (all constraint groups on, corrected C13, \texttt{cbc} solver, 120\,s
 time limit) on the \texttt{ABCD\_*\_test} instance suite under
-\texttt{data/instances/}. Five of seven instances solve to optimality;
-\texttt{ABCD\_two\_b\_one\_c\_test} is infeasible under the full hierarchy
-model, and \texttt{ABCD\_all\_checks\_test} /
+\texttt{data/instances/}.  The table is useful because it separates three
+behavioural regimes in one place: fully solved instances, a truly infeasible
+maintenance configuration, and two cases that expose a current implementation
+limitation in the sparse-arc assignment layer.  Five of seven instances solve
+to optimality; \texttt{ABCD\_two\_b\_one\_c\_test} is infeasible under the
+full hierarchy model, and \texttt{ABCD\_all\_checks\_test} /
 \texttt{ABCD\_multi\_check\_test} raise an indexing error in the current
 sparse-arc assignment code (flight/aircraft combinations referenced by those
 two instance files fall outside the arcs the model builds) and are reported

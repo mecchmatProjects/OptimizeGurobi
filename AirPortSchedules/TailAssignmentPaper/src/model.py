@@ -97,8 +97,10 @@ class Scheduler:
             return 'greedy+insertion'
         if key in {'repair', 'greedyrepair', 'greedy+repair'}:
             return 'repair'
+        if key in {'localsearch', 'local_search', 'localsearch', 'improve'}:
+            return 'local_search'
         raise ValueError(
-            f"Unsupported heuristic '{heuristic}'. Choose one of: greedy, insertion, greedy+insertion, repair"
+            f"Unsupported heuristic '{heuristic}'. Choose one of: greedy, insertion, greedy+insertion, repair, local_search"
         )
 
     # ------------------------------------------------------------------
@@ -241,6 +243,48 @@ class Scheduler:
                     best_ins = (aid, i, res['cost'])
         return best_ins
 
+    def _total_cost(self, ac_fids):
+        """Return the sum of assignment costs across all aircraft schedules."""
+        total_cost = 0.0
+        for aid in self.aircrafts:
+            res = self.get_timeline(aid, ac_fids[aid])
+            if res is None:
+                return None
+            total_cost += res['cost']
+        return total_cost
+
+    def _best_feasible_relocation(self, ac_fids, fid):
+        """Try moving a flight to a different aircraft/position if it lowers cost."""
+        current_aid = None
+        for aid in self.aircrafts:
+            if fid in ac_fids[aid]:
+                current_aid = aid
+                break
+        if current_aid is None:
+            return None
+
+        current_cost = self._total_cost(ac_fids)
+        if current_cost is None:
+            return None
+
+        removed = {aid: list(ac_fids[aid]) for aid in self.aircrafts}
+        removed[current_aid] = [f for f in removed[current_aid] if f != fid]
+
+        best_move = None
+        for target_aid in self.aircrafts:
+            for idx in range(len(removed[target_aid]) + 1):
+                trial = {aid: list(seq) for aid, seq in removed.items()}
+                trial[target_aid].insert(idx, fid)
+                candidate_cost = self._total_cost(trial)
+                if candidate_cost is None:
+                    continue
+                if best_move is None or candidate_cost < best_move[2]:
+                    best_move = (target_aid, idx, candidate_cost)
+
+        if best_move and best_move[2] < current_cost - 1e-9:
+            return best_move
+        return None
+
     def optimize(self):
         ac_fids = {aid: [] for aid in self.aircrafts}
         assigned = set()
@@ -279,6 +323,52 @@ class Scheduler:
                     assigned.add(fid)
 
             for _ in range(8):
+                improved = False
+                still_unassigned = [fid for fid in self.flights if fid not in assigned]
+                for fid in still_unassigned:
+                    best_ins = self._best_feasible_insertion(ac_fids, fid)
+                    if best_ins:
+                        aid, idx, _ = best_ins
+                        ac_fids[aid].insert(idx, fid)
+                        assigned.add(fid)
+                        improved = True
+                if not improved:
+                    break
+            return ac_fids, [fid for fid in self.flights if fid not in assigned]
+
+        if self.heuristic == 'local_search':
+            for fid in sorted_fids:
+                best_opt = None
+                for aid in self.aircrafts:
+                    res = self.get_timeline(aid, ac_fids[aid] + [fid])
+                    if res and (best_opt is None or res['cost'] < best_opt[0]):
+                        best_opt = (res['cost'], aid)
+                if best_opt:
+                    ac_fids[best_opt[1]].append(fid)
+                    assigned.add(fid)
+
+            for _ in range(3):
+                improved = False
+                for fid in sorted_fids:
+                    if fid not in assigned:
+                        continue
+                    move = self._best_feasible_relocation(ac_fids, fid)
+                    if move:
+                        target_aid, idx, _ = move
+                        current_aid = None
+                        for aid in self.aircrafts:
+                            if fid in ac_fids[aid]:
+                                current_aid = aid
+                                break
+                        if current_aid is None:
+                            continue
+                        ac_fids[current_aid] = [f for f in ac_fids[current_aid] if f != fid]
+                        ac_fids[target_aid].insert(idx, fid)
+                        improved = True
+                if not improved:
+                    break
+
+            for _ in range(4):
                 improved = False
                 still_unassigned = [fid for fid in self.flights if fid not in assigned]
                 for fid in still_unassigned:
@@ -2205,7 +2295,7 @@ def main():
     parser.add_argument('--no-show',     dest='show', action='store_false',
                         help='Do not display Gantt interactively')
     parser.add_argument('--heuristic', default='greedy+insertion',
-                        choices=['greedy', 'insertion', 'greedy+insertion', 'repair'],
+                        choices=['greedy', 'insertion', 'greedy+insertion', 'repair', 'local_search'],
                         help='Heuristic strategy to use in heuristic and batch modes '
                              '(default: greedy+insertion).')
     parser.add_argument('--no-ferry',    dest='allow_ferry', action='store_false',

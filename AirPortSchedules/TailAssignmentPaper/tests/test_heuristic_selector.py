@@ -34,6 +34,13 @@ class HeuristicSelectorTests(unittest.TestCase):
         self.assertEqual(len(ac_fids), len(sc.aircrafts))
         self.assertIsInstance(unassigned, list)
 
+    def test_local_search_strategy_runs(self):
+        sc = Scheduler(str(self.data_path), heuristic="local_search")
+        ac_fids, unassigned = sc.optimize()
+        self.assertIsInstance(ac_fids, dict)
+        self.assertEqual(len(ac_fids), len(sc.aircrafts))
+        self.assertIsInstance(unassigned, list)
+
 
 if __name__ == "__main__":
     unittest.main()

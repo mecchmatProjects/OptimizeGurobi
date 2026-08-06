@@ -68,6 +68,12 @@ METHODS = [
         'extra_flags': '--heuristic repair',
         'needs_solver': False,
     },
+    {
+        'label':      'local_search_heuristic',
+        'mode':       'heuristic',
+        'extra_flags': '--heuristic local_search',
+        'needs_solver': False,
+    },
 ]
 
 

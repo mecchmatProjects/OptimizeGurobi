@@ -1,0 +1,22 @@
+Hello, dear Arun!
+In this case I see the next steps.
+I divide the project tasks into the next parallel tasks:
+1) Writing a full draft report that you can use for your thesis - this is the milestone you assigned.
+I give you the code and the text of the draft. 
+
+2) For additional accompishment I prepare in parallel 2 papers and do the editing for publishing.
+  The first is heursitics analysis for ABCD maintenance checks and comparisons with current updates and ground-base solution.
+  The authors are in the following order: you, me, supervisor
+  I am looking for the Scopus conference paper within 300-700 $ per publishing. Also, may be the option Kyiv Univerisity bullitine 
+(free for me asth co-author, it is Scopus Q3-Q4, and I may influence faster consideration - if we be lucky, can be published at the start of the next year)
+maybe another option, or I can find sponsor faster publishing (who may want to be a co-author).
+
+ The second is corrections and analysis of our basic model with my planned updated approaches.
+ The authors are in the following order: me, you and supervisor
+ I am going to send it to EJOR. Possibly, they consider it faster as the revision of their paper - 
+but for the free publication it can last to 1 year of publishing, also it may require more addtional updates and refinements, and a lot of work to prove the correctness.  
+
+Please write me if you are agree with this.
+
+Best regards, Viktor
+

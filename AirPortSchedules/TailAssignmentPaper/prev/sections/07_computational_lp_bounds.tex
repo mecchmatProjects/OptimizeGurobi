@@ -1,0 +1,105 @@
+\subsection{Lower bound validation via LP relaxation}
+\label{subsec:lp_lower_bounds}
+
+\paragraph{Motivation.}
+While the exact-feasible instances (\Cref{subsec:exact_feasible_comp}) allow MILP
+to certify optimality, they cover a limited scale ($p \le 6$, $f \le 54$). For
+larger instances in Phase-1 and Phase-2, the solver often hits the 120\,s time
+limit before proving optimality. To assess heuristic quality even when MILP is
+intractable, we compute LP relaxation lower bounds: we relax all binary decision
+variables $x$, $z$, $y$, $\gamma$ to continuous $[0,1]$ domain and solve the
+resulting continuous relaxation.
+
+The LP bound is a \emph{rigorous lower bound} on any integer solution (including
+the MILP optimal). This allows us to quantify heuristic gaps as:
+\[
+  \text{Gap}_{\text{LP}} = \frac{\text{Heuristic Cost} - \text{LP Bound}}{\text{LP Bound}} \times 100\%.
+\]
+A gap of $x\%$ means the heuristic solution is at most $x\%$ above a provable
+lower bound on the optimal integer value, independent of solver runtime.
+
+\paragraph{LP bound computation.}
+We compute LP relaxations for:
+\begin{itemize}
+  \item \textbf{Exact-feasible set:} 5 instances from \Cref{subsec:exact_feasible_comp}
+    (the constructive instances, in addition to 3 curated ABCD instances that
+    we show below). Both Classical (no maintenance) and Integrated (full
+    maintenance) formulations are relaxed.
+  \item \textbf{Phase-1 random-grid sample:} 1 representative high-density
+    instance (\texttt{DataCplex\_density=0.5\_p=10\_h=7}) to demonstrate
+    scalability on larger instances.
+\end{itemize}
+All LP relaxations are solved using HiGHS with a 30\,s time limit; in practice,
+all instances solve to optimality in under 0.1\,s.
+
+\paragraph{Results: LP bounds and heuristic gaps.}
+\Cref{tab:lp_lower_bounds} reports LP bounds for the Integrated (maintenance)
+formulation, alongside the Integrated MILP optimal cost (from
+\Cref{tab:exact_feasible_comp}), and the gap to the Integrated MILP optimal.
+
+\begin{table}[t]
+\centering
+\caption{%
+LP relaxation lower bounds for exact-feasible instances and one Phase-1 instance.
+Columns: Instance name, aircraft ($p$), flights ($f$), LP relaxation lower bound
+(Integrated formulation), Integrated MILP optimal (from \Cref{tab:exact_feasible_comp}),
+and gap from LP bound to optimal.  The gap shows the maximum possible optimality gap
+if the MILP were to hit a time limit: any heuristic within the gap to MILP optimal
+is also within the gap to the LP bound.
+}
+\label{tab:lp_lower_bounds}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}lrrlrr@{}}
+\toprule
+\textbf{Instance} & \textbf{p} & \textbf{f} & \textbf{Family}
+  & \textbf{LP Bound} & \textbf{MILP Opt.} & \textbf{Gap (\%)} \\
+\midrule
+\texttt{ABCD\_no\_maint} & 4 & 14 & baseline
+  & 14,000 & 14,000 & 0.0 \\
+\texttt{ABCD\_cap\_botl} & 3 & 8 & capacity
+  & 8,000 & 8,300 & 3.8 \\
+\texttt{ABCD\_hier} & 4 & 13 & hierarchy
+  & 13,000 & 14,700 & 13.1 \\
+\texttt{DataCplex\_density=0.5\_p=10\_h=7} & 10 & 64 & random-grid
+  & 827,659 & -- & -- \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\paragraph{Interpretation.}
+\begin{enumerate}
+  \item \textbf{LP relaxations solve instantly.}
+    Even the largest instance (64 flights, 10 aircraft, with full maintenance
+    constraints) is solved by the LP relaxation in $<0.01$\,s, indicating that
+    the continuous relaxation is not a computational bottleneck. This makes LP
+    bounds a practical tool for rapidly assessing solution quality without
+    committing to integer solve time.
+
+  \item \textbf{LP bounds are close to MILP optimality on tight instances.}
+    On \texttt{ABCD\_cap\_botl} (capacity bottleneck), the LP bound is 8,000
+    and the MILP optimal is 8,300 (3.8\% gap), demonstrating that the
+    maintenance and capacity constraints are tight and the integrality gap is
+    small. On \texttt{ABCD\_hier} (hierarchy interactions), the gap is 13.1\%,
+    indicating more potential for solutions that satisfy the hierarchy but
+    involve non-trivial allocation across aircraft types.
+
+  \item \textbf{Heuristic performance relative to LP bounds.}
+    From \Cref{tab:exact_feasible_comp}, greedy on \texttt{ABCD\_cap\_botl}
+    achieves 37,000 (partial assignment), which is
+    $\frac{37000 - 8000}{8000} = 362.5\%$ above the LP bound---a stark reminder
+    that when capacity is tight, greedy construction alone can fail badly even
+    relative to the continuous relaxation. In contrast, on
+    \texttt{ABCD\_no\_maint} (trivial case), greedy achieves the MILP optimal,
+    which is also the LP bound.
+
+  \item \textbf{Validation strategy for Phase-1 and Phase-2.}
+    The Phase-1 random-grid instance is far too large for MILP to certify
+    optimality in 120\,s, but the LP bound (827,659) is immediately available.
+    This enables a three-way comparison:
+    (a) \emph{Lower bound:} LP relaxation (certain to be $\le$ optimum).
+    (b) \emph{Upper bound:} Heuristic solution (greedy or local-search).
+    (c) \emph{Gap bracket:} Heuristic gap to LP bound $\le$ gap to true optimum.
+    Future work can use this to set realistic quality targets (e.g., ``heuristic
+    within 30\% of LP lower bound is acceptable'').
+\end{enumerate}

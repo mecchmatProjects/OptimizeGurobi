@@ -1,0 +1,15 @@
+Dataset : data/phase1_25_harder_exact_feasible\DataCplex_density=0.5_p=8_h=14_test_0.json
+Mode    : heuristic
+Flights : 56/56 assigned  (0 unassigned)
+Cost    : 198620
+CPU     : 4.3s
+
+  AID    Flt   Busy(min)   Free(min)
+    0      5         936       18482
+    1      6         854       18564
+    2      9        1257       18161
+    3      7        1176       18242
+    4      8        1189       18229
+    5      6         989       18429
+    6      7        1015       18403
+    7      8        1357       18061

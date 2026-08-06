@@ -11,6 +11,8 @@ Three methods
   integrated_milp   MILP, full corrected maintenance model (default flags)
                     Our corrected + extended formulation.
   greedy_heuristic  Greedy+insertion heuristic (no solver required)
+  repair_heuristic  Repair-based heuristic that greedily inserts flights and
+                    then iteratively improves placements (no solver required)
 
 Usage
 -----
@@ -25,6 +27,11 @@ import os
 import subprocess
 import sys
 import time
+
+try:
+    from pyomo.environ import SolverFactory
+except Exception:  # pragma: no cover - optional dependency in some environments
+    SolverFactory = None
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BATCH_SCRIPT = os.path.join(ROOT, 'experiments', 'run_batch.py')
@@ -55,7 +62,32 @@ METHODS = [
         'extra_flags': '',
         'needs_solver': False,
     },
+    {
+        'label':      'repair_heuristic',
+        'mode':       'heuristic',
+        'extra_flags': '--heuristic repair',
+        'needs_solver': False,
+    },
 ]
+
+
+def _resolve_solver(requested_solver: str) -> str:
+    """Return an available Pyomo solver, falling back when needed."""
+    if not requested_solver:
+        requested_solver = 'cplex_direct'
+
+    candidate_order = [requested_solver]
+    for fallback in ('cplex_direct', 'cplex', 'cbc'):
+        if fallback not in candidate_order:
+            candidate_order.append(fallback)
+
+    for name in candidate_order:
+        try:
+            if SolverFactory is not None and SolverFactory(name).available():
+                return name
+        except Exception:
+            continue
+    return requested_solver
 
 
 def _run_batch(method: dict, solver: str, time_limit: int,
@@ -75,7 +107,7 @@ def _run_batch(method: dict, solver: str, time_limit: int,
     if method['needs_solver']:
         cmd += ['--solver', solver, '--time-limit', str(time_limit)]
     if method['extra_flags']:
-        cmd += ['--extra-flags', method['extra_flags']]
+        cmd += [f'--extra-flags={method["extra_flags"]}']
 
     if dry_run:
         print(f'[DRY] {" ".join(cmd)}')
@@ -143,8 +175,8 @@ def main():
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument('--solver', default=os.environ.get('TAP_PYOMO_SOLVER', 'cbc'),
-                        help='MILP solver (default: TAP_PYOMO_SOLVER or cbc)')
+    parser.add_argument('--solver', default=os.environ.get('TAP_PYOMO_SOLVER', 'cplex_direct'),
+                        help='MILP solver (default: TAP_PYOMO_SOLVER or cplex_direct)')
     parser.add_argument('--time-limit', type=int, default=300,
                         help='Per-instance MILP time limit in seconds (default: 300)')
     parser.add_argument('--quick', action='store_true',
@@ -162,10 +194,14 @@ def main():
     pattern = QUICK_PATTERN if args.quick else '*.json'
     os.makedirs(args.output_dir, exist_ok=True)
 
+    resolved_solver = _resolve_solver(args.solver)
+    if resolved_solver != args.solver:
+        print(f'Using solver fallback: {args.solver} -> {resolved_solver}')
+
     active = [m for m in METHODS if m['label'] in args.methods]
     csv_paths = []
     for method in active:
-        p = _run_batch(method, args.solver, args.time_limit,
+        p = _run_batch(method, resolved_solver, args.time_limit,
                        pattern, args.output_dir, args.dry_run)
         csv_paths.append(p)
 

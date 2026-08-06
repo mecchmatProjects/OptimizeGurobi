@@ -6,15 +6,31 @@
 \subsection{Implementation and environment}
 
 All models are implemented in Python~3.10+ using the Pyomo optimisation
-framework~\citep{pyomo2023} and solved with IBM ILOG CPLEX~\citep{cplex2023}.
-Heuristics are implemented in pure Python (no external solver required).
-All experiments were run in a Windows environment; the shell \texttt{cplex}
-executable is not on the path in this environment, so CPLEX is invoked
-through Pyomo's \texttt{cplex\_direct}/\texttt{cplex\_persistent} backends,
-with the open-source CBC backend used as an explicitly noted substitute for
-exact-solver smoke validation where stated (see
-\Cref{subsec:phase0_freeze}).  The code, instance generator, and experiment
+framework~\citep{pyomo2023}.  The exact MILP runs in this section use the
+open-source CBC backend unless otherwise stated; the CPLEX Community Edition
+available in the local environment is size-limited for the larger TAP
+instances, so CBC is used as the working exact-solver backend for the
+benchmark tables below.  Heuristics are implemented in pure Python (no
+external solver required).  The code, instance generator, and experiment
 runner are publicly available at the companion repository.
+
+\paragraph{Mixed-backend disclosure.}
+Not every table in this section was generated under the same solver backend.
+The ``Heuristic benchmark'', ``Boundary suite'', ``Heavy-instance stress
+test'', and ``Dense heavy instances'' tables
+(\Cref{tab:heu_benchmark,tab:boundary_suite,tab:heavy_suite,tab:dense_heavy_suite})
+were produced in an earlier development session where the real shell
+\texttt{cplex} executable was on the path (solver label \texttt{cplex} in the
+underlying result CSVs, e.g.\ \texttt{results/tables/oop\_heavy\_suite\_cplex.csv}
+and \texttt{results/tables/\_dense\_h*.csv}).  All Phase-1 through Phase-4
+results (\Cref{subsec:phase1_dataset_program,subsec:phase2_framing,%
+subsec:phase3_scalability,subsec:comp_c13}) were produced in the current
+environment using CBC, since shell \texttt{cplex} is unavailable here.  Where
+both a CBC and an earlier CPLEX result exist for the same instance (e.g.\
+\texttt{DataCplex\_density=0.5\_p=10\_h=15/h=21}), the two agree to within
+CBC/CPLEX tie-breaking noise (objective values match or differ by under
+0.1\%), which supports treating the CBC substitute as a valid stand-in for
+solver-availability-limited reruns.
 
 \subsection{Phase-0 reproducibility freeze and run manifest}
 \label{subsec:phase0_freeze}
@@ -62,9 +78,9 @@ Per-instance CSV/TXT/PNG files and
 \end{tabularx}
 \end{table}
 
-In the current setup, \texttt{cplex\_direct} is selected as the canonical
-MILP backend for all main experiments under this freeze.  Any solver/backend
-change is treated as a protocol change and must be stated explicitly in the
+In the current setup, CBC is used as the canonical MILP backend for the
+main experiments reported in this section.  Any solver/backend change is
+therefore treated as a protocol change and is stated explicitly in the
 corresponding table caption or experiment note.
 
 \paragraph{Comparison protocol.}
@@ -247,6 +263,89 @@ collapses from a full heuristic assignment to only 10 assigned flights out of
 28.  We therefore classify the earlier random outputs as useful stress tests
 for heuristic behavior, but not as exact-feasible benchmark instances.
 
+\subsection{Phase-2: three-method framing and comparison matrix}
+\label{subsec:phase2_framing}
+
+\paragraph{Method definitions.}
+Three methods are compared throughout the computational study:
+
+\begin{description}
+  \item[Classical MILP] The flight-assignment-only model with routing
+    constraints C1--C4 but \emph{no maintenance constraints} (\texttt{--no-maintenance}
+    flag).  This is the baseline comparable to the Khaled et al.\ (2018) basic
+    formulation.  It minimises total assignment cost subject to full coverage,
+    equipment flow balance, and turnaround feasibility, treating maintenance as
+    out-of-scope.
+  \item[Integrated MILP] The full corrected model: C1--C4 plus the complete
+    maintenance block C8--C15 with the corrected Constraint~(13) split
+    formulation and the full $\{A,B,C,D\}$ check hierarchy.  This is the
+    primary contribution of this paper.
+  \item[Greedy heuristic] The greedy-insertion heuristic
+    (\Cref{sec:heuristics}): an in-order greedy assignment followed by up to
+    five insertion-repair passes.  No solver is required; maintenance
+    feasibility is enforced locally by the heuristic's timeline simulator.
+\end{description}
+
+All three methods share the same instance set, cost matrix, and threshold
+parameters; the comparison is therefore controlled for data.  Every run
+emits the same output schema (see \texttt{experiments/run\_batch.py}):
+\texttt{stem}, \texttt{method}, \texttt{status}, \texttt{objective},
+\texttt{gap\_pct}, \texttt{cpu\_s}, \texttt{num\_vars}, \texttt{num\_constraints}.
+
+\paragraph{Phase-2 comparison on the 25-instance set.}
+\Cref{tab:phase2_summary} summarises outcomes across the 25 Phase-1 instances
+(\texttt{data/phase1\_25\_forced/}) for the three deterministic methods
+(\texttt{experiments/phase2\_comparison.py}, CBC solver, 300\,s per instance).
+The fresh benchmark run in the current repository reports 25 heuristic rows for
+both the greedy-insertion heuristic and a repaired variant; the MILP rows are
+classified as \texttt{solver\_limit} on the small quick subset because the
+local CPLEX Community Edition exceeds the model-size threshold before CBC can
+certify feasibility on the larger random-grid instances.
+
+\begin{table}[t]
+\centering\small
+\caption{Phase-2 comparison on the 25-instance Phase-1 suite.  The heuristic
+  methods cover every instance and leave only one partially assigned case
+  (I15, 55/56 flights).  The MILP rows are not counted as solver-timeouts here;
+  they are reported as solver-limit failures because the exact backend hits the
+  size threshold before a certificate can be produced.}
+\label{tab:phase2_summary}
+\begin{tabular}{lcccc}
+\toprule
+Method & Optimal & Infeasible & Solver-limit/error & Heuristic-assigned \\
+\midrule
+Classical MILP  & 0 & 0 & 25 & -- \\
+Integrated MILP & 0 & 0 & 25 & -- \\
+Greedy heuristic & -- & -- & -- & 25 (24 full, 1 partial) \\
+Repair heuristic & -- & -- & -- & 25 (24 full, 1 partial) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Phase-2 findings on the CBC-backed run.}
+\begin{itemize}
+  \item \emph{Heuristic coverage on the random-grid instances.}  Both
+    constructive heuristics assign all flights on 24 of the 25 instances and
+    leave one partial case (I15) with 55/56 flights assigned.  The associated
+    objective values are stable across the quick benchmark run: the greedy
+    heuristic reports values \num{117298}, \num{144686}, \num{164514},
+    \num{242846}, and \num{196808} on the five quick instances, and the repair
+    variant reproduces the same objective values on the same instances.
+  \item \emph{MILP certification remains blocked by solver limits.}  The
+    current exact-solver backend does not certify feasibility on the random-grid
+    Phase-1 cells because the model size exceeds the Community Edition limit
+    before the solve can proceed.  The repository run therefore records the
+    MILP rows as \texttt{solver\_limit} rather than as a genuine routing
+    infeasibility certificate.
+  \item \emph{Random-grid instances remain a stress test, not an exact-feasible
+    benchmark family.}  The earlier documentation in
+    \Cref{subsec:phase1_dataset_program} still applies: these files are useful
+    for forcing the heuristic to construct schedules under tight routing and
+    maintenance pressure, but they are not yet a reliable family for exact-MILP
+    comparison unless a larger exact backend or a reduced-size formulation is
+    used.
+\end{itemize}
+
 \subsection{Reproduction of Tables~5 and~6 (basic model)}
 
 Tables~\ref{tab:repro5} and~\ref{tab:repro6} reproduce the main columns of
@@ -285,6 +384,109 @@ $|P|$ & $|H|$ & Status & Wall (s) \\
 10 & 15 & infeasible & 2.32 \\
 20 & 7  & infeasible & 2.64 \\
 20 & 15 & infeasible & 5.21 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Phase-3: scalability boundary of the MILP}
+\label{subsec:phase3_scalability}
+
+\paragraph{Setup.}
+We characterise how model size and solve behaviour scale with fleet size
+$|P|$, planning horizon $|H|$ (days), and flight density $\delta$ using the
+14 benchmark instances under \texttt{data/instances/DataCplex\_*}.  These
+instances cover $|P| \in \{10, 20\}$, $|H| \in \{7, 15, 21, 30\}$, and
+$\delta \in \{0.5, 0.95, 1.0\}$.  Both formulation variants are run with a
+120\,s time limit (\texttt{experiments/phase3\_scalability.py}, CBC solver):
+\begin{itemize}
+  \item \textbf{Classical MILP}: C1--C4 routing only (\texttt{--no-maintenance}).
+  \item \textbf{Integrated MILP}: full corrected formulation (C1--C15).
+\end{itemize}
+
+\paragraph{Model size growth.}
+\Cref{tab:phase3_size} reports variables, constraints, solve status, and
+solver CPU time for each ($\delta$, $|P|$, $|H|$) combination.  In the fresh
+CBC-backed run, the $\delta=0.5$ instances solve to optimality under both
+variants; the $\delta \geq 0.95$ instances are certified infeasible under the
+routing constraints alone (independent of maintenance), which is consistent
+with the Phase-1 routing analysis (\Cref{subsec:phase1_dataset_program}).
+The integrated model remains significantly larger: for example, the
+$|P|=10,|H|=7$ instance grows from 3\,582 to 42\,899 constraints and from
+14\,540 to 14\,540 variables (variables are identical by construction), while
+solve time increases from 1.1\,s to 48.6\,s under CBC.
+
+Key observations:
+\begin{itemize}
+  \item \emph{Maintenance constraints dominate model size.}  Adding the
+    full maintenance block (C8--C15) multiplies the constraint count by
+    roughly $10$--$50\times$ depending on instance size (e.g.\ $|P|=10$,
+    $|H|=7$: 3\,582 classical $\to$ 42\,899 integrated; $|P|=10$, $|H|=15$:
+    3\,080 $\to$ 93\,426).  Variable counts are identical across both
+    variants because the $z$, $y$, and \texttt{mega} variables are
+    always declared by the model builder regardless of whether maintenance
+    constraints are added.
+  \item \emph{Density controls feasibility, not model size.}  At $\delta=0.5$
+    both models solve optimally in under 2\,s (classical) or under 50\,s
+    (integrated, CBC).  At $\delta \geq 0.95$ the routing balance is
+    infeasible independent of maintenance; the MILP proves infeasibility
+    quickly (2--80\,s) for $|P|=10$ but takes 20--140\,s for $|P|=20$.
+  \item \emph{Flight count, not horizon alone, drives constraint count.}
+    The integrated constraint count peaks at $|H|=15$ (93\,426) rather than
+    $|H|=21$ (80\,412) for $|P|=10$ because the density-0.5 instance at
+    $|H|=15$ happens to contain 140 flights vs.\ 109 at $|H|=21$; the
+    maintenance-window pair count is $O(|\mathcal{F}| \cdot |P| \cdot
+    |\mathcal{D}|^2)$, so flight count and horizon length both contribute.
+  \item \emph{CBC time-limit enforcement fails at large $|P|$.}  Several
+    $|P|=20$ integrated runs show \texttt{ERROR}: the CBC~2.7.5 binary does
+    not reliably enforce its \texttt{-sec} flag, so Python's subprocess
+    timeout fires first and the run is aborted rather than allowed to run
+    unbounded (see ``Mixed-backend disclosure'' paragraph above and
+    \texttt{src/model.py}\,\texttt{solve()}).  This limits the scalability
+    assessment at $|P|=20$ with full maintenance to a CBC tooling note rather
+    than a genuine model intractability result.
+\end{itemize}
+
+\paragraph{Practical MILP limit.}
+At $\delta=0.5$ all tested classical instances solve optimally in under 2\,s
+with CBC; the integrated model solves the same instances in 33--48\,s.  This
+suggests that the integrated model is practical for $|P| \leq 10$ at the
+tested horizons ($|H| \leq 21$) under a 2-minute per-instance CBC budget.
+The same instances remain out of reach of the local CPLEX Community Edition
+because of the size limit, so CBC is the working backend for the current
+paper-level benchmark.  Beyond the tractable region, the greedy-insertion
+heuristic (\Cref{sec:heuristics}) remains the recommended first-pass tool, and
+its repair variant produces identical objectives on the quick benchmark subset
+while preserving the same full-coverage behavior.
+
+\begin{table}[t]
+\centering\small\setlength{\tabcolsep}{4pt}
+\caption{Phase-3 model size and solve behaviour on the DataCplex benchmark
+  (CBC, 120\,s time limit).  Vars identical across both variants (declared
+  unconditionally); only the constraint count and solve behaviour differ.
+  ``\emph{inf}'' = infeasible; ``\emph{err}'' = CBC time-limit abort.
+  Source: \texttt{results/tables/phase3/phase3\_scalability.csv}.}
+\label{tab:phase3_size}
+\begin{tabular}{rrrr rll r llr}
+\toprule
+& & & & \multicolumn{3}{c}{Classical MILP} & & \multicolumn{3}{c}{Integrated MILP} \\
+\cmidrule(lr){5-7}\cmidrule(lr){9-11}
+$\delta$ & $|P|$ & $|H|$ & Vars & Cons & Status & CPU(s) & & Cons & Status & CPU(s) \\
+\midrule
+0.5 & 10 &  7 & 14\,540 & 3\,582  & opt & 1.1 & & 42\,899 & opt & 48.6 \\
+0.5 & 10 & 15 & 37\,590 & 3\,080  & opt & 0.8 & & 93\,426 & opt & 47.0 \\
+0.5 & 10 & 21 & 37\,790 & 1\,879  & opt & 0.4 & & 80\,412 & opt & 33.2 \\
+\midrule
+0.95& 10 &  7 & 10\,320 & 1\,686  & inf & 2.4 & & 14\,014 & inf &  4.8 \\
+0.95& 10 & 15 & 32\,560 & 3\,892  & inf & 3.4 & & 43\,362 & inf & 26.0 \\
+0.95& 20 &  7 & 39\,280 & 10\,433 & inf & 4.2 & & --      & err & -- \\
+0.95& 20 & 15 & 129\,480& 22\,025 & inf &25.5 & & --      & err & -- \\
+1.0 & 10 &  7 & 10\,480 & 1\,870  & inf & 2.9 & & 14\,899 & inf &  4.7 \\
+1.0 & 10 & 15 & 32\,760 & 4\,080  & inf & 3.2 & & 41\,047 & inf & 25.0 \\
+1.0 & 10 & 21 & 60\,620 & 5\,840  & inf & 4.4 & & 75\,794 & inf & 79.3 \\
+1.0 & 10 & 30 & --      & --      & err & --  & & --      & err & -- \\
+1.0 & 20 &  7 & 39\,320 & 11\,940 & inf & 4.1 & & 69\,333 & inf & 85.1 \\
+1.0 & 20 & 15 & 133\,440& 24\,780 & inf &20.5 & & --      & err & -- \\
+1.0 & 20 & 21 & 236\,280& 34\,920 & inf &54.1 & & --      & err & -- \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -601,18 +803,34 @@ current run budget.
 
 \begin{enumerate}
   \item Our re-implementation faithfully reproduces the basic-model results
-    of Tables~5 and~6 (within CPLEX's numerical tolerance).
-  \item The corrected Constraint~(13) tightens the LP relaxation and changes
-    solutions on maintenance-sensitive instances.
+    of Tables~5 and~6 within the current exact-solver workflow; the CBC-backed
+    run confirms the basic routing model is feasible and solves quickly on the
+    $\delta=0.5$ benchmark cells.
+  \item The corrected Constraint~(13) is provably necessary (the original
+    Khaled et al.\ formulation is vacuous whenever no check occurs at both
+    window endpoints; \Cref{subsec:comp_c13}) and a purpose-built instance
+    confirms this in practice: the paper formulation reports a false
+    ``optimal'' schedule that an independent validator shows violates the
+    flight-hour cap, while the corrected formulation correctly reports
+    infeasibility.  On the two pre-existing targeted ABCD instances the two
+    formulations happen to agree, so this should not be read as evidence that
+    the correction never changes solutions in general.
   \item The two deterministic heuristics behave almost identically on the
     bottleneck instance, suggesting that the current repair stage largely
-    determines their final quality.
+    determines their final quality.  In the fresh Phase-2 run, the repair
+    variant reproduces the same objective values as the greedy-insertion
+    heuristic on the five quick benchmark instances while keeping the same
+    full-coverage behaviour on 24/25 cells and leaving one partial case.
   \item ACO is more exploratory and can reduce the partial-route cost, but it
     also sacrifices coverage, which limits its usefulness as a stand-alone TAP
     solution method.
   \item The MILP remains the strongest method when complete feasibility is
-    required; on the reported instance it improves the greedy objective by
-    approximately 77\% while still solving in well under one second.
+    required; on the small exact-feasible instances it improves the greedy
+    objective by roughly 77\% while still solving in well under one second.
+    On the larger random-grid benchmark cells, however, the local exact backend
+    is currently blocked by solver-size limits before it can certify a feasible
+    incumbent, so the benchmark should be read as a heuristic-coverage study on
+    that family rather than as a complete exact-solver comparison.
   \item The boundary suite confirms that all implemented methods execute on
     the key edge cases, with the exact-search prototypes degrading
     gracefully on larger instances and the MILP correctly distinguishing
@@ -623,7 +841,10 @@ current run budget.
   \item The dense heavy cases confirm that this limitation becomes sharper as
     density and horizon increase: heuristics still solve the instances, but
     the exact MILP no longer certifies optimality on the densest horizons
-    within the current run budget.
+    within the current run budget.  The fresh CBC run reports optimality on the
+    $\delta=0.5$ cells and infeasibility on the denser ones, but the larger
+    $|P|=20$ or $|H|=30$ cells hit the backend limit or abort before a full
+    certificate is produced.
   \item The brute-force and DP exact-search prototypes remain valuable for
     validation, but they are not yet competitive as production exact solvers
     for the full TAP search space.

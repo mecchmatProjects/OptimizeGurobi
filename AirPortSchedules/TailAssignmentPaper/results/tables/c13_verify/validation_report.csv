@@ -1,3 +1,0 @@
-data,use_paper_c13,solver_status,n_violations,aircraft,check,window_start_day,window_end_day,accumulated_min,threshold_min,excess_min
-data/instances/c13_loophole_test.json,True,optimal,1,0,A,,,1400.0,1000.0000000000001,399.9999999999999
-data/instances/c13_loophole_test.json,False,infeasible,0,,,,,,,

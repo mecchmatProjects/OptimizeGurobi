@@ -1,8 +1,0 @@
-instance,status,obj,n_vars,cpu_s
-ABCD_all_checks_test.json,"ERROR: ""Index '(6, 0)' is not valid for indexed component 'x'""",,,0.04799842834472656
-ABCD_capacity_bottleneck_test.json,optimal,8300.0,648,0.24500060081481934
-ABCD_check_hierarchy_test.json,optimal,14700.0,1092,1.1220011711120605
-ABCD_multi_check_test.json,"ERROR: ""Index '(14, 0)' is not valid for indexed component 'x'""",,,0.04700446128845215
-ABCD_near_threshold_test.json,optimal,21100.0,2232,1.5959975719451904
-ABCD_no_maint_test.json,optimal,14000.0,872,0.40600085258483887
-ABCD_two_b_one_c_test.json,infeasible,,2530,0.7479965686798096

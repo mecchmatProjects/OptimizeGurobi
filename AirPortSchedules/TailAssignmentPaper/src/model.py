@@ -95,8 +95,10 @@ class Scheduler:
             return 'insertion'
         if key in {'greedy+insertion', 'greedyinsertion', 'hybrid', 'combined'}:
             return 'greedy+insertion'
+        if key in {'repair', 'greedyrepair', 'greedy+repair'}:
+            return 'repair'
         raise ValueError(
-            f"Unsupported heuristic '{heuristic}'. Choose one of: greedy, insertion, greedy+insertion"
+            f"Unsupported heuristic '{heuristic}'. Choose one of: greedy, insertion, greedy+insertion, repair"
         )
 
     # ------------------------------------------------------------------
@@ -228,6 +230,17 @@ class Scheduler:
 
         return {'events': events, 'cost': total_cost}
 
+    def _best_feasible_insertion(self, ac_fids, fid):
+        """Return the cheapest feasible insertion location for a flight."""
+        best_ins = None
+        for aid in self.aircrafts:
+            for i in range(len(ac_fids[aid]) + 1):
+                trial = ac_fids[aid][:i] + [fid] + ac_fids[aid][i:]
+                res = self.get_timeline(aid, trial)
+                if res and (best_ins is None or res['cost'] < best_ins[2]):
+                    best_ins = (aid, i, res['cost'])
+        return best_ins
+
     def optimize(self):
         ac_fids = {aid: [] for aid in self.aircrafts}
         assigned = set()
@@ -247,17 +260,36 @@ class Scheduler:
 
         if self.heuristic == 'insertion':
             for fid in sorted_fids:
-                best_ins = None
-                for aid in self.aircrafts:
-                    for i in range(len(ac_fids[aid]) + 1):
-                        trial = ac_fids[aid][:i] + [fid] + ac_fids[aid][i:]
-                        res = self.get_timeline(aid, trial)
-                        if res and (best_ins is None or res['cost'] < best_ins[2]):
-                            best_ins = (aid, i, res['cost'])
+                best_ins = self._best_feasible_insertion(ac_fids, fid)
                 if best_ins:
                     aid, idx, _ = best_ins
                     ac_fids[aid].insert(idx, fid)
                     assigned.add(fid)
+            return ac_fids, [fid for fid in self.flights if fid not in assigned]
+
+        if self.heuristic == 'repair':
+            for fid in sorted_fids:
+                best_opt = None
+                for aid in self.aircrafts:
+                    res = self.get_timeline(aid, ac_fids[aid] + [fid])
+                    if res and (best_opt is None or res['cost'] < best_opt[0]):
+                        best_opt = (res['cost'], aid)
+                if best_opt:
+                    ac_fids[best_opt[1]].append(fid)
+                    assigned.add(fid)
+
+            for _ in range(8):
+                improved = False
+                still_unassigned = [fid for fid in self.flights if fid not in assigned]
+                for fid in still_unassigned:
+                    best_ins = self._best_feasible_insertion(ac_fids, fid)
+                    if best_ins:
+                        aid, idx, _ = best_ins
+                        ac_fids[aid].insert(idx, fid)
+                        assigned.add(fid)
+                        improved = True
+                if not improved:
+                    break
             return ac_fids, [fid for fid in self.flights if fid not in assigned]
 
         # Default: greedy first, then iterative insertion refinement.
@@ -274,13 +306,7 @@ class Scheduler:
         for _ in range(5):
             still_unassigned = [fid for fid in self.flights if fid not in assigned]
             for fid in still_unassigned:
-                best_ins = None
-                for aid in self.aircrafts:
-                    for i in range(len(ac_fids[aid]) + 1):
-                        trial = ac_fids[aid][:i] + [fid] + ac_fids[aid][i:]
-                        res = self.get_timeline(aid, trial)
-                        if res and (best_ins is None or res['cost'] < best_ins[2]):
-                            best_ins = (aid, i, res['cost'])
+                best_ins = self._best_feasible_insertion(ac_fids, fid)
                 if best_ins:
                     aid, idx, _ = best_ins
                     ac_fids[aid].insert(idx, fid)
@@ -2179,7 +2205,7 @@ def main():
     parser.add_argument('--no-show',     dest='show', action='store_false',
                         help='Do not display Gantt interactively')
     parser.add_argument('--heuristic', default='greedy+insertion',
-                        choices=['greedy', 'insertion', 'greedy+insertion'],
+                        choices=['greedy', 'insertion', 'greedy+insertion', 'repair'],
                         help='Heuristic strategy to use in heuristic and batch modes '
                              '(default: greedy+insertion).')
     parser.add_argument('--no-ferry',    dest='allow_ferry', action='store_false',
@@ -2216,12 +2242,23 @@ def main():
     enabled_checks = _resolve_enabled_checks(args.only_checks, args.disable_checks)
 
     if args.mode == 'heuristic':
-        run_heuristic(data_path=args.data,
+        sc, ac_fids, unassigned = run_heuristic(
+                      data_path=args.data,
                       csv_path=args.out or 'final_schedule.csv',
                       gantt_path=args.gantt,
                       show_gantt=args.show,
                       allow_ferry=args.allow_ferry,
                       heuristic=args.heuristic)
+        n = len(sc.flights)
+        na = n - len(unassigned)
+        total_cost = sum(
+            sc.get_timeline(aid, ac_fids[aid])['cost']
+            for aid in sc.aircrafts if sc.get_timeline(aid, ac_fids[aid])
+        )
+        # parseable summary for run_batch.py
+        print("Status  : heuristic")
+        print(f"Flights : {na}/{n} assigned")
+        print(f"Obj     : {total_cost:.0f}")
     elif args.mode == 'milp':
         run_milp(data_path=args.data,
                  solver=args.solver, tee=args.tee,

@@ -1,2 +1,0 @@
-stem,mode,flights,assigned,unassigned,status,objective,gap_pct,cpu_s,wall_s,num_vars,num_constraints,returncode
-ABCD_all_checks_test,milp,,,,ERROR,,,,1.28,,,1

@@ -24,7 +24,8 @@ Usage examples
   python experiments/run_batch.py --mode milp --solver cplex --time-limit 600 \\
          --label c13_corrected \\
          --input-dir data/instances --output-dir results/tables/c13
-"""
+# Build the 25-instance taxonomy from existing Phase-1/Phase-2 outputs:
+  python experiments/instance_taxonomy.py"""
 
 import argparse
 import csv
@@ -47,6 +48,20 @@ def find_instances(input_dir: str, pattern: str) -> list[str]:
         if fname.endswith('.json') and fnmatch.fnmatch(fname, pattern):
             paths.append(os.path.join(input_dir, fname))
     return paths
+
+
+def _classify_result(returncode: int, stdout: str, stderr: str) -> dict:
+    """Classify a subprocess result into a summary-friendly status."""
+    error_text = (stderr or stdout or '').strip()
+    if returncode == 0:
+        return {'status': 'ok'}
+
+    lowered = error_text.lower()
+    if 'cplex error 1016' in lowered or 'size limits exceeded' in lowered:
+        return {'status': 'solver_limit', 'error': error_text[:300]}
+    if 'license' in lowered and 'unavailable' in lowered:
+        return {'status': 'solver_unavailable', 'error': error_text[:300]}
+    return {'status': 'ERROR', 'error': error_text[:300]}
 
 
 def run_one(instance_path: str, mode: str, solver: str, time_limit: int,
@@ -102,28 +117,59 @@ def run_one(instance_path: str, mode: str, solver: str, time_limit: int,
                 result['objective'] = float(line.split(':', 1)[-1].strip())
             except ValueError:
                 pass
-        elif line.startswith('Gap'):
-            try:
-                result['gap_pct'] = float(
-                    line.split(':', 1)[-1].strip().rstrip('%'))
-            except ValueError:
-                pass
-        elif line.startswith('CPU'):
-            try:
-                result['cpu_s'] = float(
-                    line.split(':', 1)[-1].strip().rstrip('s').strip())
-            except ValueError:
-                pass
         elif line.startswith('Vars'):
+            # "Vars   : 2232   Constraints: 5028"
             try:
-                result['num_vars'] = int(line.split(':', 1)[-1].strip())
-            except ValueError:
+                parts = line.split(':')
+                result['num_vars'] = int(parts[1].split()[0])
+                result['num_constraints'] = int(parts[2].strip())
+            except (ValueError, IndexError):
+                pass
+        elif line.startswith('Gap'):
+            # "Gap    : 0.0000%   CPU: 1.47s"
+            try:
+                parts = line.split(':')
+                result['gap_pct'] = float(parts[1].split()[0].rstrip('%'))
+                result['cpu_s'] = float(parts[2].strip().rstrip('s'))
+            except (ValueError, IndexError):
                 pass
         elif line.startswith('Constraints') or line.startswith('Const'):
             try:
                 result['num_constraints'] = int(
                     line.split(':', 1)[-1].strip())
             except ValueError:
+                pass
+        elif '[heu] assigned' in line:
+            # e.g. "    [heu] assigned 28/28  cost 1234  cpu 1.2s"
+            result.setdefault('status', 'heuristic')
+            try:
+                parts = line.split()
+                frac = parts[parts.index('assigned') + 1]   # "28/28"
+                na, n = frac.split('/')
+                result['assigned'] = int(na)
+                result['flights']  = int(n)
+                result['unassigned'] = int(n) - int(na)
+            except (ValueError, IndexError):
+                pass
+            try:
+                cost_idx = parts.index('cost') + 1
+                result['objective'] = float(parts[cost_idx])
+            except (ValueError, IndexError):
+                pass
+            try:
+                cpu_idx = parts.index('cpu') + 1
+                result['cpu_s'] = float(parts[cpu_idx].rstrip('s'))
+            except (ValueError, IndexError):
+                pass
+        elif line.startswith('Flights') and '/' in line and 'assigned' in line.lower():
+            # e.g. "Flights : 28/28 assigned"
+            try:
+                frac = line.split()[2]  # "28/28"
+                na, n = frac.split('/')
+                result['assigned'] = int(na)
+                result['flights']  = int(n)
+                result['unassigned'] = int(n) - int(na)
+            except (ValueError, IndexError):
                 pass
         elif 'flights' in line.lower() and 'assigned' in line.lower():
             # e.g. "Flights: 230  Assigned: 230  Unassigned: 0"
@@ -145,9 +191,9 @@ def run_one(instance_path: str, mode: str, solver: str, time_limit: int,
                     except ValueError:
                         pass
 
-    if returncode != 0 and 'status' not in result:
-        result['status'] = 'ERROR'
-        result['error'] = stderr[:300]
+    if 'status' not in result:
+        classification = _classify_result(returncode, stdout, stderr)
+        result.update(classification)
 
     return result
 

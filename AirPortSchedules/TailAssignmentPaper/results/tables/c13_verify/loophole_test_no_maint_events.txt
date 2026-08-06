@@ -1,6 +1,0 @@
-Aircraft 0:
-  Flight  F1      X -> Y  day 1   start   100.0 - end   450.0
-  Flight  F2      Y -> X  day 1   start   500.0 - end   850.0
-  Flight  F3      X -> Y  day 1   start   900.0 - end  1250.0
-  Flight  F4      Y -> X  day 1   start  1300.0 - end  1650.0
-  No maintenance scheduled  |  total flight mins = 1400.0

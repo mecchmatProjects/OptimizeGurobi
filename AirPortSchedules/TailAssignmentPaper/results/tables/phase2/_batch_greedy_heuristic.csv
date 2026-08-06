@@ -1,6 +1,6 @@
 stem,method,mode,flights,assigned,unassigned,status,objective,gap_pct,cpu_s,wall_s,num_vars,num_constraints,returncode
-I11_density=0.5_p=8_h=7,greedy_heuristic,heuristic,,,,,,,,1.71,,,0
-I12_density=0.65_p=8_h=7,greedy_heuristic,heuristic,,,,,,,,1.71,,,0
-I13_density=0.8_p=8_h=7,greedy_heuristic,heuristic,,,,,,,,1.74,,,0
-I14_density=0.95_p=8_h=7,greedy_heuristic,heuristic,,,,,,,,1.78,,,0
-I15_density=1_p=8_h=7,greedy_heuristic,heuristic,,,,,,,,1.73,,,0
+I11_density=0.5_p=8_h=7,greedy_heuristic,heuristic,28,28,0,heuristic,117298.0,,,1.72,,,0
+I12_density=0.65_p=8_h=7,greedy_heuristic,heuristic,36,36,0,heuristic,144686.0,,,1.77,,,0
+I13_density=0.8_p=8_h=7,greedy_heuristic,heuristic,45,45,0,heuristic,164514.0,,,1.74,,,0
+I14_density=0.95_p=8_h=7,greedy_heuristic,heuristic,53,53,0,heuristic,242846.0,,,1.83,,,0
+I15_density=1_p=8_h=7,greedy_heuristic,heuristic,56,55,1,heuristic,196808.0,,,1.75,,,0

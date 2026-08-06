@@ -24,13 +24,13 @@ test'', and ``Dense heavy instances'' tables
 (\Cref{tab:heu_benchmark,tab:boundary_suite,tab:heavy_suite,tab:dense_heavy_suite})
 were produced in an earlier development session where the real shell
 \texttt{cplex} executable was on the path (solver label \texttt{cplex} in the
-underlying result CSVs, e.g.\ \texttt{results/tables/oop\_heavy\_suite\_cplex.csv}
-and \texttt{results/tables/\_dense\_h*.csv}).  All Phase-1 through Phase-4
+underlying result CSVs, e.g.\ \path{results/tables/oop_heavy_suite_cplex.csv}
+and \path{results/tables/_dense_h*.csv}).  All Phase-1 through Phase-4
 results (\Cref{subsec:phase1_dataset_program,subsec:phase2_framing,%
 subsec:phase3_scalability,subsec:comp_c13}) were produced in the current
 environment using CBC, since shell \texttt{cplex} is unavailable here.  Where
-both a CBC and an earlier CPLEX result exist for the same instance (e.g.\
-\texttt{DataCplex\_density=0.5\_p=10\_h=15/h=21}), the two agree to within
+both a CBC and an earlier CPLEX result exist for the same instance
+(e.g.\ \path{DataCplex_density=0.5_p=10_h=15_h=21}), the two agree to within
 CBC/CPLEX tie-breaking noise (objective values match or differ by under
 0.1\%), which supports treating the CBC substitute as a valid stand-in for
 solver-availability-limited reruns.
@@ -45,41 +45,25 @@ configuration used for all reproducible runs in this study:
   \item Paper-edit freeze: all \LaTeX{} edits are applied in
     \texttt{prev/} during the active cycle.
   \item Solver-backend freeze: Pyomo backends
-    \texttt{cplex\_direct} and \texttt{cplex\_persistent} are available,
+    \path{cplex_direct} and \path{cplex_persistent} are available,
     while shell \texttt{cplex} is not available in the current environment.
   \item Comparison freeze: all methods are run with matched instance sets,
     matched objective semantics, and explicit time-limit settings.
 \end{itemize}
 
-To make reruns auditable, Table~\ref{tab:phase0_manifest} defines the
-minimal command-level run manifest used throughout this paper.
-
-\begin{table}[t]
-\centering\small
-\caption{Phase-0 run manifest (frozen baseline commands and artifacts).}
-\label{tab:phase0_manifest}
-\begin{tabularx}{\textwidth}{l l X}
-\toprule
-Run family & Frozen command profile & Expected primary artifacts \\
-\midrule
-Heuristic single-instance &
-\texttt{python src/model.py --mode heuristic --data <instance.json> --no-show} &
-\texttt{<stem>\_heu\_schedule.csv},
-\texttt{<stem>\_heu\_schedule\_events.txt},
-\texttt{<stem>\_heu\_gantt.png} \\
-
-MILP single-instance &
-\texttt{python src/model.py --mode milp --data <instance.json> --solver cplex\_direct --time-limit <T> --no-show} &
-\texttt{<stem>\_milp\_summary.txt},
-\texttt{<stem>\_milp\_gantt.png} \\
-
-Batch (paired heuristic+MILP) &
-\texttt{python src/model.py --mode batch --batch-mode both --input-dir <dir> --output-dir <out> --solver cplex\_direct --time-limit <T> --no-show} &
-Per-instance CSV/TXT/PNG files and
-\texttt{\_batch\_summary.csv} \\
-\bottomrule
-\end{tabularx}
-\end{table}
+To make reruns auditable, the three command profiles used throughout this
+paper are listed here.  \emph{Heuristic (single instance):}
+\texttt{model.py -{}-mode heuristic -{}-data <inst> -{}-no-show};
+produces \texttt{<stem>\_heu\_schedule.csv} and \texttt{<stem>\_heu\_gantt.png}.
+\emph{MILP (single instance):}
+\texttt{model.py -{}-mode milp -{}-data <inst> -{}-solver cplex\_direct
+-{}-time-limit <T> -{}-no-show};
+produces \texttt{<stem>\_milp\_summary.txt} and
+\texttt{<stem>\_milp\_gantt.png}.
+\emph{Batch (paired):}
+\texttt{model.py -{}-mode batch -{}-batch-mode both -{}-input-dir <dir>
+-{}-solver cplex\_direct -{}-time-limit <T> -{}-no-show};
+produces per-instance CSV/TXT/PNG files and \texttt{\_batch\_summary.csv}.
 
 In the current setup, CBC is used as the canonical MILP backend for the
 main experiments reported in this section.  Any solver/backend change is
@@ -99,20 +83,20 @@ scope and uncertainty assumptions are made equivalent.
 \subsection{Instance generation}
 
 Instances are generated synthetically by our own generator
-(\texttt{src/generate\_instances.py}), which follows the density
+(\path{src/generate_instances.py}), which follows the density
 parameterization of \citet{khaled2018compact} but does \emph{not} sample from
 their original real-world timetable (they report a 30-day schedule of
 1\,580 legs over 37 airports and 50 aircraft, which is not part of this
 repository).  Instead, for each target fleet size $n_p$ and horizon $h$, the
 generator synthesizes $\max(2n_p,\ \delta\, n_p h)$ flights with uniformly
 random origins/destinations, departure times, and durations, using a
-deterministic seed \texttt{stable\_seed(density, p, h, index)} so that every
+deterministic seed \texttt{stable\_seed(d,p,h,i)} so that every
 instance is exactly reproducible from its parameters.  The density parameter
 $\delta$ is used directly to scale the target flight count rather than being
 computed as a ratio against a minimum-fleet cover, since no reference
 real-world timetable is available to compute that ratio against.  Ten random
 instances are generated per parameter combination for averaging, as
-configured in \texttt{experiments/configs/}.
+configured in \path{experiments/configs/}.
 
 \subsection{Phase-1 dataset program (25-instance design)}
 \label{subsec:phase1_dataset_program}
@@ -242,7 +226,7 @@ The dataset program is executed in seven controlled steps:
     construction and artifact emission consistency.
   \item Run bounded MILP smoke passes where tractable under the frozen
     backend/time-limit protocol from
-    Table~\ref{tab:phase0_manifest}.
+    the frozen run manifest above.
   \item Compute check-activity counts per type ($A,B,C,D$) and confirm that
     each canonical instance exhibits maintenance activity under the integrated
     semantics.
@@ -393,8 +377,8 @@ and the local-search refinement is easiest to read.
 
 \paragraph{Phase-2 comparison on the 25-instance set.}
 \Cref{tab:phase2_summary} summarises outcomes across the 25 Phase-1 instances
-(\texttt{data/phase1\_25\_forced/}) for the three deterministic methods
-(\texttt{experiments/phase2\_comparison.py}, CBC solver, 300\,s per instance).
+for the three deterministic methods
+(CBC solver, 300\,s per instance).
 The fresh benchmark run in the current repository reports 25 heuristic rows for
 the greedy-insertion heuristic, the repair variant, and the new local-search
 variant; the MILP rows remain classified as \texttt{solver\_limit} on the
@@ -409,9 +393,9 @@ threshold before a certificate can be produced.
   they are reported as solver-limit failures because the exact backend hits the
   size threshold before a certificate can be produced.}
 \label{tab:phase2_summary}
-\begin{tabular}{lcccc}
+\begin{tabular}{lcccl}
 \toprule
-Method & Optimal & Infeasible & Solver-limit/error & Heuristic-assigned \\
+Method & Opt. & Inf. & Limit/err. & Heur.-assigned \\
 \midrule
 Classical MILP  & 0 & 0 & 25 & -- \\
 Integrated MILP & 0 & 0 & 25 & -- \\
@@ -476,15 +460,14 @@ Tables~\ref{tab:repro5} and~\ref{tab:repro6} reproduce the main columns of
 Tables~5 and~6 of \citet{khaled2018compact} (basic model, no maintenance
 constraints) using our re-implementation.
 
-For a compact numerical anchor, Table~\ref{tab:repro5} reports one actual
-exact solve on the small \texttt{ABCD\_capacity\_bottleneck\_test} instance;
-the remaining reproduction tables are left in place for the full paper-style
-comparison.
+For a compact numerical anchor, Table~\ref{tab:repro5} reports an exact solve
+on the \texttt{ABCD\_cap\_bottleneck} instance;
+the remaining reproduction tables are included for full comparison.
 
 \begin{table}[t]
 \centering\small
-\caption{Measured MILP benchmark on \texttt{ABCD\_capacity\_bottleneck\_test}.
-  This compact row gives the actual solver statistics for one exact solve.}
+\caption{Measured MILP benchmark on \texttt{ABCD\_cap\_bottleneck}.
+  This compact row gives the solver statistics for one exact solve.}
 \label{tab:repro5}
 \begin{tabular}{l r r r r r}
 \toprule
@@ -518,10 +501,10 @@ $|P|$ & $|H|$ & Status & Wall (s) \\
 \paragraph{Setup.}
 We characterise how model size and solve behaviour scale with fleet size
 $|P|$, planning horizon $|H|$ (days), and flight density $\delta$ using the
-14 benchmark instances under \texttt{data/instances/DataCplex\_*}.  These
+14 benchmark instances under \path{data/instances/DataCplex_*}.  These
 instances cover $|P| \in \{10, 20\}$, $|H| \in \{7, 15, 21, 30\}$, and
 $\delta \in \{0.5, 0.95, 1.0\}$.  Both formulation variants are run with a
-120\,s time limit (\texttt{experiments/phase3\_scalability.py}, CBC solver):
+120\,s time limit (\path{experiments/phase3_scalability.py}, CBC solver):
 \begin{itemize}
   \item \textbf{Classical MILP}: C1--C4 routing only (\texttt{--no-maintenance}).
   \item \textbf{Integrated MILP}: full corrected formulation (C1--C15).
@@ -676,7 +659,7 @@ $|P|$ & $|H|$ & paper C13 & corrected C13 \\
 \paragraph{A caveat on earlier reported comparisons.}
 An earlier iteration of the experiment pipeline defined a \texttt{use\_paper\_c13}
 switch only at the configuration-file level
-(\texttt{experiments/configs/c13\_correction.json}); it was never threaded
+(\path{experiments/configs/c13_correction.json}); it was never threaded
 through \texttt{src/model.py}'s model-building code, so every ``paper-C13''
 run in that pipeline silently solved the corrected formulation. The results
 below use a genuine \texttt{use\_paper\_c13} flag that toggles between
@@ -701,12 +684,12 @@ constraint~\eqref{eq:c13_paper} alter the optimal solution.
   mechanically active), but neither targeted instance exposes a status or
   objective divergence.}
 \label{tab:c13_comparison}
-\begin{tabular}{l l r l r}
+\begin{tabular}{@{}lrcrr@{}}
 \toprule
-Instance & Status (paper C13) & Cons. & Status (corrected C13) & Cons. \\
+Instance & Paper~C13 obj. & Paper cons. & Corrected C13 obj. & Corr.\ cons. \\
 \midrule
-\texttt{ABCD\_check\_hierarchy\_test} & optimal (14\,700) & 2\,277 & optimal (14\,700) & 2\,445 \\
-\texttt{ABCD\_near\_threshold\_test} & optimal (21\,100) & 5\,028 & optimal (21\,100) & 5\,280 \\
+\texttt{check\_hierarchy} & 14\,700 & 2\,277 & 14\,700 & 2\,445 \\
+\texttt{near\_threshold} & 21\,100 & 5\,028 & 21\,100 & 5\,280 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -714,7 +697,7 @@ Instance & Status (paper C13) & Cons. & Status (corrected C13) & Cons. \\
 \paragraph{A targeted instance that exposes the bug.}
 Because the two instances above do not isolate the failure mode, we built a
 minimal instance designed directly from the counterexample in
-\texttt{docs/model\_math.tex} (\texttt{data/instances/c13\_loophole\_test.json}):
+\path{docs/model_math.tex} (\path{data/instances/c13_loophole_test.json}):
 a single aircraft that must fly all 4 scheduled flights (350~min each, 1\,400~min
 total) against a 1\,000-minute A-check threshold, with maintenance capacity set
 to zero everywhere so no check can physically be performed. With C13b (the
@@ -728,7 +711,7 @@ otherwise mask the effect) disabled to isolate C13 alone:
     under a 1\,000-minute cap with zero maintenance opportunities.
 \end{itemize}
 We additionally built an independent, model-external validator
-(\texttt{src/validate\_maintenance.py}) that recomputes cumulative
+(\path{src/validate_maintenance.py}) that recomputes cumulative
 flight-hours between actual check events directly from the solved
 \texttt{x}/\texttt{y} decision variables -- without relying on the \texttt{mega}
 hierarchy variable or re-evaluating any big-M constraint expression. Applied
@@ -789,16 +772,16 @@ Instance & Status & Obj & Vars \\
 
 \subsection{Heuristic benchmark}
 
-\Cref{tab:heu_benchmark} reports the measured method values on the small
-\texttt{ABCD\_capacity\_bottleneck\_test} instance (8 flights, 3 aircraft).
-This instance is small enough to run the heuristics, the exact-search
+\Cref{tab:heu_benchmark} reports measured method values on
+\texttt{ABCD\_cap\_bottleneck} (8 flights, 3 aircraft).
+This instance is small enough to run the heuristics, exact-search
 prototypes, and the MILP model side-by-side.
 
 \begin{table}[t]
 \centering\small
-\caption{Measured method values on \texttt{ABCD\_capacity\_bottleneck\_test}.
-  Wall time is reported in seconds.  The ACO objective is not directly
-  comparable to the complete assignments because it leaves flights unassigned.}
+\caption{Measured method values on \texttt{ABCD\_cap\_bottleneck}.
+  Wall time is in seconds.  The ACO objective is not directly
+  comparable because it leaves flights unassigned.}
 \label{tab:heu_benchmark}
 \begin{tabular}{l l r r r}
 \toprule
@@ -852,27 +835,29 @@ TAP search space.
 Table~\ref{tab:boundary_suite} collects the larger boundary instances used to
 exercise the full method set.  The suite covers the assignment bottleneck,
 check hierarchy, near-threshold maintenance, and mixed-maintenance cases.  The
-constructive heuristics run on every instance; the exact search prototypes are
-only applicable on the smallest case and therefore degrade gracefully to
-\texttt{not\_applicable} on the larger boundary instances; and the MILP stays
+constructive heuristics run on every instance; the exact-search prototypes are
+only applicable on the smallest case and degrade gracefully to
+\texttt{not\_applicable} on the larger instances; and the MILP stays
 optimal on the first three cases while correctly reporting infeasibility on
-the mixed \texttt{ABCD\_two\_b\_one\_c\_test} boundary.
+the \texttt{ABCD\_two\_b\_one\_c} boundary.
 
 \begin{table}[t]
 \centering\small
 \caption{Boundary suite used to validate that every implemented method runs on
-  the key model edges.  Status abbreviations are from the benchmark runner.}
+  the key model edges.  Abbreviations: F~=~feasible, O~=~optimal,
+  I~=~infeasible, N/A~=~not applicable.}
 \label{tab:boundary_suite}
-\begin{tabular}{l l l l l l l l}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}llccccccc@{}}
 \toprule
-Instance & Boundary & Greedy & Dijkstra & ACO & BF exact & DP exact & MILP \\
+Instance & Boundary & Gr. & Dijk. & ACO & BF & DP & MILP \\
 \midrule
-\texttt{ABCD\_capacity\_bottleneck\_test} & assignment bottleneck & feasible & feasible & feasible & infeasible & infeasible & optimal \\
-\texttt{ABCD\_check\_hierarchy\_test} & hierarchy & feasible & feasible & feasible & not\_applicable & not\_applicable & optimal \\
-\texttt{ABCD\_near\_threshold\_test} & hour threshold & feasible & feasible & feasible & not\_applicable & not\_applicable & optimal \\
-\texttt{ABCD\_two\_b\_one\_c\_test} & mixed maintenance & feasible & feasible & feasible & not\_applicable & not\_applicable & infeasible \\
+\texttt{ABCD\_capacity\_bottleneck} & assignment bottleneck & F & F & F & I & I & O \\
+\texttt{ABCD\_check\_hierarchy} & hierarchy & F & F & F & N/A & N/A & O \\
+\texttt{ABCD\_near\_threshold} & hour threshold & F & F & F & N/A & N/A & O \\
+\texttt{ABCD\_two\_b\_one\_c} & mixed maintenance & F & F & F & N/A & N/A & I \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
 \end{table}
 
 \subsection{Heavy-instance stress test}

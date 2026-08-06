@@ -3,9 +3,13 @@
 \label{sec:heuristics}
 %%==========================================================================
 
-We study three heuristic approaches.  All respect the full
-$\{A,B,C,D\}$ maintenance hierarchy via the timeline simulator described
-below.
+We study four heuristic families in the present report.  The greedy+insertion
+construction provides the main baseline, while the repair-style refinement
+and the bounded local-search refinement are used to improve the same initial
+solution before the final schedule is accepted.  The Dijkstra-based space-time
+heuristic and the ACO variant are retained as alternative search strategies,
+but the experimental results below focus on the deterministic constructive
+methods because they remain the most stable under full maintenance pressure.
 
 \subsection{Timeline simulator}
 
@@ -38,7 +42,20 @@ Infeasible assignments are skipped.
 \paragraph{Phase 2 — Insertion repair.}
 Up to 5 repair passes attempt to insert each unassigned flight into all
 possible positions in all aircraft routes, accepting the least-cost feasible
-insertion.
+insertion.  This refinement is deliberately conservative: it preserves the
+greedy seed whenever no improving insertion exists, and it therefore acts as
+a robust fallback that does not destabilise the constructive solution.
+
+\paragraph{Refinement variant: bounded local search.}
+In addition to the repair sweep, the implementation used for the benchmark
+runs includes a bounded local-search refinement.  The method starts from the
+greedy seed and then performs a limited number of relocation passes, moving a
+flight from one aircraft route to another whenever the move improves the
+current assignment while preserving maintenance feasibility.  A final
+insertion sweep is then applied to remove any remaining gaps.  This variant is
+more aggressive than the repair pass, but it is still controlled by the same
+timeline simulator and therefore remains compatible with the same feasibility
+logic as the baseline heuristic.
 
 \paragraph{Complexity.}
 $O(n_f^3 n_p)$ in the worst case (5 passes, $O(n_f)$ positions, $O(n_f)$
@@ -68,33 +85,40 @@ The algorithm terminates at maintenance events or the horizon end.
 \paragraph{Complexity.}
 $O(n_p n_d n_f^2)$ using a binary heap.
 
+{\sloppy
 \subsection{Heuristic 3: Ant Colony Optimization (ACO)}
 
 Each ant simulates an aircraft route.  The next node is selected according to:
 \begin{equation}
   p_{ij} = \frac{\tau_{ij}\,(\eta_{ij})^\beta}
-  {\displaystyle\sum_{u \in N(i)} \tau_{iu}\,(\eta_{iu})^\beta},
+  {\sum_{u \in N(i)} \tau_{iu}\,(\eta_{iu})^\beta},
 \end{equation}
 where $\tau_{ij}$ is pheromone, $\eta_{ij} = 1/w(i,j)$ is heuristic
 desirability, and $\beta \ge 1$ balances exploration vs.\ exploitation.
-Pheromone evaporates by $\tau_{ij} \leftarrow (1-\alpha)\tau_{ij} +
-\alpha\tau_0$ after each route is built.  Fully served arcs receive
-$\tau_{ij} = 0$ and this zero propagates backward to all arcs that lead
-exclusively to the exhausted arc.
+After each route is built, pheromone evaporates according to
+\begin{equation}
+  \tau_{ij} \leftarrow (1-\alpha)\tau_{ij} + \alpha\tau_0.
+\end{equation}
+Fully served arcs receive $\tau_{ij} = 0$ and this zero propagates backward
+to all arcs that lead exclusively to the exhausted arc.
+}
 
 \paragraph{Why Dijkstra outperforms ACO.}
 The space-time network has a strict temporal ordering (no back-edges in time).
 This acyclicity removes the feedback loops that ACO exploits most effectively.
 Dijkstra's farthest-distance criterion is near-optimal for acyclic networks,
-which explains its consistent quality advantage over ACO on all tested
-instances (see \Cref{tab:heuristic_comparison}).
+which explains its consistent quality advantage over ACO on the tested
+instances.  The empirical summary in Table~\ref{tab:heuristic_comparison}
+therefore supports the interpretation that ACO is more exploratory but less
+stable as a production solver for this particular temporal assignment
+structure.
 
 \subsection{Quality summary}
 
 \begin{table}[t]
 \centering\small
 \caption{Empirical heuristic summary from the current benchmark suite
-  (\texttt{ABCD\_capacity\_bottleneck\_test}, heavy density-$0.5$ cases,
+  (\texttt{ABCD\_cap\_bottleneck}, heavy density-$0.5$ cases,
   and dense density-$1.0$ cases; 8 instances total).}
 \label{tab:heuristic_comparison}
 \begin{tabular}{lccc}

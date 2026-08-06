@@ -23,12 +23,11 @@ evaluated.
 \paragraph{Constraint~(13) correction.}
 We identified and formally proved that the cumulative-flight-time constraint in
 the original paper admits vacuous satisfaction when only one of the two
-endpoint maintenance indicators is active.  The corrected formulation---two
-split constraints, each anchored to one endpoint---restores validity, strictly
-tightens the LP relaxation, and requires no additional variables.  Computational
-experiments confirm that high-density instances with tight maintenance
-requirements yield different (and verifiably correct) solutions under the
-corrected model.
+endpoint maintenance indicators is active.  The corrected formulation uses two split constraints, each anchored to one
+endpoint, restoring validity, strictly tightening the LP relaxation, and
+requiring no additional variables.  Computational experiments confirm that
+high-density instances with tight maintenance requirements yield different
+(and verifiably correct) solutions under the corrected model.
 
 \paragraph{Effect on C8--C14.}
 Once C2--C4 are corrected, maintenance constraints C8--C14 do not require

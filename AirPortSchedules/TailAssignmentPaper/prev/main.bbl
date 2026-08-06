@@ -1,0 +1,226 @@
+\begin{thebibliography}{24}
+\expandafter\ifx\csname natexlab\endcsname\relax\def\natexlab#1{#1}\fi
+\providecommand{\url}[1]{\texttt{#1}}
+\providecommand{\href}[2]{#2}
+\providecommand{\path}[1]{#1}
+\providecommand{\DOIprefix}{doi:}
+\providecommand{\ArXivprefix}{arXiv:}
+\providecommand{\URLprefix}{URL: }
+\providecommand{\Pubmedprefix}{pmid:}
+\providecommand{\doi}[1]{\href{http://dx.doi.org/#1}{\path{#1}}}
+\providecommand{\Pubmed}[1]{\href{pmid:#1}{\path{#1}}}
+\providecommand{\bibinfo}[2]{#2}
+\ifx\xfnm\relax \def\xfnm[#1]{\unskip,\space#1}\fi
+%Type = Article
+\bibitem[{Barnhart et~al.(2003)Barnhart, Belobaba and
+  Odoni}]{barnhart2003applications}
+\bibinfo{author}{Barnhart, C.}, \bibinfo{author}{Belobaba, P.},
+  \bibinfo{author}{Odoni, A.R.}, \bibinfo{year}{2003}.
+\newblock \bibinfo{title}{Applications of operations research in the air
+  transport industry}.
+\newblock \bibinfo{journal}{Transportation Science} \bibinfo{volume}{37},
+  \bibinfo{pages}{368--391}.
+%Type = Article
+\bibitem[{Barnhart et~al.(1998)Barnhart, Boland, Clarke, Johnson, Nemhauser and
+  Shenoi}]{barnhart1998flight}
+\bibinfo{author}{Barnhart, C.}, \bibinfo{author}{Boland, N.L.},
+  \bibinfo{author}{Clarke, L.W.}, \bibinfo{author}{Johnson, E.L.},
+  \bibinfo{author}{Nemhauser, G.L.}, \bibinfo{author}{Shenoi, R.G.},
+  \bibinfo{year}{1998}.
+\newblock \bibinfo{title}{Flight string models for aircraft fleeting and
+  routing}.
+\newblock \bibinfo{journal}{Transportation Science} \bibinfo{volume}{32},
+  \bibinfo{pages}{208--220}.
+\newblock \DOIprefix\doi{10.1287/trsc.32.3.208}.
+%Type = Techreport
+\bibitem[{Bornd{\"o}rfer et~al.(2010)Bornd{\"o}rfer, Dovica, Nowak and
+  Schickinger}]{borndorfer2010robust}
+\bibinfo{author}{Bornd{\"o}rfer, R.}, \bibinfo{author}{Dovica, I.},
+  \bibinfo{author}{Nowak, I.}, \bibinfo{author}{Schickinger, T.},
+  \bibinfo{year}{2010}.
+\newblock \bibinfo{title}{Robust tail assignment}.
+\newblock \bibinfo{type}{Technical Report}. Konrad-Zuse-Zentrum f{\"u}r
+  Informationstechnik Berlin.
+%Type = Article
+\bibitem[{Clarke et~al.(1997)Clarke, Johnson, Nemhauser and
+  Zhu}]{clarke1997aircraft}
+\bibinfo{author}{Clarke, L.}, \bibinfo{author}{Johnson, E.},
+  \bibinfo{author}{Nemhauser, G.}, \bibinfo{author}{Zhu, Z.},
+  \bibinfo{year}{1997}.
+\newblock \bibinfo{title}{The aircraft rotation problem}.
+\newblock \bibinfo{journal}{Annals of Operations Research}
+  \bibinfo{volume}{69}, \bibinfo{pages}{33--46}.
+\newblock \DOIprefix\doi{10.1023/A:1018945415148}.
+%Type = Article
+\bibitem[{Clarke et~al.(1996)Clarke, Hane, Johnson and
+  Nemhauser}]{clarke1996maintenance}
+\bibinfo{author}{Clarke, L.W.}, \bibinfo{author}{Hane, C.A.},
+  \bibinfo{author}{Johnson, E.L.}, \bibinfo{author}{Nemhauser, G.L.},
+  \bibinfo{year}{1996}.
+\newblock \bibinfo{title}{Maintenance and crew considerations in fleet
+  assignment}.
+\newblock \bibinfo{journal}{Transportation Science} \bibinfo{volume}{30},
+  \bibinfo{pages}{249--260}.
+%Type = Article
+\bibitem[{Cordeau et~al.(2001)Cordeau, Stojkovi{\'c}, Soumis and
+  Desrosiers}]{cordeau2001benders}
+\bibinfo{author}{Cordeau, J.F.}, \bibinfo{author}{Stojkovi{\'c}, G.},
+  \bibinfo{author}{Soumis, F.}, \bibinfo{author}{Desrosiers, J.},
+  \bibinfo{year}{2001}.
+\newblock \bibinfo{title}{Benders decomposition for simultaneous aircraft
+  routing and crew scheduling}.
+\newblock \bibinfo{journal}{Transportation Science} \bibinfo{volume}{35},
+  \bibinfo{pages}{375--388}.
+%Type = Article
+\bibitem[{Desaulniers et~al.(1997)Desaulniers, Desrosiers, Dumas, Solomon and
+  Soumis}]{desaulniers1997daily}
+\bibinfo{author}{Desaulniers, G.}, \bibinfo{author}{Desrosiers, J.},
+  \bibinfo{author}{Dumas, Y.}, \bibinfo{author}{Solomon, M.M.},
+  \bibinfo{author}{Soumis, F.}, \bibinfo{year}{1997}.
+\newblock \bibinfo{title}{Daily aircraft routing and scheduling}.
+\newblock \bibinfo{journal}{Management Science} \bibinfo{volume}{43},
+  \bibinfo{pages}{841--855}.
+%Type = Article
+\bibitem[{Froyland et~al.(2013)Froyland, Maher and
+  Wu}]{froyland2013recoverable}
+\bibinfo{author}{Froyland, G.}, \bibinfo{author}{Maher, S.J.},
+  \bibinfo{author}{Wu, C.L.}, \bibinfo{year}{2013}.
+\newblock \bibinfo{title}{The recoverable robust tail assignment problem}.
+\newblock \bibinfo{journal}{Transportation Science} \bibinfo{volume}{48},
+  \bibinfo{pages}{351--372}.
+%Type = Article
+\bibitem[{Gopalan and Talluri(1998)}]{gopalan1998mathematical}
+\bibinfo{author}{Gopalan, R.}, \bibinfo{author}{Talluri, K.T.},
+  \bibinfo{year}{1998}.
+\newblock \bibinfo{title}{Mathematical models in airline schedule planning: A
+  survey}.
+\newblock \bibinfo{journal}{Annals of Operations Research}
+  \bibinfo{volume}{76}, \bibinfo{pages}{155--185}.
+%Type = Phdthesis
+\bibitem[{Gr{\"o}nkvist(2005)}]{gronkvist2005tail}
+\bibinfo{author}{Gr{\"o}nkvist, M.}, \bibinfo{year}{2005}.
+\newblock \bibinfo{title}{The tail assignment problem}.
+\newblock Ph.D. thesis. Chalmers, G{\"o}teborg University.
+%Type = Article
+\bibitem[{Hane et~al.(1995)Hane, Barnhart, Johnson, Marsten, Nemhauser and
+  Sigismondi}]{hane1995fleet}
+\bibinfo{author}{Hane, C.A.}, \bibinfo{author}{Barnhart, C.},
+  \bibinfo{author}{Johnson, E.L.}, \bibinfo{author}{Marsten, R.E.},
+  \bibinfo{author}{Nemhauser, G.L.}, \bibinfo{author}{Sigismondi, G.},
+  \bibinfo{year}{1995}.
+\newblock \bibinfo{title}{The fleet assignment problem: {S}olving a large-scale
+  integer program}.
+\newblock \bibinfo{journal}{Mathematical Programming} \bibinfo{volume}{70},
+  \bibinfo{pages}{211--232}.
+%Type = Article
+\bibitem[{Haouari et~al.(2012)Haouari, Shao and Sherali}]{haouari2012lifted}
+\bibinfo{author}{Haouari, M.}, \bibinfo{author}{Shao, S.},
+  \bibinfo{author}{Sherali, H.D.}, \bibinfo{year}{2012}.
+\newblock \bibinfo{title}{A lifted compact formulation for the daily aircraft
+  maintenance routing problem}.
+\newblock \bibinfo{journal}{Transportation Science} \bibinfo{volume}{47},
+  \bibinfo{pages}{508--525}.
+%Type = Misc
+\bibitem[{Hart et~al.(2023)Hart, Laird, Watson, Woodruff, Hackebeil, Nicholson
+  and Siirola}]{pyomo2023}
+\bibinfo{author}{Hart, W.E.}, \bibinfo{author}{Laird, C.D.},
+  \bibinfo{author}{Watson, J.P.}, \bibinfo{author}{Woodruff, D.L.},
+  \bibinfo{author}{Hackebeil, G.A.}, \bibinfo{author}{Nicholson, B.L.},
+  \bibinfo{author}{Siirola, J.D.}, \bibinfo{year}{2023}.
+\newblock \bibinfo{title}{Pyomo -- {P}ython-based {O}ptimization {M}odeling
+  {O}bjects}.
+\newblock \bibinfo{note}{Version 6.x, \url{https://www.pyomo.org/}}.
+%Type = Article
+\bibitem[{Khaled et~al.(2018)Khaled, Minoux, Mousseau, Michel and
+  Ceugniet}]{khaled2018compact}
+\bibinfo{author}{Khaled, O.}, \bibinfo{author}{Minoux, M.},
+  \bibinfo{author}{Mousseau, V.}, \bibinfo{author}{Michel, S.},
+  \bibinfo{author}{Ceugniet, X.}, \bibinfo{year}{2018}.
+\newblock \bibinfo{title}{A compact optimization model for the tail assignment
+  problem}.
+\newblock \bibinfo{journal}{European Journal of Operational Research}
+  \bibinfo{volume}{264}, \bibinfo{pages}{548--557}.
+\newblock \DOIprefix\doi{10.1016/j.ejor.2017.06.045}.
+%Type = Incollection
+\bibitem[{Klabjan(2005)}]{klabjan2005large}
+\bibinfo{author}{Klabjan, D.}, \bibinfo{year}{2005}.
+\newblock \bibinfo{title}{Large-scale models in the airline industry}, in:
+  \bibinfo{editor}{Desaulniers, G.}, \bibinfo{editor}{Desrosiers, J.},
+  \bibinfo{editor}{Solomon, M.M.} (Eds.), \bibinfo{booktitle}{Column
+  Generation}. \bibinfo{publisher}{Springer US}, pp. \bibinfo{pages}{163--195}.
+%Type = Article
+\bibitem[{Lacasse-Guay et~al.(2010)Lacasse-Guay, Desaulniers and
+  Soumis}]{lacasse2010aircraft}
+\bibinfo{author}{Lacasse-Guay, E.}, \bibinfo{author}{Desaulniers, G.},
+  \bibinfo{author}{Soumis, F.}, \bibinfo{year}{2010}.
+\newblock \bibinfo{title}{Aircraft routing under different business processes}.
+\newblock \bibinfo{journal}{Journal of Air Transport Management}
+  \bibinfo{volume}{16}, \bibinfo{pages}{258--263}.
+%Type = Article
+\bibitem[{Lavoie et~al.(1988)Lavoie, Minoux and Odier}]{lavoie1988new}
+\bibinfo{author}{Lavoie, S.}, \bibinfo{author}{Minoux, M.},
+  \bibinfo{author}{Odier, E.}, \bibinfo{year}{1988}.
+\newblock \bibinfo{title}{A new approach for crew pairing problems by column
+  generation with an application to air transportation}.
+\newblock \bibinfo{journal}{European Journal of Operational Research}
+  \bibinfo{volume}{35}, \bibinfo{pages}{45--58}.
+%Type = Article
+\bibitem[{Levin(1971)}]{levin1971scheduling}
+\bibinfo{author}{Levin, A.}, \bibinfo{year}{1971}.
+\newblock \bibinfo{title}{Scheduling and fleet routing models for
+  transportation systems}.
+\newblock \bibinfo{journal}{Transportation Science} \bibinfo{volume}{5},
+  \bibinfo{pages}{232--255}.
+%Type = Article
+\bibitem[{Liang and Chaovalitwongse(2012)}]{liang2012network}
+\bibinfo{author}{Liang, Z.}, \bibinfo{author}{Chaovalitwongse, W.A.},
+  \bibinfo{year}{2012}.
+\newblock \bibinfo{title}{A network-based model for the integrated weekly
+  aircraft maintenance routing and fleet assignment problem}.
+\newblock \bibinfo{journal}{Transportation Science} \bibinfo{volume}{47},
+  \bibinfo{pages}{493--507}.
+%Type = Article
+\bibitem[{Liang et~al.(2011)Liang, Chaovalitwongse, Huang and
+  Johnson}]{liang2011new}
+\bibinfo{author}{Liang, Z.}, \bibinfo{author}{Chaovalitwongse, W.A.},
+  \bibinfo{author}{Huang, H.C.}, \bibinfo{author}{Johnson, E.L.},
+  \bibinfo{year}{2011}.
+\newblock \bibinfo{title}{On a new rotation tour network model for aircraft
+  maintenance routing problem}.
+\newblock \bibinfo{journal}{Transportation Science} \bibinfo{volume}{45},
+  \bibinfo{pages}{109--120}.
+%Type = Article
+\bibitem[{Mercier et~al.(2005)Mercier, Cordeau and
+  Soumis}]{mercier2005computational}
+\bibinfo{author}{Mercier, A.}, \bibinfo{author}{Cordeau, J.F.},
+  \bibinfo{author}{Soumis, F.}, \bibinfo{year}{2005}.
+\newblock \bibinfo{title}{A computational study of {Benders} decomposition for
+  the integrated aircraft routing and crew scheduling problem}.
+\newblock \bibinfo{journal}{Computers \& Operations Research}
+  \bibinfo{volume}{32}, \bibinfo{pages}{1451--1476}.
+\newblock \DOIprefix\doi{10.1016/j.cor.2003.11.013}.
+%Type = Inproceedings
+\bibitem[{Minoux(1984)}]{minoux1984column}
+\bibinfo{author}{Minoux, M.}, \bibinfo{year}{1984}.
+\newblock \bibinfo{title}{Column generation techniques in combinatorial
+  optimization, a new application to crew pairing problems}, in:
+  \bibinfo{booktitle}{Proceedings of the {AGIFORS} Symposium},
+  \bibinfo{address}{Strasbourg, France}.
+%Type = Article
+\bibitem[{Sarac et~al.(2006)Sarac, Batta and Rump}]{sarac2006branch}
+\bibinfo{author}{Sarac, A.}, \bibinfo{author}{Batta, R.},
+  \bibinfo{author}{Rump, C.M.}, \bibinfo{year}{2006}.
+\newblock \bibinfo{title}{A branch-and-price approach for operational aircraft
+  maintenance routing}.
+\newblock \bibinfo{journal}{European Journal of Operational Research}
+  \bibinfo{volume}{175}, \bibinfo{pages}{1850--1869}.
+%Type = Article
+\bibitem[{Sherali et~al.(2006)Sherali, Bish and Zhu}]{sherali2006airline}
+\bibinfo{author}{Sherali, H.D.}, \bibinfo{author}{Bish, E.K.},
+  \bibinfo{author}{Zhu, X.}, \bibinfo{year}{2006}.
+\newblock \bibinfo{title}{Airline fleet assignment concepts, models, and
+  algorithms}.
+\newblock \bibinfo{journal}{European Journal of Operational Research}
+  \bibinfo{volume}{172}, \bibinfo{pages}{1--30}.
+
+\end{thebibliography}

@@ -1,71 +1,448 @@
-Building on the corrected ground model of Chapter~\ref{ch:ground}, this chapter incorporates maintenance feasibility into the compact tail-assignment formulation. A flight assignment is operationally valid only if it does not force any aircraft to exceed its regulatory maintenance interval; the model must therefore track maintenance events, maintenance-capable airport availability, and cumulative flight-time or calendar-day exposure for each aircraft.
+Building on the corrected ground model of Chapter~\ref{ch:ground}, this
+chapter incorporates maintenance feasibility into the compact tail-assignment
+formulation. The assignment variables determine where each aircraft is during
+the planning horizon, but they do not state whether a required check can be
+performed at that location or whether the aircraft has exceeded its allowable
+exposure since the preceding check. The maintenance layer therefore couples
+three decisions: the flight after which a check is initiated, the day on which
+the check is recorded, and the cumulative utilisation that the check resets.
 
-\section{Maintenance notation}
+The presentation begins with one hours-based type-A check, following the
+maintenance extension of \citet{khaled2018compact}. This isolates the logic of
+the cumulative-hour restriction and the correction of Constraint~(13). The
+four-level A/B/C/D hierarchy, check subsumption, and multi-day heavy checks are
+introduced in Chapter~\ref{ch:hierarchy}.
 
-Let $\D = \{1,\ldots,|\mathcal{D}|\}$ denote the set of planning days and let $\MA \subseteq \A$ denote the set of maintenance-capable airports. For each aircraft $j \in \Pc$ and planning day $d \in \D$, define the binary maintenance indicator
+\section{Scope and operational assumptions}
+\label{sec:maintenance}
 
+The maintenance model inherits all flight coverage, airport continuity, turn
+time, and non-overlap assumptions of Chapter~\ref{ch:ground}. In addition, it
+uses the following assumptions.
+\begin{enumerate}
+    \item A type-A check is required before cumulative block time exceeds the
+    threshold $T_{\max}^{A}$.
+    \item A check can be initiated only after an aircraft arrives at a
+    maintenance-capable airport.
+    \item A check consumes one unit of airport maintenance capacity on its
+    scheduled day.
+    \item In the single-check model, at most one check is performed on an
+    aircraft on a given day.
+    \item A triggered overnight check prevents the aircraft from operating a
+    later flight on the same day. Longer check durations are treated in
+    Chapter~\ref{ch:hierarchy}.
+    \item The state entering the horizon is known: the initial airport and the
+    cumulative hours $\Phi_j^A$ since the last type-A check are input data.
+\end{enumerate}
+
+The day index records maintenance opportunities; the flight timetable remains
+continuous in absolute time. Consequently, an arrival must be both spatially
+eligible and temporally compatible with a check. Merely ending a day at an
+arbitrary airport is insufficient.
+
+\section{Sets, parameters, and auxiliary definitions}
+
+Let $\D=\{1,\ldots,n_d\}$ be the ordered set of planning days and
+$\MA\subseteq\A$ the set of maintenance-capable airports. For each flight
+$i$, let $d_i^{\uparrow}$ and $d_i^{\downarrow}$ be its departure and arrival
+days, $\tilde t_i$ its block time, and $a_i^{\downarrow}$ its arrival airport.
+Define
 \begin{equation}
-    y_{jd} =
+    \F^{\downarrow}(m)
+    =\{i\in\F:a_i^{\downarrow}=m\},
+    \qquad m\in\MA,
+    \label{eq:maint_eligible_arrivals}
+\end{equation}
+and let
+\begin{equation}
+    \F^{+}(d,i)
+    =\{i'\in\F:d_{i'}^{\uparrow}=d,
+      \ t_{i'}^{\uparrow}>t_i^{\downarrow}\}
+    \label{eq:maint_later_flights}
+\end{equation}
+be the flights departing later on day $d$ than the arrival of flight $i$.
+Only departures that are otherwise compatible with aircraft $j$ need to be
+included when the inequalities are generated.
+
+For $d<d'$, denote by
+\begin{equation}
+    F_{d,d'}
+    =\{i\in\F:d<d_i^{\uparrow}<d'\}
+    \label{eq:maint_day_interval}
+\end{equation}
+the flights whose departure days lie strictly inside the day pair. This
+open-interval convention separates flights accumulated between the two
+boundary-day reset decisions. Other endpoint conventions are possible, but
+the set definition and reset semantics must be used consistently.
+
+The additional parameters are summarised in
+Table~\ref{tab:maintenance_notation}.
+\begin{table}[htbp]
+    \centering
+    \small
+    \caption{Additional notation for the type-A maintenance model.}
+    \label{tab:maintenance_notation}
+    \begin{tabularx}{\textwidth}{@{}lX@{}}
+        \toprule
+        Symbol & Meaning \\
+        \midrule
+        $\D=\{1,\ldots,n_d\}$ & Ordered set of planning days \\
+        $\MA\subseteq\A$ & Set of maintenance-capable airports \\
+        $\operatorname{mcap}_{md}$ & Number of check slots available at airport $m$ on day $d$ \\
+        $mc_{ijd}$ & Cost of checking aircraft $j$ after flight $i$ on day $d$ \\
+        $T_{\max}^{A}$ & Maximum block time accumulated without a type-A check \\
+        $d_{\max}^{A}$ & Maximum admissible calendar spacing used to generate check windows \\
+        $\Phi_j^A$ & Type-A block time accumulated by aircraft $j$ before the horizon \\
+        $M_{dd'}$ & Valid big-$M$ value for the day pair $(d,d')$ \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+\section{Maintenance decision variables}
+
+For every maintenance-eligible arrival, aircraft, and feasible check day,
+define
+\begin{equation}
+    z_{ijd}=
     \begin{cases}
-        1, & \text{if aircraft } j \text{ undergoes a maintenance check on day } d,\\
+          1, & \substack{\text{if aircraft $j$ initiates a type-A check after flight $i$}\\
+                              \text{and the check is recorded on day $d$},}\\
         0, & \text{otherwise.}
     \end{cases}
+    \label{eq:maint_trigger_variable}
 \end{equation}
+The variable is created only when $i\in\F^{\downarrow}(m)$ for some
+$m\in\MA$ and when day $d$ is compatible with the arrival and check duration.
+This sparse domain is preferable to creating impossible variables and fixing
+them to zero.
 
-A maintenance-trigger variable $z_{ijd} \in \{0,1\}$ is further defined for each flight $i \in \mathcal{F}^{\downarrow}(m)$, aircraft $j \in \Pc$, and day $d \in \D$, where $\mathcal{F}^{\downarrow}(m)$ denotes the set of flights arriving at maintenance-capable airport $m \in \MA$. The variable $z_{ijd}$ equals one if a maintenance action is initiated for aircraft $j$ following flight $i$ on day $d$.
-
-\section{Objective with maintenance cost}
-
-The extended objective minimises the sum of flight-assignment costs and maintenance-event costs:
-
+The daily aggregate variable is
 \begin{equation}
-    \min \;\sum_{i\in\F}\sum_{j\in\Pc} c_{ij}\, x_{ij}
-    \;+\; \sum_{m\in\MA}\sum_{i\in\F^{\downarrow}(m)}\sum_{j\in\Pc}\sum_{d\in\D} mc_{ijd}\, z_{ijd},
+    y_{jd}=
+    \begin{cases}
+        1, & \text{if aircraft $j$ undergoes a type-A check on day $d$},\\
+        0, & \text{otherwise.}
+    \end{cases}
+    \label{eq:maint_day_variable}
 \end{equation}
+The distinction is important: $z_{ijd}$ identifies the arrival and therefore
+the maintenance airport, whereas $y_{jd}$ is the reset indicator used in the
+spacing and cumulative-hour constraints.
 
-where $mc_{ijd} \geq 0$ is the cost of performing a maintenance action for aircraft $j$ at the arrival airport of flight $i$ on day $d$, capturing repositioning, labour, and opportunity costs.
+\section{Extended objective function}
 
-\section{Maintenance feasibility constraints}
-
-The maintenance layer imposes four categories of constraints. First, a maintenance trigger must be coupled to an assigned flight: $z_{ijd} \leq x_{ij}$ for all relevant $(i,j,d)$. Second, airport-day maintenance capacity is bounded: the total number of maintenance actions at airport $m$ on day $d$ must not exceed its capacity. Third, the aircraft-day indicator $y_{jd}$ is linked to the trigger variables so that $y_{jd} = 1$ if and only if at least one maintenance trigger is active for aircraft $j$ on day $d$. Fourth, spacing constraints enforce that the interval between successive maintenance events does not exceed the regulatory maximum.
-
-\section{The flaw in the original cumulative flight-hour constraint}
-
-The most consequential modelling deficiency in the formulation of \citet{khaled2018compact} concerns Constraint~(13), the cumulative flight-hour bound. Let $F_{d,d'} \subseteq \mathcal{F}$ denote the set of flights operated within the interval $[d, d']$, let $\tilde{t}_i$ denote the block time of flight $i$, let $T_{\max}^{A}$ be the maximum cumulative flight hours between two consecutive type-A checks, and let $M_{dd'}$ be a sufficiently large constant. The original constraint is
-
+The basic assignment objective is augmented by the cost of selected
+maintenance events:
 \begin{equation}
-    \sum_{i\in F_{d,d'}} x_{ij}\,\tilde{t}_i
-    \leq
-    T_{\max}^{A}
-    + M_{dd'}\bigl(2-y_{jd}-y_{jd'}\bigr)
-    + M_{dd'}\sum_{r=d+1}^{d'-1} y_{jr},
+    \min\quad
+    \sum_{i\in\F}\sum_{j\in\Pc}c_{ij}x_{ij}
+    +\sum_{m\in\MA}\sum_{i\in\F^{\downarrow}(m)}
+      \sum_{j\in\Pc}\sum_{d\in\D}mc_{ijd}z_{ijd}.
+    \label{eq:maintenance_objective}
 \end{equation}
+The coefficient $mc_{ijd}$ may combine labour, station usage, overnight
+parking, and opportunity cost. A maintenance-ineligible assignment must be
+excluded by the variable domain or constraints; a large objective coefficient
+does not make it infeasible.
 
-for each aircraft $j \in \Pc$ and each pair of candidate maintenance days $(d, d')$.
+\section{Maintenance-event feasibility}
 
-The flaw arises when exactly one endpoint indicator is inactive. If $y_{jd} = 1$ and $y_{jd'} = 0$ with no intermediate maintenance, the right-hand side becomes $T_{\max}^{A} + M_{dd'}(2-1-0) = T_{\max}^{A} + M_{dd'}$, which is typically very large, rendering the constraint vacuous. The formulation therefore fails to restrict cumulative flight hours accumulated between day $d$ and day $d'$, permitting the aircraft to operate far beyond its regulatory threshold. The same failure occurs symmetrically when $y_{jd} = 0$ and $y_{jd'} = 1$.
+\subsection{C8: blocking subsequent same-day flights}
 
-\section{Corrected formulation}
+If maintenance begins after flight $i$, aircraft $j$ cannot operate a later
+flight while the check is active. For the overnight type-A abstraction this is
+written as
+\begin{equation}
+    z_{ijd}+x_{i'j}\leq1,
+    \qquad
+    \substack{\forall i\in\F^{\downarrow}(m),\ m\in\MA,\\
+    \forall i'\in\F^{+}(d,i),\ j\in\Pc,\ d\in\D.}
+    \label{eq:maint_c8}
+\end{equation}
+When the precise check duration is available, $\F^{+}(d,i)$ can be replaced
+by the departures whose times intersect the maintenance interval. The
+essential implication remains the same: selecting $z_{ijd}$ removes every
+flight that would make the check physically impossible.
 
-The corrected formulation replaces the single constraint by two endpoint-anchored inequalities, each binding at the corresponding endpoint when that endpoint is check-free:
+\subsection{C9: coupling a check to its trigger flight}
 
+A check can be attached to flight $i$ only if that flight is assigned to the
+same aircraft:
+\begin{equation}
+    z_{ijd}\leq x_{ij},
+    \qquad
+    \forall(i,j,d)\text{ in the domain of }z.
+    \label{eq:maint_c9}
+\end{equation}
+If several feasible check days are associated with the same arrival, the
+stronger aggregated form $\sum_d z_{ijd}\leq x_{ij}$ prevents that arrival
+from triggering more than one check.
+
+\subsection{C10: airport-day maintenance capacity}
+
+All checks initiated at airport $m$ on day $d$ share its finite capacity:
+\begin{equation}
+    \sum_{i\in\F^{\downarrow}(m)}\sum_{j\in\Pc}z_{ijd}
+    \leq\operatorname{mcap}_{md},
+    \qquad \forall m\in\MA,\ d\in\D.
+    \label{eq:maint_c10}
+\end{equation}
+This is a resource constraint rather than an aircraft-feasibility constraint:
+each selected trigger can be individually valid while their simultaneous use
+of the same station is infeasible.
+
+\subsection{C11 and C14: daily aggregation and uniqueness}
+
+The trigger and reset representations are linked by
+\begin{equation}
+    \sum_{m\in\MA}\sum_{i\in\F^{\downarrow}(m)}z_{ijd}=y_{jd},
+    \qquad \forall j\in\Pc,\ d\in\D.
+    \label{eq:maint_c11}
+\end{equation}
+Because $y_{jd}$ is binary, equality~\eqref{eq:maint_c11} already permits at
+most one trigger for aircraft $j$ on day $d$. The explicit inequality
+\begin{equation}
+    \sum_{m\in\MA}\sum_{i\in\F^{\downarrow}(m)}z_{ijd}\leq1,
+    \qquad \forall j\in\Pc,\ d\in\D,
+    \label{eq:maint_c14}
+\end{equation}
+is therefore redundant in the single-type model but documents the operational
+rule and becomes useful when several check types share a day.
+
+\subsection{C12: maximum calendar spacing}
+
+For every window containing $d_{\max}^{A}$ consecutive days, at least one
+check must occur:
+\begin{equation}
+    \sum_{r=d}^{d+d_{\max}^{A}-1}y_{jr}\geq1,
+    \qquad
+    \substack{\forall j\in\Pc,\\
+    d=1,\ldots,n_d-d_{\max}^{A}+1.}
+    \label{eq:maint_c12}
+\end{equation}
+This sliding-window form is equivalent to requiring that no run of
+$d_{\max}^{A}$ days is check-free. It limits calendar spacing, but it cannot
+replace a flight-hour constraint: an aircraft may accumulate the hour limit
+early in a permissible calendar window.
+
+\section{Original cumulative-hour constraint}
+
+For aircraft $j$ and day pair $(d,d')$, define
+\begin{equation}
+    H_{jdd'}=\sum_{i\in F_{d,d'}}\tilde t_i x_{ij},
+    \qquad
+    Y_{jdd'}^{\circ}=\sum_{r=d+1}^{d'-1}y_{jr}.
+    \label{eq:maint_interval_hours}
+\end{equation}
+Here $Y_{jdd'}^{\circ}$ counts checks strictly inside the interval. The
+original formulation of \citet{khaled2018compact} uses the single inequality
+\begin{equation}
+    H_{jdd'}\leq T_{\max}^{A}
+    +M_{dd'}(2-y_{jd}-y_{jd'})
+    +M_{dd'}Y_{jdd'}^{\circ}.
+    \label{eq:c13_original}
+\end{equation}
+It is generated for the admissible day pairs, typically
+$2\leq d'-d\leq d_{\max}^{A}-1$.
+
+The intended logic is to enforce the hour limit on an interval without an
+intervening reset and to relax it when a check splits the accumulation period.
+The endpoint expression does not implement that logic for all endpoint
+patterns. If $Y_{jdd'}^{\circ}=0$ and exactly one endpoint has a check, then
+\eqref{eq:c13_original} becomes
+\begin{equation}
+    H_{jdd'}\leq T_{\max}^{A}+M_{dd'},
+    \label{eq:c13_original_one_endpoint}
+\end{equation}
+which is non-binding for a valid big-$M$. If neither endpoint has a check, the
+available slack increases to $2M_{dd'}$. Thus the original row controls only
+the endpoint pattern $(y_{jd},y_{jd'})=(1,1)$ when the interior is check-free.
+
+\begin{lemma}[Endpoint activation defect]
+    \label{lem:c13_endpoint_defect}
+    Suppose $Y_{jdd'}^{\circ}=0$ and $M_{dd'}$ is at least the maximum
+    attainable value of $H_{jdd'}$. If either endpoint indicator is zero,
+    Constraint~\eqref{eq:c13_original} cannot exclude an assignment with
+    $H_{jdd'}>T_{\max}^{A}$.
+\end{lemma}
+\begin{proof}
+    If exactly one endpoint is zero, the right-hand side is
+    $T_{\max}^{A}+M_{dd'}$; if both are zero, it is
+    $T_{\max}^{A}+2M_{dd'}$. In either case it is no smaller than every
+    attainable value of $H_{jdd'}$, so the row cannot enforce the threshold.
+\end{proof}
+
+For example, let $T_{\max}^{A}=60$, $M_{12}=200$, and let the assigned flights
+accumulate $150$ minutes over the interval. With
+$(y_{j1},y_{j2})=(0,1)$ and no interior check, the original inequality reads
+$150\leq260$ and accepts the overrun.
+
+\section{Corrected endpoint-anchored formulation}
+\label{sec:c13_correction}
+
+The correction replaces the combined endpoint expression by two inequalities,
+one anchored at each boundary:
 \begin{align}
-    \sum_{i\in F_{d,d'}} x_{ij}\,\tilde{t}_i
+    H_{jdd'}
     &\leq T_{\max}^{A}
-    + M_{dd'}\, y_{jd}
-    + M_{dd'}\sum_{r=d+1}^{d'-1} y_{jr}, \label{eq:c13a} \\
-    \sum_{i\in F_{d,d'}} x_{ij}\,\tilde{t}_i
+    +M_{dd'}Y_{jdd'}^{\circ}+M_{dd'}y_{jd},
+    \label{eq:c13a}\\
+    H_{jdd'}
     &\leq T_{\max}^{A}
-    + M_{dd'}\, y_{jd'}
-    + M_{dd'}\sum_{r=d+1}^{d'-1} y_{jr}. \label{eq:c13b}
+    +M_{dd'}Y_{jdd'}^{\circ}+M_{dd'}y_{jd'}.
+    \label{eq:c13b}
 \end{align}
+The pair is generated for every aircraft and every admissible day pair. The
+first row is relaxed by a check at the start boundary; the second is relaxed
+by a check at the end boundary. An interior check relaxes both because the
+interval then contains a reset and must be analysed through shorter windows.
 
-Constraint~\eqref{eq:c13a} is active at the start of the interval: when $y_{jd} = 0$ and no intermediate check occurs, the right-hand side equals $T_{\max}^{A}$, correctly enforcing the regulatory limit. Constraint~\eqref{eq:c13b} provides the symmetric bound anchored at the end. Together, the two inequalities ensure that the cumulative-hour restriction is active whenever at least one endpoint is check-free, regardless of the state of the other endpoint.
+Table~\ref{tab:c13_activation} makes the binary endpoint logic explicit for an
+interval with no interior check.
+\begin{table}[htbp]
+    \centering
+    \small
+    \caption{Activation of the original and corrected C13 rows when
+    $Y_{jdd'}^{\circ}=0$. ``Active'' means that $H_{jdd'}\leq T_{\max}^{A}$.}
+    \label{tab:c13_activation}
+    \begin{tabular}{cccc}
+        \toprule
+        $y_{jd}$ & $y_{jd'}$ & Original row & Corrected pair \\
+        \midrule
+        0 & 0 & Relaxed by $2M_{dd'}$ & Both active \\
+        0 & 1 & Relaxed by $M_{dd'}$ & Start-anchored row active \\
+        1 & 0 & Relaxed by $M_{dd'}$ & End-anchored row active \\
+        1 & 1 & Active & Both endpoint rows relaxed \\
+        \bottomrule
+    \end{tabular}
+\end{table}
 
-\section{Validity and tightness of the correction}
+The table also clarifies the modelling convention behind the correction.
+Endpoint indicators act as reset relaxers for their respective anchored rows;
+the corrected pair is designed to control check-free windows and one-sided
+opening or closing windows. It should not be justified by claiming that each
+new row dominates the original row for every fixed binary endpoint pattern.
+Its validity follows from generating all admissible windows together with C12
+and the opening-horizon condition below.
 
-The corrected pair~\eqref{eq:c13a}--\eqref{eq:c13b} is both necessary and sufficient for the intended maintenance semantics. From the perspective of the LP relaxation, the intersection of two half-spaces is at least as restrictive as any single containing half-space; on maintenance-active instances where at least one endpoint indicator is zero at the LP optimum, the corrected formulation yields a strictly tighter bound. This tightening translates into stronger relaxation bounds and, consequently, fewer branch-and-bound nodes in practice.
+\begin{proposition}[Check-free-window enforcement]
+    \label{prop:c13_check_free_windows}
+    For any admissible interval with no interior check and at least one
+    check-free endpoint, Constraints~\eqref{eq:c13a}--\eqref{eq:c13b} impose
+    $H_{jdd'}\leq T_{\max}^{A}$.
+\end{proposition}
+\begin{proof}
+    If $y_{jd}=0$, the big-$M$ endpoint term vanishes from
+    \eqref{eq:c13a}; if $y_{jd'}=0$, it vanishes from
+    \eqref{eq:c13b}. Since the interior sum is zero, either applicable row
+    reduces to $H_{jdd'}\leq T_{\max}^{A}$. If both endpoints are zero, both
+    rows reduce to that inequality.
+\end{proof}
 
-\section{Integration with the corrected ground model}
+The numerical example above is rejected by the start-anchored row:
+\begin{equation}
+    150\leq60+200(0)+200(0)=60,
+    \label{eq:c13_counterexample_corrected}
+\end{equation}
+which is false. The correction therefore closes precisely the one-endpoint
+case admitted by the original formulation.
 
-The maintenance-extended model is obtained by appending the variables $y_{jd}$ and $z_{ijd}$, the extended objective, the maintenance feasibility constraints, and the corrected Constraints~\eqref{eq:c13a}--\eqref{eq:c13b} to the corrected ground model of Chapter~\ref{ch:ground}. The resulting feasible region simultaneously enforces airport continuity, turn-time non-overlap, maintenance-airport availability, and cumulative-hour compliance. This integrated structure is the foundation for the full A/B/C/D hierarchy developed in Chapter~\ref{ch:hierarchy}.
+\section{Pre-horizon accumulated hours}
+
+Without an opening condition, an aircraft entering the horizon close to its
+limit is incorrectly treated as newly maintained. Let $F_{0,d'}$ contain the
+flights departing strictly before boundary day $d'$. The remaining
+allowance before the first in-horizon check is
+$T_{\max}^{A}-\Phi_j^A$, giving
+\begin{equation}
+    \sum_{i\in F_{0,d'}}\tilde t_i x_{ij}
+    \leq T_{\max}^{A}-\Phi_j^A
+    +M_{0d'}\sum_{r=1}^{d'-1}y_{jr}
+    +M_{0d'}y_{jd'},
+    \qquad \forall j\in\Pc,\ d'\in\D.
+    \label{eq:c13_initial_hours}
+\end{equation}
+Before the first check, all $y$ terms vanish and the residual allowance is
+enforced. Once a check occurs, the pre-horizon counter is reset and the row is
+relaxed. This constraint is essential whenever $\Phi_j^A>0$; omitting it can
+make an apparently feasible schedule violate the true maintenance state on
+its first day.
+
+\section{Choice of the big-$M$ coefficient}
+
+A global constant equal to the total duration of every flight is valid but
+unnecessarily weak. The formulation instead uses a day-pair-specific value
+satisfying
+\begin{equation}
+    M_{dd'}\geq
+    \max\left\{
+      \sum_{i\in F_{d,d'}}\tilde t_i x_{ij}:
+      x\text{ satisfies the corrected ground model for aircraft }j
+    \right\}.
+    \label{eq:maintenance_big_m}
+\end{equation}
+A safe inexpensive bound is $\sum_{i\in F_{d,d'}}\tilde t_i$. A tighter value
+can be obtained as a longest feasible path in the acyclic flight-connection
+graph restricted to the interval. Because every $M_{dd'}$ appears directly in
+the LP relaxation, reducing it without sacrificing validity strengthens the
+formulation and improves numerical conditioning.
+
+\section{Physical interpretation and model validity}
+
+The maintenance equations do not repair an infeasible flight trajectory; they
+assume the corrected ground domain of Chapter~\ref{ch:ground}. In particular,
+Constraint~\eqref{eq:ground_overlap} ensures that cumulative hours are measured
+on a trajectory that one aircraft can actually execute. The effect of the
+ground correction on C8--C14 is therefore a domain correction: the algebra of
+the maintenance rows is unchanged, but those rows are no longer evaluated on
+simultaneous or overlapping flight assignments.
+
+\begin{theorem}[Feasibility of the single-type maintenance layer]
+    \label{thm:maintenance_layer_feasibility}
+    Assume that the admissible C12--C13 windows cover every possible
+    check-free accumulation span. Any integral solution satisfying the
+    corrected ground model, Constraints~\eqref{eq:maint_c8}--
+    \eqref{eq:maint_c12}, the endpoint pair~\eqref{eq:c13a}--
+    \eqref{eq:c13b}, the opening condition~\eqref{eq:c13_initial_hours}, and
+    the variable domains induces physically executable aircraft trajectories
+    with capacity-feasible type-A maintenance and no cumulative-hour overrun.
+\end{theorem}
+\begin{proof}
+    Fix aircraft $j$. The result of Chapter~\ref{ch:ground} orders its assigned
+    flights into a turn-feasible, non-overlapping trajectory. By
+    \eqref{eq:maint_c9}, each selected trigger belongs to that trajectory; by
+    \eqref{eq:maint_c8}, no later same-day assignment conflicts with the
+    selected check. Equations~\eqref{eq:maint_c10} and
+    \eqref{eq:maint_c11} enforce station capacity and a consistent daily reset.
+    Constraint~\eqref{eq:maint_c12} prevents an excessive calendar gap.
+
+    Before the first in-horizon check, \eqref{eq:c13_initial_hours} includes
+    the entering exposure $\Phi_j^A$. After a reset, suppose that the aircraft
+    accumulated more than $T_{\max}^{A}$ without another check. By the stated
+    window-coverage assumption, this span contains an admissible interval with
+    no interior check and at least one check-free endpoint. Proposition~
+    \ref{prop:c13_check_free_windows} bounds that interval by
+    $T_{\max}^{A}$, a contradiction. Thus the maintenance schedule is
+    executable and respects the cumulative-hour limit.
+\end{proof}
+
+\section{Complete single-type formulation and size}
+
+The maintenance-extended model consists of the corrected ground objective and
+constraints, objective~\eqref{eq:maintenance_objective}, C8--C12 and C14,
+the corrected C13 pair, and the opening-horizon rows, with
+\begin{equation}
+    x_{ij}\in\{0,1\},\qquad
+    z_{ijd}\in\{0,1\},\qquad
+    y_{jd}\in\{0,1\}.
+    \label{eq:maintenance_integrality}
+\end{equation}
+With sparse trigger indexing, the model adds at most
+$O(|\F||\Pc||\D|)$ trigger variables, $O(|\Pc||\D|)$ daily variables, and
+$O(|\Pc||\D|^2)$ cumulative-hour rows. The day-pair rows are the principal
+growth relative to the $O(|\F||\Pc|)$ ground assignment layer.
+
+This chapter establishes the maintenance logic for one hours-based check. The
+next chapter replaces $y_{jd}$ by type-specific and hierarchy-aware reset
+indicators, distinguishes hours-based A/B checks from calendar-based C/D
+checks, and represents checks whose duration extends over multiple days.

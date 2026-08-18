@@ -53,9 +53,10 @@ state of the art:
 \item \textbf{Constraint~(13) correction.}  We show that the cumulative-flight-
   time maintenance constraint (Constraint~13 in \citet{khaled2018compact})
   contains a logical flaw: the big-$M$ linearisation term $M(2 - y_{jd} -
-  y_{jd'})$ allows the constraint to be vacuously satisfied even when the pair
-  $(d, d')$ constitutes two consecutive maintenance events without an
-  intervening check.  We provide a corrected formulation using two split
+  y_{jd'})$ leaves the constraint vacuously satisfied whenever at least one of
+  the endpoint days $d, d'$ hosts no check, so an accumulation window that is
+  not bounded by checks at both ends is left unconstrained and may exceed the
+  flight-hour limit.  We provide a corrected formulation using two split
   endpoint constraints, prove its validity, and show that the corrected
   formulation yields strictly tighter LP relaxations on high-density instances.
 
@@ -80,7 +81,7 @@ state of the art:
 
 \subsection*{Thesis organisation}
 
-\Cref{sec:literature} reviews related work.  \Cref{sec:basic} restates the
+\Cref{ch:lit} reviews related work.  \Cref{ch:ground} restates the
 basic TAP model and proves a C2--C4 corner-case correction.  \Cref{ch:maintenance}
 presents the maintenance-extended model, the Constraint~(13) correction, and
 the induced interpretation updates for C8--C14 under the corrected basic model.

@@ -216,7 +216,7 @@ shift planning. Those resource layers remain outside the present formulation.
 Constructive and local-search methods are operationally useful when exact
 solution times are incompatible with replanning. \citet{gronkvist2005tail}
 develops tail-assignment heuristics in this setting. 
-The original work has not a flight but a train application, but the principles are transferable. The algorithm:
+The original work targets a train application rather than flights, but the principles are transferable. The algorithm:
 represent movement and waiting in an acyclic space-time network, select locomotives in a
 cost-based order, repeatedly solve a least-cost path problem, update arc costs
 after assignment, and terminate a path when a maintenance limit becomes due. The algorithmic principles
@@ -241,7 +241,7 @@ should be evaluated under a common instance family, objective definition,
 maintenance semantics, and solver-budget protocol.  In TAP, this condition is
 often not met across compact MILP, branch-and-price, Benders-decomposed, and
 robust/scenario formulations because these approaches typically optimize
-different decision scopes or uncertainty assumptions.  Accordingly, this paper
+different decision scopes or uncertainty assumptions.  Accordingly, this thesis
 uses \citet{khaled2018compact} as the direct compact baseline for
 instance-matched comparisons, and treats other MILP families as complementary
 reference paradigms rather than strict one-to-one benchmarks.

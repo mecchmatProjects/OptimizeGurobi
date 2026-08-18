@@ -3,10 +3,10 @@
 \label{sec:heuristics}
 %%==========================================================================
 
-We study four heuristic families in the present report.  The greedy+insertion
-construction provides the main baseline, while the repair-style refinement
-and the bounded local-search refinement are used to improve the same initial
-solution before the final schedule is accepted.  The Dijkstra-based space-time
+We study three heuristic families in the present report.  The greedy+insertion
+construction provides the main baseline (with two refinement variants: a
+repair-style sweep and a bounded local-search sweep, both improving the same
+initial solution before the final schedule is accepted).  The Dijkstra-based space-time
 heuristic and the ACO variant are retained as alternative search strategies,
 but the experimental results below focus on the deterministic constructive
 methods because they remain the most stable under full maintenance pressure.

@@ -25,10 +25,15 @@ test'', and ``Dense heavy instances'' tables
 were produced in an earlier development session where the real shell
 \texttt{cplex} executable was on the path (solver label \texttt{cplex} in the
 underlying result CSVs, e.g.\ \path{results/tables/oop_heavy_suite_cplex.csv}
-and \path{results/tables/_dense_h*.csv}).  All Phase-1 through Phase-4
-results (\Cref{subsec:phase1_dataset_program,subsec:phase2_framing,%
-subsec:phase3_scalability,subsec:comp_c13}) were produced in the current
-environment using CBC, since shell \texttt{cplex} is unavailable here.  Where
+and \path{results/tables/_dense_h*.csv}).  The Phase-1, Phase-2, Phase-3, and
+Constraint~(13) comparison results (\Cref{subsec:phase1_dataset_program,%
+subsec:phase2_framing,subsec:phase3_scalability,subsec:comp_c13}) were produced
+in the current environment using CBC, since shell \texttt{cplex} is unavailable
+here.  The exact-feasible comparison, the LP-bound validation, and the Phase-4
+sensitivity and Phase-5 arc-vs-path studies
+(\Cref{subsec:exact_feasible_comp,subsec:lp_lower_bounds,%
+subsec:phase4_sensitivity,subsec:phase5_arc_vs_path}) use the open-source HiGHS
+backend, as noted in their captions.  Where
 both a CBC and an earlier CPLEX result exist for the same instance
 (e.g.\ \path{DataCplex_density=0.5_p=10_h=15_h=21}), the two agree to within
 CBC/CPLEX tie-breaking noise (objective values match or differ by under
@@ -79,6 +84,67 @@ formulations and heuristic methods.  By contrast, decomposition-heavy or
 robust/scenario MILP alternatives from the literature are cited for context
 but are not treated as strict head-to-head baselines unless their decision
 scope and uncertainty assumptions are made equivalent.
+
+\subsection{Artifact-by-artifact reproduction manifest}
+\label{subsec:reproduction_manifest}
+
+All commands below are run from the repository root with
+\path{.venv/Scripts/python.exe}; environment creation, expected output files,
+quick/full variants, and archived-table provenance are documented in
+\path{docs/REPRODUCIBILITY.md}.  The manifest distinguishes executable
+pipelines from tables manually typeset from their authoritative CSV.  No table
+should be updated by copying terminal text when a CSV is listed.
+
+\begin{table}[t]
+\centering\scriptsize
+\caption{Command and source manifest for the fresh Chapter~7 artifacts.}
+\label{tab:reproduction_manifest}
+\begin{tabularx}{\linewidth}{@{}p{0.19\linewidth}X p{0.27\linewidth}@{}}
+\toprule
+Artifact & Command after the Python executable & Authoritative output \\
+\midrule
+Phase-2 Tables~\ref{tab:phase2_summary}--\ref{tab:phase2_full}
+ & \path{experiments/phase2_comparison.py --solver highs --time-limit 300}
+ & \path{results/tables/phase2/} CSV files \\
+Exact-feasible Table~\ref{tab:exact_feasible_comp}
+ & \path{experiments/run_exact_feasible.py}, then
+   \path{experiments/analyze_exact_feasible.py}
+ & \path{results/tables/exact_feasible/comparison.csv} \\
+LP Table~\ref{tab:lp_lower_bounds}
+ & \path{experiments/step4_lp_lower_bounds.py}, then
+   \path{experiments/step4_analyze_bounds.py}
+ & \path{results/tables/step4_lp_lower_bounds.csv} \\
+Phase-3 Table~\ref{tab:phase3_size} and Figure~\ref{fig:phase3_scalability}
+ & \path{experiments/phase3_scalability.py --solver highs --time-limit 120}
+ & \path{results/tables/phase3/phase3_scalability.csv};
+   \path{phase3_size_growth.csv} \\
+Sensitivity Table~\ref{tab:sensitivity}
+ & \path{experiments/step5_sensitivity_analysis.py}, then
+   \path{experiments/step5_analyze_sensitivity.py}
+ & \path{results/tables/step5_sensitivity_analysis.csv} \\
+Arc/path Table~\ref{tab:arc_vs_path}
+ & \path{experiments/step6_arc_vs_path.py --repeats 10 --solver highs --time-limit 120}
+ & \path{results/tables/step6_arc_vs_path.csv};
+   \path{step6_arc_vs_path_aggregate.csv} \\
+Arc/path Figures~\ref{fig:arc_path_runtime}--\ref{fig:arc_path_growth_and_parity}
+ & \path{experiments/step6_analyze_arc_vs_path.py --input results/tables/step6_arc_vs_path.csv --figure-dir paper/figures}
+ & six \path{paper/figures/step6_*.png} files \\
+Hierarchy Table~\ref{tab:hierarchy}
+ & \path{experiments/run_batch.py --mode milp --solver highs --time-limit 300 --input-dir data/instances --pattern "ABCD_*_test.json" --label hierarchy_highs}
+ & \path{results/tables/_batch_hierarchy_highs.csv} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Constraint~(13) is reproduced by running \path{src/model.py --mode milp}
+twice on the same file, adding \path{--use-paper-c13} to exactly one run; the
+complete commands for the targeted and loophole instances appear in
+\path{docs/REPRODUCIBILITY.md}.  Tables~\ref{tab:heu_benchmark}--
+\ref{tab:dense_heavy_suite} use named archived CPLEX CSVs and are marked there
+as non-fresh artifacts because the originating shell CPLEX executable is not
+available in the current environment.  The manuscript itself is rebuilt with
+\path{pdflatex}, \path{bibtex}, and two final \path{pdflatex} passes from
+\path{prev/}.
 
 \subsection{Instance generation}
 
@@ -337,11 +403,11 @@ collapses from a full heuristic assignment to only 10 assigned flights out of
 28.  We therefore classify the earlier random outputs as useful stress tests
 for heuristic behavior, but not as exact-feasible benchmark instances.
 
-\subsection{Phase-2: three-method framing and comparison matrix}
+\subsection{Phase-2: five-method framing and comparison matrix}
 \label{subsec:phase2_framing}
 
 \paragraph{Method definitions.}
-Four methods are compared throughout the computational study:
+Five methods are compared throughout the computational study:
 
 \begin{description}
   \item[Classical MILP] The flight-assignment-only model with routing
@@ -367,7 +433,7 @@ Four methods are compared throughout the computational study:
     new addition in the present run.
 \end{description}
 
-All four methods share the same instance set, cost matrix, and threshold
+All five methods share the same instance set, cost matrix, and threshold
 parameters; the comparison is therefore controlled for data.  The benchmark is
 presented in two complementary views: Table~\ref{tab:phase2_summary} reports
 coverage and solver status across the full 25-instance phase, while
@@ -554,15 +620,19 @@ Three practical observations emerge from Table~\ref{tab:phase2_full}:
     response.
 \end{enumerate}
 
-\subsection{Reproduction of Tables~5 and~6 (basic model)}
+\subsection{Reproduction limits and an exact numerical anchor}
 
-Tables~\ref{tab:repro5} and~\ref{tab:repro6} reproduce the main columns of
-Tables~5 and~6 of \citet{khaled2018compact} (basic model, no maintenance
-constraints) using our re-implementation.
-
-For a compact numerical anchor, Table~\ref{tab:repro5} reports an exact solve
-on the \texttt{ABCD\_cap\_bottleneck} instance;
-the remaining reproduction tables are included for full comparison.
+The original instance files used for Tables~5 and~6 of
+\citet{khaled2018compact} are not distributed with this repository.  Our
+random generator matches the declared $(\delta,|P|,|H|)$ dimensions but does
+not reconstruct those timetables.  Its four quick Table~6-shaped samples are
+certified routing-infeasible even with maintenance disabled; increasing the
+time limit therefore cannot turn them into valid reproductions.  We do not
+present those four repeated infeasibility statuses as a performance table.
+Instead, \Cref{tab:repro5} gives one compact exact numerical anchor and
+\Cref{tab:exact_feasible_comp} supplies the substantive nine-instance
+exact-feasible comparison.  This distinction prevents synthetic status cells
+from being mistaken for a reproduction of unavailable proprietary data.
 
 \begin{table}[t]
 \centering\small
@@ -574,23 +644,6 @@ the remaining reproduction tables are included for full comparison.
 $\text{Status}$ & Vars & Const & Gap (\%) & CPU (s) & Obj \\
 \midrule
 optimal & 648 & 1\,234 & 0.0000 & 0.27 & 8\,300 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{table}[t]
-\centering\small
-\caption{Quick reproduction snapshot for Table~6 settings ($\delta=1.0$, one instance per cell).
-  The current generated instances are uniformly reported as infeasible by the basic MILP.}
-\label{tab:repro6}
-\begin{tabular}{r r l r}
-\toprule
-$|P|$ & $|H|$ & Status & Wall (s) \\
-\midrule
-10 & 7  & infeasible & 1.81 \\
-10 & 15 & infeasible & 2.32 \\
-20 & 7  & infeasible & 2.64 \\
-20 & 15 & infeasible & 5.21 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -611,14 +664,14 @@ ABCD checks).
 \paragraph{Instance families.}
 The exact-feasible set consists of two subfamilies:
 \begin{enumerate}
-  \item \textbf{Constructive feasible instances} ($n=6$): instances with known
+  \item \textbf{Constructive feasible instances} ($n=5$): instances with known
     structure (A-only check, AB checks, ABCD checks) designed to isolate
     maintenance constraint logic and ensure all flights can be assigned:
     \texttt{feas\_A\_p4h7\_d05}, \texttt{feas\_A\_p4h7\_d08},
     \texttt{feas\_A\_p6h10\_d05} (A-only, 28--54 flights),
     \texttt{feas\_AB\_p4h7\_d05} (AB checks, 16 flights),
     \texttt{feas\_ABCD\_p4h7\_d05} (ABCD checks, 8 flights).
-  \item \textbf{Curated ABCD test cases} ($n=5$): instances designed to exercise
+  \item \textbf{Curated ABCD test cases} ($n=4$): instances designed to exercise
     specific maintenance interactions:
     \texttt{ABCD\_no\_maint} (baseline, all flights assignable without checks),
     \texttt{ABCD\_near\_thr} (near maintenance-hour thresholds),
@@ -1071,45 +1124,276 @@ larger-instance replication (using the LP lower bounds of
 \Cref{subsec:lp_lower_bounds} where exact solves become intractable) as the
 natural extension.
 
-\subsection{Reproduction of Tables~10 and~11 (maintenance model)}
+\subsection{Phase-5: arc-based versus path-based MILP}
+\label{subsec:phase5_arc_vs_path}
 
-Tables~\ref{tab:repro10} and~\ref{tab:repro11} reproduce the maintenance-model
-results.  Our extended model includes the corrected Constraint~(13).
+\paragraph{Terminology and common scope.}
+The name ``arc-based'' is retained because it is conventional in the project
+and contrasts naturally with complete-route columns.  Strictly, however, the
+implemented compact baseline is a \emph{flight--aircraft assignment/flow}
+formulation: $x_{ij}$ assigns flight $i$ to aircraft $j$, while cumulative
+airport-flow inequalities enforce connectivity.  It does not declare a binary
+variable for every flight-to-flight connection arc.  The alternative is a
+\emph{path-based set-partitioning} formulation whose columns are complete
+feasible aircraft routes.  In this subsection ``full-based'' is interpreted as
+``path-based'' or ``full-route-based.''  Both formulations use the same
+classical routing scope, costs, eligible flight--aircraft pairs, initial
+aircraft positions, minimum turn time, and exact flight coverage.  Maintenance
+is excluded from both sides; including it only on one side would not be a
+formulation comparison.
+
+\paragraph{Common routing data and compatibility criteria.}
+For flight $i\in\F$, let $o_i$ and $q_i$ be its origin and destination,
+$s_i$ and $e_i$ its departure and arrival times, and $c_{ij}$ the cost of
+assigning it to aircraft $j\in\Pc$.  Aircraft $j$ starts at airport $b_j$.
+Let $E\subseteq\F\times\Pc$ contain eligible assignment pairs and let
+$\delta>0$ be the minimum turn time.  A direct connection $i\rightarrow k$
+is feasible precisely when
+\begin{equation}
+  q_i=o_k, \qquad e_i+\delta\leq s_k.
+  \label{eq:path_compatibility}
+\end{equation}
+A first flight $i$ is feasible for aircraft $j$ only if $o_i=b_j$.  Thus a
+route for $j$ is an ordered tuple $r=(i_1,\ldots,i_m)$ satisfying
+$(i_\ell,j)\in E$, $o_{i_1}=b_j$, and
+\eqref{eq:path_compatibility} for every consecutive pair.  The empty route is
+also admitted so that an aircraft may remain idle.
+
+\paragraph{Compact assignment/flow formulation.}
+Let $x_{ij}=1$ when flight $i$ is assigned to aircraft $j$.  For airport $k$
+and time $t$, define
+\begin{align}
+  \F_k^-(t)&=\{i\in\F:q_i=k,\ e_i\leq t-\delta\},\\
+  \F_k^+(t)&=\{i\in\F:o_i=k,\ s_i<t\}.
+\end{align}
+The routing-core model solved in the comparison is
+\begin{align}
+ \min\quad & \sum_{(i,j)\in E}c_{ij}x_{ij},
+   \label{eq:arc_obj}\\
+ \text{s.t.}\quad
+ &\sum_{j:(i,j)\in E}x_{ij}=1 && i\in\F,
+   \label{eq:arc_cover}\\
+ &\sum_{h\in\F_k^-(s_i):(h,j)\in E}x_{hj}
+  -\sum_{h\in\F_k^+(s_i):(h,j)\in E}x_{hj}
+  \geq x_{ij}-\mathbb{1}[b_j=k]
+  && (i,j)\in E,\ o_i=k,
+   \label{eq:arc_flow}\\
+ &x_{ij}+x_{kj}\leq1
+  && j\in\Pc,\ \{i,k\}\in\mathcal O_j,
+   \label{eq:arc_overlap}\\
+ &x_{ij}\in\{0,1\} &&(i,j)\in E.
+   \label{eq:arc_domain}
+\end{align}
+Here $\mathcal O_j$ is the set of eligible flight pairs whose occupied
+intervals overlap after including turn time.  Constraint
+\eqref{eq:arc_flow} states that aircraft $j$ may depart airport $k$ only if it
+started there or a previously assigned flight delivered it there; the second
+sum removes earlier departures.  Constraint \eqref{eq:arc_overlap} closes the
+simultaneous/overlapping-flight corner case discussed in \Cref{sec:basic}.
+
+\paragraph{Full-route path formulation.}
+Let $\mathcal R_j$ be the complete set of feasible routes for aircraft $j$.
+For $r\in\mathcal R_j$, let $a_{ir}=1$ if route $r$ contains flight $i$ and
+zero otherwise, and define $C_{jr}=\sum_i c_{ij}a_{ir}$.  Binary variable
+$\lambda_{jr}$ selects route $r$ for aircraft $j$.  The set-partitioning
+master is
+\begin{align}
+ \min\quad &\sum_{j\in\Pc}\sum_{r\in\mathcal R_j}C_{jr}\lambda_{jr},
+   \label{eq:path_obj}\\
+ \text{s.t.}\quad
+ &\sum_{j\in\Pc}\sum_{r\in\mathcal R_j}a_{ir}\lambda_{jr}=1
+   &&i\in\F,
+   \label{eq:path_cover}\\
+ &\sum_{r\in\mathcal R_j}\lambda_{jr}\leq1
+   &&j\in\Pc,
+   \label{eq:path_one_route}\\
+ &\lambda_{jr}\in\{0,1\}
+   &&j\in\Pc,\ r\in\mathcal R_j.
+   \label{eq:path_domain}
+\end{align}
+The benchmark enumerates $\mathcal R_j$ by depth-first search, retaining every
+feasible prefix.  This is exact on the tested routing core but potentially
+exponential: the compact model has $|E|$ binaries, whereas the path model has
+$\sum_j|\mathcal R_j|$ binaries.  Conversely, the path master needs only
+$|\F|+|\Pc|$ structural constraints once the route pool exists.
+
+\begin{proposition}[Integer equivalence on a common route set]
+If $\mathcal R_j$ contains every executable trajectory admitted for aircraft
+$j$ by \eqref{eq:arc_flow}--\eqref{eq:arc_overlap}, formulations
+\eqref{eq:arc_obj}--\eqref{eq:arc_domain} and
+\eqref{eq:path_obj}--\eqref{eq:path_domain} have the same integer feasible
+schedules and the same optimal objective value.
+\end{proposition}
+\begin{proof}
+Given selected routes, set $x_{ij}=\sum_r a_{ir}\lambda_{jr}$; exact path
+coverage gives \eqref{eq:arc_cover}, and route feasibility gives flow and
+non-overlap.  Conversely, decompose each aircraft's assigned executable
+trajectory into its ordered route $r\in\mathcal R_j$ and select that column.
+In both directions, $C_{jr}=\sum_i c_{ij}a_{ir}$ preserves cost.
+\end{proof}
+
+The path LP relaxation can be tighter because each column already lies in the
+convex hull of a complete single-aircraft trajectory.  That strength is not
+free: exhaustive route generation can dominate total time and memory.  A
+scalable path implementation would generate only improving columns by a
+resource-constrained shortest-path pricing problem; maintenance would then be
+represented as route resources/states or integrated route-and-check columns.
+
+\paragraph{Measurement criteria.}
+Each formulation is rebuilt and solved ten times per instance with HiGHS and a
+120\,s limit.  We report medians and interquartile ranges (IQRs), and split
+end-to-end time as
+\begin{align}
+ T_{\mathrm{arc}}&=T_{\mathrm{build}}+T_{\mathrm{solve}},\\
+ T_{\mathrm{path}}&=T_{\mathrm{enumerate}}+T_{\mathrm{build}}+T_{\mathrm{solve}}.
+\end{align}
+Speedup is $S=T_{\mathrm{arc}}/T_{\mathrm{path}}$, so $S>1$ favors paths.
+Correctness requires optimal termination, equal objectives within $10^{-6}$,
+exactly one selected-route cover per flight, and at most one route per
+aircraft.  Model-size comparisons use only active routing variables; the
+compact model's unreferenced maintenance variables are reported in the raw CSV
+but excluded from the fair size comparison.
+
+\paragraph{Results.}
+\Cref{tab:arc_vs_path} reports repeated end-to-end timing and active model-size
+metrics.  All 70 paired runs return matching optimal objective values and pass
+the reconstructed path-cover check.  The path model is faster on one of seven
+instances and slower on six.
 
 \begin{table}[t]
 \centering\small
-\caption{Quick reproduction snapshot for Table~10 settings (one instance per cell).
-  Both maintenance variants are currently infeasible on all reported quick-run cells.}
-\label{tab:repro10}
-\begin{tabular}{r r l l}
+\caption{Arc-based vs path-based MILP on the existing curated ABCD routing
+  tests (no maintenance), HiGHS, ten repeats, 120\,s limit. Times are
+  end-to-end medians; ``Speedup'' is $T_{\rm arc}/T_{\rm path}$.}
+\label{tab:arc_vs_path}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{lrrrrrrrrr}
 \toprule
-$|P|$ & $|H|$ & $d_{\max}=4, T_{\max}=64$ & $d_{\max}=5, T_{\max}=72$ \\
+Instance & $|F|$ & $|P|$ & Arc obj & Path obj & Arc time (s) & Path time (s) & Arc vars & Path vars & Speedup \\
 \midrule
-10 & 15 & infeasible & infeasible \\
-10 & 21 & infeasible & infeasible \\
-20 & 15 & infeasible & infeasible \\
-20 & 21 & infeasible & infeasible \\
+\texttt{ABCD\_cap\_botl}      & 8  & 3 & 8000  & 8000  & 0.0268 & 0.0197 & 24  & 135  & 1.360 \\
+\texttt{ABCD\_all\_checks}    & 9  & 5 & 9000  & 9000  & 0.0134 & 0.0176 & 9   & 106  & 0.737 \\
+\texttt{ABCD\_check\_hier}    & 13 & 4 & 13000 & 13000 & 0.0304 & 0.1087 & 52  & 920  & 0.277 \\
+\texttt{ABCD\_no\_maint}      & 14 & 4 & 14000 & 14000 & 0.0223 & 0.4858 & 56  & 3948 & 0.046 \\
+\texttt{ABCD\_two\_b\_one\_c} & 14 & 5 & 14000 & 14000 & 0.0386 & 0.1164 & 70  & 1125 & 0.330 \\
+\texttt{ABCD\_multi\_check}   & 16 & 4 & 16000 & 16000 & 0.0132 & 0.3922 & 16  & 2592 & 0.033 \\
+\texttt{ABCD\_near\_thr}      & 20 & 6 & 20000 & 20000 & 0.0504 & 1.3059 & 120 & 6848 & 0.038 \\
+\midrule
+\textbf{Median}               & -- & -- & --    & --    & 0.0268 & 0.1164 & --   & --   & 0.277 \\
 \bottomrule
 \end{tabular}
+}
 \end{table}
 
-\begin{table}[t]
-\centering\small
-\caption{Quick reproduction snapshot for Table~11 settings ($\nu=14$, $d_{\max}=4$).
-  Both the paper-C13 and corrected-C13 variants are currently infeasible on the
-  reported quick generated cells.}
-\label{tab:repro11}
-\begin{tabular}{r r l l}
-\toprule
-$|P|$ & $|H|$ & paper C13 & corrected C13 \\
-\midrule
-10 & 15 & infeasible & infeasible \\
-10 & 21 & infeasible & infeasible \\
-20 & 15 & infeasible & infeasible \\
-20 & 21 & infeasible & infeasible \\
-\bottomrule
-\end{tabular}
-\end{table}
+\paragraph{Interpretation.}
+These runs do not show a consistent gain from exhaustive paths: the mean
+per-instance median speedup is $0.403\times$ and its median is $0.277\times$.
+Route pools contain 106--6848 columns.  The decomposition plots show that
+master construction and solve time, rather than enumeration alone, grow with
+the explicit pool; this is exactly the cost that column generation is intended
+to avoid.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{../paper/figures/step6_runtime_comparison.png}
+\caption{Repeated end-to-end runtime. Bars show medians and error bars show
+IQRs over ten independent rebuild-and-solve repeats.}
+\label{fig:arc_path_runtime}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.78\linewidth]{../paper/figures/step6_speedup_vs_size.png}
+\caption{Speedup trend by instance size.  Values above 1.0 favor the
+path-based model; most instances remain below parity.}
+\label{fig:arc_path_speedup}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{../paper/figures/step6_model_size.png}
+\caption{Equivalent routing-core model sizes: active binary variables and
+active constraints.  Unreferenced compact-model maintenance variables are
+excluded.}
+\label{fig:arc_path_vars}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{../paper/figures/step6_timing_decomposition.png}
+\caption{Median end-to-end time decomposed into formulation-specific phases.}
+\label{fig:arc_path_decomposition}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\begin{subfigure}{0.49\linewidth}
+\includegraphics[width=\linewidth]{../paper/figures/step6_route_growth.png}
+\caption{Route-pool size versus path time.}
+\label{fig:arc_path_route_growth}
+\end{subfigure}\hfill
+\begin{subfigure}{0.49\linewidth}
+\includegraphics[width=\linewidth]{../paper/figures/step6_objective_parity.png}
+\caption{Objective-equivalence check.}
+\label{fig:arc_path_objective_parity}
+\end{subfigure}
+\caption{Scalability mechanism and correctness evidence for the path model.}
+\label{fig:arc_path_growth_and_parity}
+\end{figure}
+
+The practical implication is that path-based MILP is promising only when route
+pools can be controlled (e.g., dynamic pricing/column generation or aggressive
+preprocessing).  In its present exhaustive-route form, it is better viewed as a
+correctness cross-check than a production replacement for the arc-based model.
+
+\paragraph{Methodological note: why exhaustive paths underperform, and how to
+compare fairly with column generation.}
+The path-based benchmark above uses explicit enumeration of all feasible
+time-consistent aircraft routes before optimization.  This design is useful for
+correctness validation, but it mixes two costs: (i) route-generation overhead
+and (ii) MILP solve effort on the resulting master problem.  As instance
+branching grows, the route pool can expand superlinearly, so wall-clock time is
+driven more by enumeration than by branch-and-bound quality.  A fair
+arc-vs-path \emph{performance} comparison on larger horizons should therefore
+use a pricing-based path model (column generation) and report generation and
+solve costs separately.
+
+For reproducible comparison, we recommend the following protocol.
+\begin{enumerate}
+  \item Keep decision scope identical: same routing core (C1--C4), same cost
+    matrix, same turn-time and airport-feasibility logic, and same flight
+    coverage rules.
+  \item Use matched runtime budgets and hardware disclosure; report both total
+    wall time and its decomposition into preprocessing/column-generation/master
+    solve phases.
+  \item Enforce matched stopping criteria: optimality tolerance, time limit,
+    and incumbent quality reporting.
+  \item Track correctness parity explicitly: objective equality or bounded gap,
+    plus complete flight coverage on every tested instance.
+  \item Report master-size evolution for path-based runs (columns generated,
+    active columns at optimum) to separate formulation strength from generation
+    overhead.
+\end{enumerate}
+
+Under this protocol, the current exhaustive-path results should be interpreted
+as a baseline indicating that path-structured models are valid but need
+controlled column generation to realize potential speed benefits on larger TAP
+instances.
+
+\subsection{Limits of the Tables~10 and~11 reproduction}
+
+We likewise withdraw the earlier all-infeasible Tables~10/11 snapshots.  Two
+independent problems make them unsuitable as reproduced performance results:
+(i) they used the same nonconstructive random timetable family whose routing
+core can already be infeasible, and (ii) the earlier driver retained variant
+labels but did not forward $d_{\max}$, $T_{\max}$, $\nu$, or the paper-C13
+toggle to the model.  Longer runs cannot repair either experimental-design
+defect.  Maintenance performance is therefore evaluated on the constructive
+and curated exact-feasible families in \Cref{tab:exact_feasible_comp}, while
+the original-versus-corrected C13 mechanism is tested with the genuine model
+toggle and targeted counterexample below.  A numerical claim of reproducing
+Tables~10/11 requires the original timetables or a new generator that both
+guarantees routing feasibility and exposes every configured parameter.
 
 \subsection{Effect of the Constraint~(13) correction}
 \label{subsec:comp_c13}
@@ -1194,33 +1478,27 @@ Key findings:
 
 \subsection{Full hierarchy results}
 
-\Cref{tab:hierarchy} reports results for the full $\{A,B,C,D\}$ hierarchy
-model (all constraint groups on, corrected C13, \texttt{cbc} solver, 120\,s
-time limit) on the \texttt{ABCD\_*\_test} instance suite under
-\texttt{data/instances/}.  The table is useful because it separates three
-behavioural regimes in one place: fully solved instances, a truly infeasible
-maintenance configuration, and two cases that expose a current implementation
-limitation in the sparse-arc assignment layer.  Five of seven instances solve
-to optimality; \texttt{ABCD\_two\_b\_one\_c\_test} is infeasible under the
-full hierarchy model, and \texttt{ABCD\_all\_checks\_test} /
-\texttt{ABCD\_multi\_check\_test} raise an indexing error in the current
-sparse-arc assignment code (flight/aircraft combinations referenced by those
-two instance files fall outside the arcs the model builds) and are reported
-as such rather than omitted.
+\Cref{tab:hierarchy} reports the full $\{A,B,C,D\}$ hierarchy model with all
+constraint groups active and corrected C13 on the seven current
+\texttt{ABCD\_*\_test} instances.  HiGHS is given 300\,s per case.  Four
+instances solve to optimality and three receive infeasibility certificates;
+none time out or terminate with an implementation error.  The three
+infeasible files are retained as deliberate boundary tests, while performance
+claims are based on the exact-feasible rows and families.
 
 \begin{table}[t]
 \centering\small
 \caption{Full $\{A,B,C,D\}$ hierarchy results on the \texttt{ABCD\_*\_test}
-  instance suite (\texttt{cbc}, 120\,s time limit).}
+  instance suite (HiGHS, 300\,s time limit).}
 \label{tab:hierarchy}
 \begin{tabular}{lccc}
 \toprule
 Instance & Status & Obj & Vars \\
 \midrule
-\texttt{ABCD\_all\_checks\_test} & error (indexing) & -- & -- \\
+\texttt{ABCD\_all\_checks\_test} & infeasible & -- & 709 \\
 \texttt{ABCD\_capacity\_bottleneck\_test} & optimal & 8\,300 & 648 \\
 \texttt{ABCD\_check\_hierarchy\_test} & optimal & 14\,700 & 1\,092 \\
-\texttt{ABCD\_multi\_check\_test} & error (indexing) & -- & -- \\
+\texttt{ABCD\_multi\_check\_test} & infeasible & -- & 808 \\
 \texttt{ABCD\_near\_threshold\_test} & optimal & 21\,100 & 2\,232 \\
 \texttt{ABCD\_no\_maint\_test} & optimal & 14\,000 & 872 \\
 \texttt{ABCD\_two\_b\_one\_c\_test} & infeasible & -- & 2\,530 \\
@@ -1432,6 +1710,11 @@ current run budget.
     $\delta=0.5$ cells and infeasibility on the denser ones, but the larger
     $|P|=20$ or $|H|=30$ cells hit the backend limit or abort before a full
     certificate is produced.
+  \item The arc-vs-path benchmark on the routing core
+    (\Cref{subsec:phase5_arc_vs_path}) shows objective equivalence on all
+    seven existing ABCD tests but no consistent speed gain from exhaustive
+    path-based enumeration; path-based is faster on only two cases and the
+    arc-based formulation remains faster on average.
   \item The brute-force and DP exact-search prototypes remain valuable for
     validation, but they are not yet competitive as production exact solvers
     for the full TAP search space.

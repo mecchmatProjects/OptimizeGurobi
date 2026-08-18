@@ -243,10 +243,14 @@ $d < n_d$.
 
 \begin{theorem}[Validity of corrected Constraint~(13)]
   \label{thm:c13_valid}
-  A feasible assignment satisfying \eqref{eq:c13_new_a}--\eqref{eq:c13_new_b}
-  for all aircraft and all day pairs correctly enforces the cumulative
-  flight-hour bound $T^A_{\max}$ between every pair of consecutive maintenance
-  events, regardless of whether either endpoint day $d$ or $d'$ hosts a check.
+  The pair \eqref{eq:c13_new_a}--\eqref{eq:c13_new_b} forces a maintenance
+  check to occur before the cumulative flight-hour bound $T^A_{\max}$ is
+  exceeded.  Concretely, on every day window $(d,d')$ that hosts no check at
+  either endpoint and none in its interior, the constraints impose
+  $\sum_{i \in F_{d,d'}} x_{ij}\,\tilde{t}_i \le T^A_{\max}$; consequently no
+  check-free span can accumulate more than $T^A_{\max}$ flight hours, which is
+  exactly the cumulative-hour requirement between consecutive maintenance
+  events.
 \end{theorem}
 
 \begin{proof}
@@ -267,8 +271,12 @@ $d < n_d$.
       $(d, d')$ either ($\sum_r y_{jr} = 0$), both constraints impose LHS
       $\le T^A_{\max}$, correctly bounding the sub-period flight hours.
   \end{itemize}
-  In all cases the constraints are active precisely when they should be,
-  confirming validity.
+  In all cases the constraints bind exactly on check-free windows and relax
+  whenever an endpoint or interior day hosts a check (whose counter reset makes
+  the window bound inapplicable).  Any schedule that accumulated more than
+  $T^A_{\max}$ hours without an intervening check would therefore violate the
+  constraint on the corresponding check-free window, so the corrected pair
+  enforces the flight-hour requirement.
 \end{proof}
 
 \begin{remark}[Tightness]

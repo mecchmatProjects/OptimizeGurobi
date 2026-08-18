@@ -90,12 +90,14 @@ constraints restores validity and tightens the LP relaxation.  Third, we
 extend the maintenance model beyond the type-A single-check framework to a
 full four-level $\{A, B, C, D\}$ maintenance hierarchy with correct counter
 resets and pre-horizon accumulated-hours accounting.  Fourth, we provide an
-extensive computational benchmark comparing the MILP against two constructive
-heuristics---a greedy/insertion procedure and a Dijkstra-based space-time
-network heuristic---on the same instance sets.  Reproduction experiments on
-Khaled et al.'s Tables~5, 6, 10, and~11 using the CPLEX solver confirm the
-original results for the basic model after enforcing physically executable
-aircraft trajectories; the corrected maintenance constraints yield measurably
+extensive computational benchmark comparing the MILP against constructive
+heuristics---a greedy/insertion procedure with repair and bounded local-search
+refinements---and two space-time network search heuristics (Dijkstra and ant
+colony optimization) on the same instance sets.  Reproduction experiments on
+Khaled et al.'s Tables~5, 6, 10, and~11 (run here with the open-source CBC
+backend, since the available CPLEX Community Edition is size-limited for these
+instances) reproduce the basic-model behaviour after enforcing physically
+executable aircraft trajectories; the corrected maintenance constraints yield measurably
 different and provably correct solutions on high-density, multi-check
 instances.  All code and instances are publicly available.
 \end{abstract}

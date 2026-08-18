@@ -9,8 +9,10 @@ computational evidence in \Cref{sec:computational} is organised as a coherent
 report rather than a loose collection of experiments: the Phase-1 matrix and
 heatmap define the benchmark family, the Phase-2 tables contrast coverage and
 objective quality across the heuristic variants, the Phase-3 table and figure
-quantify the scalability boundary of the MILP, and the C13 comparison table
-isolates the correction effect in a targeted way.
+quantify the scalability boundary of the MILP, the Phase-4 sweep isolates the
+maintenance parameters that drive feasibility and runtime, the Phase-5
+comparison contrasts the arc-based and path-based formulations, and the C13
+comparison table isolates the correction effect in a targeted way.
 
 \paragraph{C2--C4 feasibility correction.}
 We showed that the basic balance constraints can admit a simultaneous-
@@ -53,7 +55,7 @@ the compact MILP on the same instance family.  The Phase-1 and Phase-2
 results show that the deterministic heuristics remain coverage-stable over the
 25-case suite, while the Phase-3 results show where the exact MILP becomes
 tractable and where the maintenance block overwhelms the solve time.  The
-Dijkstra-based heuristic reliably outperforms the ACO alternative on the
+Dijkstra-based heuristic outperforms the ACO alternative in coverage on the
 temporal acyclic structure of the space-time network, and the greedy+insertion
 heuristic doubles as an effective warm-start provider for the MILP solver.
 

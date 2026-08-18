@@ -1,9 +1,9 @@
 The maintenance-extended model of Chapter~\ref{ch:maintenance} captures the
-basic logic of an aircraft-hours check, but not the full regulatory structure of
-modern airline operations. In practice, maintenance requirements are organized as
-an ordered hierarchy of four check levels, denoted $A$, $B$, $C$, and $D$, each
-with distinct trigger mechanisms, durations, and reset semantics. This chapter
-extends the compact assignment formulation to the full A/B/C/D regime while
+basic logic of an aircraft-hours check, but not the richer nested maintenance
+structure considered in this thesis. We represent that structure by four check
+levels, denoted $A$, $B$, $C$, and $D$, with distinct trigger mechanisms,
+durations, and reset semantics. This chapter extends the compact assignment
+formulation to this A/B/C/D regime while
 retaining the key modelling principle of Chapter~\ref{ch:maintenance}: a
 schedule remains compact and assignment-based, with maintenance decisions
 represented through binary indicators rather than explicit route enumeration.
@@ -38,9 +38,11 @@ aircraft assignments and maintenance decisions for the selected horizon. The
 same instance format is consumed by \texttt{Scheduler}, the heuristic engine,
 which maintains the corresponding A/B flight-minute counters and C/D day
 counters while constructing routes. Consequently, exact and heuristic runs
-are comparable because they start from the same fleet state and apply the same
-check hierarchy, even though one represents decisions algebraically and the
-other evaluates them through timeline simulation.
+start from the same fleet data and apply the same dominance order. This common
+input is necessary but not sufficient for strict objective comparison:
+Chapter~\ref{ch:experiments} separately validates whether an MILP assignment
+can be replayed under the timeline simulator's initial-maintenance and ferry
+semantics.
 
 At application level, a maintenance check is not entered as an arbitrary
 independent event after optimization. Its type, location, duration, and effect
@@ -81,7 +83,7 @@ For each aircraft $j \in \Pc$, day $d \in \D$, and check type $c \in \C$, define
 \end{equation}
 The exact-type variable is complemented by the hierarchy indicator
 \begin{equation}
-    \eta_{jdc} =
+    \gamma_{jdc} =
     \begin{cases}
         1, & \text{if aircraft } j \text{ undergoes a check of level at least } c \text{ on day } d,\\
         0, & \text{otherwise.}
@@ -91,7 +93,7 @@ The indicator is a cumulative summary of the maintenance event: it is equal to
 one whenever a check of level at least $c$ is scheduled for aircraft $j$ on day
 $d$. In the compact model, we enforce the relation
 \begin{equation}
-    \eta_{jdc} = \sum_{c' \succeq c} y_{jdc'},
+    \gamma_{jdc} = \sum_{c' \succeq c} y_{jdc'},
     \qquad \forall j \in \Pc,\ d \in \D,\ c\in\C,
 \end{equation}
 which ensures that a heavier check automatically implies the lighter reset state
@@ -101,7 +103,7 @@ This construction is essential. It prevents a schedule from declaring an
 aircraft as meeting the $A$-check requirement while it is actually undergoing a
 heavier event that should satisfy the same obligation. The hierarchy is not a
 separate planning layer; rather, it is the mechanism through which the model
-maintains regulatory consistency across all maintenance classes.
+maintains internally consistent reset semantics across all maintenance classes.
 
 \section{Hierarchy constraints}
 \label{sec:hierarchy_constraints}
@@ -119,7 +121,7 @@ aircraft is either free, or engaged in a single maintenance event, but not both.
 
 Second, the hierarchy indicator must respect subsumption. If $c' \succ c$, then
 \begin{equation}
-    \eta_{jdc} \geq \eta_{jdc'},
+    \gamma_{jdc} \geq \gamma_{jdc'},
     \qquad \forall j \in \Pc,\ d \in \D,\ c \prec c'.
     \label{eq:hier_subsumes}
 \end{equation}
@@ -130,16 +132,16 @@ also counted as having undergone all lighter checks on that day. Consequently,
 
 Finally, the exact-level and cumulative-level variables are tied together by
 \begin{equation}
-    \eta_{jdA} = y_{jdA} + y_{jdB} + y_{jdC} + y_{jdD},
+    \gamma_{jdA} = y_{jdA} + y_{jdB} + y_{jdC} + y_{jdD},
 \end{equation}
 \begin{equation}
-    \eta_{jdB} = y_{jdB} + y_{jdC} + y_{jdD},
+    \gamma_{jdB} = y_{jdB} + y_{jdC} + y_{jdD},
 \end{equation}
 \begin{equation}
-    \eta_{jdC} = y_{jdC} + y_{jdD},
+    \gamma_{jdC} = y_{jdC} + y_{jdD},
 \end{equation}
 \begin{equation}
-    \eta_{jdD} = y_{jdD},
+    \gamma_{jdD} = y_{jdD},
 \end{equation}
 which are the instantiated forms of the general relation above. These equalities
 are computationally convenient because they admit a sparse and transparent
@@ -153,17 +155,17 @@ Types $A$ and $B$ are triggered by cumulative block time. Let $T_{\max}^{c}$
 denote the allowable accumulation limit for check type $c \in \{A,B\}$.
 The corrected endpoint-anchored formulation of Chapter~\ref{ch:maintenance}
 extends directly to the multi-type case by replacing the single reset variable
-$y_{jd}$ with the relevant hierarchical indicator $\eta_{jdc}$.
+$y_{jd}$ with the relevant hierarchical indicator $\gamma_{jdc}$.
 
 For a candidate interval $(d,d')$ and a check type $c \in \{A,B\}$,
 \begin{align}
     \sum_{i \in F_{d,d'}} x_{ij}\,\tilde{t}_i
-    &\leq T_{\max}^{c} + M_{dd'}\,\eta_{jdc}
-    + M_{dd'}\sum_{r=d+1}^{d'-1}\eta_{jrc},
+    &\leq T_{\max}^{c} + M_{dd'}\,\gamma_{jdc}
+    + M_{dd'}\sum_{r=d+1}^{d'-1}\gamma_{jrc},
     \label{eq:c13a_hier} \\
     \sum_{i \in F_{d,d'}} x_{ij}\,\tilde{t}_i
-    &\leq T_{\max}^{c} + M_{dd'}\,\eta_{jd'c}
-    + M_{dd'}\sum_{r=d+1}^{d'-1}\eta_{jrc},
+    &\leq T_{\max}^{c} + M_{dd'}\,\gamma_{jd'c}
+    + M_{dd'}\sum_{r=d+1}^{d'-1}\gamma_{jrc},
     \label{eq:c13b_hier}
 \end{align}
 where $F_{d,d'}$ is the set of flights departing between the two boundary days.
@@ -173,9 +175,9 @@ falsely permit the cumulative hours to exceed the threshold when a required chec
 should have intervened.
 
 This generalization is the key structural step from a single maintenance class to
- a full regulatory regime. A type-A or type-B reset is not only activated by a
+ a modelled four-level regime. A type-A or type-B reset is not only activated by a
  same-level event; it may also be triggered by a heavier check, because the
- heavier event satisfies the lighter requirement through $\eta_{jdc}$. This is
+ heavier event satisfies the lighter requirement through $\gamma_{jdc}$. This is
  precisely what preserves the dominance ordering in the cumulative-hour
  constraints.
 
@@ -186,7 +188,7 @@ by the hierarchy variable. For each aircraft $j$ and check type $c \in \{A,B\}$,
  a maintenance event of level at least $c$ must occur within every admissible
  window:
 \begin{equation}
-    \sum_{r=d}^{d+d_{\max}^{c}-1}\eta_{jrc} \geq 1,
+    \sum_{r=d}^{d+d_{\max}^{c}-1}\gamma_{jrc} \geq 1,
     \qquad \forall j\in\Pc,\ d \in \D,\ c\in\{A,B\}.
     \label{eq:spacing_ab}
 \end{equation}
@@ -203,7 +205,7 @@ Types $C$ and $D$ are governed by elapsed calendar days rather than cumulative
  $d_{\max}^{c}$ denote the maximum admissible interval between two consecutive
  checks of level at least $c$. The spacing constraint is then
 \begin{equation}
-    \sum_{r=d}^{d+d_{\max}^{c}-1}\eta_{jrc} \geq 1,
+    \sum_{r=d}^{d+d_{\max}^{c}-1}\gamma_{jrc} \geq 1,
     \qquad \forall j \in \Pc,\ d \in \D,\ c\in\{C,D\}.
     \label{eq:spacing_cd}
 \end{equation}
@@ -212,35 +214,37 @@ experience at least one check of level at least $c$. Equivalently, there can be
 no unbroken period longer than the maximum allowable interval without a qualifying
  maintenance intervention.
 
-Unlike the A/B checks, heavy checks are usually multi-day maintenance events. If
-a type-$c$ inspection begins on day $d$, it occupies a contiguous maintenance
-window of length $\ell_c$, so the aircraft is grounded on the days
+When a check type has a duration of multiple model days, a check that begins on
+day $d$ occupies a contiguous maintenance window of length $\ell_c$, so the
+aircraft is grounded on the days
 \begin{equation}
     d,\ d+1,\ \ldots,\ d+\ell_c-1.
 \end{equation}
-This is modelled by imposing that a maintenance event of type $c$ scheduled on
- day $d$ propagates to the following days of the maintenance window:
+To distinguish a new check from its continuation, set
+$\gamma_{j,0,c}=0$. A newly active hierarchy indicator is propagated to the
+following days by
 \begin{equation}
-    y_{j,d+k,c} \geq y_{jdc},
-    \qquad \forall j\in\Pc,\ d\in\D,\ c\in\{C,D\},\ k=1,\ldots,\ell_c-1.
+    \gamma_{j,d+k,c} \geq \gamma_{jdc}-\gamma_{j,d-1,c},
+    \qquad \forall j\in\Pc,\ d\in\D,\ c\in\C:\ell_c>1,\
+    k=1,\ldots,\ell_c-1,
     \label{eq:multi_day_check}
 \end{equation}
-The effect is operationally realistic: a heavy maintenance action cannot be
-represented as a single-day reset without also forbidding flights during the
-requisite continuation of the maintenance period.
+for indices that remain inside the planning horizon. The subtraction prevents
+a continuation day from starting a fresh $\ell_c$-day chain. In the Pyomo
+implementation, C14b imposes the equivalent binary start condition with a
+big-$M$ row and uses the hierarchy variable \texttt{m.mega}.
 
-To preserve feasibility, the model prevents flights from being assigned to an
-aircraft while it is within an active maintenance window. If a check of type $c$
- begins at day $d$ and lasts $\ell_c$ days, then no flight departing during the
- affected interval may be assigned to aircraft $j$:
+To preserve feasibility, the model prevents a flight from being assigned to an
+aircraft when its departure overlaps the active maintenance timing window. Let
+$\mathcal W_{jdc}$ denote the candidate flights whose departure time and airport
+fall within the duration window associated with an active level-$c$ maintenance
+event. The blocking condition is
 \begin{equation}
-    \sum_{i:\ d_i^{\uparrow}=d+k} x_{ij} \leq 1 - y_{jdc},
-    \qquad \forall j\in\Pc,\ d\in\D,\ c\in\{C,D\},\ k=0,\ldots,\ell_c-1.
+    \gamma_{j,d_i^{\uparrow},c}+x_{ij}\leq1,
+    \qquad \forall j\in\Pc,\ c\in\C,\ i\in\mathcal W_{jdc},
     \label{eq:no_flight_during_maintenance}
 \end{equation}
-This is the operational counterpart of the exact-type maintenance variable and
-prevents the schedule from assigning an aircraft to a flight that would overlap
-an active heavy check.
+which mirrors C15's use of \texttt{m.mega} and absolute departure-time windows.
 
 \section{Pre-horizon state accounting}
 \label{sec:hierarchy_prehorizon}
@@ -273,6 +277,18 @@ This treatment is critical in computational practice because a schedule can appe
  operational continuity across planning periods, which is necessary when the
  observed schedule is intended to be used in a realistic fleet-operations setting.
 
+For the A/B hierarchy, the opening flight-hour condition is explicitly
+\begin{equation}
+    \sum_{i\in F_{0,d'}}\tilde t_i x_{ij}
+    \leq (T_{\max}^{c}-\Phi_j^c)
+    +M_{0d'}\sum_{r=1}^{d'-1}\gamma_{jrc}
+    +M_{0d'}\gamma_{jd'c},
+    \qquad \forall j\in\Pc,\ c\in\{A,B\},\ d'\in\D.
+    \label{eq:c13b_initial_hier}
+\end{equation}
+For C/D checks, the corresponding opening condition is a deadline on the first
+qualifying $\gamma_{jdc}$ event, computed from the elapsed pre-horizon days.
+
 \section{Model size and operational implications}
 \label{sec:hierarchy_impact}
 
@@ -280,7 +296,7 @@ The full A/B/C/D extension increases the number of maintenance variables and
 constraints relative to the basic maintenance model, but it does so in a controlled
 and structured way. The exact-type variables $y_{jdc}$ are defined for each
  aircraft, day, and check level, so the additional binary dimension is of order
- $O(|\Pc|\,|\D|\,|\C|)$. The hierarchy indicator variables $\eta_{jdc}$ add
+ $O(|\Pc|\,|\D|\,|\C|)$. The hierarchy indicator variables $\gamma_{jdc}$ add
  the same order of magnitude, while the spacing, dominance, and heavy-check
  constraints contribute a comparable set of linear rows. The extended formulation
  therefore remains compact and assignment-based; it does not enumerate complete
@@ -298,6 +314,6 @@ The operational value of the extension is substantial. A compact formulation tha
 ignores maintenance hierarchy may return schedules that are numerically optimal
 for the wrong problem: it may overlook a required reset, permit illegal
 overlapping inspection windows, or certify a solution that fails under real
-regulatory enforcement. By contrast, the A/B/C/D hierarchy captures the actual
-regulatory logic used in airline planning and preserves the balance between
-operational realism and tractability that is central to the thesis.
+regulatory enforcement. By contrast, the A/B/C/D hierarchy captures the nested
+reset logic assumed by this study and preserves the balance between operational
+detail and tractability that is central to the thesis.

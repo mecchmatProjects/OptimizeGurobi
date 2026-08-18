@@ -25,8 +25,9 @@ model:
 \begin{enumerate}
     \item every published flight leg must be covered exactly once;
     \item each aircraft has one known initial airport;
-    \item an aircraft moves between airports only through an assigned flight, so
-    any permitted ferry movement must be included explicitly;
+    \item an aircraft moves between airports only through an assigned published
+    flight; explicit ferry variables and ferry costs are outside this ground
+    formulation;
     \item departure and arrival times are fixed, and consecutive flights require
     at least the minimum ground turn time;
     \item forbidden flight--aircraft pairs are removed or fixed to zero; and

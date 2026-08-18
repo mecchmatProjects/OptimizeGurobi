@@ -1,4 +1,13 @@
-Exact optimisation provides a certificate of optimality, but the compact aircraft-routing model becomes computationally demanding on dense or maintenance-heavy instances. For this reason, heuristic methods in the present project serve two roles: they provide fast feasible schedules when the exact solver is not tractable, and they provide good primal solutions that can be used as warm starts for the MILP. The heuristics are therefore designed to preserve the same operational semantics as the exact formulation, especially the hierarchy of checks $D \succ C \succ B \succ A$ and the timeline feasibility rules established in Chapters~\ref{ch:maintenance}--\ref{ch:hierarchy}.
+Exact optimisation provides a certificate of optimality, but the compact
+aircraft-routing model becomes computationally demanding on dense or
+maintenance-heavy instances. The heuristic methods therefore provide fast
+executable schedules and independent performance benchmarks when exact search
+is impractical. They share the maintenance dominance order
+$D \succ C \succ B \succ A$, while their route-list simulator is stricter than
+the current MILP on some initial-maintenance and movement transitions. The
+present application does not pass heuristic schedules to the solver as warm
+starts; a valid future warm start would have to initialize all coupled MILP
+variables consistently.
 
 The current implementation contains constructive, improvement, and network-search procedures in the \texttt{Scheduler} class of \texttt{src/model.py}. The first group operates directly on ordered flight lists and repeatedly invokes a timeline simulator. The modified Dijkstra heuristic now implemented in the same class uses an implicit time-ordered flight-transition network. The ACO mode uses the same route representation but adds pheromone-guided probabilistic construction and best-ant reinforcement.
 
@@ -36,7 +45,7 @@ Thus, the implementation combines route-list procedures with two implicit graph-
 \section{Shared feasibility oracle}
 \label{sec:heuristic_oracle}
 
-All heuristic procedures rely on a common feasibility oracle that evaluates an aircraft route in chronological order. Given an ordered flight list $[f_1,\ldots,f_k]$ for aircraft $j$, the simulator returns either a feasible event sequence with total accumulated cost, or an infeasible status. This is the central primitive of the project scheduler and it embodies the same maintenance logic used in the exact model.
+All heuristic procedures rely on a common feasibility oracle that evaluates an aircraft route in chronological order. Given an ordered flight list $[f_1,\ldots,f_k]$ for aircraft $j$, the simulator returns either a feasible event sequence with total accumulated cost, or an infeasible status. This is the central primitive of the project scheduler and implements the heuristic route semantics used by every mode.
 
 For each aircraft, the simulator maintains four running counters: the elapsed flight minutes since the last A- or B-check, and the elapsed calendar-day counters since the last C- or D-check. Each new flight is accepted only if the aircraft can reach the required departure airport in time, tolerate any necessary repositioning, and satisfy maintenance-trigger conditions before the departure time. If a maintenance check is triggered, the simulator checks that the aircraft is at a maintenance-capable origin airport, that the required station capacity is available, and that the check duration can be completed before the next flight departure. The aircraft is then reset according to the dominance hierarchy $D \succ C \succ B \succ A$. A route is rejected immediately if any of these conditions fail.
 
@@ -97,9 +106,17 @@ The heuristic and MILP use different representations of aircraft movement. The h
 \end{equation}
 and feasibility is determined by simulating the whole sequence from the aircraft’s initial airport and maintenance state. Appending, inserting, or relocating a flight changes a route path and triggers re-evaluation of the affected sequence. There is no explicit node set, arc set, shortest-path label, or flow variable in this heuristic implementation.
 
-The MILP is instead \emph{arc based} at the assignment level. Its sparse binary variables $x_{ij}$ represent assignment arcs from flight $i$ to aircraft $j$; the set of permitted pairs is precomputed from the cost matrix. Additional temporal and maintenance constraints couple these assignment arcs, flight pairs, and maintenance decisions. The MILP therefore derives route consistency from global constraints rather than storing one mutable route list per aircraft.
+The MILP is instead \emph{assignment based}. Its sparse binary variables
+$x_{ij}$ indicate that flight $i$ is assigned to aircraft $j$; they are not
+flight-connection or ferry arcs. Additional temporal and maintenance
+constraints couple these assignments, flight pairs, and maintenance decisions.
+The MILP therefore derives route consistency from global constraints rather
+than storing one mutable route list per aircraft.
 
-This distinction also explains the role of the ferry switch. In the heuristic, ferrying is an explicit event inserted into a path during simulation. In the MILP, ferry-enabled mode is represented indirectly through equipment-flow and turnaround constraints, while the assignment variables remain flight--aircraft arcs. The project implements Dijkstra and ACO on implicit transition graphs rather than as separate explicit time-expanded network data structures.
+As noted in Section~\ref{sec:heuristic_ferry}, this representation does not
+make the MILP switch an exact analogue of explicit heuristic ferry events. The
+project implements Dijkstra and ACO on implicit transition graphs rather than
+as separate explicit time-expanded network data structures.
 
 \section{Modified Dijkstra heuristic}
 \label{sec:heuristic_network}
@@ -182,12 +199,23 @@ consistently.
 \section{Quality assessment and computational role}
 \label{sec:heuristic_quality}
 
-The heuristic methods are evaluated using the same objective as the exact model: the total assignment cost, with penalties for infeasible or unassigned flights. Since the exact MILP provides a lower bound, or even a true optimum on smaller instances, it is natural to assess heuristic quality using an optimality-gap measure. For a heuristic solution with objective value $z_{\mathrm{H}}$ and a reference bound $z_{\mathrm{ref}}$, the relative gap is
+The heuristic methods are evaluated first by coverage and feasibility, and then
+by runtime and decomposed cost. When a heuristic and exact model use the same
+feasible-set semantics and objective accounting, the exact MILP also provides a
+reference for an optimality-gap measure. For a heuristic solution with objective
+value $z_{\mathrm{H}}$ and a comparable reference bound $z_{\mathrm{ref}}$, the
+relative gap is
 
 \begin{equation}
     \delta_{\mathrm{H}} = \frac{z_{\mathrm{H}} - z_{\mathrm{ref}}}{z_{\mathrm{ref}}} \times 100\%. 
 \end{equation}
 
-When the exact MILP is solved to optimality, $z_{\mathrm{ref}} = z^{*}$; otherwise, $z_{\mathrm{ref}}$ can be taken as the LP bound, which still provides a rigorous theoretical benchmark for assessing the quality of the heuristic incumbent. This standard is important because raw cost values are not directly comparable across instances with different sizes and maintenance pressures; the gap measure isolates the quality of the heuristic relative to the underlying optimisation problem.
+When the exact MILP is solved to optimality, $z_{\mathrm{ref}} = z^{*}$;
+otherwise, $z_{\mathrm{ref}}$ can be taken as the LP bound from the same
+formulation and instance. Such a gap is rigorous only for a heuristic incumbent
+that is feasible for that formulation and evaluated by the same objective.
+Where route replay exposes different initial-maintenance, ferry, or maintenance-
+event semantics, Chapter~\ref{ch:experiments} reports coverage and decomposed
+costs descriptively instead of labelling the difference an optimality gap.
 
 The overall conclusion is that the heuristic family is not just a fallback technique. It is a structured collection of methods tailored to the peculiar structure of the tail-assignment problem: heavy temporal coupling, maintenance-trigger logic, and non-trivial interaction between assignment decisions and route feasibility. The deterministic timeline-based methods are the project’s main practical tools, while the Dijkstra and ACO formulations remain important as more global search concepts that illuminate the trade-off between solution quality, robustness, and computational effort.

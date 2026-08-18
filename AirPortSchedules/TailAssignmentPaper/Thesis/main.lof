@@ -5,5 +5,8 @@
 \addvspace {10\p@ }
 \addvspace {10\p@ }
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {7.1}{\ignorespaces Measured path-versus-arc evidence from the ten-repeat boundary experiment. The figures are generated from the archived Step-6 CSV results; they do not represent the extended seven-heuristic comparison.}}{58}{figure.caption.32}%
+\contentsline {figure}{\numberline {7.1}{\ignorespaces Instance-matched wall-time comparison (log scale) for all seven heuristics plus classical and integrated MILP, generated from \texttt {full\_seven\_method\_tournament.csv}.}}{56}{figure.caption.30}%
+\contentsline {figure}{\numberline {7.2}{\ignorespaces Runtime distributions by method over the nine-instance benchmark (boxplots on a log-time axis), generated from \texttt {full\_seven\_method\_tournament.csv}.}}{57}{figure.caption.31}%
+\contentsline {figure}{\numberline {7.3}{\ignorespaces Mode comparison trade-off plot: x-axis median runtime (log scale), y-axis mean coverage, color complete/optimal rate, bubble size mean total cost, computed from \texttt {full\_seven\_method\_tournament.csv}.}}{58}{figure.caption.33}%
+\contentsline {figure}{\numberline {7.4}{\ignorespaces Measured path-versus-arc evidence from the ten-repeat boundary experiment. The figures are generated from the archived Step-6 CSV results; they do not represent the extended seven-heuristic comparison.}}{61}{figure.caption.36}%
 \addvspace {10\p@ }

@@ -1,0 +1,249 @@
+\begin{thebibliography}{34}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Barnhart et~al.(1998)Barnhart, Boland, Clarke, Johnson, Nemhauser, and
+  Shenoi]{barnhart1998flight}
+Cynthia Barnhart, Natashia~L. Boland, Lloyd~W. Clarke, Ellis~L. Johnson,
+  George~L. Nemhauser, and Rajesh~G. Shenoi.
+\newblock Flight string models for aircraft fleeting and routing.
+\newblock \emph{Transportation Science}, 32\penalty0 (3):\penalty0 208--220,
+  1998.
+
+\bibitem[Barnhart et~al.(2003)Barnhart, Belobaba, and
+  Odoni]{barnhart2003applications}
+Cynthia Barnhart, Peter Belobaba, and Amedeo~R. Odoni.
+\newblock Applications of operations research in the air transport industry.
+\newblock \emph{Transportation Science}, 37\penalty0 (4):\penalty0 368--391,
+  2003.
+
+\bibitem[Ben~Ahmed et~al.(2015)Ben~Ahmed, Zeghal~Mansour, and
+  Haouari]{benahmed2015simulation}
+Mohamed Ben~Ahmed, Farah Zeghal~Mansour, and Mohamed Haouari.
+\newblock A simulation-optimization approach for robust aircraft routing.
+\newblock Unpublished manuscript, 2015.
+
+\bibitem[Ben~Ahmed et~al.(2017)Ben~Ahmed, Ghroubi, Haouari, and
+  Sherali]{benahmed2017hybrid}
+Mohamed Ben~Ahmed, Wisal Ghroubi, Mohamed Haouari, and Hanif~D. Sherali.
+\newblock A hybrid optimization-simulation approach for robust weekly aircraft
+  routing and retiming.
+\newblock \emph{Transportation Research Part C: Emerging Technologies},
+  84:\penalty0 1--20, 2017.
+\newblock \doi{10.1016/j.trc.2017.07.010}.
+
+\bibitem[Bornd{\"o}rfer et~al.(2010)Bornd{\"o}rfer, Dovica, Nowak, and
+  Schickinger]{borndorfer2010robust}
+Ralf Bornd{\"o}rfer, Ivan Dovica, Ivo Nowak, and Thomas Schickinger.
+\newblock Robust tail assignment.
+\newblock Technical report, Konrad-Zuse-Zentrum f{\"u}r Informationstechnik
+  Berlin, 2010.
+
+\bibitem[Clarke et~al.(1997)Clarke, Johnson, Nemhauser, and
+  Zhu]{clarke1997aircraft}
+Lloyd Clarke, Ellis Johnson, George Nemhauser, and Zhongxi Zhu.
+\newblock The aircraft rotation problem.
+\newblock \emph{Annals of Operations Research}, 69:\penalty0 33--46, 1997.
+
+\bibitem[Clarke et~al.(1996)Clarke, Hane, Johnson, and
+  Nemhauser]{clarke1996maintenance}
+Lloyd~W. Clarke, Caroline~A. Hane, Ellis~L. Johnson, and George~L. Nemhauser.
+\newblock Maintenance and crew considerations in fleet assignment.
+\newblock \emph{Transportation Science}, 30\penalty0 (3):\penalty0 249--260,
+  1996.
+
+\bibitem[Cordeau et~al.(2001)Cordeau, Stojkovi\'c, Soumis, and
+  Desrosiers]{cordeau2001benders}
+Jean-Fran\c{c}ois Cordeau, Goran Stojkovi\'c, Fran\c{c}ois Soumis, and Jacques
+  Desrosiers.
+\newblock Benders decomposition for simultaneous aircraft routing and crew
+  scheduling.
+\newblock \emph{Transportation Science}, 35\penalty0 (4):\penalty0 375--388,
+  2001.
+
+\bibitem[Deng et~al.(2020)Deng, Santos, and Curran]{deng2020maintenance}
+Qichen Deng, Bruno~F. Santos, and Richard Curran.
+\newblock A practical dynamic programming based methodology for aircraft
+  maintenance check scheduling optimization.
+\newblock \emph{European Journal of Operational Research}, 281\penalty0
+  (2):\penalty0 256--273, 2020.
+\newblock \doi{10.1016/j.ejor.2019.08.025}.
+
+\bibitem[Deng et~al.(2021)Deng, Santos, and Verhagen]{deng2021dss}
+Qichen Deng, Bruno~F. Santos, and Wim J.~C. Verhagen.
+\newblock A novel decision support system for optimizing aircraft maintenance
+  check schedule and task allocation.
+\newblock \emph{Decision Support Systems}, 146:\penalty0 113545, 2021.
+\newblock \doi{10.1016/j.dss.2021.113545}.
+
+\bibitem[Desaulniers et~al.(1997)Desaulniers, Desrosiers, Dumas, Solomon, and
+  Soumis]{desaulniers1997daily}
+Guy Desaulniers, Jacques Desrosiers, Yvan Dumas, Marius~M. Solomon, and
+  Fran\c{c}ois Soumis.
+\newblock Daily aircraft routing and scheduling.
+\newblock \emph{Management Science}, 43\penalty0 (6):\penalty0 841--855, 1997.
+
+\bibitem[Dijkstra(1959)]{dijkstra1959note}
+Edsger~W. Dijkstra.
+\newblock A note on two problems in connexion with graphs.
+\newblock \emph{Numerische Mathematik}, 1:\penalty0 269--271, 1959.
+\newblock \doi{10.1007/BF01386390}.
+
+\bibitem[Dorigo and St{\"u}tzle(2004)]{dorigo2004ant}
+Marco Dorigo and Thomas St{\"u}tzle.
+\newblock \emph{Ant Colony Optimization}.
+\newblock MIT Press, Cambridge, MA, 2004.
+\newblock \doi{10.7551/mitpress/1290.001.0001}.
+
+\bibitem[Dorigo et~al.(1996)Dorigo, Maniezzo, and Colorni]{dorigo1996ant}
+Marco Dorigo, Vittorio Maniezzo, and Alberto Colorni.
+\newblock Ant system: Optimization by a colony of cooperating agents.
+\newblock \emph{IEEE Transactions on Systems, Man, and Cybernetics, Part B},
+  26\penalty0 (1):\penalty0 29--41, 1996.
+\newblock \doi{10.1109/3477.484436}.
+
+\bibitem[Froyland et~al.(2013)Froyland, Maher, and Wu]{froyland2013recoverable}
+Gary Froyland, Stephen~J. Maher, and Cheng-Lung Wu.
+\newblock The recoverable robust tail assignment problem.
+\newblock \emph{Transportation Science}, 48\penalty0 (3):\penalty0 351--372,
+  2013.
+
+\bibitem[Gopalan and Talluri(1998)]{gopalan1998mathematical}
+Ram Gopalan and Kalyan~T. Talluri.
+\newblock Mathematical models in airline schedule planning: A survey.
+\newblock \emph{Annals of Operations Research}, 76:\penalty0 155--185, 1998.
+
+\bibitem[Gr\"{o}nkvist(2005)]{gronkvist2005tail}
+Mattias Gr\"{o}nkvist.
+\newblock \emph{The tail assignment problem}.
+\newblock PhD thesis, Chalmers and G\"{o}teborg University, 2005.
+
+\bibitem[Hane et~al.(1995)Hane, Barnhart, Johnson, Marsten, Nemhauser, and
+  Sigismondi]{hane1995fleet}
+Caroline~A. Hane, Cynthia Barnhart, Ellis~L. Johnson, Roy~E. Marsten, George~L.
+  Nemhauser, and Gabriella Sigismondi.
+\newblock The fleet assignment problem: Solving a large-scale integer program.
+\newblock \emph{Mathematical Programming}, 70\penalty0 (1--3):\penalty0
+  211--232, 1995.
+
+\bibitem[Haouari et~al.(2012)Haouari, Shao, and Sherali]{haouari2012lifted}
+Mohamed Haouari, Shicheng Shao, and Hanif~D. Sherali.
+\newblock A lifted compact formulation for the daily aircraft maintenance
+  routing problem.
+\newblock \emph{Transportation Science}, 47\penalty0 (4):\penalty0 508--525,
+  2012.
+
+\bibitem[Khaled et~al.(2018)Khaled, Minoux, Mousseau, Michel, and
+  Ceugniet]{khaled2018compact}
+Oumaima Khaled, Michel Minoux, Vincent Mousseau, St{\'e}phane Michel, and
+  Xavier Ceugniet.
+\newblock A compact optimization model for the tail assignment problem.
+\newblock \emph{European Journal of Operational Research}, 264\penalty0
+  (2):\penalty0 548--557, 2018.
+\newblock \doi{10.1016/j.ejor.2017.06.045}.
+
+\bibitem[Klabjan(2005)]{klabjan2005large}
+Diego Klabjan.
+\newblock Large-scale models in the airline industry.
+\newblock In Guy Desaulniers, Jacques Desrosiers, and Marius~M. Solomon,
+  editors, \emph{Column Generation}, pages 163--195. Springer US, 2005.
+
+\bibitem[Lacasse-Guay et~al.(2010)Lacasse-Guay, Desaulniers, and
+  Soumis]{lacasse2010aircraft}
+Emile Lacasse-Guay, Guy Desaulniers, and Fran\c{c}ois Soumis.
+\newblock Aircraft routing under different business processes.
+\newblock \emph{Journal of Air Transport Management}, 16\penalty0 (5):\penalty0
+  258--263, 2010.
+
+\bibitem[Lavoie et~al.(1988)Lavoie, Minoux, and Odier]{lavoie1988new}
+Sylvain Lavoie, Michel Minoux, and Etienne Odier.
+\newblock A new approach for crew pairing problems by column generation with an
+  application to air transportation.
+\newblock \emph{European Journal of Operational Research}, 35\penalty0
+  (1):\penalty0 45--58, 1988.
+
+\bibitem[Levin(1971)]{levin1971scheduling}
+Arye Levin.
+\newblock Scheduling and fleet routing models for transportation systems.
+\newblock \emph{Transportation Science}, 5\penalty0 (3):\penalty0 232--255,
+  1971.
+
+\bibitem[Liang and Chaovalitwongse(2011)]{liang2011new}
+Zhe Liang and Wanpracha~Art Chaovalitwongse.
+\newblock A new model for aircraft maintenance routing.
+\newblock \emph{Computers \& Operations Research}, 38\penalty0 (4):\penalty0
+  812--820, 2011.
+
+\bibitem[Liang and Chaovalitwongse(2012)]{liang2012network}
+Zhe Liang and Wanpracha~Art Chaovalitwongse.
+\newblock A network-based model for the integrated weekly aircraft maintenance
+  routing and fleet assignment problem.
+\newblock \emph{Transportation Science}, 47\penalty0 (4):\penalty0 493--507,
+  2012.
+
+\bibitem[Maher et~al.(2018)Maher, Desaulniers, and Soumis]{maher2018daily}
+Stephen~J. Maher, Guy Desaulniers, and Fran{\c{c}}ois Soumis.
+\newblock The daily tail assignment problem under operational uncertainty using
+  look-ahead maintenance constraints.
+\newblock \emph{European Journal of Operational Research}, 264\penalty0
+  (2):\penalty0 534--547, 2018.
+\newblock \doi{10.1016/j.ejor.2017.06.041}.
+
+\bibitem[Mercier et~al.(2005)Mercier, Cordeau, and
+  Soumis]{mercier2005computational}
+Anne Mercier, Jean-Fran\c{c}ois Cordeau, and Fran\c{c}ois Soumis.
+\newblock Computational comparison of benders decomposition and set
+  partitioning for integrated aircraft routing and crew scheduling.
+\newblock \emph{European Journal of Operational Research}, 166\penalty0
+  (2):\penalty0 362--385, 2005.
+
+\bibitem[Minoux(1984)]{minoux1984column}
+Michel Minoux.
+\newblock Column generation techniques in combinatorial optimization, a new
+  application to crew pairing problems.
+\newblock In \emph{Proceedings of the {AGIFORS} Symposium}, Strasbourg, France,
+  1984.
+
+\bibitem[Mirjafari et~al.(2020)Mirjafari, Rashidi~Komijan, and
+  Shoja]{mirjafari2020integrated}
+Masoumeh Mirjafari, Alireza Rashidi~Komijan, and Ahmad Shoja.
+\newblock An integrated model for aircraft routing and crew scheduling:
+  {Lagrangian} relaxation and metaheuristic algorithm.
+\newblock \emph{WPOM--Working Papers on Operations Management}, 11\penalty0
+  (1):\penalty0 25--38, 2020.
+\newblock \doi{10.4995/wpom.v11i1.12891}.
+
+\bibitem[Sarac et~al.(2006)Sarac, Batta, and Rump]{sarac2006branch}
+Ahmet Sarac, Rajan Batta, and Christopher~M. Rump.
+\newblock A branch-and-price approach for operational aircraft maintenance
+  routing.
+\newblock \emph{European Journal of Operational Research}, 175\penalty0
+  (3):\penalty0 1850--1869, 2006.
+
+\bibitem[Shao et~al.(2017)Shao, Sherali, and Haouari]{shao2017integrated}
+Shengzhi Shao, Hanif~D. Sherali, and Mohamed Haouari.
+\newblock A novel model and decomposition approach for the integrated airline
+  fleet assignment, aircraft routing, and crew pairing problem.
+\newblock \emph{Transportation Science}, 51\penalty0 (1):\penalty0 233--249,
+  2017.
+\newblock \doi{10.1287/trsc.2015.0623}.
+
+\bibitem[Sherali et~al.(2006)Sherali, Bish, and Zhu]{sherali2006airline}
+Hanif~D. Sherali, Ebru~K. Bish, and Xiaomei Zhu.
+\newblock Airline fleet assignment concepts, models, and algorithms.
+\newblock \emph{European Journal of Operational Research}, 172\penalty0
+  (1):\penalty0 1--30, 2006.
+
+\bibitem[Witteman et~al.(2021)Witteman, Deng, and
+  Santos]{witteman2021binpacking}
+Max Witteman, Qichen Deng, and Bruno~F. Santos.
+\newblock A bin packing approach to solve the aircraft maintenance task
+  allocation problem.
+\newblock \emph{European Journal of Operational Research}, 294\penalty0
+  (1):\penalty0 365--376, 2021.
+\newblock \doi{10.1016/j.ejor.2021.01.027}.
+
+\end{thebibliography}

@@ -51,32 +51,33 @@ state of the art:
   constraints.
 
 \item \textbf{Constraint~(13) correction.}  We show that the cumulative-flight-
-  time maintenance constraint (Constraint~13 in \citet{khaled2018compact})
+  time maintenance constraint (Constraint~(13) in \citet{khaled2018compact})
   contains a logical flaw: the big-$M$ linearisation term $M(2 - y_{jd} -
   y_{jd'})$ leaves the constraint vacuously satisfied whenever at least one of
   the endpoint days $d, d'$ hosts no check, so an accumulation window that is
   not bounded by checks at both ends is left unconstrained and may exceed the
   flight-hour limit.  We provide a corrected formulation using two split
   endpoint constraints, prove its validity, and show that the corrected
-  formulation yields strictly tighter LP relaxations on high-density instances.
+  formulation rejects a dedicated false-feasible counterexample admitted by
+  the original row.
 
 \item \textbf{Full $\{A, B, C, D\}$ maintenance hierarchy.}  The model of
   \citet{khaled2018compact} handles type-A checks (cumulative flight hours).
-  We extend the formulation to the full four-level hierarchy mandated by
-  aviation regulators (FAA/EASA): type-A and~B checks are flight-hour
-  triggered; type-C and~D checks are calendar-day triggered.  A heavier check
-  subsumes all lighter checks (hierarchical counter resets).  We further add
-  a constraint accounting for pre-horizon accumulated maintenance hours/days per
-  aircraft and integrate these requirements into long-horizon schedule planning.
+  We extend the formulation to a four-level A/B/C/D hierarchy used here as a
+  modelling abstraction for nested maintenance obligations: type-A and~B
+  checks are flight-hour triggered, while type-C and~D checks are calendar-day
+  triggered. A heavier check subsumes all lighter checks through hierarchical
+  counter resets. We further add a constraint accounting for pre-horizon
+  accumulated maintenance hours and days per aircraft and integrate these
+  requirements into long-horizon schedule planning.
 
-\item \textbf{Heuristic benchmark.}  We implement and evaluate two
-  constructive heuristics: (a) a greedy/insertion heuristic operating
-  directly on flight lists, and (b) a Dijkstra-based heuristic on the
-  space-time network representation (adapted from
-  \citet{gronkvist2005tail}).  Both heuristics respect the full maintenance
-  hierarchy.  We report optimality gaps against the MILP on the same instance
-  sets and show the Dijkstra heuristic consistently outperforms an ACO
-  alternative.
+\item \textbf{Heuristic benchmark.}  We implement and evaluate seven
+  executable modes: greedy, insertion, greedy-plus-insertion, repair, local
+  search, modified Dijkstra, and ant colony optimisation. All modes use the
+  same timeline simulator and maintenance hierarchy. We compare coverage,
+  decomposed costs, and runtime on matched instance sets, and reserve strict
+  optimality-gap claims for cases in which the heuristic and MILP feasible-set
+  semantics and objective accounting are aligned.
 \end{enumerate}
 
 \subsection*{Thesis organisation}

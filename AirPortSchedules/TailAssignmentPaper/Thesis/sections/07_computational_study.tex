@@ -6,6 +6,10 @@ intended on controlled boundary cases. Second, it compares the solution quality,
 coverage, model size, and runtime of exact and heuristic methods under increasing
 routing and maintenance pressure. The chapter distinguishes measured results
 from additional comparisons that require a longer computational study.
+Figures~\ref{fig:computational_runtime_instance_plot},
+\ref{fig:computational_runtime_distribution_plot}, and
+\ref{fig:computational_modes_tradeoff_plot} provide the main comparative
+visual evidence for runtime behavior and mode-level trade-offs.
 
 \section{Research questions and evaluation principles}
 \label{sec:computational_questions}
@@ -52,7 +56,8 @@ Each run is defined by the tuple
     \text{ferry setting},\ \text{maintenance setting},\ \text{seed}),
 \end{equation}
 which is recorded with the output files. The random instance generator uses
-the stable seed function specified in Chapter~\ref{ch:introduction}; therefore
+the \texttt{stable\_seed} function in
+\texttt{src/generate\_instances.py}; therefore
 an instance can be regenerated from its density, fleet size, horizon, and test
 index. Subsequent comparisons should retain the same instance files and should
 not replace an archived result merely because a different solver backend
@@ -85,11 +90,13 @@ The exact protocol is:
 \end{verbatim}
 
 The batch protocol runs the same instance directory with a fixed mode, solver,
-and time limit. Ferry-enabled and no-ferry experiments are separate treatments,
-not interchangeable observations. The former inserts explicit 60-minute ferry
-events with the configured ferry cost; the latter rejects airport-disconnected
-successive flights. Every generated schedule is post-validated by replaying its
-aircraft routes through the timeline simulator.
+and time limit. For heuristics, ferry-enabled and no-ferry runs are separate
+treatments: the former inserts explicit 60-minute ferry events with the
+configured ferry cost, while the latter rejects airport-disconnected successive
+flights. The MILP flag with the same name instead controls whether C2--C3
+equipment-flow rows are active and does not create explicit ferry events.
+Heuristic routes are validated by construction through the timeline simulator;
+MILP routes are replayed only in the designated semantic-alignment experiment.
 
 \begin{table}[t]
 \centering\small
@@ -770,11 +777,34 @@ ABCD no maintenance & 14,000 & 14,000 & 14,000 & 14,000 & 14,000 & 14,000 & 14,0
 }
 \end{table}
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.98\linewidth]{../paper/figures/ch7_runtime_by_instance.png}
+\caption{Instance-matched wall-time comparison (log scale) for all seven
+heuristics plus classical and integrated MILP, generated from
+\texttt{full\_seven\_method\_tournament.csv}.}
+\label{fig:computational_runtime_instance_plot}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.95\linewidth]{../paper/figures/ch7_runtime_distribution.png}
+\caption{Runtime distributions by method over the nine-instance benchmark
+(boxplots on a log-time axis), generated from
+\texttt{full\_seven\_method\_tournament.csv}.}
+\label{fig:computational_runtime_distribution_plot}
+\end{figure}
+
 The coverage table is the primary comparison because it is independent of
 objective-accounting differences. The cost table is useful for identifying
 patterns, such as local-search improvement on the capacity and hierarchy
 cases, but a heuristic total below the MILP reference must be interpreted as a
 feasible-set or accounting discrepancy until both formulations are aligned.
+For example, on the ABCD-threshold row the greedy and MILP assignment costs are
+both 20,000, but the MILP includes 11 maintenance events (1,100 penalty) while
+the greedy replay records one event (100 penalty); this is a maintenance-accounting
+difference and not evidence that a heuristic has outperformed a certified MILP
+optimum under identical semantics.
 
 The route-replay validator was applied to all nine exact-feasible integrated-MILP
 solutions. Six assignments replay successfully under the heuristic timeline,
@@ -810,6 +840,15 @@ ABCD no maintenance & optimal & 14/14 & validated & 0 \\
 \end{tabular}
 \end{table}
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.92\linewidth]{../paper/figures/ch7_modes_tradeoff.png}
+\caption{Mode comparison trade-off plot: x-axis median runtime (log scale),
+y-axis mean coverage, color complete/optimal rate, bubble size mean total cost,
+computed from \texttt{full\_seven\_method\_tournament.csv}.}
+\label{fig:computational_modes_tradeoff_plot}
+\end{figure}
+
 \section{Alternative soft-coverage formulation}
 \label{sec:computational_soft_coverage}
 
@@ -840,6 +879,62 @@ maintenance, ferry, or timing constraints. The soft formulation is therefore
 an experimental analysis mode and must pass the same route-replay validator
 before its schedules are interpreted operationally.
 
+Table~\ref{tab:soft_coverage_measured} reports measured hard-versus-soft
+results from
+\texttt{results/tables/exact\_feasible/soft\_coverage\_comparison.csv}.
+The comparison now covers the full nine-instance exact-feasible benchmark used
+in Section~\ref{sec:computational_heuristics}. Hard and soft formulations are
+optimal on all nine instances, with identical coverage in every case
+(191/191 assigned flights overall, mean coverage gain $0.0$ percentage points,
+recovered-from-infeasible count $0$). This confirms that on this benchmark,
+soft coverage does not change the feasible-set outcome because full coverage is
+already attainable.
+
+At fixed full coverage, the secondary cost is identical on seven of nine
+instances and higher under soft coverage on two A-only cases
+(\texttt{feas\_A\_p4h7\_d08}, \texttt{feas\_A\_p6h10\_d05}). This indicates
+that the coverage-priority objective can select a different
+coverage-equivalent maintenance pattern even when all flights remain assigned.
+The discriminating recovery behavior (hard infeasible, soft partially feasible)
+is not exercised by this exact-feasible family. Evaluating that behavior
+requires a separate capacity-constrained benchmark in which hard coverage is
+infeasible while a partial assignment remains operationally valid; the C13
+loophole test in Section~\ref{subsec:computational_c13_loophole} instead
+isolates the corrected cumulative-hours constraint.
+
+The soft objective values are large negative numbers because of the
+$-B_{\mathrm{cov}}\sum x_{ij}$ term and therefore are not comparable with hard
+MILP objective values. For cross-mode interpretation, report coverage and the
+secondary cost
+$\sum c_{ij}x_{ij}+100\sum y_{jdc}$,
+which is directly comparable once coverage is fixed.
+
+\begin{table}[t]
+\centering\small
+\caption{Measured hard-versus-soft coverage comparison for Section~\ref{sec:computational_soft_coverage}.
+Secondary cost is
+$\sum c_{ij}x_{ij}+100\sum y_{jdc}$
+and excludes the coverage reward term.}
+\label{tab:soft_coverage_measured}
+\begin{tabular}{lrrrrr}
+\toprule
+Instance & Flights & Hard cov. & Soft cov. & $\Delta$ cov. (pp) & Soft secondary cost \\
+\midrule
+feas A p4h7 d05 & 28 & 28/28 & 28/28 & 0.0 & 17,523 \\
+feas AB p4h7 d05 & 16 & 16/16 & 16/16 & 0.0 & 7,847 \\
+feas ABCD p4h7 d05 & 8 & 8/8 & 8/8 & 0.0 & 4,128 \\
+feas A p4h7 d08 & 30 & 30/30 & 30/30 & 0.0 & 19,906 \\
+feas A p6h10 d05 & 54 & 54/54 & 54/54 & 0.0 & 35,026 \\
+ABCD capacity & 8 & 8/8 & 8/8 & 0.0 & 8,300 \\
+ABCD hierarchy & 13 & 13/13 & 13/13 & 0.0 & 14,700 \\
+ABCD threshold & 20 & 20/20 & 20/20 & 0.0 & 21,100 \\
+ABCD no maintenance & 14 & 14/14 & 14/14 & 0.0 & 14,000 \\
+\midrule
+Aggregate (9 instances) & 191 & 191/191 & 191/191 & 0.0 & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \section{LP lower bounds and gap reporting}
 \label{sec:computational_lp}
 
@@ -857,6 +952,8 @@ The second quantity is available only when $z^*$ is certified. If a heuristic is
 partial, its objective must not be placed in either gap formula without first
 specifying an unassigned-flight penalty or comparing only against another
 partial solution with identical coverage.
+Both formulas additionally require the heuristic schedule to be feasible for
+the reference formulation and its cost to use the same accounting convention.
 
 The available LP results show a zero or very small continuous gap on several
 curated instances: the capacity-bottleneck integrated LP bound is 8,000.013

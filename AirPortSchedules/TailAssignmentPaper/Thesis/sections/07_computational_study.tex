@@ -166,39 +166,128 @@ output location are recorded before the results are aggregated. This permits
 the study to grow beyond the initial matrix without silently mixing semantic
 regression tests, exact-feasible quality tests, and random scalability tests.
 
+\subsection{Data construction and instance classification}
+\label{subsec:computational_data_classification}
+
+All computational instances are exchanged through a common JSON format. The
+file contains the flight list
+\texttt{[flight\_id, origin, destination, departure, arrival]}, the aircraft
+identifiers and initial airport positions, the initial A/B flight-minute and
+C/D calendar-day exposures, the four maintenance thresholds, maintenance
+durations, station capacities, and the flight--aircraft cost matrix. Both
+\texttt{Scheduler} and \texttt{MILP\_Sheduler} read this same representation.
+Consequently, differences between methods are attributable to the solution
+procedure and its mathematical formulation, rather than to a different input
+schema.
+
+Two complementary construction procedures are used. The random generator in
+\texttt{src/generate\_instances.py} samples flight origins, destinations,
+departure times, and durations from a declared parameter set. The density,
+fleet size, horizon, and test index are passed to \texttt{stable\_seed}, so the
+same parameter tuple regenerates the same JSON file. These instances are useful
+for scaling the number of flights, but independently sampled flight endpoints
+may make the exact equipment-flow model infeasible. They are therefore
+classified as random stress instances unless exact feasibility is verified.
+
+The constructive generator follows the opposite order. It first creates
+aircraft rotations, simulates them with the maintenance timeline, and only then
+writes the rotations as flights in the common JSON format. Separate generation
+modes produce A-only, AB, and full ABCD maintenance families. These instances
+are used when the experiment requires a known feasible integrated schedule and
+an exact MILP reference. Curated JSON files supplement both generators with
+small cases designed to isolate capacity, hierarchy, threshold, multi-check,
+and Constraint~(13) behavior.
+
+Each generated or curated file passes three acceptance checks before inclusion:
+the JSON schema is readable by both solvers, every reported flight has valid
+time ordering, and the intended feasibility class is recorded. Constructive
+instances additionally pass timeline validation of the seeded rotations.
+Random instances pass the same checks but are not labelled exact-feasible until
+the integrated MILP confirms feasibility. This distinction prevents a
+heuristic's ability to construct a partial or ferry-enabled schedule from being
+mistaken for a proof of exact-model feasibility.
+
+For reporting, instances are classified as \emph{easy}, \emph{medium}, or
+\emph{hard} using four observable dimensions: normalized size, maintenance
+pressure, routing/capacity pressure, and computational outcome. The classes are
+defined by the following rule rather than by subjective naming:
+
+\begin{itemize}
+  \item \textbf{Easy:} short-horizon or small instances with no maintenance
+  or light A-only/AB requirements, ample station capacity, complete heuristic
+  coverage, and an integrated MILP optimum obtained within the declared
+  budget.
+  \item \textbf{Medium:} instances with active maintenance interactions,
+  moderate flight counts or horizons, threshold/capacity sensitivity, or
+  occasional partial heuristic coverage, while the integrated MILP remains
+  solvable or its behavior is diagnostically interpretable.
+  \item \textbf{Hard:} dense or long-horizon instances with full ABCD or tight
+  maintenance windows, limited station capacity, incomplete heuristic
+  coverage, proven infeasibility, or an MILP that reaches its time limit
+  without certification.
+\end{itemize}
+
+The classification is multi-factor: an instance is assigned to the highest
+difficulty level triggered by its observed characteristics. Thus, a small
+capacity-bottleneck case may be hard despite having few flights, whereas a
+larger low-pressure case may remain medium. The classification records both
+the intended class from the generator and the observed evidence after solving,
+so that a mismatch becomes a result to explain rather than a silent relabelling.
+
+\begin{table}[t]
+\centering\small
+\caption{Operational classification of computational instance difficulty.}
+\label{tab:instance_difficulty}
+\begin{tabular}{p{0.16\linewidth}p{0.28\linewidth}p{0.28\linewidth}p{0.18\linewidth}}
+\toprule
+Class & Typical construction & Dominant pressure & Intended use \\
+\midrule
+Easy & No-maintenance or light constructive A/AB cases & Low size and ample capacity & Regression and exact baseline \\
+Medium & Moderate constructive or curated hierarchy cases & Active checks, thresholds, or limited slack & Method comparison and sensitivity \\
+Hard & Dense random, long-horizon, tight ABCD, or bottleneck cases & Flow conflicts, maintenance windows, or solver limits & Scalability and robustness \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \subsection{Exact-feasible comparison and heuristic improvement}
 \label{subsec:computational_exact_feasible}
 
 The larger synthetic instances are useful for scalability, but they are not
 the appropriate basis for measuring heuristic optimality gaps when the MILP
-cannot certify a solution. For that purpose, the previous computational study
+cannot certify a solution. For that purpose, the archived comparison in
+\texttt{prev/sections/07\_computational.tex}
 defined a separate exact-feasible family of nine small instances spanning three
 to six aircraft and eight to 54 flights. The family combines constructive
 A-only, AB, and ABCD rotations with curated no-maintenance, threshold,
 capacity, and hierarchy cases.
 
-All nine integrated MILP instances were reported as optimal, with wall-clock
-times between 1.8 and 21.4 seconds under the declared HiGHS configuration. On
-these instances, heuristic quality ranges from exact agreement on simple cases
-to large gaps on tight capacity and hierarchy cases. The largest reported
-greedy gap is 345.8\% on the capacity-bottleneck case, where the heuristic
-leaves flights unassigned; this value is a warning about coverage loss as much
-as it is a cost comparison. The corresponding local-search gap is 273.5\% on
-the same partial solution. Complete and partial heuristic results are therefore
-reported separately in the analysis.
+All nine integrated MILP instances in the current tournament were solved to
+optimality under the declared HiGHS configuration. Wall-clock times ranged
+from approximately 0.14 to 20.14 seconds, with a median of approximately
+0.48 seconds; the largest constructive instance was the clear runtime outlier.
+The archived comparison in \texttt{prev/sections/07\_computational.tex}
+reported heuristic gaps of 345.8\% for greedy and 273.5\% for local search on
+the capacity-bottleneck case. In the current tournament, the corresponding
+descriptive total-cost differences are 349.4\% and 275.9\%, respectively.
+Because the heuristic and integrated-MILP feasible-set semantics are not fully
+identical, these values are reported as historical/current cost differences,
+not as universal optimality gaps. Complete and partial heuristic results are
+therefore reported separately.
 
 The 25-instance density--complexity matrix provides a different result. The
 reported bounded local-search refinement improves the greedy objective by a
 mean of 12.7\% across the matrix, while the associated MILP runs reach their
 configured solver limit on all 25 random-grid cells. This is evidence of
 scalable heuristic improvement, not evidence of a 12.7\% optimality gap. The
-exact-feasible family supports optimality-gap claims; the larger random family
-supports runtime, coverage, and improvement-trend claims.
+exact-feasible family supports MILP certification and controlled heuristic
+cost comparisons; strict heuristic optimality gaps still require aligned
+objective and feasible-set semantics. The larger random family supports
+runtime, coverage, and improvement-trend claims.
 
 \begin{table}[t]
 \centering\small
 \caption{Scope and interpretation of the exact-feasible comparison reported in
-the previous computational study.}
+the archived computational section \texttt{prev/sections/07\_computational.tex}.}
 \label{tab:exact_feasible_summary}
 \begin{tabular}{p{0.23\linewidth}p{0.17\linewidth}p{0.17\linewidth}p{0.27\linewidth}}
 \toprule
@@ -213,9 +302,10 @@ Total & 9 & $P=3$--$6$, $F=8$--$54$ & Integrated MILP certification and heuristi
 \end{table}
 
 The nine-instance comparison is therefore a certification set, not a
-scalability sample. Its reported integrated-MILP runtimes range from 1.8 to
-21.4 seconds under the stated HiGHS configuration. The distinction between
-this set and the larger synthetic matrix is maintained throughout the chapter.
+scalability sample. Its current integrated-MILP runtimes range from
+approximately 0.14 to 20.14 seconds under the stated HiGHS configuration. The
+distinction between this set and the larger synthetic matrix is maintained
+throughout the chapter.
 
 The exact-feasible subset also contains a matched ferry experiment. On the two
 smaller four-aircraft instances, enabling or disabling repositioning does not
@@ -558,11 +648,13 @@ The completed seven-mode comparison contains, for every instance and method,
 assigned flights,
 coverage percentage, unassigned flights, objective, ferry cost,
 maintenance-event count, wall time, CPU time where available, and feasibility
-status. For methods with a complete feasible schedule, report gaps to the MILP
-optimum; for time-limited MILPs, report both the incumbent gap and the
-heuristic-to-LP gap. The remaining qualification concerns strict objective
-comparability: a further formulation-alignment experiment is needed before
-interpreting every heuristic-to-MILP difference as an optimality gap.
+status. For methods with a complete feasible schedule, report an optimality gap
+only when objective accounting and feasible-set semantics are identical. In
+the present tournament, report coverage, decomposed costs, runtime, and
+descriptive cost differences; for time-limited MILPs, report the incumbent
+bound and heuristic-to-LP comparison separately. A formulation-alignment
+experiment is required before interpreting every heuristic-to-MILP difference
+as an optimality gap.
 
 The first complete nine-instance tournament was subsequently executed with all
 seven heuristic modes and both classical and integrated MILP references. The
@@ -610,6 +702,20 @@ comparisons of coverage, feasibility, runtime, and decomposed costs, but a
 negative heuristic-to-MILP cost difference is not by itself proof that the
 heuristic has beaten the MILP optimum. Strict optimality gaps require a further
 experiment with identical feasible-set semantics and objective accounting.
+
+As part of the alignment work, the experiment
+\texttt{experiments/validate\_semantic\_alignment.py} reconstructs MILP
+aircraft routes from the $x_{ij}$ variables and replays them through the same
+timeline oracle used by the heuristics. The curated no-maintenance MILP
+assignment passes this replay. The capacity-bottleneck boundary, which exposes
+an overdue initial A-counter at an airport with zero maintenance capacity, is
+reported by the MILP as feasible while the timeline oracle rejects the
+reconstructed route. This exposes the remaining initial-maintenance/ferry
+semantic mismatch rather than hiding it in an objective comparison. The
+validator is applied to curated semantic tests; random synthetic instances
+remain diagnostic stress cases because their independently sampled flight
+endpoints are not guaranteed to admit identical equipment-flow and timeline
+interpretations.
 
 \begin{table}[t]
 \centering\scriptsize
@@ -669,6 +775,70 @@ objective-accounting differences. The cost table is useful for identifying
 patterns, such as local-search improvement on the capacity and hierarchy
 cases, but a heuristic total below the MILP reference must be interpreted as a
 feasible-set or accounting discrepancy until both formulations are aligned.
+
+The route-replay validator was applied to all nine exact-feasible integrated-MILP
+solutions. Five assignments replay successfully under the heuristic timeline,
+whereas four expose a semantic mismatch: the MILP assignment is optimal in its
+own formulation but the reconstructed route is rejected by the timeline oracle.
+The mismatches occur on the A-only density-0.8 case, the capacity bottleneck,
+and the hierarchy cases. This result confirms that the current tournament is
+valid for coverage and solver-status comparisons, but strict heuristic-to-MILP
+optimality gaps should be restricted to the five semantically aligned cases
+until initial-maintenance and ferry state transitions are represented identically
+in both models.
+
+\begin{table}[t]
+\centering\small
+\caption{MILP-to-timeline semantic alignment on the nine exact-feasible
+instances. A validated row means that the MILP assignment, when ordered by
+departure time, replays successfully through the heuristic timeline oracle.}
+\label{tab:semantic_alignment}
+\begin{tabular}{lrrrr}
+\toprule
+Instance & MILP status & Coverage & Replay status & Mismatched routes \\
+\midrule
+feas A p4h7 d05 & optimal & 28/28 & validated & 0 \\
+feas AB p4h7 d05 & optimal & 16/16 & validated & 0 \\
+feas ABCD p4h7 d05 & optimal & 8/8 & validated & 0 \\
+feas A p4h7 d08 & optimal & 30/30 & mismatch & 1 \\
+feas A p6h10 d05 & optimal & 54/54 & validated & 0 \\
+ABCD capacity & optimal & 8/8 & mismatch & 3 \\
+ABCD hierarchy & optimal & 13/13 & mismatch & 3 \\
+ABCD threshold & optimal & 20/20 & validated & 0 \\
+ABCD no maintenance & optimal & 14/14 & validated & 0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Alternative soft-coverage formulation}
+\label{sec:computational_soft_coverage}
+
+In addition to the hard-coverage model, the application exposes an experimental
+soft-coverage formulation through the \texttt{--soft-coverage} option. For each
+flight $i$, a binary variable $u_i$ indicates that the flight is left
+unassigned, and the coverage constraint becomes
+\begin{equation}
+  \sum_{j}x_{ij}+u_i=1.
+\end{equation}
+The objective uses a coverage-priority weight:
+\begin{equation}
+  \min\left(
+  -B_{\mathrm{cov}}\sum_{i,j}x_{ij}
+  +\sum_{i,j}c_{ij}x_{ij}
+  +100\sum_{j,d,c}y_{jdc}\right),
+\end{equation}
+so that maximizing the number of assigned flights precedes cost minimization.
+The default value is $B_{\mathrm{cov}}=10^6$ and can be changed with
+\texttt{--coverage-weight}. This formulation answers a different question from
+the hard model: it seeks maximum service coverage under the active operational
+constraints and then minimizes the secondary cost.
+
+Soft-coverage results must not be combined with hard-feasibility rankings. They
+are reported using assigned-flight coverage, unassigned-flight count, assigned
+flight minutes, and secondary cost. Permitting $u_i$ does not by itself relax
+maintenance, ferry, or timing constraints. The soft formulation is therefore
+an experimental analysis mode and must pass the same route-replay validator
+before its schedules are interpreted operationally.
 
 \section{LP lower bounds and gap reporting}
 \label{sec:computational_lp}

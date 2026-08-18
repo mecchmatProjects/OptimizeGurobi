@@ -70,21 +70,23 @@
 \contentsline {section}{\numberline {7.2}Software, hardware, and reproducibility protocol}{43}{section.7.2}%
 \contentsline {subsection}{\numberline {7.2.1}Execution protocol}{43}{subsection.7.2.1}%
 \contentsline {section}{\numberline {7.3}Benchmark families}{44}{section.7.3}%
-\contentsline {subsection}{\numberline {7.3.1}Exact-feasible comparison and heuristic improvement}{45}{subsection.7.3.1}%
-\contentsline {section}{\numberline {7.4}Measured exact-model results}{47}{section.7.4}%
-\contentsline {subsection}{\numberline {7.4.1}Curated hierarchy-suite results}{48}{subsection.7.4.1}%
-\contentsline {subsection}{\numberline {7.4.2}Sensitivity to thresholds, durations, and capacity}{48}{subsection.7.4.2}%
-\contentsline {section}{\numberline {7.5}Constraint (13) and hierarchy validation}{49}{section.7.5}%
-\contentsline {subsection}{\numberline {7.5.1}Dedicated loophole validation}{50}{subsection.7.5.1}%
-\contentsline {section}{\numberline {7.6}Heuristic tournament}{51}{section.7.6}%
-\contentsline {section}{\numberline {7.7}LP lower bounds and gap reporting}{54}{section.7.7}%
-\contentsline {section}{\numberline {7.8}Path-based versus arc-based computation}{54}{section.7.8}%
-\contentsline {section}{\numberline {7.9}Extended comparison and reporting template}{56}{section.7.9}%
-\contentsline {section}{\numberline {7.10}Summary of measured evidence and remaining comparisons}{56}{section.7.10}%
-\contentsline {section}{\numberline {7.11}Threats to validity}{57}{section.7.11}%
-\contentsline {section}{\numberline {7.12}Directions for strengthening the exact formulation}{57}{section.7.12}%
-\contentsline {chapter}{\numberline {8}Conclusion}{59}{chapter.8}%
-\contentsline {paragraph}{Correction of the basic feasibility model.}{59}{section*.31}%
-\contentsline {paragraph}{Correction of Constraint~(13).}{59}{section*.32}%
-\contentsline {paragraph}{Full A/B/C/D hierarchy extension.}{60}{section*.33}%
-\contentsline {paragraph}{Heuristic methods and computational evaluation.}{60}{section*.34}%
+\contentsline {subsection}{\numberline {7.3.1}Data construction and instance classification}{45}{subsection.7.3.1}%
+\contentsline {subsection}{\numberline {7.3.2}Exact-feasible comparison and heuristic improvement}{47}{subsection.7.3.2}%
+\contentsline {section}{\numberline {7.4}Measured exact-model results}{48}{section.7.4}%
+\contentsline {subsection}{\numberline {7.4.1}Curated hierarchy-suite results}{49}{subsection.7.4.1}%
+\contentsline {subsection}{\numberline {7.4.2}Sensitivity to thresholds, durations, and capacity}{50}{subsection.7.4.2}%
+\contentsline {section}{\numberline {7.5}Constraint (13) and hierarchy validation}{51}{section.7.5}%
+\contentsline {subsection}{\numberline {7.5.1}Dedicated loophole validation}{52}{subsection.7.5.1}%
+\contentsline {section}{\numberline {7.6}Heuristic tournament}{52}{section.7.6}%
+\contentsline {section}{\numberline {7.7}Alternative soft-coverage formulation}{56}{section.7.7}%
+\contentsline {section}{\numberline {7.8}LP lower bounds and gap reporting}{57}{section.7.8}%
+\contentsline {section}{\numberline {7.9}Path-based versus arc-based computation}{58}{section.7.9}%
+\contentsline {section}{\numberline {7.10}Extended comparison and reporting template}{59}{section.7.10}%
+\contentsline {section}{\numberline {7.11}Summary of measured evidence and remaining comparisons}{60}{section.7.11}%
+\contentsline {section}{\numberline {7.12}Threats to validity}{60}{section.7.12}%
+\contentsline {section}{\numberline {7.13}Directions for strengthening the exact formulation}{60}{section.7.13}%
+\contentsline {chapter}{\numberline {8}Conclusion}{62}{chapter.8}%
+\contentsline {paragraph}{Correction of the basic feasibility model.}{62}{section*.33}%
+\contentsline {paragraph}{Correction of Constraint~(13).}{62}{section*.34}%
+\contentsline {paragraph}{Full A/B/C/D hierarchy extension.}{63}{section*.35}%
+\contentsline {paragraph}{Heuristic methods and computational evaluation.}{63}{section*.36}%

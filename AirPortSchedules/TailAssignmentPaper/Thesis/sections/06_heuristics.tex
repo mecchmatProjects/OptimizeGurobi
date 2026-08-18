@@ -113,10 +113,11 @@ constraints couple these assignments, flight pairs, and maintenance decisions.
 The MILP therefore derives route consistency from global constraints rather
 than storing one mutable route list per aircraft.
 
-As noted in Section~\ref{sec:heuristic_ferry}, this representation does not
-make the MILP switch an exact analogue of explicit heuristic ferry events. The
-project implements Dijkstra and ACO on implicit transition graphs rather than
-as separate explicit time-expanded network data structures.
+As discussed in Section~\ref{sec:heuristic_ferry}, this representational gap is
+also why the MILP \texttt{allow\_ferry} switch is not an exact analogue of the
+heuristic ferry events. The project implements Dijkstra and ACO on implicit
+transition graphs rather than as separate explicit time-expanded network data
+structures.
 
 \section{Modified Dijkstra heuristic}
 \label{sec:heuristic_network}

@@ -46,33 +46,34 @@
 \contentsline {section}{\numberline {4.10}Physical interpretation and model validity}{24}{section.4.10}%
 \contentsline {section}{\numberline {4.11}Complete single-type formulation and size}{24}{section.4.11}%
 \contentsline {chapter}{\numberline {5}Full A/B/C/D Maintenance Hierarchy}{26}{chapter.5}%
-\contentsline {section}{\numberline {5.1}Check types and regulatory hierarchy}{26}{section.5.1}%
-\contentsline {section}{\numberline {5.2}Hierarchy constraints}{27}{section.5.2}%
-\contentsline {section}{\numberline {5.3}Flight-hour checks: types A and B}{28}{section.5.3}%
-\contentsline {subsection}{\numberline {5.3.1}Maximum-spacing requirement}{29}{subsection.5.3.1}%
-\contentsline {section}{\numberline {5.4}Calendar-day checks: types C and D}{29}{section.5.4}%
-\contentsline {section}{\numberline {5.5}Pre-horizon state accounting}{30}{section.5.5}%
-\contentsline {section}{\numberline {5.6}Model size and operational implications}{30}{section.5.6}%
-\contentsline {chapter}{\numberline {6}Heuristic Solution Methods}{32}{chapter.6}%
-\contentsline {section}{\numberline {6.1}Taxonomy of heuristic methods}{32}{section.6.1}%
-\contentsline {section}{\numberline {6.2}Shared feasibility oracle}{33}{section.6.2}%
-\contentsline {section}{\numberline {6.3}Greedy construction}{34}{section.6.3}%
-\contentsline {section}{\numberline {6.4}Insertion-based construction and repair}{35}{section.6.4}%
-\contentsline {section}{\numberline {6.5}Ferry and no-ferry variants}{35}{section.6.5}%
-\contentsline {section}{\numberline {6.6}Path-based and arc-based representations}{36}{section.6.6}%
-\contentsline {section}{\numberline {6.7}Documented but unimplemented network alternatives}{37}{section.6.7}%
-\contentsline {paragraph}{Modified Dijkstra heuristic.}{37}{section*.16}%
-\contentsline {paragraph}{Ant colony optimisation.}{37}{section*.17}%
-\contentsline {section}{\numberline {6.8}Quality assessment and computational role}{38}{section.6.8}%
-\contentsline {chapter}{\numberline {7}Computational Study}{39}{chapter.7}%
-\contentsline {section}{\numberline {7.1}Instance families and benchmark design}{39}{section.7.1}%
-\contentsline {section}{\numberline {7.2}Effect of the formulation correction}{40}{section.7.2}%
-\contentsline {section}{\numberline {7.3}Exact solver performance}{40}{section.7.3}%
-\contentsline {section}{\numberline {7.4}Heuristic performance and optimality gaps}{40}{section.7.4}%
-\contentsline {section}{\numberline {7.5}LP lower-bound analysis}{41}{section.7.5}%
-\contentsline {section}{\numberline {7.6}Summary of findings}{41}{section.7.6}%
-\contentsline {chapter}{\numberline {8}Conclusion}{42}{chapter.8}%
-\contentsline {paragraph}{Correction of the basic feasibility model.}{42}{section*.18}%
-\contentsline {paragraph}{Correction of Constraint~(13).}{42}{section*.19}%
-\contentsline {paragraph}{Full A/B/C/D hierarchy extension.}{43}{section*.20}%
-\contentsline {paragraph}{Heuristic methods and computational evaluation.}{43}{section*.21}%
+\contentsline {section}{\numberline {5.1}Application representation of the hierarchy}{26}{section.5.1}%
+\contentsline {section}{\numberline {5.2}Check types and regulatory hierarchy}{27}{section.5.2}%
+\contentsline {section}{\numberline {5.3}Hierarchy constraints}{28}{section.5.3}%
+\contentsline {section}{\numberline {5.4}Flight-hour checks: types A and B}{29}{section.5.4}%
+\contentsline {subsection}{\numberline {5.4.1}Maximum-spacing requirement}{29}{subsection.5.4.1}%
+\contentsline {section}{\numberline {5.5}Calendar-day checks: types C and D}{30}{section.5.5}%
+\contentsline {section}{\numberline {5.6}Pre-horizon state accounting}{31}{section.5.6}%
+\contentsline {section}{\numberline {5.7}Model size and operational implications}{31}{section.5.7}%
+\contentsline {chapter}{\numberline {6}Heuristic Solution Methods}{33}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Taxonomy of heuristic methods}{33}{section.6.1}%
+\contentsline {section}{\numberline {6.2}Shared feasibility oracle}{34}{section.6.2}%
+\contentsline {section}{\numberline {6.3}Greedy construction}{35}{section.6.3}%
+\contentsline {section}{\numberline {6.4}Insertion-based construction and repair}{36}{section.6.4}%
+\contentsline {section}{\numberline {6.5}Ferry and no-ferry variants}{36}{section.6.5}%
+\contentsline {section}{\numberline {6.6}Path-based and arc-based representations}{37}{section.6.6}%
+\contentsline {section}{\numberline {6.7}Modified Dijkstra heuristic}{38}{section.6.7}%
+\contentsline {section}{\numberline {6.8}Ant colony optimisation heuristic}{39}{section.6.8}%
+\contentsline {section}{\numberline {6.9}Application workflow and generated schedules}{39}{section.6.9}%
+\contentsline {section}{\numberline {6.10}Quality assessment and computational role}{40}{section.6.10}%
+\contentsline {chapter}{\numberline {7}Computational Study}{42}{chapter.7}%
+\contentsline {section}{\numberline {7.1}Instance families and benchmark design}{42}{section.7.1}%
+\contentsline {section}{\numberline {7.2}Effect of the formulation correction}{43}{section.7.2}%
+\contentsline {section}{\numberline {7.3}Exact solver performance}{43}{section.7.3}%
+\contentsline {section}{\numberline {7.4}Heuristic performance and optimality gaps}{43}{section.7.4}%
+\contentsline {section}{\numberline {7.5}LP lower-bound analysis}{44}{section.7.5}%
+\contentsline {section}{\numberline {7.6}Summary of findings}{44}{section.7.6}%
+\contentsline {chapter}{\numberline {8}Conclusion}{45}{chapter.8}%
+\contentsline {paragraph}{Correction of the basic feasibility model.}{45}{section*.16}%
+\contentsline {paragraph}{Correction of Constraint~(13).}{45}{section*.17}%
+\contentsline {paragraph}{Full A/B/C/D hierarchy extension.}{46}{section*.18}%
+\contentsline {paragraph}{Heuristic methods and computational evaluation.}{46}{section*.19}%

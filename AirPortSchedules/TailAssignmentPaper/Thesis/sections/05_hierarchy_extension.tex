@@ -16,6 +16,42 @@ therefore introduced through a set of dominance relationships and check-reset
 indicators that preserve the correct operational semantics while keeping the
 model tractable.
 
+\section{Application representation of the hierarchy}
+\label{sec:hierarchy_application}
+
+In the application, the hierarchy is represented directly in the JSON instance
+and then loaded by the Python model builder. The instance contains the aircraft
+set, flight legs and their departure and arrival times, initial aircraft
+locations, initial maintenance exposure, maintenance thresholds, maintenance
+durations, station capacities, and the flight--aircraft cost matrix. The keys
+for the four check levels are interpreted consistently throughout the
+application: A and B thresholds are measured in accumulated flight minutes,
+whereas C and D thresholds are measured in elapsed calendar days. Maintenance
+durations remain expressed in minutes because they consume time in the daily
+aircraft timeline.
+
+This data flow creates a clear separation between instance data and model
+logic. The input file specifies the regulatory and operational state at the
+start of the planning horizon; \texttt{MILP\_Sheduler} constructs the binary
+variables and maintenance constraints; and the resulting solution reports
+aircraft assignments and maintenance decisions for the selected horizon. The
+same instance format is consumed by \texttt{Scheduler}, the heuristic engine,
+which maintains the corresponding A/B flight-minute counters and C/D day
+counters while constructing routes. Consequently, exact and heuristic runs
+are comparable because they start from the same fleet state and apply the same
+check hierarchy, even though one represents decisions algebraically and the
+other evaluates them through timeline simulation.
+
+At application level, a maintenance check is not entered as an arbitrary
+independent event after optimization. Its type, location, duration, and effect
+on the aircraft state determine which subsequent flights are feasible. A
+heavier check is therefore propagated through the hierarchy both in the MILP
+variables and in the simulator: a D-check resets all four obligations, a
+C-check resets A, B, and C, a B-check resets A and B, and an A-check resets
+only A. This shared interpretation is what allows the application to produce
+not only an assignment matrix, but an operationally interpretable aircraft
+schedule.
+
 \section{Check types and regulatory hierarchy}
 \label{sec:hierarchy_regime}
 

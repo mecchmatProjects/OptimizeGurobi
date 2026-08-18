@@ -1,6 +1,6 @@
 Exact optimisation provides a certificate of optimality, but the compact aircraft-routing model becomes computationally demanding on dense or maintenance-heavy instances. For this reason, heuristic methods in the present project serve two roles: they provide fast feasible schedules when the exact solver is not tractable, and they provide good primal solutions that can be used as warm starts for the MILP. The heuristics are therefore designed to preserve the same operational semantics as the exact formulation, especially the hierarchy of checks $D \succ C \succ B \succ A$ and the timeline feasibility rules established in Chapters~\ref{ch:maintenance}--\ref{ch:hierarchy}.
 
-The current implementation contains one family of heuristic methods: constructive and improvement procedures in the \texttt{Scheduler} class of \texttt{src/model.py}. These procedures operate on ordered flight lists and repeatedly invoke a timeline simulator. Dijkstra and ant-colony optimisation (ACO) are discussed in the project’s mathematical notes as alternative network-search ideas, but no Dijkstra or ACO solver is implemented in the current \texttt{src/} directory. They must therefore be treated as methodological alternatives, not as implemented experimental methods.
+The current implementation contains constructive, improvement, and network-search procedures in the \texttt{Scheduler} class of \texttt{src/model.py}. The first group operates directly on ordered flight lists and repeatedly invokes a timeline simulator. The modified Dijkstra heuristic now implemented in the same class uses an implicit time-ordered flight-transition network. The ACO mode uses the same route representation but adds pheromone-guided probabilistic construction and best-ant reinforcement.
 
 \section{Taxonomy of heuristic methods}
 \label{sec:heuristic_taxonomy}
@@ -10,7 +10,7 @@ The heuristics used in this project can be grouped into three main classes.
 \begin{enumerate}
     \item \textbf{Constructive assignment heuristics.} These methods build a schedule from scratch by assigning flights to aircraft in chronological order. The principal representatives are the greedy heuristic and the insertion-based heuristic implemented in the project scheduler.
     \item \textbf{Repair and local-improvement heuristics.} These methods start from an initial feasible or partial assignment and iteratively improve it by trying insertions or relocations that preserve feasibility. In the current implementation this class includes repair and local-search refinements.
-    \item \textbf{Network-search heuristics.} These are documented alternatives rather than current implementations. No graph data structure, Dijkstra routine, or ACO routine is exposed by \texttt{src/model.py}.
+    \item \textbf{Network-search heuristics.} The modified Dijkstra mode searches implicit time-ordered flight transitions, while ACO samples timeline-feasible transitions using pheromone and cost desirability.
 \end{enumerate}
 
 The concrete modes accepted by \texttt{Scheduler.\_normalize\_heuristic} are summarized below.
@@ -25,11 +25,13 @@ The concrete modes accepted by \texttt{Scheduler.\_normalize\_heuristic} are sum
 \texttt{greedy+insertion} & greedy append & up to five insertion sweeps \\
 \texttt{repair} & greedy append & up to eight insertion sweeps \\
 \texttt{local\_search} & greedy append & relocation, then up to four insertion sweeps \\
+\texttt{dijkstra} & maximum-coverage label search & repeated path selection \\
+\texttt{aco} & pheromone-guided chronological construction & best-ant reinforcement \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-Thus, the implementation is a family of related path-list procedures, not a collection of independent graph algorithms. The shared feasibility simulator is the controlling abstraction; the modes differ in how they create or modify the ordered route lists.
+Thus, the implementation combines route-list procedures with two implicit graph-search procedures. The shared feasibility simulator is the controlling abstraction; the constructive modes modify ordered route lists directly, whereas Dijkstra uses labels and ACO uses pheromone-guided route sampling.
 
 \section{Shared feasibility oracle}
 \label{sec:heuristic_oracle}
@@ -97,24 +99,85 @@ and feasibility is determined by simulating the whole sequence from the aircraft
 
 The MILP is instead \emph{arc based} at the assignment level. Its sparse binary variables $x_{ij}$ represent assignment arcs from flight $i$ to aircraft $j$; the set of permitted pairs is precomputed from the cost matrix. Additional temporal and maintenance constraints couple these assignment arcs, flight pairs, and maintenance decisions. The MILP therefore derives route consistency from global constraints rather than storing one mutable route list per aircraft.
 
-This distinction also explains the role of the ferry switch. In the heuristic, ferrying is an explicit event inserted into a path during simulation. In the MILP, ferry-enabled mode is represented indirectly through equipment-flow and turnaround constraints, while the assignment variables remain flight--aircraft arcs. The project currently implements neither a time-expanded path formulation nor a separate arc-generation algorithm for Dijkstra or ACO; references to those methods belong to the documented alternative methodology, not to the executable heuristic modes.
+This distinction also explains the role of the ferry switch. In the heuristic, ferrying is an explicit event inserted into a path during simulation. In the MILP, ferry-enabled mode is represented indirectly through equipment-flow and turnaround constraints, while the assignment variables remain flight--aircraft arcs. The project implements Dijkstra and ACO on implicit transition graphs rather than as separate explicit time-expanded network data structures.
 
-\section{Documented but unimplemented network alternatives}
+\section{Modified Dijkstra heuristic}
 \label{sec:heuristic_network}
 
-A more global alternative to the flight-list heuristics is to represent the problem on a directed acyclic space-time network. In this formulation, each node corresponds to an airport-time state, and each arc represents one of the following elementary actions: a flight leg, a wait arc, a repositioning arc, a maintenance arc, or a coupling/decoupling transition between states. Aircraft routes become paths in this network, and the assignment problem becomes a path-selection problem over a time-expanded graph.
+A more global alternative to the direct flight-list heuristics is the implemented modified Dijkstra mode. It represents the space-time network implicitly: each candidate flight is a node, and a transition from flight $i$ to flight $i'$ is considered only when the time ordering is valid and the complete trial route passes the timeline simulator. This avoids constructing a separate time-expanded graph while retaining its path-search interpretation.
 
-The network representation is useful because it makes temporal precedence explicit. Before a flight may be scheduled, the model must be able to demonstrate that the aircraft can reach the correct origin airport, complete any necessary maintenance, and satisfy the timing constraints imposed by the remainder of the route. This graph view is therefore a natural way to encode the concept of sequence feasibility in a more global form.
+The network representation is useful because it makes temporal precedence explicit. Before a flight may be scheduled, the algorithm must demonstrate that the aircraft can reach the correct origin airport, complete any necessary maintenance, and satisfy the timing constraints imposed by the remainder of the route. In the implementation, these conditions are not duplicated as arc formulas; they are delegated to \texttt{get\_timeline}, which validates every candidate label extension.
 
-Two representative methods are described in the project documentation and earlier model notes, but they are not present as executable methods in the current \texttt{src/} folder.
+For each aircraft, the method maintains at most one best label per terminal flight. A label contains the ordered path and its simulated incremental cost. Candidate labels are compared lexicographically: the primary criterion is the number of covered flights, and the secondary criterion is the incremental route cost. This is the modified Dijkstra rule from the project’s mathematical formulation: it maximizes covered flight arcs rather than minimizing ordinary distance.
 
-\paragraph{Modified Dijkstra heuristic.}
-The Dijkstra-style method operates on the time-expanded network and uses a modified distance criterion that ranks routes by the number of covered flight arcs and, secondarily, by total cost. The update rule is not the classical shortest-path criterion in the strict sense: it prioritises routes that cover more flights and then accept lower-cost alternatives among equal coverage. This makes the algorithm better suited to assignment problems with strong coverage requirements, where a near-feasible path may be preferable to a slightly cheaper but incomplete route.
+The outer loop repeatedly evaluates the best path available for each aircraft over the currently unassigned flights. It selects the path that covers the largest number of flights and breaks ties by lower incremental cost, appends the path to the selected aircraft route, marks its flights as assigned, and repeats until no feasible path remains. The executable mode is selected with \texttt{--heuristic dijkstra}; aliases include \texttt{modifieddijkstra} and \texttt{dijkstraheuristic}.
 
-\paragraph{Ant colony optimisation.}
-The ACO heuristic extends the same network representation but applies pheromone reinforcement. Each ant constructs a route according to a probabilistic rule that combines the learned pheromone values with a heuristic attractiveness term. The method is more exploratory and can discover alternative flight sequences that are not found by the greedy approach. However, the time-expanded network is strongly ordered by time, so it is nearly acyclic; this reduces the effectiveness of the positive-feedback behaviour that typically makes ACO powerful on cyclic combinatorial structures.
+Because the candidate transitions are ordered by departure time, the implicit graph is acyclic. The implementation consequently uses a label-setting dynamic-programming traversal rather than a conventional heap-based shortest-path implementation. Its complexity is higher than a single greedy pass because candidate route extensions repeatedly invoke the full timeline simulator, but it can recover longer feasible sequences than a purely local append decision.
 
-They should consequently not be listed as implemented heuristics in the computational taxonomy. To run either method, a future implementation would need to introduce an explicit time-expanded graph, define arc labels and state transitions, and connect the resulting paths back to the maintenance-feasibility and assignment-cost accounting already provided by the scheduler.
+\section{Ant colony optimisation heuristic}
+\label{sec:heuristic_aco}
+
+The implemented ACO mode constructs a colony of candidate assignments over the flights sorted by departure time. For each flight, an ant considers every aircraft whose route remains feasible after appending the flight. Let $p$ be the previous flight on aircraft $j$, or a source symbol if the route is empty. The transition trail is $\tau_{j,p,i}$ and the cost desirability is
+\begin{equation}
+    \eta_{j,p,i} = \frac{1}{1+\max(0,\Delta c_{j,i})},
+\end{equation}
+where $\Delta c_{j,i}$ is the incremental timeline cost of assigning flight $i$ to aircraft $j$. The ant samples an aircraft with probability proportional to
+\begin{equation}
+    \tau_{j,p,i}\,\eta_{j,p,i}^{\beta}.
+\end{equation}
+Infeasible transitions have zero probability because they are removed before sampling.
+
+After all ants have constructed their assignments, pheromone evaporates toward its initial value $\tau_0=1$:
+\begin{equation}
+    \tau_{j,p,i} \leftarrow (1-\rho)\tau_{j,p,i}+\rho\tau_0,
+\end{equation}
+where $\rho$ is \texttt{aco\_evaporation}. The best ant of the iteration then deposits additional pheromone on its visited transitions. Ant quality is ordered first by the number of assigned flights and then by lower total simulated cost. The default implementation uses twenty iterations, eight ants, $\rho=0.2$, $\beta=2$, and seed zero; all are configurable through the \texttt{Scheduler} constructor.
+
+The mode is selected with \texttt{--heuristic aco}. A local pseudo-random generator makes repeated runs reproducible for a fixed seed, while the pheromone updates allow exploration of alternatives to deterministic greedy assignment. The full timeline oracle remains authoritative, so ACO cannot introduce ferry, timing, or maintenance violations even when a probabilistic transition is selected.
+
+\section{Application workflow and generated schedules}
+\label{sec:heuristic_application}
+
+The heuristic algorithms are exposed through the same application entry point
+as the exact optimizer. A run begins by reading one JSON instance, constructing
+the \texttt{Scheduler}, selecting a heuristic mode, and sorting the flights by
+departure time. The scheduler then builds one ordered route list per aircraft.
+At every construction or improvement step, the proposed route is passed to
+\texttt{get\_timeline}; only routes that return a feasible event sequence are
+accepted. This makes the application workflow explicit: the heuristic is not a
+post-processing visualization of an assignment, but the component that creates
+and validates the aircraft schedule.
+
+For a command-line run, the principal controls are \texttt{--data} for the
+input instance, \texttt{--heuristic} for the selected method, and
+\texttt{--no-ferry} for the airport-continuity variant. The default mode is
+\texttt{greedy+insertion}; the other executable choices are \texttt{greedy},
+\texttt{insertion}, \texttt{repair}, \texttt{local\_search},
+\texttt{dijkstra}, and \texttt{aco}. The ferry switch is applied before
+maintenance evaluation: with ferrying enabled, a repositioning event must fit
+before the next departure and contributes its fixed cost; with ferrying
+disabled, an airport mismatch rejects the candidate route immediately.
+
+The application returns three related views of the same result. The internal
+route dictionary maps each aircraft to its ordered flight identifiers; the
+event representation expands each route into flight, ferry, and maintenance
+events; and the tabular output records aircraft, event type, locations, times,
+durations, and remaining maintenance margins. The optional Gantt output is a
+visual projection of these events, while the CSV and event text files provide
+machine-readable records for subsequent analysis. Unassigned flights are kept
+explicitly rather than silently discarded, allowing coverage and feasibility to
+be reported separately.
+
+The heuristic and exact optimizer are exposed through the same application, but
+their current execution paths remain separate. The \texttt{warm\_start}
+argument is retained in \texttt{run\_milp} for solver-control compatibility;
+the present \texttt{MILP\_Sheduler.warm\_start\_from\_heuristic} method is a
+deliberate no-op because a partial assignment-only start was rejected as
+infeasible by CPLEX. Thus, the heuristic currently supplies an independent
+executable schedule and benchmark, while the MILP searches for an improved or
+certified solution from its own model state. A future complete warm start would
+need to initialize all coupled assignment, maintenance, and timing variables
+consistently.
 
 \section{Quality assessment and computational role}
 \label{sec:heuristic_quality}

@@ -26,6 +26,7 @@ if hasattr(sys.stderr, 'reconfigure'):
 try:
     from pyomo.environ import (ConcreteModel, Set, Var, Objective, Constraint,
                                 ConstraintList, Binary, minimize, value as pyo_value)
+    from pyomo.contrib.solver.common.util import NoFeasibleSolutionError
     from pyomo.opt import SolverFactory, TerminationCondition
     PYOMO_AVAILABLE = True
 except ImportError:
@@ -51,7 +52,9 @@ class Scheduler:
       A check -> resets A only         (B, C, D counters keep running)
     """
 
-    def __init__(self, data_path, allow_ferry=True, heuristic='greedy+insertion'):
+    def __init__(self, data_path, allow_ferry=True, heuristic='greedy+insertion',
+                 aco_iterations=20, aco_ants=8, aco_evaporation=0.2,
+                 aco_beta=2.0, aco_seed=0):
         with open(data_path, 'r') as f:
             self.data = json.load(f)
 
@@ -83,6 +86,11 @@ class Scheduler:
 
         self.ferry_time = 60
         self.ferry_cost = 6000
+        self.aco_iterations = max(1, int(aco_iterations))
+        self.aco_ants = max(1, int(aco_ants))
+        self.aco_evaporation = min(1.0, max(0.0, float(aco_evaporation)))
+        self.aco_beta = max(0.0, float(aco_beta))
+        self.aco_seed = int(aco_seed)
 
     @staticmethod
     def _normalize_heuristic(heuristic):
@@ -99,8 +107,12 @@ class Scheduler:
             return 'repair'
         if key in {'localsearch', 'local_search', 'localsearch', 'improve'}:
             return 'local_search'
+        if key in {'dijkstra', 'modifieddijkstra', 'dijkstraheuristic'}:
+            return 'dijkstra'
+        if key in {'aco', 'antcolony', 'antcolonyoptimization'}:
+            return 'aco'
         raise ValueError(
-            f"Unsupported heuristic '{heuristic}'. Choose one of: greedy, insertion, greedy+insertion, repair, local_search"
+            f"Unsupported heuristic '{heuristic}'. Choose one of: greedy, insertion, greedy+insertion, repair, local_search, dijkstra, aco"
         )
 
     # ------------------------------------------------------------------
@@ -285,10 +297,179 @@ class Scheduler:
             return best_move
         return None
 
+    def _dijkstra_best_path(self, aid, seed_route, candidate_fids):
+        """Return a maximum-coverage path for one aircraft.
+
+        The space-time graph is represented implicitly: each candidate flight
+        is a node and a transition is an arc when the extended route passes
+        ``get_timeline``.  Labels are kept per terminal flight.  Coverage is
+        the primary label criterion and simulated incremental route cost is
+        the tie-breaker, matching the documented modified Dijkstra rule.
+        """
+        if not candidate_fids:
+            return None
+
+        seed_result = self.get_timeline(aid, seed_route)
+        if seed_result is None:
+            return None
+        seed_cost = seed_result['cost']
+        ordered = sorted(candidate_fids, key=lambda fid: self.flights[fid]['dep'])
+        labels = {}
+
+        for fid in ordered:
+            trial = seed_route + [fid]
+            result = self.get_timeline(aid, trial)
+            if result is not None:
+                labels[fid] = ([fid], result['cost'] - seed_cost)
+
+            for previous_fid, (previous_path, previous_cost) in list(labels.items()):
+                if self.flights[previous_fid]['arr'] > self.flights[fid]['dep']:
+                    continue
+                trial = seed_route + previous_path + [fid]
+                result = self.get_timeline(aid, trial)
+                if result is None:
+                    continue
+                candidate_label = (previous_path + [fid], result['cost'] - seed_cost)
+                current_label = labels.get(fid)
+                if (current_label is None
+                        or len(candidate_label[0]) > len(current_label[0])
+                        or (len(candidate_label[0]) == len(current_label[0])
+                            and candidate_label[1] < current_label[1])):
+                    labels[fid] = candidate_label
+
+        best = None
+        for path, incremental_cost in labels.values():
+            if (best is None
+                    or len(path) > len(best[0])
+                    or (len(path) == len(best[0])
+                        and incremental_cost < best[1])):
+                best = (path, incremental_cost)
+        return best
+
+    def _optimize_dijkstra(self):
+        """Construct a schedule using repeated modified-Dijkstra paths."""
+        ac_fids = {aid: [] for aid in self.aircrafts}
+        assigned = set()
+        all_fids = set(self.flights)
+        aircraft_order = sorted(
+            self.aircrafts,
+            key=lambda aid: sum(self.cost_matrix[fid - 1][aid] for fid in self.flights),
+        )
+
+        while assigned != all_fids:
+            remaining = all_fids - assigned
+            best_choice = None
+            for aid in aircraft_order:
+                path_label = self._dijkstra_best_path(aid, ac_fids[aid], remaining)
+                if path_label is None:
+                    continue
+                path, incremental_cost = path_label
+                choice = (len(path), -incremental_cost, aid, path)
+                if best_choice is None or choice[:2] > best_choice[:2]:
+                    best_choice = choice
+
+            if best_choice is None:
+                break
+            _, _, aid, path = best_choice
+            ac_fids[aid].extend(path)
+            assigned.update(path)
+
+        return ac_fids, [fid for fid in self.flights if fid not in assigned]
+
+    @staticmethod
+    def _weighted_choice(options, weights, rng):
+        """Select one option from non-negative weights using ``rng``."""
+        total = sum(weights)
+        if total <= 0.0:
+            return options[rng.randrange(len(options))]
+        target = rng.random() * total
+        cumulative = 0.0
+        for option, weight in zip(options, weights):
+            cumulative += weight
+            if cumulative >= target:
+                return option
+        return options[-1]
+
+    def _aco_construct_ant(self, sorted_fids, pheromone, rng):
+        """Construct one probabilistic, timeline-feasible assignment."""
+        routes = {aid: [] for aid in self.aircrafts}
+        assigned = set()
+        route_costs = {aid: 0.0 for aid in self.aircrafts}
+        transitions = []
+
+        for fid in sorted_fids:
+            options = []
+            weights = []
+            for aid in self.aircrafts:
+                route = routes[aid]
+                result = self.get_timeline(aid, route + [fid])
+                if result is None:
+                    continue
+                previous = route[-1] if route else None
+                incremental_cost = result['cost'] - route_costs[aid]
+                trail = pheromone.get((aid, previous, fid), 1.0)
+                desirability = 1.0 / (1.0 + max(0.0, incremental_cost))
+                options.append((aid, incremental_cost))
+                weights.append(max(0.0, trail) * desirability ** self.aco_beta)
+
+            if not options:
+                continue
+            aid, incremental_cost = self._weighted_choice(options, weights, rng)
+            previous = routes[aid][-1] if routes[aid] else None
+            routes[aid].append(fid)
+            route_costs[aid] += incremental_cost
+            assigned.add(fid)
+            transitions.append((aid, previous, fid))
+
+        return routes, assigned, sum(route_costs.values()), transitions
+
+    def _optimize_aco(self):
+        """Construct a schedule with pheromone-guided route exploration."""
+        import random as _random
+
+        sorted_fids = sorted(self.flights, key=lambda fid: self.flights[fid]['dep'])
+        pheromone = {}
+        rng = _random.Random(self.aco_seed)
+        best = None
+
+        for _ in range(self.aco_iterations):
+            iteration_best = None
+            ant_results = []
+            for _ in range(self.aco_ants):
+                result = self._aco_construct_ant(sorted_fids, pheromone, rng)
+                ant_results.append(result)
+                routes, assigned, total_cost, transitions = result
+                score = (len(assigned), -total_cost)
+                if iteration_best is None or score > iteration_best[0]:
+                    iteration_best = (score, result)
+                if best is None or score > best[0]:
+                    best = (score, result)
+
+            evaporation = self.aco_evaporation
+            for key in list(pheromone):
+                pheromone[key] = (1.0 - evaporation) * pheromone[key] + evaporation
+
+            if iteration_best is not None:
+                score, (_, assigned, total_cost, transitions) = iteration_best
+                deposit = max(1.0, float(score[0])) / (1.0 + max(0.0, total_cost))
+                for key in transitions:
+                    pheromone[key] = pheromone.get(key, 1.0) + deposit
+
+        if best is None:
+            return {aid: [] for aid in self.aircrafts}, sorted_fids
+        _, (routes, assigned, _, _) = best
+        return routes, [fid for fid in self.flights if fid not in assigned]
+
     def optimize(self):
         ac_fids = {aid: [] for aid in self.aircrafts}
         assigned = set()
         sorted_fids = sorted(self.flights.keys(), key=lambda x: self.flights[x]['dep'])
+
+        if self.heuristic == 'dijkstra':
+            return self._optimize_dijkstra()
+
+        if self.heuristic == 'aco':
+            return self._optimize_aco()
 
         if self.heuristic == 'greedy':
             for fid in sorted_fids:
@@ -1367,6 +1548,8 @@ class MILP_Sheduler:
                 d_i   = fd['day_arrival']
                 for j in self._x_aircrafts_for_flight(i):
                     for i2 in self._f_dep_window(apt, t_arr, t_arr + dur):
+                        if not self._x_has_arc(i2, j):
+                            continue
                         # Block i2 for aircraft j when:
                         #   x[i,j]=1  (j flew into apt via flight i)
                         d = self.flight_data[i2]['day_departure']
@@ -1481,6 +1664,12 @@ class MILP_Sheduler:
 
         try:
             self.results = solver.solve(self.model, **_solve_kwargs)
+        except NoFeasibleSolutionError:
+            self.results = solver.solve(
+                self.model,
+                load_solutions=False,
+                **_solve_kwargs,
+            )
         except Exception as _exc:
             # CBC with timelimit kwarg may raise when the selected binary or
             # wrapper cannot enforce the requested limit. Never re-solve
@@ -1530,6 +1719,14 @@ class MILP_Sheduler:
             _p(f"  Vars   : {summary['n_vars']}   Constraints: {summary['n_cons']}")
             _p(f"  Gap    : {g}   CPU: {t}")
             _p(f"  Obj    : {summary['obj']}")
+
+        if not summary or summary.get('status') != str(TerminationCondition.optimal):
+            report = '\n'.join(lines)
+            print(report)
+            if out_path:
+                with open(out_path, 'w', encoding='utf-8') as handle:
+                    handle.write(report)
+            return
 
         _p("\n--- Assignment ---")
         for i in m.F:
@@ -2295,7 +2492,7 @@ def main():
     parser.add_argument('--no-show',     dest='show', action='store_false',
                         help='Do not display Gantt interactively')
     parser.add_argument('--heuristic', default='greedy+insertion',
-                        choices=['greedy', 'insertion', 'greedy+insertion', 'repair', 'local_search'],
+                        choices=['greedy', 'insertion', 'greedy+insertion', 'repair', 'local_search', 'dijkstra', 'aco'],
                         help='Heuristic strategy to use in heuristic and batch modes '
                              '(default: greedy+insertion).')
     parser.add_argument('--no-ferry',    dest='allow_ferry', action='store_false',

@@ -1,62 +1,366 @@
-This chapter presents the compact tail-assignment model in its basic form, without maintenance decisions. The primary modelling objective is to assign each flight leg $i \in \mathcal{F}$ to a specific aircraft $j \in \mathcal{P}$ while preserving airport continuity and turn-time feasibility. The formulation is compact in the sense that binary variables are indexed by flight-aircraft pairs rather than by complete aircraft rotations, yielding $O(|\mathcal{F}|\cdot|\mathcal{P}|)$ binary variables in contrast to the exponential route space of column-generation formulations.
+This chapter develops the ground-routing component of the thesis. The model is
+based on the compact tail-assignment formulation of
+\citet{khaled2018compact}, but maintenance decisions are deliberately excluded
+until Chapter~\ref{ch:maintenance}. This separation isolates the physical
+conditions that make a flight assignment executable and ensures that the
+maintenance extension is built on valid aircraft trajectories.
 
-\section{Sets, parameters, and decision variables}
+The term \emph{compact} refers to the variable space. Route-based models use
+variables for complete rotations, and arc-flow models use variables for
+feasible flight connections. The formulation below instead uses one binary
+variable for each flight--aircraft pair. It therefore has
+$O(|\F||\Pc|)$ binary variables and can be submitted directly to a MILP
+solver. Airport continuity and timing are recovered through cumulative balance
+inequalities. This chapter derives those inequalities, identifies their
+equal-time departure limitation, and presents the corrected ground model used
+throughout the thesis.
 
-Let $\F$ denote the set of flight legs, $\Pc$ the set of aircraft (tail numbers), and $\A$ the set of airports. For each flight $i \in \F$, let $a_i^{\downarrow}$ and $a_i^{\uparrow}$ denote its departure and arrival airports respectively, and let $t_i^{\downarrow}$ and $t_i^{\uparrow}$ denote its scheduled departure and arrival times. Let $a_j^{0} \in \A$ denote the base airport of aircraft $j$ and let $\Delta t > 0$ be the minimum required ground turn time. The binary assignment variable is defined as
+\section{Scope and modelling assumptions}
+\label{sec:basic}
 
+The model is defined over a finite planning horizon using absolute times from
+the start of that horizon. A flight on day two consequently has larger time
+values than flights on day one. The following assumptions delimit the ground
+model:
+\begin{enumerate}
+    \item every published flight leg must be covered exactly once;
+    \item each aircraft has one known initial airport;
+    \item an aircraft moves between airports only through an assigned flight, so
+    any permitted ferry movement must be included explicitly;
+    \item departure and arrival times are fixed, and consecutive flights require
+    at least the minimum ground turn time;
+    \item forbidden flight--aircraft pairs are removed or fixed to zero; and
+    \item maintenance and hangar decisions are deferred to
+    Chapters~\ref{ch:maintenance} and~\ref{ch:hierarchy}.
+\end{enumerate}
+
+The model is non-cyclic: an aircraft need not return to its initial airport by
+the end of the horizon. Its terminal position may be passed to the next planning
+period. Terminal-balance constraints can impose cyclicity, but this is an
+additional planning policy and may make a finite-horizon instance infeasible.
+
+\section{Sets, parameters, and cumulative flight sets}
+
+Let $\F=\{1,\ldots,n_f\}$ be the set of flight legs,
+$\Pc=\{1,\ldots,n_p\}$ the set of individual aircraft, and
+$\A=\{1,\ldots,n_k\}$ the set of airports. For flight $i\in\F$, let
+$a_i^{\uparrow}$ and $a_i^{\downarrow}$ be its departure and arrival airports,
+and let $t_i^{\uparrow}$ and $t_i^{\downarrow}$ be its departure and arrival
+times. The arrow notation follows the flight event: $\uparrow$ denotes a
+departure and $\downarrow$ an arrival. Parameter $a_j^0$ is the initial airport
+of aircraft $j$, $\dt>0$ is the minimum turn time, and $c_{ij}$ is the cost of
+assigning flight $i$ to aircraft $j$.
+
+For airport $k\in\A$ and threshold $\theta$, define
+\begin{align}
+    \F_k^{\downarrow}(\theta)
+    &=\{i\in\F:a_i^{\downarrow}=k,\;
+            t_i^{\downarrow}\leq\theta-\dt\},
+            \label{eq:ground_arrival_set}\\
+    \F_k^{\uparrow}(\theta)
+    &=\{i\in\F:a_i^{\uparrow}=k,\;
+            t_i^{\uparrow}<\theta\}.
+            \label{eq:ground_departure_set}
+\end{align}
+The arrival set contains flights that have reached $k$ early enough to complete
+the turn before $\theta$. The departure set contains flights that have left $k$
+strictly before $\theta$. The strict inequality is central to the formulation
+and to the counterexample in Section~\ref{sec:ground_counterexample}.
+
+The cumulative inventory of aircraft $j$ at airport $k$ is
 \begin{equation}
-    x_{ij} =
+    B_{jk}(\theta)=
+    \sum_{i\in\F_k^{\downarrow}(\theta)}x_{ij}
+    -\sum_{i\in\F_k^{\uparrow}(\theta)}x_{ij}.
+    \label{eq:ground_inventory}
+\end{equation}
+At a non-initial airport, positive inventory can arise only from an earlier
+arrival. At $a_j^0$, one additional unit represents the initial aircraft.
+
+\begin{table}[t]
+    \centering
+    \small
+    \caption{Notation for the compact ground-routing model.}
+    \label{tab:ground_notation}
+    \begin{tabular}{ll}
+        \toprule
+        Symbol & Meaning \\
+        \midrule
+        $\F$, $\Pc$, $\A$ & Flights, individual aircraft, and airports \\
+        $a_i^{\uparrow}$, $a_i^{\downarrow}$ & Departure and arrival airports \\
+        $t_i^{\uparrow}$, $t_i^{\downarrow}$ & Departure and arrival times \\
+        $a_j^0$ & Initial airport of aircraft $j$ \\
+        $\dt$ & Minimum ground turn time \\
+        $c_{ij}$ & Cost of assigning flight $i$ to aircraft $j$ \\
+        $\F_k^{\downarrow}(\theta)$ & Turn-feasible arrivals at $k$ by $\theta$ \\
+        $\F_k^{\uparrow}(\theta)$ & Departures from $k$ strictly before $\theta$ \\
+        $B_{jk}(\theta)$ & Cumulative ground inventory \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Compact mixed-integer formulation}
+
+The binary assignment variable is
+\begin{equation}
+    x_{ij}=
     \begin{cases}
-        1, & \text{if flight } i \text{ is assigned to aircraft } j,\\
+        1, & \text{if flight $i$ is operated by aircraft $j$,}\\
         0, & \text{otherwise,}
     \end{cases}
-    \qquad i \in \F,\; j \in \Pc.
+    \qquad i\in\F,\;j\in\Pc.
+    \label{eq:ground_assignment_variable}
 \end{equation}
-
-The objective is to minimise the total weighted assignment cost:
-
+The objective minimises total assignment cost:
 \begin{equation}
-    \min \sum_{i \in \F}\sum_{j \in \Pc} c_{ij}\, x_{ij},
+    \min\quad\sum_{i\in\F}\sum_{j\in\Pc}c_{ij}x_{ij}.
+    \label{eq:ground_objective}
 \end{equation}
+The coefficients may represent operating cost or assignment preference. A
+forbidden pair must be removed or fixed to zero because a large cost alone does
+not make an assignment infeasible.
 
-where $c_{ij} \geq 0$ denotes the cost of assigning flight $i$ to aircraft $j$, capturing operational factors such as aircraft-type compatibility and repositioning penalties.
+\subsection{C1: flight coverage}
 
-\section{Coverage and continuity constraints}
-
-Each flight must be operated by exactly one aircraft:
-
-\begin{equation}\label{eq:cover}
-    \sum_{j\in\Pc} x_{ij} = 1, \qquad \forall\, i \in \F.
-\end{equation}
-
-Airport continuity is enforced through a flow-balance structure: for each non-base airport $k \in \A$ and each aircraft $j \in \Pc$, the number of flights arriving at $k$ before a given departure time, augmented by any initial ground presence, must be at least equal to the number of departures from $k$ assigned to aircraft $j$. At the base airport $a_j^{0}$, one additional unit of availability is provided by the aircraft's initial position. These balance constraints ensure that the sequence of assigned flights forms a temporally connected and airport-consistent trajectory for each aircraft.
-
-\section{The feasibility issue: simultaneous departures}
-
-Although the balance constraints are algebraically consistent with the intended flow logic, they admit a physically infeasible corner case. If two flight legs $i_1, i_2 \in \F$ share the same departure airport and have departure times that are not separated by the required turn time $\Delta t$, the standard formulation does not prevent both from being assigned to the same aircraft $j$, because neither leg individually violates any balance constraint. This is a simultaneous-departure or temporal-overlap conflict: a single aircraft cannot physically operate two overlapping legs.
-
-This deficiency is not a minor edge case. If the feasible region of the assignment model contains physically impossible trajectories, then any maintenance model layered on top inherits the distorted domain and may certify operationally infeasible schedules as optimal.
-
-\section{Corrected feasibility condition}
-
-Let $\mathcal{O}$ denote the set of conflicting flight pairs for which simultaneous assignment to a single aircraft is physically impossible:
-
+Each flight is assigned to exactly one aircraft:
 \begin{equation}
-    \mathcal{O}=
-    \left\{\{i_1,i_2\}\subseteq \F:\;
-    \bigl[t_{i_1}^{\downarrow},\, t_{i_1}^{\uparrow}+\Delta t\bigr) \cap \bigl[t_{i_2}^{\downarrow},\, t_{i_2}^{\uparrow}+\Delta t\bigr) \neq \varnothing\right\}.
+    \sum_{j\in\Pc}x_{ij}=1,
+    \qquad\forall i\in\F.
+    \label{eq:ground_c1}
+\end{equation}
+This prevents both uncovered flights and duplicate coverage, but does not alone
+make the flights assigned to an aircraft a connected route.
+
+\subsection{C2: continuity at non-initial airports}
+
+For flight $i$ departing from $k\neq a_j^0$, aircraft $j$ must have reached
+$k$ early enough and must not have consumed that arrival in an earlier
+departure:
+\begin{equation}
+    \sum_{i'\in\F_k^{\downarrow}(t_i^{\uparrow})}x_{i'j}
+    -\sum_{i'\in\F_k^{\uparrow}(t_i^{\uparrow})}x_{i'j}
+    \geq x_{ij},
+    \quad
+    \substack{\forall j\in\Pc,\;k\in\A\setminus\{a_j^0\},\\
+    \forall i\in\F:a_i^{\uparrow}=k.}
+    \label{eq:ground_c2}
+\end{equation}
+If $x_{ij}=1$, this is equivalent to
+$B_{jk}(t_i^{\uparrow})\geq1$. Because only arrivals with
+$t_{i'}^{\downarrow}+\dt\leq t_i^{\uparrow}$ are counted, C2 also embeds the
+minimum turn-time requirement.
+
+\subsection{C3: continuity at the initial airport}
+
+At $k=a_j^0$, aircraft $j$ is available once at the start of the horizon, so
+the right-hand side is shifted by one:
+\begin{equation}
+    \sum_{i'\in\F_k^{\downarrow}(t_i^{\uparrow})}x_{i'j}
+    -\sum_{i'\in\F_k^{\uparrow}(t_i^{\uparrow})}x_{i'j}
+    \geq x_{ij}-1,
+    \quad
+    \substack{\forall j\in\Pc,\;k=a_j^0,\\
+    \forall i\in\F:a_i^{\uparrow}=k.}
+    \label{eq:ground_c3}
+\end{equation}
+The first departure can use the initial aircraft. Every later departure from
+the initial airport must be supported by a return arrival after accounting for
+earlier departures.
+
+Finally,
+\begin{equation}
+    x_{ij}\in\{0,1\},
+    \qquad\forall i\in\F,\;j\in\Pc.
+    \label{eq:ground_integrality}
 \end{equation}
 
-The corrected model appends the pairwise conflict-exclusion constraints
+\section{Interpretation and validity of the balances}
 
-\begin{equation}\label{eq:overlap}
-    x_{i_1 j} + x_{i_2 j} \leq 1, \qquad \forall\, \{i_1,i_2\}\in \mathcal{O},\;\forall\, j\in\Pc.
+Constraints~\eqref{eq:ground_c2}--\eqref{eq:ground_c3} replace explicit
+connection variables with airport inventories. A turn-feasible arrival adds one
+unit to~\eqref{eq:ground_inventory}; an earlier departure subtracts one unit.
+For distinct departure events, the inequalities implement conservation: an
+aircraft cannot depart a non-initial airport before arriving, and it cannot
+reuse an arrival after that inventory unit has been consumed.
+
+The model does not select a predecessor flight explicitly. If several feasible
+arrivals precede a departure, the cumulative inequality certifies that one
+aircraft unit is present without naming the connection. This aggregation gives
+the model its small variable count, but makes correctness depend on event order.
+
+\begin{proposition}[Validity under distinct departure events]
+    \label{prop:ground_distinct_validity}
+    If no two flights depart from the same airport at the same time, every
+    integral solution of
+    \eqref{eq:ground_c1}--\eqref{eq:ground_integrality} satisfies coverage,
+    initial-position feasibility, airport continuity, and minimum turn time.
+\end{proposition}
+
+\begin{proof}
+    Coverage follows from~\eqref{eq:ground_c1}. Fix aircraft $j$ and process its
+    assigned departures in increasing time order. At a non-initial airport,
+    \eqref{eq:ground_c2} requires at least one more turn-feasible assigned arrival
+    than earlier assigned departures. The current departure is therefore
+    supported by an unused arrival at the same airport. At the initial airport,
+    \eqref{eq:ground_c3} gives the same argument with one initial unit. Membership
+    in $\F_k^{\downarrow}(t_i^{\uparrow})$ guarantees the turn time. Distinct
+    departure times ensure that every earlier departure is already subtracted, so
+    one inventory unit cannot support two departures.
+\end{proof}
+
+\section{Equal-time departure counterexample}
+\label{sec:ground_counterexample}
+
+The distinct-event condition is not guaranteed by a timetable. Because
+\eqref{eq:ground_departure_set} uses a strict inequality, two flights leaving
+the same airport at the same time do not appear in each other's departure sets.
+Both can consume the same aircraft inventory.
+
+\begin{example}[Algebraically feasible but physically impossible]
+    \label{ex:ground_simultaneous_departure}
+    Let one aircraft $j$ start at B and let $\dt=30$ minutes. Consider
+    \begin{align*}
+        i_0 &: \text{B}\rightarrow\text{A},
+            &t_{i_0}^{\uparrow}=500,&&t_{i_0}^{\downarrow}=550,\\
+        i_1 &: \text{A}\rightarrow\text{B},
+            &t_{i_1}^{\uparrow}=600,&&t_{i_1}^{\downarrow}=700,\\
+        i_2 &: \text{A}\rightarrow\text{C},
+            &t_{i_2}^{\uparrow}=600,&&t_{i_2}^{\downarrow}=700.
+    \end{align*}
+    Set $x_{i_0j}=x_{i_1j}=x_{i_2j}=1$. Flight $i_0$ uses the initial unit at B.
+    For $i_1$ at A,
+    \begin{equation*}
+        \F_{\mathrm A}^{\downarrow}(600)=\{i_0\},\qquad
+        \F_{\mathrm A}^{\uparrow}(600)=\varnothing,
+    \end{equation*}
+    because $i_0$ departs from B and $i_2$ departs at 600, not strictly before
+    600. Thus C2 gives $1-0\geq1$. The calculation for $i_2$ is identical because
+    $i_1$ is also excluded from its strict departure set. All compact constraints
+    are satisfied, although one aircraft cannot operate $i_1$ and $i_2$ at the
+    same time.
+\end{example}
+
+The defect is structural rather than cost-dependent. Maintenance constraints
+also cannot repair duplicated use of an aircraft. Physical non-overlap must be
+enforced in the ground model.
+
+\section{Conflict graph and corrected feasibility model}
+
+Associate with flight $i$ the occupied interval
+\begin{equation}
+    I_i=[t_i^{\uparrow},t_i^{\downarrow}+\dt).
+    \label{eq:ground_occupied_interval}
 \end{equation}
+The half-open convention allows a following flight to depart exactly when the
+required turn ends. Define the set of unordered conflicting pairs
+\begin{equation}
+    \mathcal O=\bigl\{\{i_1,i_2\}\subseteq\F:
+    I_{i_1}\cap I_{i_2}\neq\varnothing\bigr\}.
+    \label{eq:ground_overlap_set}
+\end{equation}
+For every conflict and aircraft, impose
+\begin{equation}
+    x_{i_1j}+x_{i_2j}\leq1,
+    \qquad
+    \forall\{i_1,i_2\}\in\mathcal O,\;\forall j\in\Pc.
+    \label{eq:ground_overlap}
+\end{equation}
+These constraints exclude simultaneous flights, overlapping legs, and
+connections with insufficient turn time. Some rows duplicate restrictions
+already implied by C2--C3, but the complete conflict set gives a direct and
+auditable statement of single-aircraft non-overlap.
 
-These inequalities are valid cuts with respect to the physically executable assignment space. Together with the balance constraints, they ensure that each set of feasible solutions corresponds to temporally non-overlapping aircraft trajectories. This correction is a prerequisite for the maintenance model of Chapter~\ref{ch:maintenance}, whose constraints are defined over the actual sequence of flights assigned to each aircraft.
+\begin{proposition}[Physical feasibility of the corrected model]
+    \label{prop:ground_corrected_validity}
+    Under this chapter's assumptions, every integral solution satisfying
+    \eqref{eq:ground_c1}--\eqref{eq:ground_integrality} and
+    \eqref{eq:ground_overlap} yields one temporally ordered,
+    airport-continuous sequence for each aircraft.
+\end{proposition}
 
-\section{Model size and complexity}
+\begin{proof}
+    Fix aircraft $j$. Constraint~\eqref{eq:ground_overlap} makes the occupied
+    intervals of its assigned flights pairwise disjoint, giving an unambiguous
+    temporal order with the required turn separation. Process that order. At a
+    non-initial airport, C2 requires an unused earlier arrival at the departure
+    airport. At the initial airport, C3 supplies one initial unit and thereafter
+    requires return arrivals. Since assigned occupied intervals do not overlap,
+    an earlier aircraft movement cannot support concurrent continuations. Every
+    departure is therefore connected to the initial position or to a preceding
+    turn-feasible arrival at the same airport.
+\end{proof}
 
-The corrected ground model retains $|\mathcal{F}|\cdot|\mathcal{P}|$ binary assignment variables. The conflict constraints of~\eqref{eq:overlap} introduce at most $|\mathcal{O}|\cdot|\mathcal{P}|$ additional rows, where $|\mathcal{O}|$ is determined by the structure of the timetable and is typically small relative to the full combinatorial space. The model therefore remains compact, in the sense of the original formulation, while restricting the feasible region to physically executable schedules.
+The corrected model comprises objective~\eqref{eq:ground_objective},
+C1--C3, C4$'$, and integrality. It changes neither the assignment variables nor
+the objective; it removes assignments that cannot represent a physical route.
 
-The principal conclusion of this chapter is that the basic compact model acquires operational validity only after the conflict-exclusion inequalities~\eqref{eq:overlap} are incorporated. The corrected ground model provides the properly defined feasible domain over which the maintenance extension of the following chapters is both well posed and operationally interpretable.
+\section{Model size and computational implications}
+
+The original model has $n_fn_p$ binary variables, $n_f$ coverage equations,
+and at most one continuity row per flight--aircraft pair. Its row count is
+$O(n_fn_p)$. This compares favourably with the $O(n_f^2n_p)$
+connection-variable structure of \citet{levin1971scheduling};
+\citet{khaled2018compact} also report fewer variables and constraints than the
+compared time-space formulation on their instances.
+
+The correction adds $|\mathcal O|n_p$ inequalities, producing
+\begin{equation}
+    O\bigl(n_fn_p+|\mathcal O|n_p\bigr)
+    \label{eq:ground_model_size}
+\end{equation}
+rows. In the worst case $|\mathcal O|=O(n_f^2)$, so the corrected row count is
+not universally linear. In realistic timetables, a flight conflicts only with
+flights whose occupied intervals intersect its own; a sweep over flights ordered
+by departure time generates these pairs efficiently. The model remains compact
+in its binary-variable space.
+
+The pairwise inequalities may also strengthen the LP relaxation. Clique
+inequalities could be generated for sets of mutually overlapping flights, but
+the pairwise form is retained because it is transparent, easy to validate, and
+sufficient for integral physical feasibility.
+
+\section{Illustrative non-cyclic assignment}
+
+Table~\ref{tab:ground_example_timetable} reproduces the structure of the
+six-flight example in \citet{khaled2018compact}. The turn time is 30 minutes;
+aircraft 1 starts at A and aircraft 2 at B.
+
+\begin{table}[t]
+    \centering
+    \small
+    \caption{Six-flight timetable for the illustrative ground assignment.}
+    \label{tab:ground_example_timetable}
+    \begin{tabular}{ccccc}
+        \toprule
+        Flight & Departure & Arrival & Departure time & Arrival time \\
+        \midrule
+        1 & A & B & 09:00 & 11:00 \\
+        2 & B & A & 11:30 & 13:30 \\
+        3 & A & B & 14:00 & 16:00 \\
+        4 & B & A & 09:30 & 11:30 \\
+        5 & A & B & 12:00 & 14:00 \\
+        6 & B & A & 14:30 & 16:30 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+One feasible assignment is
+\begin{align*}
+    \text{aircraft 1: }&1\rightarrow2\rightarrow3,\\
+    \text{aircraft 2: }&4\rightarrow5\rightarrow6.
+\end{align*}
+Every connection preserves airport continuity and uses exactly the 30-minute
+turn. Aircraft 1 ends at B and aircraft 2 at A, so the assignment is feasible
+for the non-cyclic horizon. Requiring both aircraft to return to their initial
+airports would reject it, illustrating that cyclicity is a terminal policy and
+not a requirement for physical feasibility within the horizon.
+
+\section{Chapter summary}
+
+The compact model obtains a small assignment-variable space by replacing
+explicit connections with cumulative airport balances. Those balances encode
+initial position, continuity, and turn time when departures are strictly
+ordered. Equal-time departures expose a missing case because two flights can
+consume the same inventory. The conflict inequalities
+\eqref{eq:ground_overlap} close this gap and establish the physically executable
+domain used by the maintenance model in Chapter~\ref{ch:maintenance}.

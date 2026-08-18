@@ -13,7 +13,10 @@ The problems studied in the domain of thesis can be divided into the following c
 This distinction matters because models from these streams cannot be compared solely by instance size or solution
 time. They differ in decision scope, maintenance semantics, planning horizon,
 and treatment of uncertainty \citep{gopalan1998mathematical,
-barnhart2003applications, lacasse2010aircraft}.
+barnhart2003applications, lacasse2010aircraft}. 
+
+In the following sections, we review the literature on these four problem classes, as well as on integrated airline planning, robustness and operational uncertainty, and heuristic solution methods. 
+The review concludes with a discussion of the research gap addressed by this thesis.
 
 \subsection{Aircraft routing and tail-assignment formulations}
 
@@ -55,6 +58,79 @@ flexibility around a supplied route plan, whereas the present thesis audits and
 extends a deterministic compact assignment formulation over its full planning
 horizon. The two approaches are therefore complementary rather than direct
 competitors.
+
+
+
+\subsection{Mathematical programming formulations}
+
+Three main modelling paradigms underlie TAP research:
+
+\paragraph{Set partitioning / column generation.}
+The non-compact formulation enumerates \emph{strings} (feasible flight
+sequences per aircraft) as 0--1 variables.  Because the number of strings is
+exponential, column generation is required
+\citep{lavoie1988new, minoux1984column, barnhart1998flight, sarac2006branch}.
+Combining column generation with branch-and-bound (\emph{branch-and-price})
+gives exact solutions but at significant algorithmic overhead.  Robust
+extensions appear in \citet{borndorfer2010robust} and
+\citet{froyland2013recoverable}.
+
+\paragraph{Multi-commodity flow.}
+\citet{levin1971scheduling} introduced the compact multi-commodity flow
+formulation with $O(n_f^2 n_p)$ binary variables.  This remains the standard
+benchmark for compact models and is the primary comparison point in
+\citet{khaled2018compact}.
+
+\paragraph{Time-space networks.}
+\citet{hane1995fleet} proposed the time-space network for the \emph{fleet
+assignment problem}.  Nodes represent airport--time events; arcs encode
+ground waits, flights, and overnight stays.  Extensions to aircraft routing
+appear in \citet{clarke1996maintenance}.  Preprocessing by node aggregation
+and island isolation reduces model size
+\citep{hane1995fleet, sherali2006airline}.  Daily and weekly maintenance
+routing variants are studied in \citet{liang2011new} and
+\citet{liang2012network}; the latter also integrates fleet assignment
+decisions, but only approximate solutions are obtained via variable fixing.
+
+\paragraph{Nonlinear / lifted formulations.}
+\citet{haouari2012lifted} present a compact formulation with nonlinear
+constraints that are linearised via the Reformulation--Linearisation Technique
+(RLT).  The largest instances solved involve 344 flights, an order of magnitude
+below the instances handled by the model of \citet{khaled2018compact}.
+
+\subsection{MILP alternatives to the Khaled compact model}
+
+Beyond the compact binary assignment model of \citet{khaled2018compact},
+several mixed-integer alternatives are relevant for exact TAP modelling and
+large-scale implementation:
+\begin{itemize}
+	\item \textbf{Arc-flow MILP (time-indexed or event-indexed):} decision
+	variables are attached to feasible flight-connection arcs instead of flight--aircraft
+	assignment pairs, often yielding stronger network-structure constraints
+	\citep{levin1971scheduling, hane1995fleet, sherali2006airline}.
+	\item \textbf{Route-based master MILP (set partitioning):} aircraft duties are
+	represented as columns in a master MILP, typically solved with
+	branch-and-price; this is exact but algorithmically heavier
+	\citep{barnhart1998flight, sarac2006branch, klabjan2005large}.
+	\item \textbf{Decomposed MILP frameworks:} Benders- or
+	Dantzig--Wolfe-style decompositions separate assignment/routing from
+	maintenance-resource feasibility, improving scalability on larger fleets
+	\citep{cordeau2001benders, mercier2005computational, desaulniers1997daily}.
+	\item \textbf{Two-stage or rolling-horizon MILP:} first assign flights, then
+	repair/optimize maintenance and turnaround feasibility in a second MILP,
+	trading global optimality for tractable runtime
+	\citep{clarke1996maintenance, liang2011new, liang2012network}.
+	\item \textbf{Robust/scenario MILP variants:} delay and disruption uncertainty
+	is modelled through multiple scenarios with non-anticipativity-style linking
+	constraints, producing schedules that are less brittle operationally
+	\citep{borndorfer2010robust, froyland2013recoverable}.
+\end{itemize}
+
+In this taxonomy, the Khaled model is best viewed as a compact, directly
+solvable baseline that is simple to implement and benchmark, while the
+alternatives above trade model size, decomposition complexity, and robustness
+for stronger scalability or richer operational realism.
+
 
 \subsection{Integrated airline planning}
 
@@ -134,16 +210,16 @@ planning horizon cannot be discarded. Conversely, a routing-level model that
 places a check does not solve hangar capacity, task packaging, workforce, or
 shift planning. Those resource layers remain outside the present formulation.
 
+
 \subsection{Heuristic solution methods and cross-domain transfer}
 
 Constructive and local-search methods are operationally useful when exact
 solution times are incompatible with replanning. \citet{gronkvist2005tail}
-develops tail-assignment heuristics in this setting. The attached locomotive
-assignment chapters suggest an additional transferable design: represent
-movement and waiting in an acyclic space-time network, select locomotives in a
+develops tail-assignment heuristics in this setting. 
+The original work has not a flight but a train application, but the principles are transferable. The algorithm:
+represent movement and waiting in an acyclic space-time network, select locomotives in a
 cost-based order, repeatedly solve a least-cost path problem, update arc costs
-after assignment, and terminate a path when a maintenance limit becomes due.
-The physical interpretation is railway-specific, but the algorithmic principles
+after assignment, and terminate a path when a maintenance limit becomes due. The algorithmic principles
 are applicable to aircraft because time also gives the routing network a natural
 topological order.
 
@@ -155,6 +231,22 @@ valid tail route. Dijkstra's shortest-path method provides the basic path engine
 alternative for exploring assignment sequences \citep{dorigo1996ant,
 dorigo2004ant}. In this thesis these methods are benchmarked as constructive
 alternatives to the compact MILP, not treated as evidence of optimality.
+
+
+
+\subsection{Comparison scope and fairness}
+
+For an empirical comparison to be methodologically fair, competing models
+should be evaluated under a common instance family, objective definition,
+maintenance semantics, and solver-budget protocol.  In TAP, this condition is
+often not met across compact MILP, branch-and-price, Benders-decomposed, and
+robust/scenario formulations because these approaches typically optimize
+different decision scopes or uncertainty assumptions.  Accordingly, this paper
+uses \citet{khaled2018compact} as the direct compact baseline for
+instance-matched comparisons, and treats other MILP families as complementary
+reference paradigms rather than strict one-to-one benchmarks.
+
+
 
 \subsection{Research gap and position of the thesis}
 

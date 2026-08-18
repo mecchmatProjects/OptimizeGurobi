@@ -4,7 +4,7 @@ Exact MILP optimisation provides certified optimal solutions but becomes computa
 
 All heuristic procedures rely on a common feasibility oracle based on timeline simulation. Given a candidate assignment of a set of flights to aircraft $j$, the oracle evaluates the resulting trajectory in chronological order, verifying turn-time compliance, maintenance-trigger conditions, and maintenance-airport availability at each step. An assignment is admitted only if the oracle confirms that every constraint in the corrected maintenance model is satisfied.
 
-The oracle is necessary because assignment-level feasibility does not imply trajectory-level feasibility: a collection of flights that individually satisfies the coverage constraint~\eqref{eq:cover} may collectively violate turn-time requirements, maintenance-capacity limits, or cumulative-hour thresholds. Embedding the oracle as an inner subroutine of each heuristic step ensures that all generated solutions are feasible with respect to the complete formulation of Chapters~\ref{ch:maintenance}--\ref{ch:hierarchy}.
+The oracle is necessary because assignment-level feasibility does not imply trajectory-level feasibility: a collection of flights that individually satisfies the coverage constraint~\eqref{eq:ground_c1} may collectively violate turn-time requirements, maintenance-capacity limits, or cumulative-hour thresholds. Embedding the oracle as an inner subroutine of each heuristic step ensures that all generated solutions are feasible with respect to the complete formulation of Chapters~\ref{ch:maintenance}--\ref{ch:hierarchy}.
 
 \section{Greedy construction}
 

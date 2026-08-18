@@ -263,8 +263,8 @@ capacity, and hierarchy cases.
 
 All nine integrated MILP instances in the current tournament were solved to
 optimality under the declared HiGHS configuration. Wall-clock times ranged
-from approximately 0.14 to 20.14 seconds, with a median of approximately
-0.48 seconds; the largest constructive instance was the clear runtime outlier.
+from approximately 0.14 to 19.42 seconds, with a median of approximately
+0.40 seconds; the largest constructive instance was the clear runtime outlier.
 The archived comparison in \texttt{prev/sections/07\_computational.tex}
 reported heuristic gaps of 345.8\% for greedy and 273.5\% for local search on
 the capacity-bottleneck case. In the current tournament, the corresponding
@@ -303,7 +303,7 @@ Total & 9 & $P=3$--$6$, $F=8$--$54$ & Integrated MILP certification and heuristi
 
 The nine-instance comparison is therefore a certification set, not a
 scalability sample. Its current integrated-MILP runtimes range from
-approximately 0.14 to 20.14 seconds under the stated HiGHS configuration. The
+approximately 0.14 to 19.42 seconds under the stated HiGHS configuration. The
 distinction between this set and the larger synthetic matrix is maintained
 throughout the chapter.
 
@@ -666,7 +666,7 @@ Table~\ref{tab:full_tournament_measured} reports the aggregate coverage and
 runtime results. Seven of the nine runs are complete for greedy, insertion,
 greedy-plus-insertion, repair, local search, and ACO; Dijkstra is complete on
 six. Mean coverage is between 96.28\% and 96.90\%, while the median runtime is
-below 0.08 seconds for every heuristic in this small exact-feasible family.
+below 0.09 seconds for every heuristic in this small exact-feasible family.
 
 \begin{table}[t]
 \centering\small
@@ -684,8 +684,8 @@ Insertion & 9 & 7 & 96.90 & 0.001 & 25,808.6 \\
 Greedy+insertion & 9 & 7 & 96.90 & 0.001 & 25,808.6 \\
 Repair & 9 & 7 & 96.90 & 0.001 & 25,808.6 \\
 Local search & 9 & 7 & 96.90 & 0.006 & 23,731.1 \\
-Dijkstra & 9 & 6 & 96.28 & 0.007 & 50,688.7 \\
-ACO & 9 & 7 & 96.90 & 0.075 & 17,027.0 \\
+Dijkstra & 9 & 6 & 96.28 & 0.006 & 50,688.7 \\
+ACO & 9 & 7 & 96.90 & 0.086 & 17,027.0 \\
 \bottomrule
 \end{tabular}
 }
@@ -777,13 +777,13 @@ cases, but a heuristic total below the MILP reference must be interpreted as a
 feasible-set or accounting discrepancy until both formulations are aligned.
 
 The route-replay validator was applied to all nine exact-feasible integrated-MILP
-solutions. Five assignments replay successfully under the heuristic timeline,
-whereas four expose a semantic mismatch: the MILP assignment is optimal in its
+solutions. Six assignments replay successfully under the heuristic timeline,
+whereas three expose a semantic mismatch: the MILP assignment is optimal in its
 own formulation but the reconstructed route is rejected by the timeline oracle.
 The mismatches occur on the A-only density-0.8 case, the capacity bottleneck,
 and the hierarchy cases. This result confirms that the current tournament is
 valid for coverage and solver-status comparisons, but strict heuristic-to-MILP
-optimality gaps should be restricted to the five semantically aligned cases
+optimality gaps should be restricted to the six semantically aligned cases
 until initial-maintenance and ferry state transitions are represented identically
 in both models.
 

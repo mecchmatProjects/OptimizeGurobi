@@ -1,0 +1,47 @@
+Exact MILP optimisation provides certified optimal solutions but becomes computationally demanding on large or dense instances with tight maintenance constraints. Heuristic methods therefore serve two complementary roles: as standalone solvers for instances where exact optimisation is intractable, and as generators of high-quality primal bounds and warm starts for branch-and-bound procedures. All methods presented in this chapter are designed to enforce the full maintenance feasibility logic of Chapters~\ref{ch:maintenance}--\ref{ch:hierarchy}.
+
+\section{Timeline-based feasibility oracle}
+
+All heuristic procedures rely on a common feasibility oracle based on timeline simulation. Given a candidate assignment of a set of flights to aircraft $j$, the oracle evaluates the resulting trajectory in chronological order, verifying turn-time compliance, maintenance-trigger conditions, and maintenance-airport availability at each step. An assignment is admitted only if the oracle confirms that every constraint in the corrected maintenance model is satisfied.
+
+The oracle is necessary because assignment-level feasibility does not imply trajectory-level feasibility: a collection of flights that individually satisfies the coverage constraint~\eqref{eq:cover} may collectively violate turn-time requirements, maintenance-capacity limits, or cumulative-hour thresholds. Embedding the oracle as an inner subroutine of each heuristic step ensures that all generated solutions are feasible with respect to the complete formulation of Chapters~\ref{ch:maintenance}--\ref{ch:hierarchy}.
+
+\section{Greedy construction}
+
+The primary constructive procedure processes flights in non-decreasing order of scheduled departure time and assigns each flight to the aircraft $j^{*} \in \Pc$ that minimises the incremental assignment cost $c_{ij}$ subject to timeline feasibility:
+
+\begin{equation}
+    j^{*} = \arg\min_{j \in \Pc^{\mathrm{feas}}(i)}\; c_{ij},
+\end{equation}
+
+where $\Pc^{\mathrm{feas}}(i)$ denotes the set of aircraft for which assigning flight $i$ does not violate any constraint of the corrected model given the current partial schedule.
+
+The procedure is deterministic and executes in $O(|\mathcal{F}|\cdot|\mathcal{P}|)$ time per assignment step. It serves as the primary baseline in the computational study owing to its transparency and reproducibility. Its principal limitation is myopia: a locally cost-minimising assignment may preclude globally superior assignments for later flights, particularly when maintenance-feasibility windows interact across multiple aircraft and days.
+
+\section{Insertion-based repair}
+
+Following the greedy construction phase, an insertion-based repair procedure reduces the number of unassigned flights and improves the objective value. For each unassigned or high-cost flight $i$, the procedure evaluates all feasible reinsertion positions across all aircraft routes and selects the move that yields the greatest objective improvement while preserving timeline feasibility. This local-search step iterates until no improving reinsertion exists.
+
+Insertion-based repair is particularly effective when maintenance constraints make the greedy initialisation brittle: a flight that cannot be feasibly assigned in the forward pass may become insertable once partial routes have been established and the maintenance state of each aircraft is better defined by the existing assignments.
+
+\section{Bounded local search}
+
+The insertion-repair phase is augmented by a bounded local search that evaluates flight-relocation moves: removing flight $i$ from the route of aircraft $j$ and reinserting it into the route of aircraft $j' \neq j$ if the move strictly improves the objective and preserves timeline feasibility for both routes. The neighbourhood size is bounded by a parameter $K$, limiting the number of candidate target routes examined per flight to control computational effort.
+
+Bounded local search provides a principled intermediate between the speed of greedy construction and the thoroughness of exact optimisation. By restricting moves to a controlled neighbourhood of size $K$, it achieves substantial objective improvements over the greedy baseline without incurring the full overhead of branch-and-bound enumeration.
+
+\section{Space-time network search methods}
+
+An alternative class of heuristics models the planning problem on a directed acyclic space-time network $G = (V, E)$, where each node $(k, t) \in V$ represents an airport-time event and each arc $(u, v) \in E$ encodes a flight leg, a ground wait, or a maintenance action. Aircraft routes correspond to paths in $G$, and the assignment problem reduces to selecting cost-minimising paths that collectively cover all required flights while satisfying the maintenance constraints of Chapters~\ref{ch:maintenance}--\ref{ch:hierarchy}.
+
+Two representative approaches are considered. A label-setting (Dijkstra-style) procedure exploits the temporal acyclicity of $G$ to compute shortest-path routes in polynomial time and is well suited to instances with a small number of maintenance-capable airports. An ant-colony optimisation variant applies pheromone-trail reinforcement to explore a wider region of the solution space and can escape the myopic decisions of label-setting methods at the cost of higher variance in solution quality. Both approaches must invoke the timeline-feasibility oracle at each arc extension to ensure compliance with the full maintenance model.
+
+\section{Quality assessment framework}
+
+Heuristic solution quality is evaluated relative to the LP relaxation lower bound $z_{\mathrm{LP}}$ of the corrected MILP. For a heuristic solution with objective value $z_{\mathrm{H}}$, the \emph{optimality gap} is defined as
+
+\begin{equation}
+    \delta_{\mathrm{H}} = \frac{z_{\mathrm{H}} - z_{\mathrm{LP}}}{z_{\mathrm{LP}}} \times 100\%.
+\end{equation}
+
+On instances for which the exact MILP is solved to proven optimality, the true optimal value $z^{*}$ replaces $z_{\mathrm{LP}}$ in this expression. This framework ensures that the comparison between exact and heuristic methods is grounded in a formally defined quality measure rather than in absolute cost values that may not be comparable across instance families of different sizes or densities.

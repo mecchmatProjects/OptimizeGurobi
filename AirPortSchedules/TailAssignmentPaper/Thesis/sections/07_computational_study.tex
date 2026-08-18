@@ -1,0 +1,37 @@
+This chapter presents the computational evaluation of the corrected formulation and the heuristic methods developed in Chapters~\ref{ch:maintenance}--\ref{ch:heuristics}. The study is organised around three research questions: (i)~does the corrected Constraint~(13) produce a materially tighter feasible region than the original single-constraint formulation? (ii)~how do solution cost, maintenance feasibility, and runtime scale with instance density and maintenance pressure? and (iii)~how do the optimality gaps of the heuristic methods compare with exact lower bounds across the benchmark families?
+
+\section{Instance families and benchmark design}
+
+Benchmark instances are generated according to a parameterised factorial design with three control dimensions: fleet size $|\mathcal{P}| \in \{8, 10, 15, 20\}$, planning horizon $|\mathcal{D}| \in \{7, 14, 21\}$ days, and schedule density $\rho \in \{0.5, 0.75, 0.8, 1.0\}$, where $\rho$ is defined as the ratio of scheduled flights to the theoretical maximum compatible with the minimum turn-time constraint. For each parameter combination, multiple independent instances are generated using a deterministic seeding scheme to ensure reproducibility. The resulting suite comprises three progressively harder families:
+
+\begin{enumerate}
+    \item \emph{Basic instances}: sparse schedules ($\rho \leq 0.75$) with no binding maintenance constraints, providing a baseline for routing feasibility.
+    \item \emph{Maintenance-sensitive instances}: moderate density ($\rho \approx 0.8$) with active type-A and type-B cumulative flight-hour constraints.
+    \item \emph{High-pressure instances}: dense schedules ($\rho = 1.0$) with the full A/B/C/D hierarchy, tight maintenance thresholds, and limited maintenance-airport capacity.
+\end{enumerate}
+
+\section{Effect of the formulation correction}
+
+The impact of the corrected Constraint~(13) is quantified by solving matched instance pairs under the original and corrected formulations and comparing the LP relaxation bound, the branch-and-bound node count, and the optimal integer objective. On basic instances, where no maintenance endpoint indicator is zero at the LP optimum, the two formulations yield identical bounds. On maintenance-sensitive and high-pressure instances, the corrected formulation consistently produces a stronger LP bound: the intersection of the two endpoint-anchored half-spaces~\eqref{eq:c13a}--\eqref{eq:c13b} is strictly tighter than the original single half-space whenever at least one endpoint indicator is zero at the LP solution. This tightening reduces branch-and-bound node counts and accelerates convergence to the integer optimum.
+
+\section{Exact solver performance}
+
+The exact MILP is solved with CPLEX under a wall-clock time limit. On basic and maintenance-sensitive instances with $|\mathcal{P}| \leq 10$ and $|\mathcal{D}| \leq 14$, the solver reaches proven optimality in the majority of runs. Solution time increases steeply with density and planning horizon, consistent with the NP-hardness of the underlying problem. On high-pressure instances with $|\mathcal{P}| \geq 15$, the solver frequently exhausts the time limit without proving optimality, yielding a feasible incumbent and a residual duality gap. These results establish the practical computational boundary beyond which heuristic methods are required.
+
+\section{Heuristic performance and optimality gaps}
+
+The three heuristic tiers --- greedy construction, insertion-repair, and bounded local search --- are evaluated on the full benchmark suite. The optimality gap $\delta_{\mathrm{H}}$ of Chapter~\ref{ch:heuristics} is computed against the LP relaxation bound (or the exact optimum on instances where the solver converges). The principal observations are as follows:
+
+\begin{itemize}
+    \item On basic instances, greedy construction achieves gaps below $5\%$ in the majority of cases; insertion-repair reduces the gap further with a modest increase in runtime.
+    \item On maintenance-sensitive instances, greedy gaps widen as maintenance constraints restrict the feasible set; insertion-repair and bounded local search recover a substantial portion of this gap, with bounded local search consistently producing the smallest gaps at the cost of additional runtime.
+    \item On high-pressure instances, all heuristics exhibit larger gaps relative to the LP bound, reflecting the combinatorial difficulty of the maintenance-constrained domain; bounded local search nevertheless produces solutions within a practically acceptable range relative to the best known MILP incumbent.
+\end{itemize}
+
+\section{LP lower-bound analysis}
+
+For instances where the exact MILP does not converge to proven optimality, the LP relaxation value $z_{\mathrm{LP}}$ provides the only certified lower bound. The LP is solved for all benchmark instances and compared against heuristic objectives to estimate the worst-case optimality gap. Across the full suite, the LP bounds are non-trivial: they exclude a significant portion of the candidate cost range and confirm that the heuristic solutions lie within a bounded distance from the true optimum. This analysis validates the quality-assessment framework of Chapter~\ref{ch:heuristics} and demonstrates that the LP relaxation of the corrected model is a practically useful instrument even on instances too large for exact integer optimisation.
+
+\section{Summary of findings}
+
+The computational study yields three principal conclusions. First, the corrected Constraint~(13) produces a strictly tighter LP relaxation than the original formulation on all maintenance-active instances, confirming the theoretical analysis of Chapter~\ref{ch:maintenance}. Second, exact optimisation is tractable for small and medium instances, providing certified benchmarks; for large instances, the LP relaxation serves as a reliable lower bound. Third, the heuristic hierarchy provides a scalable family of methods with progressively improving solution quality, and their performance relative to LP bounds is consistent and interpretable across the benchmark families. Together, these findings validate the corrected compact model as a reliable framework for integrated aircraft routing and maintenance planning.

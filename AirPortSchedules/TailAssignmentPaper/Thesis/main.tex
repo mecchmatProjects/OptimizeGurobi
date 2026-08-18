@@ -1,0 +1,103 @@
+\documentclass[12pt,a4paper]{report}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[top=2.5cm,bottom=2.5cm,left=3cm,right=2.5cm]{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{tabularx}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{url}
+\usepackage{tikz}
+\usepackage{microtype}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{hyperref}
+\usepackage{cleveref}
+\usepackage[numbers]{natbib}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{setspace}
+\onehalfspacing
+
+\newtheorem{proposition}{Proposition}[chapter]
+\newtheorem{lemma}{Lemma}[chapter]
+\newtheorem{theorem}{Theorem}[chapter]
+\newtheorem{definition}{Definition}[chapter]
+\newtheorem{example}{Example}[chapter]
+\newtheorem{remark}{Remark}[chapter]
+
+\newcommand{\F}{\mathcal{F}}
+\newcommand{\Pc}{\mathcal{P}}
+\newcommand{\A}{\mathcal{A}}
+\newcommand{\D}{\mathcal{D}}
+\newcommand{\C}{\mathcal{C}}
+\newcommand{\MA}{\mathcal{M}}
+\newcommand{\dt}{\Delta t}
+\newcommand{\corrected}[1]{\textcolor{blue}{#1}}
+\newcommand{\extended}[1]{\textcolor{teal}{#1}}
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    \vspace*{2cm}
+    {\LARGE \bfseries Integrated Model for Aircraft Routing and Maintenance Planning\par}
+    \vspace{1.5cm}
+    {\Large Thesis Manuscript\par}
+    \vspace{4cm}
+    {\large \today\par}
+\end{titlepage}
+
+\pagenumbering{roman}
+\chapter*{Abstract}
+This thesis studies the integrated aircraft routing and maintenance planning problem within a compact mixed-integer programming framework. We begin from the compact tail-assignment model and show that the basic feasibility conditions are insufficient for physical realism because they do not fully exclude simultaneous departures and overlapping aircraft trajectories. We then formalize and correct the cumulative flight-hour maintenance constraint, which is the central modeling issue in the original formulation. In addition, the thesis extends the model to a full four-level maintenance hierarchy using A/B/C/D checks, while maintaining the structure of a compact and operationally meaningful assignment model. The resulting formulation is evaluated against constructive and search-based heuristics and benchmarked on generated instance families designed to capture varying density and maintenance pressure. The study shows that the corrected maintenance logic yields valid schedules, tighter formulations, and a more reliable comparison between exact and heuristic strategies.
+
+\chapter*{Acknowledgements}
+The author acknowledges the value of the underlying modeling and computational work that motivated this thesis. The research is built on the existing compact tail-assignment formulation and its maintenance extension, with emphasis on mathematical correctness, operational feasibility, and reproducible computational evidence.
+
+\tableofcontents
+\listoffigures
+\listoftables
+
+\cleardoublepage
+\pagenumbering{arabic}
+
+\chapter{Introduction}
+\label{ch:introduction}
+\input{sections/01_introduction}
+
+\chapter{Literature Review}
+\label{ch:lit}
+\input{sections/02_literature_review}
+
+\chapter{The Ground Routing Model}
+\label{ch:ground}
+\input{sections/03_ground_model}
+
+\chapter{Maintenance-Extended Model and the Correction of Constraint (13)}
+\label{ch:maintenance}
+\input{sections/04_maintenance_model}
+
+\chapter{Full A/B/C/D Maintenance Hierarchy}
+\label{ch:hierarchy}
+\input{sections/05_hierarchy_extension}
+
+\chapter{Heuristic Solution Methods}
+\label{ch:heuristics}
+\input{sections/06_heuristics}
+
+\chapter{Computational Study}
+\label{ch:experiments}
+\input{sections/07_computational_study}
+
+\chapter{Conclusion}
+\label{ch:conclusion}
+\input{sections/08_conclusion}
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\end{document}

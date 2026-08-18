@@ -1,0 +1,62 @@
+This chapter presents the compact tail-assignment model in its basic form, without maintenance decisions. The primary modelling objective is to assign each flight leg $i \in \mathcal{F}$ to a specific aircraft $j \in \mathcal{P}$ while preserving airport continuity and turn-time feasibility. The formulation is compact in the sense that binary variables are indexed by flight-aircraft pairs rather than by complete aircraft rotations, yielding $O(|\mathcal{F}|\cdot|\mathcal{P}|)$ binary variables in contrast to the exponential route space of column-generation formulations.
+
+\section{Sets, parameters, and decision variables}
+
+Let $\F$ denote the set of flight legs, $\Pc$ the set of aircraft (tail numbers), and $\A$ the set of airports. For each flight $i \in \F$, let $a_i^{\downarrow}$ and $a_i^{\uparrow}$ denote its departure and arrival airports respectively, and let $t_i^{\downarrow}$ and $t_i^{\uparrow}$ denote its scheduled departure and arrival times. Let $a_j^{0} \in \A$ denote the base airport of aircraft $j$ and let $\Delta t > 0$ be the minimum required ground turn time. The binary assignment variable is defined as
+
+\begin{equation}
+    x_{ij} =
+    \begin{cases}
+        1, & \text{if flight } i \text{ is assigned to aircraft } j,\\
+        0, & \text{otherwise,}
+    \end{cases}
+    \qquad i \in \F,\; j \in \Pc.
+\end{equation}
+
+The objective is to minimise the total weighted assignment cost:
+
+\begin{equation}
+    \min \sum_{i \in \F}\sum_{j \in \Pc} c_{ij}\, x_{ij},
+\end{equation}
+
+where $c_{ij} \geq 0$ denotes the cost of assigning flight $i$ to aircraft $j$, capturing operational factors such as aircraft-type compatibility and repositioning penalties.
+
+\section{Coverage and continuity constraints}
+
+Each flight must be operated by exactly one aircraft:
+
+\begin{equation}\label{eq:cover}
+    \sum_{j\in\Pc} x_{ij} = 1, \qquad \forall\, i \in \F.
+\end{equation}
+
+Airport continuity is enforced through a flow-balance structure: for each non-base airport $k \in \A$ and each aircraft $j \in \Pc$, the number of flights arriving at $k$ before a given departure time, augmented by any initial ground presence, must be at least equal to the number of departures from $k$ assigned to aircraft $j$. At the base airport $a_j^{0}$, one additional unit of availability is provided by the aircraft's initial position. These balance constraints ensure that the sequence of assigned flights forms a temporally connected and airport-consistent trajectory for each aircraft.
+
+\section{The feasibility issue: simultaneous departures}
+
+Although the balance constraints are algebraically consistent with the intended flow logic, they admit a physically infeasible corner case. If two flight legs $i_1, i_2 \in \F$ share the same departure airport and have departure times that are not separated by the required turn time $\Delta t$, the standard formulation does not prevent both from being assigned to the same aircraft $j$, because neither leg individually violates any balance constraint. This is a simultaneous-departure or temporal-overlap conflict: a single aircraft cannot physically operate two overlapping legs.
+
+This deficiency is not a minor edge case. If the feasible region of the assignment model contains physically impossible trajectories, then any maintenance model layered on top inherits the distorted domain and may certify operationally infeasible schedules as optimal.
+
+\section{Corrected feasibility condition}
+
+Let $\mathcal{O}$ denote the set of conflicting flight pairs for which simultaneous assignment to a single aircraft is physically impossible:
+
+\begin{equation}
+    \mathcal{O}=
+    \left\{\{i_1,i_2\}\subseteq \F:\;
+    \bigl[t_{i_1}^{\downarrow},\, t_{i_1}^{\uparrow}+\Delta t\bigr) \cap \bigl[t_{i_2}^{\downarrow},\, t_{i_2}^{\uparrow}+\Delta t\bigr) \neq \varnothing\right\}.
+\end{equation}
+
+The corrected model appends the pairwise conflict-exclusion constraints
+
+\begin{equation}\label{eq:overlap}
+    x_{i_1 j} + x_{i_2 j} \leq 1, \qquad \forall\, \{i_1,i_2\}\in \mathcal{O},\;\forall\, j\in\Pc.
+\end{equation}
+
+These inequalities are valid cuts with respect to the physically executable assignment space. Together with the balance constraints, they ensure that each set of feasible solutions corresponds to temporally non-overlapping aircraft trajectories. This correction is a prerequisite for the maintenance model of Chapter~\ref{ch:maintenance}, whose constraints are defined over the actual sequence of flights assigned to each aircraft.
+
+\section{Model size and complexity}
+
+The corrected ground model retains $|\mathcal{F}|\cdot|\mathcal{P}|$ binary assignment variables. The conflict constraints of~\eqref{eq:overlap} introduce at most $|\mathcal{O}|\cdot|\mathcal{P}|$ additional rows, where $|\mathcal{O}|$ is determined by the structure of the timetable and is typically small relative to the full combinatorial space. The model therefore remains compact, in the sense of the original formulation, while restricting the feasible region to physically executable schedules.
+
+The principal conclusion of this chapter is that the basic compact model acquires operational validity only after the conflict-exclusion inequalities~\eqref{eq:overlap} are incorporated. The corrected ground model provides the properly defined feasible domain over which the maintenance extension of the following chapters is both well posed and operationally interpretable.

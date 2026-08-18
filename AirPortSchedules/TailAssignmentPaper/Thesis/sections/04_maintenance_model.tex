@@ -1,0 +1,71 @@
+Building on the corrected ground model of Chapter~\ref{ch:ground}, this chapter incorporates maintenance feasibility into the compact tail-assignment formulation. A flight assignment is operationally valid only if it does not force any aircraft to exceed its regulatory maintenance interval; the model must therefore track maintenance events, maintenance-capable airport availability, and cumulative flight-time or calendar-day exposure for each aircraft.
+
+\section{Maintenance notation}
+
+Let $\D = \{1,\ldots,|\mathcal{D}|\}$ denote the set of planning days and let $\MA \subseteq \A$ denote the set of maintenance-capable airports. For each aircraft $j \in \Pc$ and planning day $d \in \D$, define the binary maintenance indicator
+
+\begin{equation}
+    y_{jd} =
+    \begin{cases}
+        1, & \text{if aircraft } j \text{ undergoes a maintenance check on day } d,\\
+        0, & \text{otherwise.}
+    \end{cases}
+\end{equation}
+
+A maintenance-trigger variable $z_{ijd} \in \{0,1\}$ is further defined for each flight $i \in \mathcal{F}^{\downarrow}(m)$, aircraft $j \in \Pc$, and day $d \in \D$, where $\mathcal{F}^{\downarrow}(m)$ denotes the set of flights arriving at maintenance-capable airport $m \in \MA$. The variable $z_{ijd}$ equals one if a maintenance action is initiated for aircraft $j$ following flight $i$ on day $d$.
+
+\section{Objective with maintenance cost}
+
+The extended objective minimises the sum of flight-assignment costs and maintenance-event costs:
+
+\begin{equation}
+    \min \;\sum_{i\in\F}\sum_{j\in\Pc} c_{ij}\, x_{ij}
+    \;+\; \sum_{m\in\MA}\sum_{i\in\F^{\downarrow}(m)}\sum_{j\in\Pc}\sum_{d\in\D} mc_{ijd}\, z_{ijd},
+\end{equation}
+
+where $mc_{ijd} \geq 0$ is the cost of performing a maintenance action for aircraft $j$ at the arrival airport of flight $i$ on day $d$, capturing repositioning, labour, and opportunity costs.
+
+\section{Maintenance feasibility constraints}
+
+The maintenance layer imposes four categories of constraints. First, a maintenance trigger must be coupled to an assigned flight: $z_{ijd} \leq x_{ij}$ for all relevant $(i,j,d)$. Second, airport-day maintenance capacity is bounded: the total number of maintenance actions at airport $m$ on day $d$ must not exceed its capacity. Third, the aircraft-day indicator $y_{jd}$ is linked to the trigger variables so that $y_{jd} = 1$ if and only if at least one maintenance trigger is active for aircraft $j$ on day $d$. Fourth, spacing constraints enforce that the interval between successive maintenance events does not exceed the regulatory maximum.
+
+\section{The flaw in the original cumulative flight-hour constraint}
+
+The most consequential modelling deficiency in the formulation of \citet{khaled2018compact} concerns Constraint~(13), the cumulative flight-hour bound. Let $F_{d,d'} \subseteq \mathcal{F}$ denote the set of flights operated within the interval $[d, d']$, let $\tilde{t}_i$ denote the block time of flight $i$, let $T_{\max}^{A}$ be the maximum cumulative flight hours between two consecutive type-A checks, and let $M_{dd'}$ be a sufficiently large constant. The original constraint is
+
+\begin{equation}
+    \sum_{i\in F_{d,d'}} x_{ij}\,\tilde{t}_i
+    \leq
+    T_{\max}^{A}
+    + M_{dd'}\bigl(2-y_{jd}-y_{jd'}\bigr)
+    + M_{dd'}\sum_{r=d+1}^{d'-1} y_{jr},
+\end{equation}
+
+for each aircraft $j \in \Pc$ and each pair of candidate maintenance days $(d, d')$.
+
+The flaw arises when exactly one endpoint indicator is inactive. If $y_{jd} = 1$ and $y_{jd'} = 0$ with no intermediate maintenance, the right-hand side becomes $T_{\max}^{A} + M_{dd'}(2-1-0) = T_{\max}^{A} + M_{dd'}$, which is typically very large, rendering the constraint vacuous. The formulation therefore fails to restrict cumulative flight hours accumulated between day $d$ and day $d'$, permitting the aircraft to operate far beyond its regulatory threshold. The same failure occurs symmetrically when $y_{jd} = 0$ and $y_{jd'} = 1$.
+
+\section{Corrected formulation}
+
+The corrected formulation replaces the single constraint by two endpoint-anchored inequalities, each binding at the corresponding endpoint when that endpoint is check-free:
+
+\begin{align}
+    \sum_{i\in F_{d,d'}} x_{ij}\,\tilde{t}_i
+    &\leq T_{\max}^{A}
+    + M_{dd'}\, y_{jd}
+    + M_{dd'}\sum_{r=d+1}^{d'-1} y_{jr}, \label{eq:c13a} \\
+    \sum_{i\in F_{d,d'}} x_{ij}\,\tilde{t}_i
+    &\leq T_{\max}^{A}
+    + M_{dd'}\, y_{jd'}
+    + M_{dd'}\sum_{r=d+1}^{d'-1} y_{jr}. \label{eq:c13b}
+\end{align}
+
+Constraint~\eqref{eq:c13a} is active at the start of the interval: when $y_{jd} = 0$ and no intermediate check occurs, the right-hand side equals $T_{\max}^{A}$, correctly enforcing the regulatory limit. Constraint~\eqref{eq:c13b} provides the symmetric bound anchored at the end. Together, the two inequalities ensure that the cumulative-hour restriction is active whenever at least one endpoint is check-free, regardless of the state of the other endpoint.
+
+\section{Validity and tightness of the correction}
+
+The corrected pair~\eqref{eq:c13a}--\eqref{eq:c13b} is both necessary and sufficient for the intended maintenance semantics. From the perspective of the LP relaxation, the intersection of two half-spaces is at least as restrictive as any single containing half-space; on maintenance-active instances where at least one endpoint indicator is zero at the LP optimum, the corrected formulation yields a strictly tighter bound. This tightening translates into stronger relaxation bounds and, consequently, fewer branch-and-bound nodes in practice.
+
+\section{Integration with the corrected ground model}
+
+The maintenance-extended model is obtained by appending the variables $y_{jd}$ and $z_{ijd}$, the extended objective, the maintenance feasibility constraints, and the corrected Constraints~\eqref{eq:c13a}--\eqref{eq:c13b} to the corrected ground model of Chapter~\ref{ch:ground}. The resulting feasible region simultaneously enforces airport continuity, turn-time non-overlap, maintenance-airport availability, and cumulative-hour compliance. This integrated structure is the foundation for the full A/B/C/D hierarchy developed in Chapter~\ref{ch:hierarchy}.

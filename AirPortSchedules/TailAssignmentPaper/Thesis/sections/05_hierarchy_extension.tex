@@ -1,0 +1,74 @@
+The maintenance-extended model of Chapter~\ref{ch:maintenance} addresses cumulative flight-hour checks in their most elementary form. Regulatory requirements in airline operations are organised into a four-level hierarchy of check types, each governed by distinct thresholds and operational characteristics. This chapter extends the compact model to the full A/B/C/D hierarchy.
+
+\section{Check types and regulatory hierarchy}
+
+Define the ordered set of check types
+
+\begin{equation}
+    \mathcal{C} = \{A, B, C, D\},
+\end{equation}
+
+endowed with the dominance ordering $D \succ C \succ B \succ A$. A check of type $c$ at day $d$ is said to \emph{satisfy} all lighter checks $c' \prec c$ at that day; a heavier check therefore subsumes the reset conditions of all lighter checks. This subsumption structure reduces the number of independent constraint groups: rather than tracking each check type with fully independent variables, the model exploits the dominance ordering to share reset logic across levels.
+
+For each aircraft $j \in \Pc$, day $d \in \D$, and check type $c \in \C$, define
+
+\begin{equation}
+    y_{jdc} =
+    \begin{cases}
+        1, & \text{if aircraft } j \text{ undergoes a check of type exactly } c \text{ on day } d,\\
+        0, & \text{otherwise,}
+    \end{cases}
+\end{equation}
+
+and the \emph{hierarchy indicator}
+
+\begin{equation}
+    \eta_{jdc} =
+    \begin{cases}
+        1, & \text{if aircraft } j \text{ undergoes a check of level at least } c \text{ on day } d,\\
+        0, & \text{otherwise.}
+    \end{cases}
+\end{equation}
+
+The indicator satisfies $\eta_{jdc} = \sum_{c' \succeq c} y_{jdc'}$ and formalises the subsumption relationship within the model.
+
+\section{Hierarchy constraints}
+
+At most one check type may be performed per aircraft per day:
+
+\begin{equation}
+    \sum_{c \in \C} y_{jdc} \leq 1, \qquad \forall\, j \in \Pc,\; d \in \D.
+\end{equation}
+
+The subsumption relationship is encoded by requiring $\eta_{jdc} \geq \eta_{jdc'}$ for all $c' \succ c$, ensuring that a heavier check satisfies the reset obligations of all lighter checks in the same period. These constraints prevent the model from assigning different check obligations to the same day without the corresponding heavier action being performed.
+
+\section{Flight-hour checks: types A and B}
+
+Types A and B are triggered by cumulative block time and are governed by a maximum flight-hour threshold $T_{\max}^{c}$ specific to check level $c \in \{A, B\}$. The corrected endpoint-anchored inequalities of Constraints~\eqref{eq:c13a}--\eqref{eq:c13b} extend to the multi-type setting by substituting the type-specific hierarchy indicator $\eta_{jdc}$ for $y_{jd}$:
+
+\begin{align}
+    \sum_{i\in F_{d,d'}} x_{ij}\,\tilde{t}_i &\leq T_{\max}^{c} + M_{dd'}\,\eta_{jdc} + M_{dd'}\sum_{r=d+1}^{d'-1}\eta_{jrc}, \label{eq:c13a_c} \\
+    \sum_{i\in F_{d,d'}} x_{ij}\,\tilde{t}_i &\leq T_{\max}^{c} + M_{dd'}\,\eta_{jd'c} + M_{dd'}\sum_{r=d+1}^{d'-1}\eta_{jrc}, \label{eq:c13b_c}
+\end{align}
+
+for each $c \in \{A,B\}$, aircraft $j \in \Pc$, and candidate interval $(d, d')$. The use of $\eta_{jdc}$ correctly captures the subsumption property: a C or D check at day $d$ resets the type-A and type-B counters, as required by the regulatory ordering.
+
+\section{Calendar-day checks: types C and D}
+
+Types C and D are governed by elapsed calendar days rather than cumulative flight hours. For each check type $c \in \{C, D\}$, let $\Delta_{\max}^{c}$ denote the maximum permissible interval in days between two consecutive checks of level at least $c$. The spacing constraints require
+
+\begin{equation}
+    \sum_{d'=d}^{d+\Delta_{\max}^{c}} \eta_{jd'c} \geq 1, \qquad \forall\, j \in \Pc,\; d \in \D,
+\end{equation}
+
+ensuring that at least one qualifying maintenance event occurs within every window of $\Delta_{\max}^{c}$ consecutive days.
+
+Types C and D typically occupy multiple consecutive days. Extended maintenance windows of length $\ell_c$ days are modelled by constraining $x_{ij} = 0$ for all flights $i$ whose operation would overlap with an active type-$c$ maintenance period for aircraft $j$, preventing flight assignment during heavy checks.
+
+\section{Pre-horizon state accounting}
+
+A critical aspect of operational realism is the treatment of maintenance exposure accumulated before the planning horizon. If aircraft $j$ enters the planning period with $h_j^{0}$ cumulative block hours accrued since its last type-A or type-B check, and with $d_j^{0}$ elapsed days since its last type-C or type-D check, the model must incorporate these initial states. Failure to do so incorrectly treats each aircraft as maintenance-reset on day one, potentially producing schedules that violate regulatory limits within the first few days of the horizon. The first maintenance-interval constraint for each aircraft is therefore adjusted to reflect the carry-forward exposure, preserving continuity of regulatory compliance across planning cycles.
+
+\section{Complexity and model implications}
+
+The full A/B/C/D extension adds $O(|\mathcal{P}|\cdot|\mathcal{D}|\cdot|\mathcal{C}|)$ binary variables and a corresponding set of hierarchy, spacing, and window constraints to the maintenance-extended model of Chapter~\ref{ch:maintenance}. While substantially larger than the basic formulation, the model remains within the compact assignment framework: no explicit route enumeration is required. The extension is essential for operational fidelity; a formulation that conflates check types or omits the subsumption structure will misrepresent the maintenance schedule and may certify infeasible or excessively conservative solutions as optimal.

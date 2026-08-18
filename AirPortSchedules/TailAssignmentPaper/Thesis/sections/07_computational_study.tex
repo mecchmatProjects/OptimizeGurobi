@@ -1,37 +1,864 @@
-This chapter presents the computational evaluation of the corrected formulation and the heuristic methods developed in Chapters~\ref{ch:maintenance}--\ref{ch:heuristics}. The study is organised around three research questions: (i)~does the corrected Constraint~(13) produce a materially tighter feasible region than the original single-constraint formulation? (ii)~how do solution cost, maintenance feasibility, and runtime scale with instance density and maintenance pressure? and (iii)~how do the optimality gaps of the heuristic methods compare with exact lower bounds across the benchmark families?
+This chapter evaluates the compact aircraft-routing and maintenance model and
+ the executable heuristic methods introduced in Chapters~\ref{ch:maintenance}--
+\ref{ch:heuristics}. The computational study has two purposes. First, it
+checks that the corrected formulation and the A/B/C/D hierarchy behave as
+intended on controlled boundary cases. Second, it compares the solution quality,
+coverage, model size, and runtime of exact and heuristic methods under increasing
+routing and maintenance pressure. The chapter distinguishes measured results
+from additional comparisons that require a longer computational study.
 
-\section{Instance families and benchmark design}
+\section{Research questions and evaluation principles}
+\label{sec:computational_questions}
 
-Benchmark instances are generated according to a parameterised factorial design with three control dimensions: fleet size $|\mathcal{P}| \in \{8, 10, 15, 20\}$, planning horizon $|\mathcal{D}| \in \{7, 14, 21\}$ days, and schedule density $\rho \in \{0.5, 0.75, 0.8, 1.0\}$, where $\rho$ is defined as the ratio of scheduled flights to the theoretical maximum compatible with the minimum turn-time constraint. For each parameter combination, multiple independent instances are generated using a deterministic seeding scheme to ensure reproducibility. The resulting suite comprises three progressively harder families:
+The study is organised around the following questions:
 
 \begin{enumerate}
-    \item \emph{Basic instances}: sparse schedules ($\rho \leq 0.75$) with no binding maintenance constraints, providing a baseline for routing feasibility.
-    \item \emph{Maintenance-sensitive instances}: moderate density ($\rho \approx 0.8$) with active type-A and type-B cumulative flight-hour constraints.
-    \item \emph{High-pressure instances}: dense schedules ($\rho = 1.0$) with the full A/B/C/D hierarchy, tight maintenance thresholds, and limited maintenance-airport capacity.
+    \item Does the corrected endpoint-anchored formulation of Constraint~(13)
+    preserve feasibility and strengthen the relaxation on maintenance-active
+    instances?
+    \item How do the number of flights, aircraft, maintenance constraints, and
+    station capacities affect MILP model size, solve status, runtime, and
+    optimality certification?
+    \item How do the seven executable heuristic modes compare with one another
+    in coverage, objective value, runtime, and route feasibility?
+    \item How far are heuristic solutions from a certified MILP optimum or,
+    when certification is unavailable, from a rigorous LP lower bound?
+    \item What is the computational trade-off between the assignment-arc and
+    route/path representations of the same scheduling problem?
 \end{enumerate}
 
-\section{Effect of the formulation correction}
+The comparison is instance-matched. A method is compared only on the same JSON
+instance, with the same aircraft initial positions, initial maintenance state,
+flight costs, maintenance thresholds, station capacities, and ferry setting.
+The objective values are interpreted together with coverage: a low cost obtained
+by leaving flights unassigned is not comparable to a complete assignment unless
+coverage is reported explicitly. This distinction is essential for the ACO and
+other partial constructive runs.
 
-The impact of the corrected Constraint~(13) is quantified by solving matched instance pairs under the original and corrected formulations and comparing the LP relaxation bound, the branch-and-bound node count, and the optimal integer objective. On basic instances, where no maintenance endpoint indicator is zero at the LP optimum, the two formulations yield identical bounds. On maintenance-sensitive and high-pressure instances, the corrected formulation consistently produces a stronger LP bound: the intersection of the two endpoint-anchored half-spaces~\eqref{eq:c13a}--\eqref{eq:c13b} is strictly tighter than the original single half-space whenever at least one endpoint indicator is zero at the LP solution. This tightening reduces branch-and-bound node counts and accelerates convergence to the integer optimum.
+\section{Software, hardware, and reproducibility protocol}
+\label{sec:computational_protocol}
 
-\section{Exact solver performance}
+The application is implemented in Python using Pyomo for the exact model and
+pure Python for the heuristic scheduler. The exact runs use a configured MILP
+backend, principally CPLEX in the archived benchmark results and HiGHS or CBC
+in the current open-source validation runs. Heuristics require no external
+optimizer. All runs use the repository entry point \texttt{src/model.py}; the
+legacy \texttt{Model\_28Oct.py} and earlier standalone heuristic files are not
+part of the reported implementation.
 
-The exact MILP is solved with CPLEX under a wall-clock time limit. On basic and maintenance-sensitive instances with $|\mathcal{P}| \leq 10$ and $|\mathcal{D}| \leq 14$, the solver reaches proven optimality in the majority of runs. Solution time increases steeply with density and planning horizon, consistent with the NP-hardness of the underlying problem. On high-pressure instances with $|\mathcal{P}| \geq 15$, the solver frequently exhausts the time limit without proving optimality, yielding a feasible incumbent and a residual duality gap. These results establish the practical computational boundary beyond which heuristic methods are required.
+Each run is defined by the tuple
+\begin{equation}
+    (\text{instance},\ \text{mode},\ \text{solver},\ \text{time limit},\
+    \text{ferry setting},\ \text{maintenance setting},\ \text{seed}),
+\end{equation}
+which is recorded with the output files. The random instance generator uses
+the stable seed function specified in Chapter~\ref{ch:introduction}; therefore
+an instance can be regenerated from its density, fleet size, horizon, and test
+index. Subsequent comparisons should retain the same instance files and should
+not replace an archived result merely because a different solver backend
+produces a more convenient status.
 
-\section{Heuristic performance and optimality gaps}
+For an exact run, the primary measurements are solver status, objective value,
+best bound, relative MIP gap, wall-clock time, explored nodes, number of model
+variables, and number of constraints. For a heuristic run, the primary
+measurements are assigned flights, unassigned flights, route feasibility,
+objective value including ferry costs, wall-clock time, and the heuristic
+parameters. The common output schema used by the batch tools includes
+\texttt{stem}, $P$, $H$, $F$, \texttt{vars}, \texttt{constraints},
+\texttt{nodes\_max}, \texttt{gap\_pct}, \texttt{cpu\_s}, and \texttt{objective};
+heuristic-specific files additionally record coverage and unassigned counts.
 
-The three heuristic tiers --- greedy construction, insertion-repair, and bounded local search --- are evaluated on the full benchmark suite. The optimality gap $\delta_{\mathrm{H}}$ of Chapter~\ref{ch:heuristics} is computed against the LP relaxation bound (or the exact optimum on instances where the solver converges). The principal observations are as follows:
+\subsection{Execution protocol}
 
-\begin{itemize}
-    \item On basic instances, greedy construction achieves gaps below $5\%$ in the majority of cases; insertion-repair reduces the gap further with a modest increase in runtime.
-    \item On maintenance-sensitive instances, greedy gaps widen as maintenance constraints restrict the feasible set; insertion-repair and bounded local search recover a substantial portion of this gap, with bounded local search consistently producing the smallest gaps at the cost of additional runtime.
-    \item On high-pressure instances, all heuristics exhibit larger gaps relative to the LP bound, reflecting the combinatorial difficulty of the maintenance-constrained domain; bounded local search nevertheless produces solutions within a practically acceptable range relative to the best known MILP incumbent.
-\end{itemize}
+The single-instance heuristic protocol is:
 
-\section{LP lower-bound analysis}
+\begin{verbatim}
+.venv\Scripts\python.exe src\model.py --mode heuristic \\
+  --data <instance.json> --heuristic <mode> --no-show
+\end{verbatim}
 
-For instances where the exact MILP does not converge to proven optimality, the LP relaxation value $z_{\mathrm{LP}}$ provides the only certified lower bound. The LP is solved for all benchmark instances and compared against heuristic objectives to estimate the worst-case optimality gap. Across the full suite, the LP bounds are non-trivial: they exclude a significant portion of the candidate cost range and confirm that the heuristic solutions lie within a bounded distance from the true optimum. This analysis validates the quality-assessment framework of Chapter~\ref{ch:heuristics} and demonstrates that the LP relaxation of the corrected model is a practically useful instrument even on instances too large for exact integer optimisation.
+The exact protocol is:
 
-\section{Summary of findings}
+\begin{verbatim}
+.venv\Scripts\python.exe src\model.py --mode milp \\
+  --data <instance.json> --solver <solver> --time-limit <seconds> --no-show
+\end{verbatim}
 
-The computational study yields three principal conclusions. First, the corrected Constraint~(13) produces a strictly tighter LP relaxation than the original formulation on all maintenance-active instances, confirming the theoretical analysis of Chapter~\ref{ch:maintenance}. Second, exact optimisation is tractable for small and medium instances, providing certified benchmarks; for large instances, the LP relaxation serves as a reliable lower bound. Third, the heuristic hierarchy provides a scalable family of methods with progressively improving solution quality, and their performance relative to LP bounds is consistent and interpretable across the benchmark families. Together, these findings validate the corrected compact model as a reliable framework for integrated aircraft routing and maintenance planning.
+The batch protocol runs the same instance directory with a fixed mode, solver,
+and time limit. Ferry-enabled and no-ferry experiments are separate treatments,
+not interchangeable observations. The former inserts explicit 60-minute ferry
+events with the configured ferry cost; the latter rejects airport-disconnected
+successive flights. Every generated schedule is post-validated by replaying its
+aircraft routes through the timeline simulator.
+
+\begin{table}[t]
+\centering\small
+\caption{Provenance classes used for the computational results.}
+\label{tab:computational_provenance}
+\begin{tabular}{p{0.22\linewidth}p{0.28\linewidth}p{0.36\linewidth}}
+\toprule
+Result class & Typical backend & Use in the study \\
+\midrule
+Archived exact results & CPLEX & Historical benchmark values; retained with their original solver context \\
+Current exact validation & HiGHS or CBC & Reproducible open-source checks on curated and synthetic instances \\
+Heuristic results & Pure Python scheduler & Coverage, objective, route feasibility, and runtime comparisons \\
+LP relaxation results & HiGHS or another declared LP backend & Lower bounds and integrality-gap analysis \\
+Additional comparisons & Declared backend and settings & Required when an existing result set does not cover the research question \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The provenance distinction is methodological rather than cosmetic. Wall-clock
+times from different solver backends are not pooled, and a solver error is not
+treated as either infeasibility or optimality. A result is considered directly
+comparable only when its instance, formulation, ferry setting, maintenance
+settings, backend, and time limit are matched.
+
+For clarity, the computational tables use the following status meanings. An
+\emph{optimal} MILP result has a feasible integer solution and a proof that no
+better solution exists. A \emph{feasible} or \emph{time-limited} MILP result
+has an incumbent but no optimality certificate within the declared limit. An
+\emph{infeasible} result means that the solver proved that the selected model
+has no solution satisfying all active constraints. An \emph{error} indicates
+that execution or solution loading failed and must not be interpreted as a
+mathematical infeasibility result. For heuristics, \emph{complete} means that
+all flights are assigned and the route replay is feasible; \emph{partial}
+means that the returned routes are feasible but at least one flight remains
+unassigned. This vocabulary is applied consistently to the tables and figures
+in the remainder of the chapter.
+
+\section{Benchmark families}
+\label{sec:computational_instances}
+
+The repository contains three complementary benchmark families. The first is a
+curated boundary suite with explicit maintenance scenarios: no maintenance,
+capacity bottlenecks, hierarchy interactions, near-threshold exposure, all-check
+coverage, and multi-check windows. These instances are small enough to inspect
+manually and are used to validate semantics rather than to estimate asymptotic
+performance.
+
+The second family consists of deterministic synthetic DataCplex instances. The
+generator varies density, fleet size, and horizon, and is useful for scalability
+experiments. These instances are valuable stress tests, but random flight
+origins and destinations do not guarantee exact equipment-flow feasibility. A
+heuristic schedule on such an instance must therefore not be described as proof
+that the integrated MILP is feasible.
+
+The third family consists of constructive exact-feasible instances. A seeded
+aircraft rotation is generated first, validated with the maintenance timeline,
+and only then serialized to JSON. This family is the preferred basis for a fair
+heuristic-versus-MILP quality comparison because it avoids conflating algorithmic
+failure with an accidentally infeasible random input.
+
+The benchmark program is not restricted to a single 25-instance matrix. The
+matrix provides one structured density--complexity tier, while additional test
+families may be introduced when they isolate a different scientific question.
+These families include small exhaustive regression cases, ferry/no-ferry pairs,
+A-only, AB, and full ABCD maintenance families, threshold-duration-capacity
+stress grids, longer-horizon cases, dense random stress tests, and solver-limit
+boundary cases. Each family has its own interpretation: curated cases test
+semantics, constructive cases support quality comparisons, random cases test
+scalability, and paired ablations measure the effect of one modeling feature.
+
+For every additional family, the instance identifier, generator or source,
+expected feasibility class, parameter range, solver budget, ferry treatment, and
+output location are recorded before the results are aggregated. This permits
+the study to grow beyond the initial matrix without silently mixing semantic
+regression tests, exact-feasible quality tests, and random scalability tests.
+
+\subsection{Exact-feasible comparison and heuristic improvement}
+\label{subsec:computational_exact_feasible}
+
+The larger synthetic instances are useful for scalability, but they are not
+the appropriate basis for measuring heuristic optimality gaps when the MILP
+cannot certify a solution. For that purpose, the previous computational study
+defined a separate exact-feasible family of nine small instances spanning three
+to six aircraft and eight to 54 flights. The family combines constructive
+A-only, AB, and ABCD rotations with curated no-maintenance, threshold,
+capacity, and hierarchy cases.
+
+All nine integrated MILP instances were reported as optimal, with wall-clock
+times between 1.8 and 21.4 seconds under the declared HiGHS configuration. On
+these instances, heuristic quality ranges from exact agreement on simple cases
+to large gaps on tight capacity and hierarchy cases. The largest reported
+greedy gap is 345.8\% on the capacity-bottleneck case, where the heuristic
+leaves flights unassigned; this value is a warning about coverage loss as much
+as it is a cost comparison. The corresponding local-search gap is 273.5\% on
+the same partial solution. Complete and partial heuristic results are therefore
+reported separately in the analysis.
+
+The 25-instance density--complexity matrix provides a different result. The
+reported bounded local-search refinement improves the greedy objective by a
+mean of 12.7\% across the matrix, while the associated MILP runs reach their
+configured solver limit on all 25 random-grid cells. This is evidence of
+scalable heuristic improvement, not evidence of a 12.7\% optimality gap. The
+exact-feasible family supports optimality-gap claims; the larger random family
+supports runtime, coverage, and improvement-trend claims.
+
+\begin{table}[t]
+\centering\small
+\caption{Scope and interpretation of the exact-feasible comparison reported in
+the previous computational study.}
+\label{tab:exact_feasible_summary}
+\begin{tabular}{p{0.23\linewidth}p{0.17\linewidth}p{0.17\linewidth}p{0.27\linewidth}}
+\toprule
+Subfamily & Instances & Size range & Scientific use \\
+\midrule
+Constructive rotations & 5 & $P=4$--$6$, $F=8$--$54$ & Exact-feasible A, AB, and ABCD maintenance comparisons \\
+Curated ABCD cases & 4 & $P=3$--$6$, $F=8$--$20$ & Capacity, hierarchy, threshold, and no-maintenance controls \\
+\midrule
+Total & 9 & $P=3$--$6$, $F=8$--$54$ & Integrated MILP certification and heuristic-gap analysis \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The nine-instance comparison is therefore a certification set, not a
+scalability sample. Its reported integrated-MILP runtimes range from 1.8 to
+21.4 seconds under the stated HiGHS configuration. The distinction between
+this set and the larger synthetic matrix is maintained throughout the chapter.
+
+The exact-feasible subset also contains a matched ferry experiment. On the two
+smaller four-aircraft instances, enabling or disabling repositioning does not
+change assignment completeness for either the heuristic or the MILP. On the
+larger constructive instance with $(P,H)=(6,10)$ and 54 flights, the heuristic
+retains full coverage with ferrying but assigns only 48 flights when ferrying is
+disabled. The MILP retains a full incumbent in the same comparison but does not
+close within the CBC solve budget. This result shows that ferry availability is
+an operational robustness factor, not merely an objective-cost option.
+
+\begin{table}[t]
+\centering\small
+\caption{Benchmark families and their scientific role.}
+\label{tab:benchmark_families}
+\begin{tabular}{p{0.23\linewidth}p{0.29\linewidth}p{0.34\linewidth}}
+\toprule
+Family & Main variation & Interpretation \\
+\midrule
+Curated boundary & Check hierarchy, capacity, thresholds, multi-day checks & Semantic and regression validation \\
+Random synthetic & Density, fleet size, horizon & Stress testing and scalability; not guaranteed exact-feasible \\
+Constructive feasible & Embedded rotations and maintenance family & Fair exact-versus-heuristic quality comparison \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Measured exact-model results}
+\label{sec:computational_milp}
+
+The available LP-bound results provide a useful comparison between the
+classical assignment formulation and the integrated maintenance formulation.
+The model size increases substantially when maintenance constraints are active,
+although the number of binary variables may remain unchanged because the index
+sets are created for the same aircraft and flight universe. For example, the
+curated no-maintenance instance has 872 variables and 70 constraints in the
+classical form, versus 872 variables and 1,806 constraints in the integrated
+formulation. The capacity-bottleneck instance grows from 32 to 1,234
+constraints, and the hierarchy instance from 85 to 2,445 constraints.
+
+\begin{table}[t]
+\centering\small
+\caption{Measured LP relaxation bounds from the repository results
+\texttt{step4\_lp\_lower\_bounds.csv}. A blank status or bound indicates that
+the corresponding run ended in an error rather than a certified LP result.}
+\label{tab:milp_lp_anchor}
+\begin{tabular}{lrrrrrr}
+\toprule
+Instance & $P$ & $F$ & Formulation & Vars & Cons. & LP bound \\
+\midrule
+ABCD no maintenance & 4 & 14 & classical & 872 & 70 & 14,000.0 \\
+ABCD no maintenance & 4 & 14 & integrated & 872 & 1,806 & 14,000.0 \\
+Capacity bottleneck & 3 & 8 & classical & 648 & 32 & 8,000.0 \\
+Capacity bottleneck & 3 & 8 & integrated & 648 & 1,234 & 8,000.013 \\
+Check hierarchy & 4 & 13 & classical & 1,092 & 85 & 13,000.0 \\
+Check hierarchy & 4 & 13 & integrated & 1,092 & 2,445 & 13,000.010 \\
+Random grid ($\rho=0.5$) & 10 & 64 & classical & 14,540 & 3,582 & 827,659.0 \\
+Random grid ($\rho=0.5$) & 10 & 64 & integrated & 14,540 & 42,899 & 827,659.026 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The nearly identical classical and integrated LP values in these rows should
+not be interpreted as evidence that maintenance constraints are irrelevant.
+They show that the continuous relaxation can be weak with respect to the
+integer maintenance decisions, while the constraint count and integer search
+remain much larger. This is precisely why both LP bounds and integer solver
+status must be reported.
+
+\subsection{Curated hierarchy-suite results}
+\label{subsec:computational_hierarchy_suite}
+
+The complete curated hierarchy suite provides a complementary feasibility
+cross-section. Table~\ref{tab:hierarchy_batch} is transcribed from
+\texttt{results/tables/\_batch\_hierarchy\_highs.csv}. It reports the
+integrated MILP status, objective where a feasible optimum exists, model size,
+and solver runtime for every curated instance. The infeasible cases are part of
+the evidence: they identify maintenance combinations that cannot support full
+flight coverage under the selected operational assumptions.
+
+\begin{table}[t]
+\centering\scriptsize
+\caption{Curated hierarchy-suite MILP results from the stored HiGHS batch
+results. Runtime values belong to this backend and are not pooled with archived
+CPLEX measurements.}
+\label{tab:hierarchy_batch}
+\begin{tabular}{lrrrrrr}
+\toprule
+Instance & $F$ & Status & Objective & Vars & Cons. & Wall (s) \\
+\midrule
+ABCD no maintenance & 14 & optimal & 14,000 & 872 & 1,806 & 1.96 \\
+ABCD capacity bottleneck & 8 & optimal & 8,300 & 648 & 1,234 & 2.08 \\
+ABCD check hierarchy & 13 & optimal & 14,700 & 1,092 & 2,445 & 2.11 \\
+ABCD near threshold & 20 & optimal & 21,100 & 2,232 & 5,280 & 2.58 \\
+ABCD all checks & 9 & infeasible & -- & 709 & 1,117 & 1.79 \\
+ABCD multi-check & 16 & infeasible & -- & 808 & 1,038 & 1.89 \\
+ABCD two-B-one-C & 14 & infeasible & -- & 2,530 & 6,261 & 2.57 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Four of the seven curated cases are solved to optimality and three are proved
+infeasible. This is a deliberately selected semantic test suite rather than a
+random sample, so the proportions must not be interpreted as estimates of fleet
+feasibility. Their value is diagnostic: the suite exercises capacity,
+hierarchy, threshold, and multi-check behavior in instances small enough to
+inspect and reproduce.
+
+\subsection{Sensitivity to thresholds, durations, and capacity}
+
+The existing sensitivity results contain 60 controlled perturbations over four
+curated instances: no-maintenance, capacity-bottleneck, near-threshold, and
+hierarchy cases. On the no-maintenance instance, changing thresholds
+does not change the objective or model size, as expected. On the capacity and
+near-threshold cases, threshold reductions can change the status from optimal
+to infeasible, while duration changes alter both the number of constraints and
+runtime. For example, the near-threshold instance is optimal at the baseline
+threshold and at 150--200\% scaling, but is reported infeasible at 25--75\%.
+This result demonstrates that maintenance parameters affect feasibility in a
+discontinuous way; runtime alone is not a sufficient sensitivity measure.
+
+\begin{table}[t]
+\centering\small
+\caption{Selected sensitivity results from \texttt{step5\_sensitivity\_analysis.csv}.}
+\label{tab:sensitivity_anchor}
+\begin{tabular}{llrrrr}
+\toprule
+Instance & Perturbation & Vars & Cons. & Status & Objective \\
+\midrule
+No maintenance & Thresholds 25\% & 872 & 1,806 & optimal & 14,000 \\
+No maintenance & Durations 200\% & 872 & 1,842 & optimal & 14,000 \\
+Capacity bottleneck & Thresholds 50\% & 648 & 1,234 & infeasible & -- \\
+Capacity bottleneck & Thresholds 150\% & 648 & 1,234 & optimal & 8,000 \\
+Near threshold & Thresholds 50\% & 2,232 & 5,280 & infeasible & -- \\
+Near threshold & Thresholds 150\% & 2,232 & 5,278 & optimal & 20,000 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Across the 60 sensitivity runs, threshold scaling is the dominant factor: low
+threshold values create feasibility failures on two of the four instances and
+alter the objective on three. Duration scaling is instance-dependent and
+produces a high-side feasibility cliff on the hierarchy case. Capacity changes
+matter primarily when the underlying station topology has removable slot
+slack; instances already limited to one maintenance slot are less sensitive to
+further reductions. Model-size ratios remain close to the baseline, from
+approximately 0.97 to 1.02, and all recorded runtimes remain below 1.1 seconds.
+The principal observed effect is therefore a discrete feasibility transition,
+not a gradual runtime increase.
+
+\section{Constraint (13) and hierarchy validation}
+\label{sec:computational_c13}
+
+The corrected formulation is evaluated by matched runs in which only the C13
+implementation is changed. The paper version uses the original single
+constraint; the corrected version uses the two endpoint-anchored inequalities
+from Chapter~\ref{ch:maintenance}. The purpose of the experiment is not to
+expect a different objective on every instance. It is to test the specific
+logical configuration in which the original big-$M$ expression can make a
+flight-hour bound vacuous.
+
+The dedicated loophole instance makes this configuration explicit. It contains
+one aircraft and four consecutive 350-minute flights, all placed in the
+relevant day interval, with an A-threshold of 1,000 minutes and no
+maintenance-capable reset available. If all four flights are assigned, the
+accumulated exposure is
+\begin{equation}
+  4\times 350 = 1,400 > 1,000.
+\end{equation}
+At the two boundary days, the relevant maintenance indicators are zero, and
+there is no intermediate maintenance day that can reset the counter. In the
+original formulation, the endpoint term contributes the relaxed value
+$M(2-0-0)=2M$, so the constraint does not prevent the invalid assignment. In
+the corrected formulation, the two endpoint-anchored inequalities are both
+active when no endpoint or intermediate reset is present, and the assignment
+is rejected.
+
+This construction supplies a discriminating test rather than merely a larger
+benchmark. If an ordinary instance does not activate this endpoint state, the
+paper and corrected formulations may legitimately return the same status and
+objective. Such equality is therefore not evidence that the formulations are
+equivalent; it only shows that the tested instance did not expose the defect.
+
+The repository contains targeted C13 results for hierarchy and near-threshold
+instances, as well as generated-grid runs. The current quick results report
+optimal solutions of 14,700 and 21,100 on the two targeted cases under the
+corrected formulation, while harder all-check and multi-check cases contain
+errors or infeasibility. A longer matched C13 comparison is required before
+making a claim of universal empirical separation.
+
+The C13 comparison must also control the C13b pre-horizon-hours constraint.
+For the loophole test, C13b is disabled so that the experiment isolates the
+effect of C13 itself; otherwise the independently corrected initial-hours
+constraint could reject the assignment before the difference between the two
+C13 forms is observed. This isolation is part of the experimental definition,
+not a relaxation used in ordinary production runs, where C13b remains enabled
+by default.
+
+\begin{table}[t]
+\centering\small
+\caption{Available targeted C13 evidence. ``Not available'' denotes a result
+that requires additional matched experiments.}
+\label{tab:c13_anchor}
+\begin{tabular}{lccc}
+\toprule
+Instance & Paper C13 & Corrected C13 & Corrected objective \\
+\midrule
+ABCD check hierarchy & optimal & optimal & 14,700 \\
+ABCD near threshold & optimal & optimal & 21,100 \\
+ABCD all checks & error & error & -- \\
+ABCD multi-check & error & error & -- \\
+Full generated grid & not available & not available & not available \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The hierarchy tests have a second role: they verify that a heavier maintenance
+event resets the lighter counters and that multi-day checks block flights during
+their active windows. These tests should be retained in every future release as
+small regression instances because their interpretability is greater than that
+of a large random grid.
+
+\subsection{Dedicated loophole validation}
+\label{subsec:computational_c13_loophole}
+
+The most direct computational validation uses the dedicated
+\texttt{c13\_loophole\_test.json} instance. With the original paper form of
+Constraint~(13), the MILP reports an optimal solution, but the independent
+maintenance validator reconstructs 1,400 accumulated flight minutes against a
+1,000-minute A-threshold. The resulting 400-minute excess is precisely the
+logical loophole identified in Chapter~\ref{ch:maintenance}. With the corrected
+split formulation, the same instance is infeasible, as it should be because no
+maintenance-capable reset can be inserted into the constructed sequence.
+
+\begin{table}[t]
+\centering\small
+\caption{Independent validation of the Constraint~(13) loophole from
+\texttt{results/tables/c13/c13\_loophole\_validation.csv}.}
+\label{tab:c13_loophole}
+\begin{tabular}{lrrrr}
+\toprule
+Formulation & Solver status & Violations & Accumulated (min) & Excess (min) \\
+\midrule
+Original paper C13 & optimal & 1 & 1,400 & 400 \\
+Corrected split C13 & infeasible & 0 & -- & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+This test is stronger than a comparison based only on solver status. It combines
+the MILP result with an independent post-solution validator that recomputes
+cumulative flight hours from the assignment and maintenance decisions. It
+therefore demonstrates both the existence of the original formulation's false
+feasible solution and the corrective effect of the split inequalities.
+
+\section{Heuristic tournament}
+\label{sec:computational_heuristics}
+
+The executable application currently exposes seven modes: greedy, insertion,
+greedy-plus-insertion, repair, local search, modified Dijkstra, and ACO. All
+seven invoke the same timeline feasibility oracle, so a valid route has the same
+meaning across methods. Their search effort differs: greedy appends flights,
+insertion examines all route positions, repair repeats insertion, local search
+adds relocation, Dijkstra selects maximum-coverage paths, and ACO samples
+pheromone-weighted feasible transitions.
+
+For every heuristic result, coverage is reported as
+\begin{equation}
+  \operatorname{Coverage}(H)=
+  \frac{|F_H^{\mathrm{assigned}}|}{|F|}\times 100\%,
+\end{equation}
+where $F_H^{\mathrm{assigned}}$ is the set of flights assigned by method $H$.
+The result is classified as complete when the numerator equals $|F|$ and as
+partial otherwise. Objective gaps are computed only for complete schedules, or
+for partial schedules under an explicitly declared common penalty for
+unassigned flights. This convention prevents a method from appearing superior
+simply because it reports the cost of serving fewer flights.
+
+The available method-comparison CSV is a valuable boundary-case anchor. On the
+capacity-bottleneck instance, greedy and Dijkstra each assign 7 of 8 flights at
+an objective of 37,000, while ACO assigns 5 of 8 flights at an objective of
+17,000. The lower ACO cost is a partial-route cost and is therefore not evidence
+that ACO is better; coverage-normalized and complete-schedule comparisons are
+required. The compact MILP assigns all 8 flights with objective 8,300 and is
+optimal in the archived CPLEX run.
+
+\begin{table}[t]
+\centering\small
+\caption{Measured method comparison on the capacity-bottleneck boundary
+instance from \texttt{oop\_all\_methods\_compare\_v2.csv}. Objective values
+are not comparable without the coverage column.}
+\label{tab:heuristic_boundary}
+\begin{tabular}{lrrrrr}
+\toprule
+Method & Status & Objective & Assigned & Unassigned & Wall (s) \\
+\midrule
+Greedy baseline & feasible & 37,000 & 7 & 1 & 0.000558 \\
+Modified Dijkstra & feasible & 37,000 & 7 & 1 & 0.000859 \\
+ACO & feasible & 17,000 & 5 & 3 & 0.084142 \\
+Brute-force exact & infeasible & -- & 0 & 8 & 12.269185 \\
+DP exact small & infeasible & -- & 0 & 8 & 12.127011 \\
+Compact MILP & optimal & 8,300 & 8 & 0 & 0.191171 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+This table supports three cautious conclusions. First, deterministic route
+construction is very fast on a small boundary instance. Second, the current ACO
+configuration explores more alternatives but can sacrifice coverage, so it
+must be evaluated with a lexicographic quality criterion or a penalty for
+unassigned flights. Third, the MILP is the only method in this comparison that
+both covers every flight and provides an optimality certificate.
+
+For comparison, the no-maintenance instance provides a complete-coverage
+control case. In the stored method results, greedy and modified Dijkstra each
+assign all 14 flights with objective 14,000, matching the MILP optimum. ACO
+assigns only 9 of 14 flights and reports an objective of 9,000. The latter is a
+partial-route cost and cannot be interpreted as an improvement over the two
+complete schedules. Taken together, the two boundary cases demonstrate why
+coverage must be reported beside objective value: ACO explores a different
+search pattern, but its current result is not a complete solution to the
+assignment problem.
+
+\begin{table}[t]
+\centering\small
+\caption{Measured heuristic comparison on the no-maintenance control instance
+from \texttt{oop\_new\_methods\_smoke.csv}.}
+\label{tab:heuristic_no_maint}
+\begin{tabular}{lrrrr}
+\toprule
+Method & Objective & Assigned & Unassigned & Wall (s) \\
+\midrule
+Greedy baseline & 14,000 & 14 & 0 & 0.000477 \\
+Modified Dijkstra & 14,000 & 14 & 0 & 0.002919 \\
+ACO & 9,000 & 9 & 5 & 0.326596 \\
+Compact MILP & 14,000 & 14 & 0 & 1.96 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The completed seven-mode comparison contains, for every instance and method,
+assigned flights,
+coverage percentage, unassigned flights, objective, ferry cost,
+maintenance-event count, wall time, CPU time where available, and feasibility
+status. For methods with a complete feasible schedule, report gaps to the MILP
+optimum; for time-limited MILPs, report both the incumbent gap and the
+heuristic-to-LP gap. The remaining qualification concerns strict objective
+comparability: a further formulation-alignment experiment is needed before
+interpreting every heuristic-to-MILP difference as an optimality gap.
+
+The first complete nine-instance tournament was subsequently executed with all
+seven heuristic modes and both classical and integrated MILP references. The
+heuristic results are stored in
+\texttt{results/tables/exact\_feasible/full\_seven\_method\_tournament.csv};
+the method-level aggregation is stored in
+\texttt{results/tables/exact\_feasible/full\_seven\_method\_summary.csv}.
+Table~\ref{tab:full_tournament_measured} reports the aggregate coverage and
+runtime results. Seven of the nine runs are complete for greedy, insertion,
+greedy-plus-insertion, repair, local search, and ACO; Dijkstra is complete on
+six. Mean coverage is between 96.28\% and 96.90\%, while the median runtime is
+below 0.08 seconds for every heuristic in this small exact-feasible family.
+
+\begin{table}[t]
+\centering\small
+\caption{Measured seven-heuristic tournament on the nine-instance
+exact-feasible family. Values are aggregated over instances; complete counts
+refer to schedules assigning all flights.}
+\label{tab:full_tournament_measured}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{lrrrrr}
+\toprule
+Method & Instances & Complete & Mean coverage (\%) & Median wall (s) & Mean total cost \\
+\midrule
+Greedy & 9 & 7 & 96.90 & 0.001 & 25,808.6 \\
+Insertion & 9 & 7 & 96.90 & 0.001 & 25,808.6 \\
+Greedy+insertion & 9 & 7 & 96.90 & 0.001 & 25,808.6 \\
+Repair & 9 & 7 & 96.90 & 0.001 & 25,808.6 \\
+Local search & 9 & 7 & 96.90 & 0.006 & 23,731.1 \\
+Dijkstra & 9 & 6 & 96.28 & 0.007 & 50,688.7 \\
+ACO & 9 & 7 & 96.90 & 0.075 & 17,027.0 \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+The aggregate total-cost column must be interpreted with care. The tournament
+aligns the maintenance-event penalty in the accounting, but the heuristic
+timeline and integrated MILP do not enumerate maintenance decisions in exactly
+the same way: the heuristic triggers checks during route replay, whereas the
+MILP optimizes explicit maintenance variables jointly with assignments. In
+addition, ferry-enabled heuristic repositioning is represented differently from
+the MILP equipment-flow constraints. Consequently, the table supports direct
+comparisons of coverage, feasibility, runtime, and decomposed costs, but a
+negative heuristic-to-MILP cost difference is not by itself proof that the
+heuristic has beaten the MILP optimum. Strict optimality gaps require a further
+experiment with identical feasible-set semantics and objective accounting.
+
+\begin{table}[t]
+\centering\scriptsize
+\caption{Measured instance-level coverage in the nine-instance,
+seven-heuristic tournament. Each entry is assigned flights over total flights;
+therefore the table remains valid even when objective semantics differ.}
+\label{tab:full_tournament_coverage}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{lrrrrrrr}
+\toprule
+Instance & Greedy & Insertion & G+I & Repair & Local search & Dijkstra & ACO \\
+\midrule
+feas A p4h7 d05 & 28/28 & 28/28 & 28/28 & 28/28 & 28/28 & 28/28 & 28/28 \\
+feas AB p4h7 d05 & 16/16 & 16/16 & 16/16 & 16/16 & 16/16 & 16/16 & 16/16 \\
+feas ABCD p4h7 d05 & 8/8 & 8/8 & 8/8 & 8/8 & 8/8 & 8/8 & 8/8 \\
+feas A p4h7 d08 & 30/30 & 30/30 & 30/30 & 30/30 & 30/30 & 30/30 & 30/30 \\
+feas A p6h10 d05 & 54/54 & 54/54 & 54/54 & 54/54 & 54/54 & 51/54 & 54/54 \\
+ABCD capacity & 7/8 & 7/8 & 7/8 & 7/8 & 7/8 & 7/8 & 7/8 \\
+ABCD hierarchy & 11/13 & 11/13 & 11/13 & 11/13 & 11/13 & 11/13 & 11/13 \\
+ABCD threshold & 20/20 & 20/20 & 20/20 & 20/20 & 20/20 & 20/20 & 20/20 \\
+ABCD no maintenance & 14/14 & 14/14 & 14/14 & 14/14 & 14/14 & 14/14 & 14/14 \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\begin{table}[t]
+\centering\scriptsize
+\caption{Measured decomposed-cost comparison for the same tournament. The
+integrated MILP reference includes its assignment cost and the 100-unit
+maintenance-event penalty. Heuristic totals include assignment, ferry, and
+maintenance-event costs from route replay. Because the two implementations do
+not enumerate exactly the same maintenance decisions, these values are
+reported descriptively rather than converted into universal optimality gaps.}
+\label{tab:full_tournament_costs}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{lrrrrrrrr}
+\toprule
+Instance & MILP & Greedy & Insertion & G+I & Repair & Local search & Dijkstra & ACO \\
+\midrule
+feas A p4h7 d05 & 17,523 & 21,913 & 21,913 & 21,913 & 21,913 & 21,913 & 64,414 & 14,427 \\
+feas AB p4h7 d05 & 7,847 & 12,261 & 12,261 & 12,261 & 12,261 & 12,261 & 55,246 & 8,247 \\
+feas ABCD p4h7 d05 & 4,128 & 4,128 & 4,128 & 4,128 & 4,128 & 4,128 & 25,133 & 4,128 \\
+feas A p4h7 d08 & 19,032 & 24,454 & 24,454 & 24,454 & 24,454 & 24,454 & 71,920 & 15,442 \\
+feas A p6h10 d05 & 34,087 & 62,821 & 62,821 & 62,821 & 62,821 & 56,324 & 145,285 & 28,799 \\
+ABCD capacity & 8,300 & 37,300 & 37,300 & 37,300 & 37,300 & 31,200 & 25,100 & 25,100 \\
+ABCD hierarchy & 14,700 & 35,300 & 35,300 & 35,300 & 35,300 & 29,200 & 29,100 & 23,100 \\
+ABCD threshold & 21,100 & 20,100 & 20,100 & 20,100 & 20,100 & 20,100 & 26,000 & 20,000 \\
+ABCD no maintenance & 14,000 & 14,000 & 14,000 & 14,000 & 14,000 & 14,000 & 14,000 & 14,000 \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+The coverage table is the primary comparison because it is independent of
+objective-accounting differences. The cost table is useful for identifying
+patterns, such as local-search improvement on the capacity and hierarchy
+cases, but a heuristic total below the MILP reference must be interpreted as a
+feasible-set or accounting discrepancy until both formulations are aligned.
+
+\section{LP lower bounds and gap reporting}
+\label{sec:computational_lp}
+
+When the MILP proves optimality, the exact objective $z^*$ is the preferred
+reference. When the solver returns a feasible incumbent without proof, the LP
+relaxation value $z_{\mathrm{LP}}$ remains a rigorous lower bound, provided it
+comes from the same formulation and instance. We report two distinct quantities:
+\begin{align}
+    \operatorname{Gap}_{\mathrm{LP}}(H)
+    &= \frac{z_H-z_{\mathrm{LP}}}{z_{\mathrm{LP}}}\,100\%,\\
+    \operatorname{Gap}_{\mathrm{MILP}}(H)
+    &= \frac{z_H-z^*}{z^*}\,100\%.
+\end{align}
+The second quantity is available only when $z^*$ is certified. If a heuristic is
+partial, its objective must not be placed in either gap formula without first
+specifying an unassigned-flight penalty or comparing only against another
+partial solution with identical coverage.
+
+The available LP results show a zero or very small continuous gap on several
+curated instances: the capacity-bottleneck integrated LP bound is 8,000.013
+against an exact objective of 8,300, while the no-maintenance bound equals the
+14,000 optimum. On the hierarchy instance the LP bound is 13,000.010 against a
+reported optimum of 14,700. These differences quantify integrality and not
+solver error. For the 64-flight random-grid instance, the integrated LP bound
+is 827,659.026; the corresponding integer and complete-heuristic comparison is
+reserved for the full run.
+
+\section{Path-based versus arc-based computation}
+\label{sec:computational_path_arc}
+
+The repository contains a direct comparison of an assignment-arc formulation
+and a route/path formulation on seven boundary instances, with ten repeats per
+instance. All seven instances had matching objectives and valid path coverage.
+The aggregate median total time was 0.026785 seconds for the arc formulation
+and 0.116396 seconds for the path formulation. The reported median ratio was
+0.27685 for path-versus-arc speed, and the path formulation was
+faster on only one of the seven instances. These measurements are not a claim
+that one representation dominates universally; they show that explicit path
+enumeration adds measurable overhead on the tested small boundary suite.
+
+\begin{table}[t]
+\centering\small
+\caption{Aggregate path-versus-arc results from
+\texttt{step6\_arc\_vs\_path\_summary.csv}.}
+\label{tab:path_arc_aggregate}
+\begin{tabular}{lr}
+\toprule
+Metric & Measured value \\
+\midrule
+Instances & 7 \\
+Repeats per instance & 10 \\
+Objective matches & 7/7 \\
+Coverage-valid path runs & 7/7 \\
+Median arc total time (s) & 0.026785 \\
+Median path total time (s) & 0.116396 \\
+Mean speed ratio, path/arc & 0.403121 \\
+Median speed ratio, path/arc & 0.276850 \\
+Instances where path is faster & 1/7 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\begin{subfigure}{0.48\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{../paper/figures/step6_runtime_comparison.png}
+  \caption{Total runtime comparison.}
+  \label{fig:computational_path_runtime}
+\end{subfigure}\hfill
+\begin{subfigure}{0.48\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{../paper/figures/step6_objective_parity.png}
+  \caption{Objective parity across formulations.}
+  \label{fig:computational_path_parity}
+\end{subfigure}
+\caption{Measured path-versus-arc evidence from the ten-repeat boundary
+experiment. The figures are generated from the archived Step-6 CSV results;
+they do not represent the extended seven-heuristic comparison.}
+\label{fig:computational_path_plots}
+\end{figure}
+
+The chapter’s plots should be generated from the corresponding CSV results,
+not redrawn manually. The minimum plot set for the extended study is: (i) model
+constraints and variables versus flight count, (ii) runtime versus flight
+count, (iii) coverage versus density for all heuristic modes, (iv) objective
+gap versus LP bound, and (v) a method-versus-instance heatmap. The repository
+already contains the path/arc figure pipeline; the heuristic comparison plots
+should be added after all seven modes have been evaluated under one matched
+protocol.
+
+\section{Extended comparison and reporting template}
+\label{sec:computational_full_run}
+
+An extended computational study should use the constructive exact-feasible family
+for quality claims and the random synthetic family for scalability claims. For
+each instance, run all seven heuristic modes with fixed ACO seed and parameters,
+then run the integrated MILP with a declared wall-clock limit and solve the LP
+relaxation separately. Store one row per instance and method, plus a separate
+MILP row containing incumbent objective, best bound, MIP gap, node count, and
+status. Aggregate by density, fleet size, horizon, and maintenance family using
+mean, median, standard deviation, and number of feasible/complete runs.
+
+The final comparison should answer, separately, four questions: which method
+maximizes coverage; which method minimizes objective among complete schedules;
+which method minimizes runtime; and which method provides the best objective
+relative to the LP or certified MILP reference. A single overall ranking would
+hide the central trade-off between speed, coverage, and cost. In particular,
+ACO should not be ranked by raw objective when it leaves more flights
+unassigned, and a time-limited MILP should not be described as optimal merely
+because it returns an incumbent.
+
+For an instance family containing $n$ matched cases, the reported method
+summary should include the arithmetic mean, median, and sample standard
+deviation of runtime, coverage, and objective on complete schedules. The number
+of complete schedules and the number of feasible but partial schedules are
+reported separately. For paired comparisons, such as greedy versus local
+search, the relative improvement on instance $r$ is
+\begin{equation}
+  \Delta_r =
+  \frac{z_r^{\mathrm{greedy}}-z_r^{\mathrm{local}}}
+     {z_r^{\mathrm{greedy}}}\times 100\%,
+\end{equation}
+and the family-level value is the mean of the instance-level improvements,
+not the ratio of two aggregated means. This preserves the contribution of
+each instance and avoids allowing a single large objective to dominate the
+summary. Partial schedules are included in coverage statistics but are omitted
+from complete-schedule gap averages unless a common penalty is specified.
+
+\section{Summary of measured evidence and remaining comparisons}
+\label{sec:computational_summary}
+
+The currently available evidence establishes four points. First, activating
+the hierarchy greatly increases the number of constraints and can create sharp
+feasibility transitions under threshold, duration, and capacity perturbations.
+Second, LP relaxations are fast and provide useful lower bounds even when the
+integer model is too difficult to certify. Third, the boundary method table
+shows that complete MILP solutions and partial heuristic costs must be compared
+with coverage explicitly. Fourth, the path/arc experiment provides reproducible
+evidence that representation choice affects runtime even when objectives match.
+
+The complete comparative claims for the seven heuristics against one another
+and against MILP require the matched experiments described in
+Section~\ref{sec:computational_full_run}. Until those experiments are available,
+the tables in this chapter distinguish measured and archived values from
+results that remain unavailable.
+
+\section{Threats to validity}
+\label{sec:computational_validity}
+
+Several limitations constrain the interpretation of the computational results.
+First, the curated instances are intentionally diagnostic and are not a random
+sample of airline schedules; their purpose is to expose particular hierarchy,
+capacity, and threshold mechanisms. Second, the synthetic generator provides
+controlled scaling but does not reproduce a proprietary real-world timetable,
+so its results support algorithmic stress analysis rather than direct claims
+about a particular airline operation.
+
+Third, runtimes obtained with CPLEX, HiGHS, and CBC are not interchangeable
+measurements of solver speed. They are retained with their backend labels and
+are compared only within a declared configuration. Fourth, a time-limited MILP
+incumbent is not an optimum, and a heuristic objective from a partial schedule
+is not comparable with a complete schedule without a common penalty. Finally,
+the small number of exact-feasible cases limits the statistical strength of
+general heuristic rankings. These limitations motivate the expanded test
+families and matched comparisons specified earlier in the chapter.
+
+\section{Directions for strengthening the exact formulation}
+\label{sec:computational_strengthening}
+
+The measured model-size and runtime results indicate that future improvement
+should focus on formulation strength and preprocessing rather than on generic
+solver settings alone. The first priority is reachability preprocessing:
+flight, ground, maintenance, and linking arcs that cannot participate in any
+feasible aircraft trajectory should be removed before model construction. This
+reduces both the assignment domain and the number of maintenance-linking rows.
+
+The second priority is to strengthen the maintenance relaxation. Useful
+candidate families include prefix and cumulative-utilization inequalities,
+interval-cover inequalities based on maintenance windows that are actually
+reachable, and disaggregated trigger--start--maintenance-arc linking. For
+longer maintenance durations, no-flight conflict cliques and station-day or
+station-interval capacity cover inequalities can prevent fractional schedules
+from distributing one maintenance event across incompatible windows.
+
+For longer horizons, station/time cutset inequalities, look-ahead maintenance
+windows, and symmetry-breaking constraints for genuinely identical aircraft
+may further reduce the search space. If infeasible maintenance substructures
+remain difficult to identify within the monolithic model, lazy combinatorial
+Benders or no-good feasibility cuts provide a possible decomposition direction.
+These techniques are proposed as future formulation improvements; no runtime
+or optimality claim for them is included in the present computational results.

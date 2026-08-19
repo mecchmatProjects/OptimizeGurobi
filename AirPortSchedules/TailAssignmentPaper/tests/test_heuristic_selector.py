@@ -7,6 +7,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from src.model import Scheduler
+from experiments.validate_semantic_alignment import validate
 
 
 class HeuristicSelectorTests(unittest.TestCase):
@@ -40,6 +41,52 @@ class HeuristicSelectorTests(unittest.TestCase):
         self.assertIsInstance(ac_fids, dict)
         self.assertEqual(len(ac_fids), len(sc.aircrafts))
         self.assertIsInstance(unassigned, list)
+
+    def test_dijkstra_strategy_runs(self):
+        sc = Scheduler(str(self.data_path), heuristic="dijkstra")
+        ac_fids, unassigned = sc.optimize()
+        self.assertIsInstance(ac_fids, dict)
+        self.assertEqual(len(ac_fids), len(sc.aircrafts))
+        self.assertIsInstance(unassigned, list)
+
+    def test_dijkstra_no_ferry_routes_are_feasible(self):
+        sc = Scheduler(str(self.data_path), heuristic="dijkstra", allow_ferry=False)
+        ac_fids, _ = sc.optimize()
+        for aid, route in ac_fids.items():
+            self.assertIsNotNone(sc.get_timeline(aid, route))
+
+    def test_aco_strategy_runs(self):
+        sc = Scheduler(
+            str(self.data_path),
+            heuristic="aco",
+            aco_iterations=2,
+            aco_ants=3,
+            aco_seed=7,
+        )
+        ac_fids, unassigned = sc.optimize()
+        self.assertIsInstance(ac_fids, dict)
+        self.assertEqual(len(ac_fids), len(sc.aircrafts))
+        self.assertIsInstance(unassigned, list)
+
+    def test_aco_no_ferry_routes_are_feasible(self):
+        sc = Scheduler(
+            str(self.data_path),
+            heuristic="aco",
+            allow_ferry=False,
+            aco_iterations=2,
+            aco_ants=3,
+            aco_seed=7,
+        )
+        ac_fids, _ = sc.optimize()
+        for aid, route in ac_fids.items():
+            self.assertIsNotNone(sc.get_timeline(aid, route))
+
+    def test_milp_baseline_assignment_replays_in_timeline(self):
+        data_path = ROOT / "data" / "instances" / "ABCD_no_maint_test.json"
+        result = validate(data_path, solver_name="highs", time_limit=120)
+        self.assertEqual(result["status"], "validated")
+        self.assertTrue(result["route_valid"])
+
 
 
 if __name__ == "__main__":

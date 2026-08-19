@@ -927,7 +927,10 @@ class MILP_Sheduler:
                     use_overlap=True,
                     allow_ferry=True,
                     use_maintenance=True,
-                    use_paper_c13=False):
+                    use_strong_maint_link=False,
+                    use_paper_c13=False,
+                    soft_coverage=False,
+                    coverage_weight=1_000_000.0):
         """Construct the ConcreteModel.  Call before solve().
 
         Parameters
@@ -943,6 +946,10 @@ class MILP_Sheduler:
             added.  Set to *False* to solve a pure flight-assignment model
             (no check scheduling) — dramatically fewer constraints, much
             faster to solve, useful as an upper-bound / relaxation benchmark.
+        use_strong_maint_link : bool
+            When *True*, use the strengthened sparse trigger-to-assignment
+            link for every maintenance check type.  The default preserves
+            the baseline formulation.
         use_paper_c13 : bool
             When *True*, add the original Khaled et al. (2018) Eq. (13)
             single-constraint form (vacuous when either endpoint indicator
@@ -952,6 +959,8 @@ class MILP_Sheduler:
         """
         m = ConcreteModel()
         self.model = m
+        self.soft_coverage = bool(soft_coverage)
+        self.coverage_weight = float(coverage_weight)
         self._add_sets_and_variables(m)
         self._add_objective(m)
         self._add_c1_coverage(m)
@@ -963,7 +972,7 @@ class MILP_Sheduler:
             self._add_overlap(m)
         if use_maintenance:
             self._add_c8_maint_blocks_flights(m)
-            self._add_c9_maint_assignment(m)
+            self._add_c9_maint_assignment(m, strong_link=use_strong_maint_link)
             self._add_c10_capacity(m)
             self._add_c11_maint_link(m)
             self._add_hierarchy(m, use_check_hierarchy)
@@ -1000,6 +1009,8 @@ class MILP_Sheduler:
                     yield (i, j)
         m.X = Set(dimen=2, initialize=_x_index_init)
         m.x = Var(m.X, domain=Binary, initialize=0)
+        if self.soft_coverage:
+            m.u = Var(m.F, domain=Binary, initialize=0)
         # z[i,j,d,c] = 1  iff aircraft j does check c on day d triggered by flight i
         # Only indexed over feasible (flight, aircraft, day, check) tuples.
         def _z_index_init(_m):
@@ -1024,12 +1035,23 @@ class MILP_Sheduler:
     def _add_objective(self, m):
         """Minimize flight assignment cost + premature maintenance penalty."""
         maint_cost = 100   # flat penalty per maintenance event (can be extended)
+        assignment_cost = sum(self._flight_cost(i, j) * m.x[i, j]
+                              for i, j in m.X)
+        maintenance_cost = sum(maint_cost * m.y[j, d, c]
+                               for j in m.P for d in m.D for c in m.C)
+        if self.soft_coverage:
+            m.obj = Objective(
+                expr=(
+                    -self.coverage_weight * sum(m.x[i, j] for i, j in m.X)
+                    + assignment_cost
+                    + maintenance_cost
+                ),
+                sense=minimize,
+            )
+            return
         m.obj = Objective(
             expr=(
-                sum(self._flight_cost(i, j) * m.x[i, j]
-                    for i, j in m.X)
-                + sum(maint_cost * m.y[j, d, c]
-                      for j in m.P for d in m.D for c in m.C)
+                assignment_cost + maintenance_cost
             ),
             sense=minimize,
         )
@@ -1100,7 +1122,11 @@ class MILP_Sheduler:
     def _add_c1_coverage(self, m):
         m.c1 = ConstraintList()
         for i in m.F:
-            m.c1.add(sum(m.x[i, j] for j in self._x_aircrafts_for_flight(i)) == 1)
+            assigned = sum(m.x[i, j] for j in self._x_aircrafts_for_flight(i))
+            if self.soft_coverage:
+                m.c1.add(assigned + m.u[i] == 1)
+            else:
+                m.c1.add(assigned == 1)
 
     # ------------------------------------------------------------------
     # Constraints C2–C3 – equipment-flow / turnaround feasibility
@@ -1220,14 +1246,14 @@ class MILP_Sheduler:
     # (maintenance triggered by a flight requires that flight is assigned)
     # ------------------------------------------------------------------
 
-    def _add_c9_maint_assignment(self, m):
+    def _add_c9_maint_assignment(self, m, strong_link=False):
         m.c9 = ConstraintList()
         for c in self.CHECK_LIST:
             for i in m.FM:  # only maintenance-eligible flights
                 z_days = self._z_days_for(i, c)
                 start_day = z_days[0]
                 for j in self._x_aircrafts_for_flight(i):
-                    if self.check_days[c] is None:
+                    if strong_link or self.check_days[c] is None:
                         m.c9.add(
                             sum(m.z[i, j, d, c] for d in z_days) <= m.x[i, j]
                         )
@@ -2096,7 +2122,9 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
              use_check_hierarchy=True, use_sanity=False, use_overlap=True,
              allow_ferry=True, use_maintenance=True, warm_start=True,
              max_hour_check_deferral_days=None, enabled_checks=None,
-             use_paper_c13=False):
+             use_paper_c13=False, use_strong_maint_link=False,
+             soft_coverage=False,
+             coverage_weight=1_000_000.0):
     """Build and solve the MILP model, then display results.
 
     Parameters
@@ -2113,6 +2141,10 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
     use_paper_c13  : bool        When True, use the original (buggy) Khaled
                                  et al. (2018) Constraint (13) instead of the
                                  corrected split formulation.
+    use_strong_maint_link : bool When True, use the strengthened sparse
+                                 trigger-to-assignment link for all checks.
+    soft_coverage  : bool        When True, permit unassigned flights and
+                                 maximize coverage before minimizing cost.
     """
     opt = MILP_Sheduler(
         data_path,
@@ -2126,7 +2158,10 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
                     use_overlap=use_overlap,
                     allow_ferry=allow_ferry,
                     use_maintenance=use_maintenance,
-                    use_paper_c13=use_paper_c13)
+                    use_strong_maint_link=use_strong_maint_link,
+                    use_paper_c13=use_paper_c13,
+                    soft_coverage=soft_coverage,
+                    coverage_weight=coverage_weight)
     summary = opt.solve(solver_name=solver, tee=tee, out_path=out_txt,
                         time_limit=time_limit, warm_start=warm_start)
     opt.plot_gantt(save_path=gantt_path, show=show_gantt, fname=f'{out_txt[:-4]}_events.txt' if out_txt else None)
@@ -2191,7 +2226,8 @@ def _run_one_milp(fp, out_dir, stem, solver, tee, show_gantt, time_limit,
                   allow_ferry=True, use_maintenance=True,
                   use_overlap=True, use_sanity=False, warm_start=True,
                   use_check_hierarchy=True, max_hour_check_deferral_days=None,
-                  enabled_checks=None, use_paper_c13=False):
+                  enabled_checks=None, use_paper_c13=False,
+                  use_strong_maint_link=False):
     """Run MILP on a single file; return metrics dict."""
     import time, os
     gantt_out = os.path.join(out_dir, f'{stem}_milp_gantt.png')
@@ -2210,6 +2246,7 @@ def _run_one_milp(fp, out_dir, stem, solver, tee, show_gantt, time_limit,
         max_hour_check_deferral_days=max_hour_check_deferral_days,
         enabled_checks=enabled_checks,
         use_paper_c13=use_paper_c13,
+        use_strong_maint_link=use_strong_maint_link,
     )
     cpu = time.time() - t0
 
@@ -2292,7 +2329,8 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
               use_maintenance=True,
               use_overlap=True, use_sanity=False, warm_start=True,
               use_check_hierarchy=True, max_hour_check_deferral_days=None,
-              enabled_checks=None, use_paper_c13=False):
+              enabled_checks=None, use_paper_c13=False,
+              use_strong_maint_link=False):
     """Process every JSON file in *input_dir* and write results to *output_dir*.
 
     For each dataset the following files are created in output_dir::
@@ -2377,6 +2415,7 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
                                     max_hour_check_deferral_days=max_hour_check_deferral_days,
                                     enabled_checks=enabled_checks,
                                     use_paper_c13=use_paper_c13,
+                                    use_strong_maint_link=use_strong_maint_link,
                                     )
                 all_rows.append(row)
             except Exception as exc:
@@ -2500,6 +2539,10 @@ def main():
     parser.add_argument('--no-maintenance', dest='use_maintenance', action='store_false',
                         help='Omit ALL maintenance constraints from MILP '
                              '(pure flight-assignment relaxation; much smaller/faster).')
+    parser.add_argument('--soft-coverage', action='store_true',
+                        help='Allow unassigned flights and maximize assigned-flight coverage first.')
+    parser.add_argument('--coverage-weight', type=float, default=1_000_000.0,
+                        help='Coverage priority weight for --soft-coverage.')
     parser.add_argument('--no-overlap',  dest='use_overlap', action='store_false',
                         help='Omit pairwise time-overlap constraints (c_overlap) from MILP.')
     parser.add_argument('--no-sanity',   dest='use_sanity', action='store_false',
@@ -2522,9 +2565,14 @@ def main():
     parser.add_argument('--use-paper-c13', dest='use_paper_c13', action='store_true',
                         help='Use the original (buggy) Khaled et al. (2018) Constraint (13) '
                              'instead of the corrected split formulation.')
+    parser.add_argument('--strong-maint-link', dest='use_strong_maint_link',
+                        action='store_true',
+                        help='Enable strengthened sparse trigger-to-assignment '
+                            'linking for all maintenance check types.')
     parser.set_defaults(show=True, allow_ferry=True, use_maintenance=True,
                         use_overlap=True, use_sanity=False, warm_start=True,
-                        use_check_hierarchy=True, use_paper_c13=False)
+                        use_check_hierarchy=True, use_paper_c13=False,
+                        use_strong_maint_link=False)
     args = parser.parse_args()
     enabled_checks = _resolve_enabled_checks(args.only_checks, args.disable_checks)
 
@@ -2560,6 +2608,9 @@ def main():
                  max_hour_check_deferral_days=args.max_hour_check_deferral_days,
                  enabled_checks=enabled_checks,
                  use_paper_c13=args.use_paper_c13,
+                 use_strong_maint_link=args.use_strong_maint_link,
+                 soft_coverage=args.soft_coverage,
+                 coverage_weight=args.coverage_weight,
                  )
     else:  # batch
         run_batch(input_dir=args.input_dir,
@@ -2578,6 +2629,7 @@ def main():
                   max_hour_check_deferral_days=args.max_hour_check_deferral_days,
                   enabled_checks=enabled_checks,
                   use_paper_c13=args.use_paper_c13,
+                  use_strong_maint_link=args.use_strong_maint_link,
                   )
         
 

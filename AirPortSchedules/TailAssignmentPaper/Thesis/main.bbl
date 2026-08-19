@@ -1,9 +1,18 @@
-\begin{thebibliography}{34}
+\begin{thebibliography}{36}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
   \providecommand{\doi}[1]{doi: #1}\else
   \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Al-Thani et~al.(2016)Al-Thani, Ben~Ahmed, and
+  Haouari]{althani2016oamrp}
+Nayla Al-Thani, Mohamed Ben~Ahmed, and Mohamed Haouari.
+\newblock A model and optimization-based heuristic for the operational aircraft
+  maintenance routing problem.
+\newblock \emph{Transportation Research Part C: Emerging Technologies},
+  72:\penalty0 1--18, 2016.
+\newblock \doi{10.1016/j.trc.2016.09.004}.
 
 \bibitem[Barnhart et~al.(1998)Barnhart, Boland, Clarke, Johnson, Nemhauser, and
   Shenoi]{barnhart1998flight}
@@ -215,6 +224,14 @@ Masoumeh Mirjafari, Alireza Rashidi~Komijan, and Ahmad Shoja.
 \newblock \emph{WPOM--Working Papers on Operations Management}, 11\penalty0
   (1):\penalty0 25--38, 2020.
 \newblock \doi{10.4995/wpom.v11i1.12891}.
+
+\bibitem[Ruan et~al.(2021)Ruan, Wang, Chan, Patnaik, and
+  Tiwari]{ruan2021reinforcement}
+J.~H. Ruan, Z.~X. Wang, Felix T.~S. Chan, S.~Patnaik, and M.~K. Tiwari.
+\newblock A reinforcement learning-based algorithm for the aircraft maintenance
+  routing problem.
+\newblock \emph{Expert Systems with Applications}, 169:\penalty0 114399, 2021.
+\newblock \doi{10.1016/j.eswa.2020.114399}.
 
 \bibitem[Sarac et~al.(2006)Sarac, Batta, and Rump]{sarac2006branch}
 Ahmet Sarac, Rajan Batta, and Christopher~M. Rump.

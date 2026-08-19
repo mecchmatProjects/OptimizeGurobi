@@ -4,9 +4,16 @@
 \addvspace {10\p@ }
 \addvspace {10\p@ }
 \addvspace {10\p@ }
+\contentsline {figure}{\numberline {6.1}{\ignorespaces Maintenance-trigger reduction plotted against baseline domain size for the heterogeneous feasible structural family; colors distinguish A and AB maintenance families.}}{38}{figure.caption.17}%
+\contentsline {figure}{\numberline {6.2}{\ignorespaces Baseline and combined LP lower bounds for the 20-instance feasible A family (CPLEX).}}{39}{figure.caption.18}%
+\contentsline {figure}{\numberline {6.3}{\ignorespaces Baseline and combined LP runtimes on a logarithmic scale (CPLEX).}}{39}{figure.caption.19}%
+\contentsline {figure}{\numberline {6.4}{\ignorespaces Baseline and combined exact MILP runtimes for the 20 feasible instances (CPLEX).}}{40}{figure.caption.21}%
+\contentsline {figure}{\numberline {6.5}{\ignorespaces Exact MILP speedup, defined as baseline runtime divided by combined runtime; values above one indicate improvement.}}{41}{figure.caption.22}%
+\contentsline {figure}{\numberline {6.6}{\ignorespaces Objective parity between baseline and combined exact MILP solutions.}}{41}{figure.caption.23}%
 \addvspace {10\p@ }
-\contentsline {figure}{\numberline {7.1}{\ignorespaces Instance-matched wall-time comparison (log scale) for all seven heuristics plus classical and integrated MILP, generated from \texttt {full\_seven\_method\_tournament.csv}.}}{56}{figure.caption.30}%
-\contentsline {figure}{\numberline {7.2}{\ignorespaces Runtime distributions by method over the nine-instance benchmark (boxplots on a log-time axis), generated from \texttt {full\_seven\_method\_tournament.csv}.}}{57}{figure.caption.31}%
-\contentsline {figure}{\numberline {7.3}{\ignorespaces Mode comparison trade-off plot: x-axis median runtime (log scale), y-axis mean coverage, color complete/optimal rate, bubble size mean total cost, computed from \texttt {full\_seven\_method\_tournament.csv}.}}{58}{figure.caption.33}%
-\contentsline {figure}{\numberline {7.4}{\ignorespaces Measured path-versus-arc evidence from the ten-repeat boundary experiment. The figures are generated from the archived Step-6 CSV results; they do not represent the extended seven-heuristic comparison.}}{61}{figure.caption.36}%
+\addvspace {10\p@ }
+\contentsline {figure}{\numberline {8.1}{\ignorespaces Instance-matched wall-time comparison (log scale) for all seven heuristics plus classical and integrated MILP, generated from \texttt {full\_seven\_method\_tournament.csv}.}}{67}{figure.caption.38}%
+\contentsline {figure}{\numberline {8.2}{\ignorespaces Runtime distributions by method over the nine-instance benchmark (boxplots on a log-time axis), generated from \texttt {full\_seven\_method\_tournament.csv}.}}{68}{figure.caption.39}%
+\contentsline {figure}{\numberline {8.3}{\ignorespaces Mode comparison trade-off plot: x-axis median runtime (log scale), y-axis mean coverage, color complete/optimal rate, bubble size mean total cost, computed from \texttt {full\_seven\_method\_tournament.csv}.}}{69}{figure.caption.41}%
+\contentsline {figure}{\numberline {8.4}{\ignorespaces Measured path-versus-arc evidence from the ten-repeat boundary experiment. The figures are generated from the archived Step-6 CSV results; they do not represent the extended seven-heuristic comparison.}}{72}{figure.caption.45}%
 \addvspace {10\p@ }

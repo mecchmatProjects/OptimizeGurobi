@@ -55,16 +55,20 @@
 \citation{cordeau2001benders,mercier2005computational,desaulniers1997daily}
 \citation{clarke1996maintenance,liang2011new,liang2012network}
 \citation{borndorfer2010robust,froyland2013recoverable}
-\citation{shao2017integrated}
 \@writefile{toc}{\contentsline {paragraph}{Nonlinear / lifted formulations.}{6}{section*.11}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {2.1.3}MILP alternatives to the Khaled compact model}{6}{subsection.2.1.3}\protected@file@percent }
+\citation{althani2016oamrp}
+\citation{maher2018daily}
+\citation{ruan2021reinforcement}
+\citation{shao2017integrated}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1.4}Formulation strengthening and maintenance-aware cuts}{7}{subsection.2.1.4}\protected@file@percent }
 \citation{mirjafari2020integrated}
 \citation{froyland2013recoverable}
 \citation{benahmed2015simulation}
 \citation{benahmed2017hybrid}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.1.4}Integrated airline planning}{7}{subsection.2.1.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.1.5}Robustness and operational uncertainty}{7}{subsection.2.1.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.1.6}Maintenance planning at different decision levels}{7}{subsection.2.1.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1.5}Integrated airline planning}{8}{subsection.2.1.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1.6}Robustness and operational uncertainty}{8}{subsection.2.1.6}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1.7}Maintenance planning at different decision levels}{8}{subsection.2.1.7}\protected@file@percent }
 \citation{deng2020maintenance}
 \citation{witteman2021binpacking}
 \citation{deng2021dss}
@@ -72,409 +76,473 @@
 \citation{gronkvist2005tail}
 \citation{dijkstra1959note}
 \citation{dorigo1996ant,dorigo2004ant}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.1.7}Heuristic solution methods and cross-domain transfer}{8}{subsection.2.1.7}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1.8}Heuristic solution methods and cross-domain transfer}{9}{subsection.2.1.8}\protected@file@percent }
 \citation{khaled2018compact}
 \citation{khaled2018compact}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.1.8}Comparison scope and fairness}{9}{subsection.2.1.8}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.1.9}Research gap and position of the thesis}{9}{subsection.2.1.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1.9}Comparison scope and fairness}{10}{subsection.2.1.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1.10}Research gap and position of the thesis}{10}{subsection.2.1.10}\protected@file@percent }
 \citation{khaled2018compact}
-\@writefile{toc}{\contentsline {chapter}{\numberline {3}The Ground Routing Model}{10}{chapter.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {chapter}{\numberline {3}The Ground Routing Model}{11}{chapter.3}\protected@file@percent }
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
-\newlabel{ch:ground}{{3}{10}{The Ground Routing Model}{chapter.3}{}}
-\newlabel{ch:ground@cref}{{[chapter][3][]3}{[1][10][]10}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {3.1}Scope and modelling assumptions}{10}{section.3.1}\protected@file@percent }
-\newlabel{sec:basic}{{3.1}{10}{Scope and modelling assumptions}{section.3.1}{}}
-\newlabel{sec:basic@cref}{{[section][1][3]3.1}{[1][10][]10}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {3.2}Sets, parameters, and cumulative flight sets}{11}{section.3.2}\protected@file@percent }
-\newlabel{eq:ground_arrival_set}{{3.1}{11}{Sets, parameters, and cumulative flight sets}{equation.3.1}{}}
-\newlabel{eq:ground_arrival_set@cref}{{[equation][1][3]3.1}{[1][11][]11}{}{}{}}
-\newlabel{eq:ground_departure_set}{{3.2}{11}{Sets, parameters, and cumulative flight sets}{equation.3.2}{}}
-\newlabel{eq:ground_departure_set@cref}{{[equation][2][3]3.2}{[1][11][]11}{}{}{}}
-\newlabel{eq:ground_inventory}{{3.3}{11}{Sets, parameters, and cumulative flight sets}{equation.3.3}{}}
-\newlabel{eq:ground_inventory@cref}{{[equation][3][3]3.3}{[1][11][]11}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {3.3}Compact mixed-integer formulation}{11}{section.3.3}\protected@file@percent }
-\newlabel{eq:ground_assignment_variable}{{3.4}{11}{Compact mixed-integer formulation}{equation.3.4}{}}
-\newlabel{eq:ground_assignment_variable@cref}{{[equation][4][3]3.4}{[1][11][]11}{}{}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {3.1}{\ignorespaces Notation for the compact ground-routing model.}}{12}{table.caption.12}\protected@file@percent }
+\newlabel{ch:ground}{{3}{11}{The Ground Routing Model}{chapter.3}{}}
+\newlabel{ch:ground@cref}{{[chapter][3][]3}{[1][11][]11}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.1}Scope and modelling assumptions}{11}{section.3.1}\protected@file@percent }
+\newlabel{sec:basic}{{3.1}{11}{Scope and modelling assumptions}{section.3.1}{}}
+\newlabel{sec:basic@cref}{{[section][1][3]3.1}{[1][11][]11}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.2}Sets, parameters, and cumulative flight sets}{12}{section.3.2}\protected@file@percent }
+\newlabel{eq:ground_arrival_set}{{3.1}{12}{Sets, parameters, and cumulative flight sets}{equation.3.1}{}}
+\newlabel{eq:ground_arrival_set@cref}{{[equation][1][3]3.1}{[1][12][]12}{}{}{}}
+\newlabel{eq:ground_departure_set}{{3.2}{12}{Sets, parameters, and cumulative flight sets}{equation.3.2}{}}
+\newlabel{eq:ground_departure_set@cref}{{[equation][2][3]3.2}{[1][12][]12}{}{}{}}
+\newlabel{eq:ground_inventory}{{3.3}{12}{Sets, parameters, and cumulative flight sets}{equation.3.3}{}}
+\newlabel{eq:ground_inventory@cref}{{[equation][3][3]3.3}{[1][12][]12}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.3}Compact mixed-integer formulation}{12}{section.3.3}\protected@file@percent }
+\newlabel{eq:ground_assignment_variable}{{3.4}{12}{Compact mixed-integer formulation}{equation.3.4}{}}
+\newlabel{eq:ground_assignment_variable@cref}{{[equation][4][3]3.4}{[1][12][]12}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {3.1}{\ignorespaces Notation for the compact ground-routing model.}}{13}{table.caption.12}\protected@file@percent }
 \providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
-\newlabel{tab:ground_notation}{{3.1}{12}{Notation for the compact ground-routing model}{table.caption.12}{}}
-\newlabel{tab:ground_notation@cref}{{[table][1][3]3.1}{[1][11][]12}{}{}{}}
-\newlabel{eq:ground_objective}{{3.5}{12}{Compact mixed-integer formulation}{equation.3.5}{}}
-\newlabel{eq:ground_objective@cref}{{[equation][5][3]3.5}{[1][11][]12}{}{}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.3.1}C1: flight coverage}{12}{subsection.3.3.1}\protected@file@percent }
-\newlabel{eq:ground_c1}{{3.6}{12}{C1: flight coverage}{equation.3.6}{}}
-\newlabel{eq:ground_c1@cref}{{[equation][6][3]3.6}{[1][12][]12}{}{}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.3.2}C2: continuity at non-initial airports}{12}{subsection.3.3.2}\protected@file@percent }
-\newlabel{eq:ground_c2}{{3.7}{12}{C2: continuity at non-initial airports}{equation.3.7}{}}
-\newlabel{eq:ground_c2@cref}{{[equation][7][3]3.7}{[1][12][]12}{}{}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.3.3}C3: continuity at the initial airport}{13}{subsection.3.3.3}\protected@file@percent }
-\newlabel{eq:ground_c3}{{3.8}{13}{C3: continuity at the initial airport}{equation.3.8}{}}
-\newlabel{eq:ground_c3@cref}{{[equation][8][3]3.8}{[1][12][]13}{}{}{}}
-\newlabel{eq:ground_integrality}{{3.9}{13}{C3: continuity at the initial airport}{equation.3.9}{}}
-\newlabel{eq:ground_integrality@cref}{{[equation][9][3]3.9}{[1][13][]13}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {3.4}Interpretation and validity of the balances}{13}{section.3.4}\protected@file@percent }
-\newlabel{prop:ground_distinct_validity}{{3.1}{13}{Validity under distinct departure events}{proposition.3.1}{}}
-\newlabel{prop:ground_distinct_validity@cref}{{[proposition][1][3]3.1}{[1][13][]13}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {3.5}Equal-time departure counterexample}{13}{section.3.5}\protected@file@percent }
-\newlabel{sec:ground_counterexample}{{3.5}{13}{Equal-time departure counterexample}{section.3.5}{}}
-\newlabel{sec:ground_counterexample@cref}{{[section][5][3]3.5}{[1][13][]13}{}{}{}}
-\newlabel{ex:ground_simultaneous_departure}{{3.1}{14}{Algebraically feasible but physically impossible}{example.3.1}{}}
-\newlabel{ex:ground_simultaneous_departure@cref}{{[example][1][3]3.1}{[1][13][]14}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {3.6}Conflict graph and corrected feasibility model}{14}{section.3.6}\protected@file@percent }
-\newlabel{eq:ground_occupied_interval}{{3.10}{14}{Conflict graph and corrected feasibility model}{equation.3.10}{}}
-\newlabel{eq:ground_occupied_interval@cref}{{[equation][10][3]3.10}{[1][14][]14}{}{}{}}
-\newlabel{eq:ground_overlap_set}{{3.11}{14}{Conflict graph and corrected feasibility model}{equation.3.11}{}}
-\newlabel{eq:ground_overlap_set@cref}{{[equation][11][3]3.11}{[1][14][]14}{}{}{}}
-\newlabel{eq:ground_overlap}{{3.12}{14}{Conflict graph and corrected feasibility model}{equation.3.12}{}}
-\newlabel{eq:ground_overlap@cref}{{[equation][12][3]3.12}{[1][14][]14}{}{}{}}
-\newlabel{prop:ground_corrected_validity}{{3.2}{14}{Physical feasibility of the corrected model}{proposition.3.2}{}}
-\newlabel{prop:ground_corrected_validity@cref}{{[proposition][2][3]3.2}{[1][14][]14}{}{}{}}
+\newlabel{tab:ground_notation}{{3.1}{13}{Notation for the compact ground-routing model}{table.caption.12}{}}
+\newlabel{tab:ground_notation@cref}{{[table][1][3]3.1}{[1][12][]13}{}{}{}}
+\newlabel{eq:ground_objective}{{3.5}{13}{Compact mixed-integer formulation}{equation.3.5}{}}
+\newlabel{eq:ground_objective@cref}{{[equation][5][3]3.5}{[1][12][]13}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3.1}C1: flight coverage}{13}{subsection.3.3.1}\protected@file@percent }
+\newlabel{eq:ground_c1}{{3.6}{13}{C1: flight coverage}{equation.3.6}{}}
+\newlabel{eq:ground_c1@cref}{{[equation][6][3]3.6}{[1][13][]13}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3.2}C2: continuity at non-initial airports}{13}{subsection.3.3.2}\protected@file@percent }
+\newlabel{eq:ground_c2}{{3.7}{13}{C2: continuity at non-initial airports}{equation.3.7}{}}
+\newlabel{eq:ground_c2@cref}{{[equation][7][3]3.7}{[1][13][]13}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.3.3}C3: continuity at the initial airport}{14}{subsection.3.3.3}\protected@file@percent }
+\newlabel{eq:ground_c3}{{3.8}{14}{C3: continuity at the initial airport}{equation.3.8}{}}
+\newlabel{eq:ground_c3@cref}{{[equation][8][3]3.8}{[1][13][]14}{}{}{}}
+\newlabel{eq:ground_integrality}{{3.9}{14}{C3: continuity at the initial airport}{equation.3.9}{}}
+\newlabel{eq:ground_integrality@cref}{{[equation][9][3]3.9}{[1][14][]14}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.4}Interpretation and validity of the balances}{14}{section.3.4}\protected@file@percent }
+\newlabel{prop:ground_distinct_validity}{{3.1}{14}{Validity under distinct departure events}{proposition.3.1}{}}
+\newlabel{prop:ground_distinct_validity@cref}{{[proposition][1][3]3.1}{[1][14][]14}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.5}Equal-time departure counterexample}{14}{section.3.5}\protected@file@percent }
+\newlabel{sec:ground_counterexample}{{3.5}{14}{Equal-time departure counterexample}{section.3.5}{}}
+\newlabel{sec:ground_counterexample@cref}{{[section][5][3]3.5}{[1][14][]14}{}{}{}}
+\newlabel{ex:ground_simultaneous_departure}{{3.1}{15}{Algebraically feasible but physically impossible}{example.3.1}{}}
+\newlabel{ex:ground_simultaneous_departure@cref}{{[example][1][3]3.1}{[1][14][]15}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.6}Conflict graph and corrected feasibility model}{15}{section.3.6}\protected@file@percent }
+\newlabel{eq:ground_occupied_interval}{{3.10}{15}{Conflict graph and corrected feasibility model}{equation.3.10}{}}
+\newlabel{eq:ground_occupied_interval@cref}{{[equation][10][3]3.10}{[1][15][]15}{}{}{}}
+\newlabel{eq:ground_overlap_set}{{3.11}{15}{Conflict graph and corrected feasibility model}{equation.3.11}{}}
+\newlabel{eq:ground_overlap_set@cref}{{[equation][11][3]3.11}{[1][15][]15}{}{}{}}
+\newlabel{eq:ground_overlap}{{3.12}{15}{Conflict graph and corrected feasibility model}{equation.3.12}{}}
+\newlabel{eq:ground_overlap@cref}{{[equation][12][3]3.12}{[1][15][]15}{}{}{}}
+\newlabel{prop:ground_corrected_validity}{{3.2}{15}{Physical feasibility of the corrected model}{proposition.3.2}{}}
+\newlabel{prop:ground_corrected_validity@cref}{{[proposition][2][3]3.2}{[1][15][]15}{}{}{}}
 \citation{levin1971scheduling}
 \citation{khaled2018compact}
 \citation{khaled2018compact}
-\@writefile{toc}{\contentsline {section}{\numberline {3.7}Model size and computational implications}{15}{section.3.7}\protected@file@percent }
-\newlabel{eq:ground_model_size}{{3.13}{15}{Model size and computational implications}{equation.3.13}{}}
-\newlabel{eq:ground_model_size@cref}{{[equation][13][3]3.13}{[1][15][]15}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {3.8}Illustrative non-cyclic assignment}{15}{section.3.8}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {3.2}{\ignorespaces Six-flight timetable for the illustrative ground assignment.}}{16}{table.caption.13}\protected@file@percent }
-\newlabel{tab:ground_example_timetable}{{3.2}{16}{Six-flight timetable for the illustrative ground assignment}{table.caption.13}{}}
-\newlabel{tab:ground_example_timetable@cref}{{[table][2][3]3.2}{[1][15][]16}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {3.9}Chapter summary}{16}{section.3.9}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {3.7}Model size and computational implications}{16}{section.3.7}\protected@file@percent }
+\newlabel{eq:ground_model_size}{{3.13}{16}{Model size and computational implications}{equation.3.13}{}}
+\newlabel{eq:ground_model_size@cref}{{[equation][13][3]3.13}{[1][16][]16}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.8}Illustrative non-cyclic assignment}{16}{section.3.8}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {3.2}{\ignorespaces Six-flight timetable for the illustrative ground assignment.}}{17}{table.caption.13}\protected@file@percent }
+\newlabel{tab:ground_example_timetable}{{3.2}{17}{Six-flight timetable for the illustrative ground assignment}{table.caption.13}{}}
+\newlabel{tab:ground_example_timetable@cref}{{[table][2][3]3.2}{[1][16][]17}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3.9}Chapter summary}{17}{section.3.9}\protected@file@percent }
 \citation{khaled2018compact}
-\@writefile{toc}{\contentsline {chapter}{\numberline {4}Maintenance-Extended Model and the Correction of Constraint (13)}{17}{chapter.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {chapter}{\numberline {4}Maintenance-Extended Model and the Correction of Constraint (13)}{18}{chapter.4}\protected@file@percent }
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
-\newlabel{ch:maintenance}{{4}{17}{Maintenance-Extended Model and the Correction of Constraint (13)}{chapter.4}{}}
-\newlabel{ch:maintenance@cref}{{[chapter][4][]4}{[1][17][]17}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {4.1}Scope and operational assumptions}{17}{section.4.1}\protected@file@percent }
-\newlabel{sec:maintenance}{{4.1}{17}{Scope and operational assumptions}{section.4.1}{}}
-\newlabel{sec:maintenance@cref}{{[section][1][4]4.1}{[1][17][]17}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {4.2}Sets, parameters, and auxiliary definitions}{18}{section.4.2}\protected@file@percent }
-\newlabel{eq:maint_eligible_arrivals}{{4.1}{18}{Sets, parameters, and auxiliary definitions}{equation.4.1}{}}
-\newlabel{eq:maint_eligible_arrivals@cref}{{[equation][1][4]4.1}{[1][18][]18}{}{}{}}
-\newlabel{eq:maint_later_flights}{{4.2}{18}{Sets, parameters, and auxiliary definitions}{equation.4.2}{}}
-\newlabel{eq:maint_later_flights@cref}{{[equation][2][4]4.2}{[1][18][]18}{}{}{}}
-\newlabel{eq:maint_day_interval}{{4.3}{18}{Sets, parameters, and auxiliary definitions}{equation.4.3}{}}
-\newlabel{eq:maint_day_interval@cref}{{[equation][3][4]4.3}{[1][18][]18}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {4.3}Maintenance decision variables}{18}{section.4.3}\protected@file@percent }
-\newlabel{eq:maint_trigger_variable}{{4.4}{18}{Maintenance decision variables}{equation.4.4}{}}
-\newlabel{eq:maint_trigger_variable@cref}{{[equation][4][4]4.4}{[1][18][]18}{}{}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {4.1}{\ignorespaces Additional notation for the type-A maintenance model.}}{19}{table.caption.14}\protected@file@percent }
-\newlabel{tab:maintenance_notation}{{4.1}{19}{Additional notation for the type-A maintenance model}{table.caption.14}{}}
-\newlabel{tab:maintenance_notation@cref}{{[table][1][4]4.1}{[1][18][]19}{}{}{}}
-\newlabel{eq:maint_day_variable}{{4.5}{19}{Maintenance decision variables}{equation.4.5}{}}
-\newlabel{eq:maint_day_variable@cref}{{[equation][5][4]4.5}{[1][19][]19}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {4.4}Extended objective function}{19}{section.4.4}\protected@file@percent }
-\newlabel{eq:maintenance_objective}{{4.6}{19}{Extended objective function}{equation.4.6}{}}
-\newlabel{eq:maintenance_objective@cref}{{[equation][6][4]4.6}{[1][19][]19}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {4.5}Maintenance-event feasibility}{20}{section.4.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.5.1}C8: blocking subsequent same-day flights}{20}{subsection.4.5.1}\protected@file@percent }
-\newlabel{eq:maint_c8}{{4.7}{20}{C8: blocking subsequent same-day flights}{equation.4.7}{}}
-\newlabel{eq:maint_c8@cref}{{[equation][7][4]4.7}{[1][19][]20}{}{}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.5.2}C9: coupling a check to its trigger flight}{20}{subsection.4.5.2}\protected@file@percent }
-\newlabel{eq:maint_c9}{{4.8}{20}{C9: coupling a check to its trigger flight}{equation.4.8}{}}
-\newlabel{eq:maint_c9@cref}{{[equation][8][4]4.8}{[1][20][]20}{}{}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.5.3}C10: airport-day maintenance capacity}{20}{subsection.4.5.3}\protected@file@percent }
-\newlabel{eq:maint_c10}{{4.9}{20}{C10: airport-day maintenance capacity}{equation.4.9}{}}
-\newlabel{eq:maint_c10@cref}{{[equation][9][4]4.9}{[1][20][]20}{}{}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.5.4}C11 and C14: daily aggregation and uniqueness}{20}{subsection.4.5.4}\protected@file@percent }
-\newlabel{eq:maint_c11}{{4.10}{20}{C11 and C14: daily aggregation and uniqueness}{equation.4.10}{}}
-\newlabel{eq:maint_c11@cref}{{[equation][10][4]4.10}{[1][20][]20}{}{}{}}
+\newlabel{ch:maintenance}{{4}{18}{Maintenance-Extended Model and the Correction of Constraint (13)}{chapter.4}{}}
+\newlabel{ch:maintenance@cref}{{[chapter][4][]4}{[1][18][]18}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.1}Scope and operational assumptions}{18}{section.4.1}\protected@file@percent }
+\newlabel{sec:maintenance}{{4.1}{18}{Scope and operational assumptions}{section.4.1}{}}
+\newlabel{sec:maintenance@cref}{{[section][1][4]4.1}{[1][18][]18}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.2}Sets, parameters, and auxiliary definitions}{19}{section.4.2}\protected@file@percent }
+\newlabel{eq:maint_eligible_arrivals}{{4.1}{19}{Sets, parameters, and auxiliary definitions}{equation.4.1}{}}
+\newlabel{eq:maint_eligible_arrivals@cref}{{[equation][1][4]4.1}{[1][19][]19}{}{}{}}
+\newlabel{eq:maint_later_flights}{{4.2}{19}{Sets, parameters, and auxiliary definitions}{equation.4.2}{}}
+\newlabel{eq:maint_later_flights@cref}{{[equation][2][4]4.2}{[1][19][]19}{}{}{}}
+\newlabel{eq:maint_day_interval}{{4.3}{19}{Sets, parameters, and auxiliary definitions}{equation.4.3}{}}
+\newlabel{eq:maint_day_interval@cref}{{[equation][3][4]4.3}{[1][19][]19}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.3}Maintenance decision variables}{19}{section.4.3}\protected@file@percent }
+\newlabel{eq:maint_trigger_variable}{{4.4}{19}{Maintenance decision variables}{equation.4.4}{}}
+\newlabel{eq:maint_trigger_variable@cref}{{[equation][4][4]4.4}{[1][19][]19}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {4.1}{\ignorespaces Additional notation for the type-A maintenance model.}}{20}{table.caption.14}\protected@file@percent }
+\newlabel{tab:maintenance_notation}{{4.1}{20}{Additional notation for the type-A maintenance model}{table.caption.14}{}}
+\newlabel{tab:maintenance_notation@cref}{{[table][1][4]4.1}{[1][19][]20}{}{}{}}
+\newlabel{eq:maint_day_variable}{{4.5}{20}{Maintenance decision variables}{equation.4.5}{}}
+\newlabel{eq:maint_day_variable@cref}{{[equation][5][4]4.5}{[1][20][]20}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.4}Extended objective function}{20}{section.4.4}\protected@file@percent }
+\newlabel{eq:maintenance_objective}{{4.6}{20}{Extended objective function}{equation.4.6}{}}
+\newlabel{eq:maintenance_objective@cref}{{[equation][6][4]4.6}{[1][20][]20}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.5}Maintenance-event feasibility}{21}{section.4.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5.1}C8: blocking subsequent same-day flights}{21}{subsection.4.5.1}\protected@file@percent }
+\newlabel{eq:maint_c8}{{4.7}{21}{C8: blocking subsequent same-day flights}{equation.4.7}{}}
+\newlabel{eq:maint_c8@cref}{{[equation][7][4]4.7}{[1][20][]21}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5.2}C9: coupling a check to its trigger flight}{21}{subsection.4.5.2}\protected@file@percent }
+\newlabel{eq:maint_c9}{{4.8}{21}{C9: coupling a check to its trigger flight}{equation.4.8}{}}
+\newlabel{eq:maint_c9@cref}{{[equation][8][4]4.8}{[1][21][]21}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5.3}C10: airport-day maintenance capacity}{21}{subsection.4.5.3}\protected@file@percent }
+\newlabel{eq:maint_c10}{{4.9}{21}{C10: airport-day maintenance capacity}{equation.4.9}{}}
+\newlabel{eq:maint_c10@cref}{{[equation][9][4]4.9}{[1][21][]21}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5.4}C11 and C14: daily aggregation and uniqueness}{21}{subsection.4.5.4}\protected@file@percent }
+\newlabel{eq:maint_c11}{{4.10}{21}{C11 and C14: daily aggregation and uniqueness}{equation.4.10}{}}
+\newlabel{eq:maint_c11@cref}{{[equation][10][4]4.10}{[1][21][]21}{}{}{}}
 \citation{khaled2018compact}
-\newlabel{eq:maint_c14}{{4.11}{21}{C11 and C14: daily aggregation and uniqueness}{equation.4.11}{}}
-\newlabel{eq:maint_c14@cref}{{[equation][11][4]4.11}{[1][20][]21}{}{}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.5.5}C12: maximum calendar spacing}{21}{subsection.4.5.5}\protected@file@percent }
-\newlabel{eq:maint_c12}{{4.12}{21}{C12: maximum calendar spacing}{equation.4.12}{}}
-\newlabel{eq:maint_c12@cref}{{[equation][12][4]4.12}{[1][21][]21}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {4.6}Original cumulative-hour constraint}{21}{section.4.6}\protected@file@percent }
-\newlabel{eq:maint_interval_hours}{{4.13}{21}{Original cumulative-hour constraint}{equation.4.13}{}}
-\newlabel{eq:maint_interval_hours@cref}{{[equation][13][4]4.13}{[1][21][]21}{}{}{}}
-\newlabel{eq:c13_original}{{4.14}{21}{Original cumulative-hour constraint}{equation.4.14}{}}
-\newlabel{eq:c13_original@cref}{{[equation][14][4]4.14}{[1][21][]21}{}{}{}}
-\newlabel{eq:c13_original_one_endpoint}{{4.15}{21}{Original cumulative-hour constraint}{equation.4.15}{}}
-\newlabel{eq:c13_original_one_endpoint@cref}{{[equation][15][4]4.15}{[1][21][]21}{}{}{}}
-\newlabel{lem:c13_endpoint_defect}{{4.1}{22}{Endpoint activation defect}{lemma.4.1}{}}
-\newlabel{lem:c13_endpoint_defect@cref}{{[lemma][1][4]4.1}{[1][22][]22}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {4.7}Corrected endpoint-anchored formulation}{22}{section.4.7}\protected@file@percent }
-\newlabel{sec:c13_correction}{{4.7}{22}{Corrected endpoint-anchored formulation}{section.4.7}{}}
-\newlabel{sec:c13_correction@cref}{{[section][7][4]4.7}{[1][22][]22}{}{}{}}
-\newlabel{eq:c13a}{{4.16}{22}{Corrected endpoint-anchored formulation}{equation.4.16}{}}
-\newlabel{eq:c13a@cref}{{[equation][16][4]4.16}{[1][22][]22}{}{}{}}
-\newlabel{eq:c13b}{{4.17}{22}{Corrected endpoint-anchored formulation}{equation.4.17}{}}
-\newlabel{eq:c13b@cref}{{[equation][17][4]4.17}{[1][22][]22}{}{}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {4.2}{\ignorespaces Activation of the original and corrected C13 rows when $Y_{jdd'}^{\circ }=0$. ``Active'' means that $H_{jdd'}\leq T_{\max }^{A}$.}}{22}{table.caption.15}\protected@file@percent }
-\newlabel{tab:c13_activation}{{4.2}{22}{Activation of the original and corrected C13 rows when $Y_{jdd'}^{\circ }=0$. ``Active'' means that $H_{jdd'}\leq T_{\max }^{A}$}{table.caption.15}{}}
-\newlabel{tab:c13_activation@cref}{{[table][2][4]4.2}{[1][22][]22}{}{}{}}
-\newlabel{prop:c13_check_free_windows}{{4.1}{23}{Check-free-window enforcement}{proposition.4.1}{}}
-\newlabel{prop:c13_check_free_windows@cref}{{[proposition][1][4]4.1}{[1][23][]23}{}{}{}}
-\newlabel{eq:c13_counterexample_corrected}{{4.18}{23}{Corrected endpoint-anchored formulation}{equation.4.18}{}}
-\newlabel{eq:c13_counterexample_corrected@cref}{{[equation][18][4]4.18}{[1][23][]23}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {4.8}Pre-horizon accumulated hours}{23}{section.4.8}\protected@file@percent }
-\newlabel{eq:c13_initial_hours}{{4.19}{23}{Pre-horizon accumulated hours}{equation.4.19}{}}
-\newlabel{eq:c13_initial_hours@cref}{{[equation][19][4]4.19}{[1][23][]23}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {4.9}Choice of the big-$M$ coefficient}{23}{section.4.9}\protected@file@percent }
-\newlabel{eq:maintenance_big_m}{{4.20}{23}{Choice of the big-$M$ coefficient}{equation.4.20}{}}
-\newlabel{eq:maintenance_big_m@cref}{{[equation][20][4]4.20}{[1][23][]23}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {4.10}Physical interpretation and model validity}{24}{section.4.10}\protected@file@percent }
-\newlabel{thm:maintenance_layer_feasibility}{{4.1}{24}{Feasibility of the single-type maintenance layer}{theorem.4.1}{}}
-\newlabel{thm:maintenance_layer_feasibility@cref}{{[theorem][1][4]4.1}{[1][24][]24}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {4.11}Complete single-type formulation and size}{24}{section.4.11}\protected@file@percent }
-\newlabel{eq:maintenance_integrality}{{4.21}{24}{Complete single-type formulation and size}{equation.4.21}{}}
-\newlabel{eq:maintenance_integrality@cref}{{[equation][21][4]4.21}{[1][24][]24}{}{}{}}
-\@writefile{toc}{\contentsline {chapter}{\numberline {5}Full A/B/C/D Maintenance Hierarchy}{26}{chapter.5}\protected@file@percent }
+\newlabel{eq:maint_c14}{{4.11}{22}{C11 and C14: daily aggregation and uniqueness}{equation.4.11}{}}
+\newlabel{eq:maint_c14@cref}{{[equation][11][4]4.11}{[1][21][]22}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5.5}C12: maximum calendar spacing}{22}{subsection.4.5.5}\protected@file@percent }
+\newlabel{eq:maint_c12}{{4.12}{22}{C12: maximum calendar spacing}{equation.4.12}{}}
+\newlabel{eq:maint_c12@cref}{{[equation][12][4]4.12}{[1][22][]22}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.6}Original cumulative-hour constraint}{22}{section.4.6}\protected@file@percent }
+\newlabel{eq:maint_interval_hours}{{4.13}{22}{Original cumulative-hour constraint}{equation.4.13}{}}
+\newlabel{eq:maint_interval_hours@cref}{{[equation][13][4]4.13}{[1][22][]22}{}{}{}}
+\newlabel{eq:c13_original}{{4.14}{22}{Original cumulative-hour constraint}{equation.4.14}{}}
+\newlabel{eq:c13_original@cref}{{[equation][14][4]4.14}{[1][22][]22}{}{}{}}
+\newlabel{eq:c13_original_one_endpoint}{{4.15}{22}{Original cumulative-hour constraint}{equation.4.15}{}}
+\newlabel{eq:c13_original_one_endpoint@cref}{{[equation][15][4]4.15}{[1][22][]22}{}{}{}}
+\newlabel{lem:c13_endpoint_defect}{{4.1}{23}{Endpoint activation defect}{lemma.4.1}{}}
+\newlabel{lem:c13_endpoint_defect@cref}{{[lemma][1][4]4.1}{[1][23][]23}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.7}Corrected endpoint-anchored formulation}{23}{section.4.7}\protected@file@percent }
+\newlabel{sec:c13_correction}{{4.7}{23}{Corrected endpoint-anchored formulation}{section.4.7}{}}
+\newlabel{sec:c13_correction@cref}{{[section][7][4]4.7}{[1][23][]23}{}{}{}}
+\newlabel{eq:c13a}{{4.16}{23}{Corrected endpoint-anchored formulation}{equation.4.16}{}}
+\newlabel{eq:c13a@cref}{{[equation][16][4]4.16}{[1][23][]23}{}{}{}}
+\newlabel{eq:c13b}{{4.17}{23}{Corrected endpoint-anchored formulation}{equation.4.17}{}}
+\newlabel{eq:c13b@cref}{{[equation][17][4]4.17}{[1][23][]23}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {4.2}{\ignorespaces Activation of the original and corrected C13 rows when $Y_{jdd'}^{\circ }=0$. ``Active'' means that $H_{jdd'}\leq T_{\max }^{A}$.}}{23}{table.caption.15}\protected@file@percent }
+\newlabel{tab:c13_activation}{{4.2}{23}{Activation of the original and corrected C13 rows when $Y_{jdd'}^{\circ }=0$. ``Active'' means that $H_{jdd'}\leq T_{\max }^{A}$}{table.caption.15}{}}
+\newlabel{tab:c13_activation@cref}{{[table][2][4]4.2}{[1][23][]23}{}{}{}}
+\newlabel{prop:c13_check_free_windows}{{4.1}{24}{Check-free-window enforcement}{proposition.4.1}{}}
+\newlabel{prop:c13_check_free_windows@cref}{{[proposition][1][4]4.1}{[1][24][]24}{}{}{}}
+\newlabel{eq:c13_counterexample_corrected}{{4.18}{24}{Corrected endpoint-anchored formulation}{equation.4.18}{}}
+\newlabel{eq:c13_counterexample_corrected@cref}{{[equation][18][4]4.18}{[1][24][]24}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.8}Pre-horizon accumulated hours}{24}{section.4.8}\protected@file@percent }
+\newlabel{eq:c13_initial_hours}{{4.19}{24}{Pre-horizon accumulated hours}{equation.4.19}{}}
+\newlabel{eq:c13_initial_hours@cref}{{[equation][19][4]4.19}{[1][24][]24}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.9}Choice of the big-$M$ coefficient}{24}{section.4.9}\protected@file@percent }
+\newlabel{eq:maintenance_big_m}{{4.20}{24}{Choice of the big-$M$ coefficient}{equation.4.20}{}}
+\newlabel{eq:maintenance_big_m@cref}{{[equation][20][4]4.20}{[1][24][]24}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.10}Physical interpretation and model validity}{25}{section.4.10}\protected@file@percent }
+\newlabel{thm:maintenance_layer_feasibility}{{4.1}{25}{Feasibility of the single-type maintenance layer}{theorem.4.1}{}}
+\newlabel{thm:maintenance_layer_feasibility@cref}{{[theorem][1][4]4.1}{[1][25][]25}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4.11}Complete single-type formulation and size}{25}{section.4.11}\protected@file@percent }
+\newlabel{eq:maintenance_integrality}{{4.21}{25}{Complete single-type formulation and size}{equation.4.21}{}}
+\newlabel{eq:maintenance_integrality@cref}{{[equation][21][4]4.21}{[1][25][]25}{}{}{}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {5}Full A/B/C/D Maintenance Hierarchy}{27}{chapter.5}\protected@file@percent }
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
-\newlabel{ch:hierarchy}{{5}{26}{Full A/B/C/D Maintenance Hierarchy}{chapter.5}{}}
-\newlabel{ch:hierarchy@cref}{{[chapter][5][]5}{[1][26][]26}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {5.1}Application representation of the hierarchy}{26}{section.5.1}\protected@file@percent }
-\newlabel{sec:hierarchy_application}{{5.1}{26}{Application representation of the hierarchy}{section.5.1}{}}
-\newlabel{sec:hierarchy_application@cref}{{[section][1][5]5.1}{[1][26][]26}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {5.2}Check types and regulatory hierarchy}{27}{section.5.2}\protected@file@percent }
-\newlabel{sec:hierarchy_regime}{{5.2}{27}{Check types and regulatory hierarchy}{section.5.2}{}}
-\newlabel{sec:hierarchy_regime@cref}{{[section][2][5]5.2}{[1][27][]27}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {5.3}Hierarchy constraints}{28}{section.5.3}\protected@file@percent }
-\newlabel{sec:hierarchy_constraints}{{5.3}{28}{Hierarchy constraints}{section.5.3}{}}
-\newlabel{sec:hierarchy_constraints@cref}{{[section][3][5]5.3}{[1][28][]28}{}{}{}}
-\newlabel{eq:hier_day_unique}{{5.6}{28}{Hierarchy constraints}{equation.5.6}{}}
-\newlabel{eq:hier_day_unique@cref}{{[equation][6][5]5.6}{[1][28][]28}{}{}{}}
-\newlabel{eq:hier_subsumes}{{5.7}{28}{Hierarchy constraints}{equation.5.7}{}}
-\newlabel{eq:hier_subsumes@cref}{{[equation][7][5]5.7}{[1][28][]28}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {5.4}Flight-hour checks: types A and B}{29}{section.5.4}\protected@file@percent }
-\newlabel{sec:hierarchy_ab}{{5.4}{29}{Flight-hour checks: types A and B}{section.5.4}{}}
-\newlabel{sec:hierarchy_ab@cref}{{[section][4][5]5.4}{[1][29][]29}{}{}{}}
-\newlabel{eq:c13a_hier}{{5.12}{29}{Flight-hour checks: types A and B}{equation.5.12}{}}
-\newlabel{eq:c13a_hier@cref}{{[equation][12][5]5.12}{[1][29][]29}{}{}{}}
-\newlabel{eq:c13b_hier}{{5.13}{29}{Flight-hour checks: types A and B}{equation.5.13}{}}
-\newlabel{eq:c13b_hier@cref}{{[equation][13][5]5.13}{[1][29][]29}{}{}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {5.4.1}Maximum-spacing requirement}{29}{subsection.5.4.1}\protected@file@percent }
-\newlabel{eq:spacing_ab}{{5.14}{29}{Maximum-spacing requirement}{equation.5.14}{}}
-\newlabel{eq:spacing_ab@cref}{{[equation][14][5]5.14}{[1][29][]29}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {5.5}Calendar-day checks: types C and D}{30}{section.5.5}\protected@file@percent }
-\newlabel{sec:hierarchy_cd}{{5.5}{30}{Calendar-day checks: types C and D}{section.5.5}{}}
-\newlabel{sec:hierarchy_cd@cref}{{[section][5][5]5.5}{[1][30][]30}{}{}{}}
-\newlabel{eq:spacing_cd}{{5.15}{30}{Calendar-day checks: types C and D}{equation.5.15}{}}
-\newlabel{eq:spacing_cd@cref}{{[equation][15][5]5.15}{[1][30][]30}{}{}{}}
-\newlabel{eq:multi_day_check}{{5.17}{30}{Calendar-day checks: types C and D}{equation.5.17}{}}
-\newlabel{eq:multi_day_check@cref}{{[equation][17][5]5.17}{[1][30][]30}{}{}{}}
-\newlabel{eq:no_flight_during_maintenance}{{5.18}{30}{Calendar-day checks: types C and D}{equation.5.18}{}}
-\newlabel{eq:no_flight_during_maintenance@cref}{{[equation][18][5]5.18}{[1][30][]30}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {5.6}Pre-horizon state accounting}{31}{section.5.6}\protected@file@percent }
-\newlabel{sec:hierarchy_prehorizon}{{5.6}{31}{Pre-horizon state accounting}{section.5.6}{}}
-\newlabel{sec:hierarchy_prehorizon@cref}{{[section][6][5]5.6}{[1][30][]31}{}{}{}}
-\newlabel{eq:c13b_initial_hier}{{5.19}{31}{Pre-horizon state accounting}{equation.5.19}{}}
-\newlabel{eq:c13b_initial_hier@cref}{{[equation][19][5]5.19}{[1][31][]31}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {5.7}Model size and operational implications}{31}{section.5.7}\protected@file@percent }
-\newlabel{sec:hierarchy_impact}{{5.7}{31}{Model size and operational implications}{section.5.7}{}}
-\newlabel{sec:hierarchy_impact@cref}{{[section][7][5]5.7}{[1][31][]31}{}{}{}}
-\@writefile{toc}{\contentsline {chapter}{\numberline {6}Heuristic Solution Methods}{33}{chapter.6}\protected@file@percent }
+\newlabel{ch:hierarchy}{{5}{27}{Full A/B/C/D Maintenance Hierarchy}{chapter.5}{}}
+\newlabel{ch:hierarchy@cref}{{[chapter][5][]5}{[1][27][]27}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5.1}Application representation of the hierarchy}{27}{section.5.1}\protected@file@percent }
+\newlabel{sec:hierarchy_application}{{5.1}{27}{Application representation of the hierarchy}{section.5.1}{}}
+\newlabel{sec:hierarchy_application@cref}{{[section][1][5]5.1}{[1][27][]27}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5.2}Check types and regulatory hierarchy}{28}{section.5.2}\protected@file@percent }
+\newlabel{sec:hierarchy_regime}{{5.2}{28}{Check types and regulatory hierarchy}{section.5.2}{}}
+\newlabel{sec:hierarchy_regime@cref}{{[section][2][5]5.2}{[1][28][]28}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5.3}Hierarchy constraints}{29}{section.5.3}\protected@file@percent }
+\newlabel{sec:hierarchy_constraints}{{5.3}{29}{Hierarchy constraints}{section.5.3}{}}
+\newlabel{sec:hierarchy_constraints@cref}{{[section][3][5]5.3}{[1][29][]29}{}{}{}}
+\newlabel{eq:hier_day_unique}{{5.6}{29}{Hierarchy constraints}{equation.5.6}{}}
+\newlabel{eq:hier_day_unique@cref}{{[equation][6][5]5.6}{[1][29][]29}{}{}{}}
+\newlabel{eq:hier_subsumes}{{5.7}{29}{Hierarchy constraints}{equation.5.7}{}}
+\newlabel{eq:hier_subsumes@cref}{{[equation][7][5]5.7}{[1][29][]29}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5.4}Flight-hour checks: types A and B}{30}{section.5.4}\protected@file@percent }
+\newlabel{sec:hierarchy_ab}{{5.4}{30}{Flight-hour checks: types A and B}{section.5.4}{}}
+\newlabel{sec:hierarchy_ab@cref}{{[section][4][5]5.4}{[1][30][]30}{}{}{}}
+\newlabel{eq:c13a_hier}{{5.12}{30}{Flight-hour checks: types A and B}{equation.5.12}{}}
+\newlabel{eq:c13a_hier@cref}{{[equation][12][5]5.12}{[1][30][]30}{}{}{}}
+\newlabel{eq:c13b_hier}{{5.13}{30}{Flight-hour checks: types A and B}{equation.5.13}{}}
+\newlabel{eq:c13b_hier@cref}{{[equation][13][5]5.13}{[1][30][]30}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {5.4.1}Maximum-spacing requirement}{30}{subsection.5.4.1}\protected@file@percent }
+\newlabel{eq:spacing_ab}{{5.14}{30}{Maximum-spacing requirement}{equation.5.14}{}}
+\newlabel{eq:spacing_ab@cref}{{[equation][14][5]5.14}{[1][30][]30}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5.5}Calendar-day checks: types C and D}{31}{section.5.5}\protected@file@percent }
+\newlabel{sec:hierarchy_cd}{{5.5}{31}{Calendar-day checks: types C and D}{section.5.5}{}}
+\newlabel{sec:hierarchy_cd@cref}{{[section][5][5]5.5}{[1][31][]31}{}{}{}}
+\newlabel{eq:spacing_cd}{{5.15}{31}{Calendar-day checks: types C and D}{equation.5.15}{}}
+\newlabel{eq:spacing_cd@cref}{{[equation][15][5]5.15}{[1][31][]31}{}{}{}}
+\newlabel{eq:multi_day_check}{{5.17}{31}{Calendar-day checks: types C and D}{equation.5.17}{}}
+\newlabel{eq:multi_day_check@cref}{{[equation][17][5]5.17}{[1][31][]31}{}{}{}}
+\newlabel{eq:no_flight_during_maintenance}{{5.18}{31}{Calendar-day checks: types C and D}{equation.5.18}{}}
+\newlabel{eq:no_flight_during_maintenance@cref}{{[equation][18][5]5.18}{[1][31][]31}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5.6}Pre-horizon state accounting}{32}{section.5.6}\protected@file@percent }
+\newlabel{sec:hierarchy_prehorizon}{{5.6}{32}{Pre-horizon state accounting}{section.5.6}{}}
+\newlabel{sec:hierarchy_prehorizon@cref}{{[section][6][5]5.6}{[1][31][]32}{}{}{}}
+\newlabel{eq:c13b_initial_hier}{{5.19}{32}{Pre-horizon state accounting}{equation.5.19}{}}
+\newlabel{eq:c13b_initial_hier@cref}{{[equation][19][5]5.19}{[1][32][]32}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5.7}Model size and operational implications}{32}{section.5.7}\protected@file@percent }
+\newlabel{sec:hierarchy_impact}{{5.7}{32}{Model size and operational implications}{section.5.7}{}}
+\newlabel{sec:hierarchy_impact@cref}{{[section][7][5]5.7}{[1][32][]32}{}{}{}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {6}MILP Strengthening}{34}{chapter.6}\protected@file@percent }
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
-\newlabel{ch:heuristics}{{6}{33}{Heuristic Solution Methods}{chapter.6}{}}
-\newlabel{ch:heuristics@cref}{{[chapter][6][]6}{[1][33][]33}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {6.1}Taxonomy of heuristic methods}{33}{section.6.1}\protected@file@percent }
-\newlabel{sec:heuristic_taxonomy}{{6.1}{33}{Taxonomy of heuristic methods}{section.6.1}{}}
-\newlabel{sec:heuristic_taxonomy@cref}{{[section][1][6]6.1}{[1][33][]33}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {6.2}Shared feasibility oracle}{34}{section.6.2}\protected@file@percent }
-\newlabel{sec:heuristic_oracle}{{6.2}{34}{Shared feasibility oracle}{section.6.2}{}}
-\newlabel{sec:heuristic_oracle@cref}{{[section][2][6]6.2}{[1][34][]34}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {6.3}Greedy construction}{35}{section.6.3}\protected@file@percent }
-\newlabel{sec:heuristic_greedy}{{6.3}{35}{Greedy construction}{section.6.3}{}}
-\newlabel{sec:heuristic_greedy@cref}{{[section][3][6]6.3}{[1][35][]35}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {6.4}Insertion-based construction and repair}{36}{section.6.4}\protected@file@percent }
-\newlabel{sec:heuristic_insertion}{{6.4}{36}{Insertion-based construction and repair}{section.6.4}{}}
-\newlabel{sec:heuristic_insertion@cref}{{[section][4][6]6.4}{[1][35][]36}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {6.5}Ferry and no-ferry variants}{36}{section.6.5}\protected@file@percent }
-\newlabel{sec:heuristic_ferry}{{6.5}{36}{Ferry and no-ferry variants}{section.6.5}{}}
-\newlabel{sec:heuristic_ferry@cref}{{[section][5][6]6.5}{[1][36][]36}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {6.6}Path-based and arc-based representations}{37}{section.6.6}\protected@file@percent }
-\newlabel{sec:heuristic_path_arc}{{6.6}{37}{Path-based and arc-based representations}{section.6.6}{}}
-\newlabel{sec:heuristic_path_arc@cref}{{[section][6][6]6.6}{[1][37][]37}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {6.7}Modified Dijkstra heuristic}{38}{section.6.7}\protected@file@percent }
-\newlabel{sec:heuristic_network}{{6.7}{38}{Modified Dijkstra heuristic}{section.6.7}{}}
-\newlabel{sec:heuristic_network@cref}{{[section][7][6]6.7}{[1][37][]38}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {6.8}Ant colony optimisation heuristic}{38}{section.6.8}\protected@file@percent }
-\newlabel{sec:heuristic_aco}{{6.8}{38}{Ant colony optimisation heuristic}{section.6.8}{}}
-\newlabel{sec:heuristic_aco@cref}{{[section][8][6]6.8}{[1][38][]38}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {6.9}Application workflow and generated schedules}{39}{section.6.9}\protected@file@percent }
-\newlabel{sec:heuristic_application}{{6.9}{39}{Application workflow and generated schedules}{section.6.9}{}}
-\newlabel{sec:heuristic_application@cref}{{[section][9][6]6.9}{[1][39][]39}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {6.10}Quality assessment and computational role}{40}{section.6.10}\protected@file@percent }
-\newlabel{sec:heuristic_quality}{{6.10}{40}{Quality assessment and computational role}{section.6.10}{}}
-\newlabel{sec:heuristic_quality@cref}{{[section][10][6]6.10}{[1][40][]40}{}{}{}}
-\@writefile{toc}{\contentsline {chapter}{\numberline {7}Computational Study}{42}{chapter.7}\protected@file@percent }
+\newlabel{ch:strengthening}{{6}{34}{MILP Strengthening}{chapter.6}{}}
+\newlabel{ch:strengthening@cref}{{[chapter][6][]6}{[1][34][]34}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {6.1}Research questions and baseline}{34}{section.6.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6.2}Strengthening methods}{35}{section.6.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2.1}Aircraft-compatible maintenance domains}{35}{subsection.6.2.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2.2}Deferred-trigger reachability}{35}{subsection.6.2.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2.3}Strong trigger linking}{35}{subsection.6.2.3}\protected@file@percent }
+\newlabel{eq:strength_strong_link}{{6.1}{35}{Strong trigger linking}{equation.6.1}{}}
+\newlabel{eq:strength_strong_link@cref}{{[equation][1][6]6.1}{[1][35][]35}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2.4}Interval-specific C13 bounds}{35}{subsection.6.2.4}\protected@file@percent }
+\newlabel{eq:strength_tight_m}{{6.2}{35}{Interval-specific C13 bounds}{equation.6.2}{}}
+\newlabel{eq:strength_tight_m@cref}{{[equation][2][6]6.2}{[1][35][]35}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2.5}Pairwise maintenance conflicts}{36}{subsection.6.2.5}\protected@file@percent }
+\newlabel{eq:strength_pairwise_conflict}{{6.3}{36}{Pairwise maintenance conflicts}{equation.6.3}{}}
+\newlabel{eq:strength_pairwise_conflict@cref}{{[equation][3][6]6.3}{[1][36][]36}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {6.3}Combined formulation}{36}{section.6.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6.4}Correctness and implementation checks}{36}{section.6.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6.5}Benchmark design}{37}{section.6.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6.6}Model-size results}{37}{section.6.6}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {6.1}{\ignorespaces Average model size over the 20-instance feasible A family (A-check configuration, as solved).}}{37}{table.caption.16}\protected@file@percent }
+\newlabel{tab:strength_model_size}{{6.1}{37}{Average model size over the 20-instance feasible A family (A-check configuration, as solved)}{table.caption.16}{}}
+\newlabel{tab:strength_model_size@cref}{{[table][1][6]6.1}{[1][37][]37}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {6.1}{\ignorespaces Maintenance-trigger reduction plotted against baseline domain size for the heterogeneous feasible structural family; colors distinguish A and AB maintenance families.}}{38}{figure.caption.17}\protected@file@percent }
+\newlabel{fig:strength_model_size}{{6.1}{38}{Maintenance-trigger reduction plotted against baseline domain size for the heterogeneous feasible structural family; colors distinguish A and AB maintenance families}{figure.caption.17}{}}
+\newlabel{fig:strength_model_size@cref}{{[figure][1][6]6.1}{[1][38][]38}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {6.7}LP-relaxation results}{38}{section.6.7}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {6.2}{\ignorespaces Baseline and combined LP lower bounds for the 20-instance feasible A family (CPLEX).}}{39}{figure.caption.18}\protected@file@percent }
+\newlabel{fig:strength_lp_bounds}{{6.2}{39}{Baseline and combined LP lower bounds for the 20-instance feasible A family (CPLEX)}{figure.caption.18}{}}
+\newlabel{fig:strength_lp_bounds@cref}{{[figure][2][6]6.2}{[1][38][]39}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {6.3}{\ignorespaces Baseline and combined LP runtimes on a logarithmic scale (CPLEX).}}{39}{figure.caption.19}\protected@file@percent }
+\newlabel{fig:strength_lp_runtime}{{6.3}{39}{Baseline and combined LP runtimes on a logarithmic scale (CPLEX)}{figure.caption.19}{}}
+\newlabel{fig:strength_lp_runtime@cref}{{[figure][3][6]6.3}{[1][38][]39}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {6.8}MILP results}{40}{section.6.8}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {6.2}{\ignorespaces Exact MILP efficacy over the 20-instance feasible A family.}}{40}{table.caption.20}\protected@file@percent }
+\newlabel{tab:strength_milp_results}{{6.2}{40}{Exact MILP efficacy over the 20-instance feasible A family}{table.caption.20}{}}
+\newlabel{tab:strength_milp_results@cref}{{[table][2][6]6.2}{[1][40][]40}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {6.4}{\ignorespaces Baseline and combined exact MILP runtimes for the 20 feasible instances (CPLEX).}}{40}{figure.caption.21}\protected@file@percent }
+\newlabel{fig:strength_milp_runtime}{{6.4}{40}{Baseline and combined exact MILP runtimes for the 20 feasible instances (CPLEX)}{figure.caption.21}{}}
+\newlabel{fig:strength_milp_runtime@cref}{{[figure][4][6]6.4}{[1][40][]40}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {6.9}Interpretation and limitations}{40}{section.6.9}\protected@file@percent }
+\@writefile{lof}{\contentsline {figure}{\numberline {6.5}{\ignorespaces Exact MILP speedup, defined as baseline runtime divided by combined runtime; values above one indicate improvement.}}{41}{figure.caption.22}\protected@file@percent }
+\newlabel{fig:strength_speedup}{{6.5}{41}{Exact MILP speedup, defined as baseline runtime divided by combined runtime; values above one indicate improvement}{figure.caption.22}{}}
+\newlabel{fig:strength_speedup@cref}{{[figure][5][6]6.5}{[1][40][]41}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {6.6}{\ignorespaces Objective parity between baseline and combined exact MILP solutions.}}{41}{figure.caption.23}\protected@file@percent }
+\newlabel{fig:strength_objective_parity}{{6.6}{41}{Objective parity between baseline and combined exact MILP solutions}{figure.caption.23}{}}
+\newlabel{fig:strength_objective_parity@cref}{{[figure][6][6]6.6}{[1][40][]41}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {6.10}Reproducibility}{42}{section.6.10}\protected@file@percent }
+\newlabel{ch:strengthening}{{6.10}{42}{Reproducibility}{section.6.10}{}}
+\newlabel{ch:strengthening@cref}{{[section][10][6]6.10}{[1][42][]42}{}{}{}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {7}Heuristic Solution Methods}{43}{chapter.7}\protected@file@percent }
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
-\newlabel{ch:experiments}{{7}{42}{Computational Study}{chapter.7}{}}
-\newlabel{ch:experiments@cref}{{[chapter][7][]7}{[1][42][]42}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {7.1}Research questions and evaluation principles}{42}{section.7.1}\protected@file@percent }
-\newlabel{sec:computational_questions}{{7.1}{42}{Research questions and evaluation principles}{section.7.1}{}}
-\newlabel{sec:computational_questions@cref}{{[section][1][7]7.1}{[1][42][]42}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {7.2}Software, hardware, and reproducibility protocol}{43}{section.7.2}\protected@file@percent }
-\newlabel{sec:computational_protocol}{{7.2}{43}{Software, hardware, and reproducibility protocol}{section.7.2}{}}
-\newlabel{sec:computational_protocol@cref}{{[section][2][7]7.2}{[1][43][]43}{}{}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.2.1}Execution protocol}{43}{subsection.7.2.1}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {7.1}{\ignorespaces Provenance classes used for the computational results.}}{44}{table.caption.16}\protected@file@percent }
-\newlabel{tab:computational_provenance}{{7.1}{44}{Provenance classes used for the computational results}{table.caption.16}{}}
-\newlabel{tab:computational_provenance@cref}{{[table][1][7]7.1}{[1][44][]44}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {7.3}Benchmark families}{45}{section.7.3}\protected@file@percent }
-\newlabel{sec:computational_instances}{{7.3}{45}{Benchmark families}{section.7.3}{}}
-\newlabel{sec:computational_instances@cref}{{[section][3][7]7.3}{[1][44][]45}{}{}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.3.1}Data construction and instance classification}{45}{subsection.7.3.1}\protected@file@percent }
-\newlabel{subsec:computational_data_classification}{{7.3.1}{45}{Data construction and instance classification}{subsection.7.3.1}{}}
-\newlabel{subsec:computational_data_classification@cref}{{[subsection][1][7,3]7.3.1}{[1][45][]45}{}{}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {7.2}{\ignorespaces Operational classification of computational instance difficulty.}}{47}{table.caption.17}\protected@file@percent }
-\newlabel{tab:instance_difficulty}{{7.2}{47}{Operational classification of computational instance difficulty}{table.caption.17}{}}
-\newlabel{tab:instance_difficulty@cref}{{[table][2][7]7.2}{[1][47][]47}{}{}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.3.2}Exact-feasible comparison and heuristic improvement}{47}{subsection.7.3.2}\protected@file@percent }
-\newlabel{subsec:computational_exact_feasible}{{7.3.2}{47}{Exact-feasible comparison and heuristic improvement}{subsection.7.3.2}{}}
-\newlabel{subsec:computational_exact_feasible@cref}{{[subsection][2][7,3]7.3.2}{[1][47][]47}{}{}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {7.3}{\ignorespaces Scope and interpretation of the exact-feasible comparison reported in the archived computational section \texttt  {prev/sections/07\_computational.tex}.}}{48}{table.caption.18}\protected@file@percent }
-\newlabel{tab:exact_feasible_summary}{{7.3}{48}{Scope and interpretation of the exact-feasible comparison reported in the archived computational section \texttt {prev/sections/07\_computational.tex}}{table.caption.18}{}}
-\newlabel{tab:exact_feasible_summary@cref}{{[table][3][7]7.3}{[1][48][]48}{}{}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {7.4}{\ignorespaces Benchmark families and their scientific role.}}{48}{table.caption.19}\protected@file@percent }
-\newlabel{tab:benchmark_families}{{7.4}{48}{Benchmark families and their scientific role}{table.caption.19}{}}
-\newlabel{tab:benchmark_families@cref}{{[table][4][7]7.4}{[1][48][]48}{}{}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {7.5}{\ignorespaces Measured LP relaxation bounds from the repository results \texttt  {step4\_lp\_lower\_bounds.csv}. A blank status or bound indicates that the corresponding run ended in an error rather than a certified LP result.}}{49}{table.caption.20}\protected@file@percent }
-\newlabel{tab:milp_lp_anchor}{{7.5}{49}{Measured LP relaxation bounds from the repository results \texttt {step4\_lp\_lower\_bounds.csv}. A blank status or bound indicates that the corresponding run ended in an error rather than a certified LP result}{table.caption.20}{}}
-\newlabel{tab:milp_lp_anchor@cref}{{[table][5][7]7.5}{[1][49][]49}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {7.4}Measured exact-model results}{49}{section.7.4}\protected@file@percent }
-\newlabel{sec:computational_milp}{{7.4}{49}{Measured exact-model results}{section.7.4}{}}
-\newlabel{sec:computational_milp@cref}{{[section][4][7]7.4}{[1][48][]49}{}{}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.4.1}Curated hierarchy-suite results}{49}{subsection.7.4.1}\protected@file@percent }
-\newlabel{subsec:computational_hierarchy_suite}{{7.4.1}{49}{Curated hierarchy-suite results}{subsection.7.4.1}{}}
-\newlabel{subsec:computational_hierarchy_suite@cref}{{[subsection][1][7,4]7.4.1}{[1][49][]49}{}{}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {7.6}{\ignorespaces Curated hierarchy-suite MILP results from the stored HiGHS batch results. Runtime values belong to this backend and are not pooled with archived CPLEX measurements.}}{50}{table.caption.21}\protected@file@percent }
-\newlabel{tab:hierarchy_batch}{{7.6}{50}{Curated hierarchy-suite MILP results from the stored HiGHS batch results. Runtime values belong to this backend and are not pooled with archived CPLEX measurements}{table.caption.21}{}}
-\newlabel{tab:hierarchy_batch@cref}{{[table][6][7]7.6}{[1][49][]50}{}{}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {7.7}{\ignorespaces Selected sensitivity results from \texttt  {step5\_sensitivity\_analysis.csv}.}}{50}{table.caption.22}\protected@file@percent }
-\newlabel{tab:sensitivity_anchor}{{7.7}{50}{Selected sensitivity results from \texttt {step5\_sensitivity\_analysis.csv}}{table.caption.22}{}}
-\newlabel{tab:sensitivity_anchor@cref}{{[table][7][7]7.7}{[1][50][]50}{}{}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.4.2}Sensitivity to thresholds, durations, and capacity}{50}{subsection.7.4.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {7.5}Constraint (13) and hierarchy validation}{51}{section.7.5}\protected@file@percent }
-\newlabel{sec:computational_c13}{{7.5}{51}{Constraint (13) and hierarchy validation}{section.7.5}{}}
-\newlabel{sec:computational_c13@cref}{{[section][5][7]7.5}{[1][50][]51}{}{}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {7.8}{\ignorespaces Available targeted C13 evidence. ``Not available'' denotes a result that requires additional matched experiments.}}{52}{table.caption.23}\protected@file@percent }
-\newlabel{tab:c13_anchor}{{7.8}{52}{Available targeted C13 evidence. ``Not available'' denotes a result that requires additional matched experiments}{table.caption.23}{}}
-\newlabel{tab:c13_anchor@cref}{{[table][8][7]7.8}{[1][51][]52}{}{}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {7.9}{\ignorespaces Independent validation of the Constraint~(13) loophole from \texttt  {results/tables/c13/c13\_loophole\_validation.csv}.}}{52}{table.caption.24}\protected@file@percent }
-\newlabel{tab:c13_loophole}{{7.9}{52}{Independent validation of the Constraint~(13) loophole from \texttt {results/tables/c13/c13\_loophole\_validation.csv}}{table.caption.24}{}}
-\newlabel{tab:c13_loophole@cref}{{[table][9][7]7.9}{[1][52][]52}{}{}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.5.1}Dedicated loophole validation}{52}{subsection.7.5.1}\protected@file@percent }
-\newlabel{subsec:computational_c13_loophole}{{7.5.1}{52}{Dedicated loophole validation}{subsection.7.5.1}{}}
-\newlabel{subsec:computational_c13_loophole@cref}{{[subsection][1][7,5]7.5.1}{[1][52][]52}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {7.6}Heuristic tournament}{52}{section.7.6}\protected@file@percent }
-\newlabel{sec:computational_heuristics}{{7.6}{52}{Heuristic tournament}{section.7.6}{}}
-\newlabel{sec:computational_heuristics@cref}{{[section][6][7]7.6}{[1][52][]52}{}{}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {7.10}{\ignorespaces Measured method comparison on the capacity-bottleneck boundary instance from \texttt  {oop\_all\_methods\_compare\_v2.csv}. Objective values are not comparable without the coverage column.}}{53}{table.caption.25}\protected@file@percent }
-\newlabel{tab:heuristic_boundary}{{7.10}{53}{Measured method comparison on the capacity-bottleneck boundary instance from \texttt {oop\_all\_methods\_compare\_v2.csv}. Objective values are not comparable without the coverage column}{table.caption.25}{}}
-\newlabel{tab:heuristic_boundary@cref}{{[table][10][7]7.10}{[1][53][]53}{}{}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {7.11}{\ignorespaces Measured heuristic comparison on the no-maintenance control instance from \texttt  {oop\_new\_methods\_smoke.csv}.}}{54}{table.caption.26}\protected@file@percent }
-\newlabel{tab:heuristic_no_maint}{{7.11}{54}{Measured heuristic comparison on the no-maintenance control instance from \texttt {oop\_new\_methods\_smoke.csv}}{table.caption.26}{}}
-\newlabel{tab:heuristic_no_maint@cref}{{[table][11][7]7.11}{[1][54][]54}{}{}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {7.12}{\ignorespaces Measured seven-heuristic tournament on the nine-instance exact-feasible family. Values are aggregated over instances; complete counts refer to schedules assigning all flights.}}{54}{table.caption.27}\protected@file@percent }
-\newlabel{tab:full_tournament_measured}{{7.12}{54}{Measured seven-heuristic tournament on the nine-instance exact-feasible family. Values are aggregated over instances; complete counts refer to schedules assigning all flights}{table.caption.27}{}}
-\newlabel{tab:full_tournament_measured@cref}{{[table][12][7]7.12}{[1][54][]54}{}{}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {7.13}{\ignorespaces Measured instance-level coverage in the nine-instance, seven-heuristic tournament. Each entry is assigned flights over total flights; therefore the table remains valid even when objective semantics differ.}}{55}{table.caption.28}\protected@file@percent }
-\newlabel{tab:full_tournament_coverage}{{7.13}{55}{Measured instance-level coverage in the nine-instance, seven-heuristic tournament. Each entry is assigned flights over total flights; therefore the table remains valid even when objective semantics differ}{table.caption.28}{}}
-\newlabel{tab:full_tournament_coverage@cref}{{[table][13][7]7.13}{[1][55][]55}{}{}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {7.14}{\ignorespaces Measured decomposed-cost comparison for the same tournament. The integrated MILP reference includes its assignment cost and the 100-unit maintenance-event penalty. Heuristic totals include assignment, ferry, and maintenance-event costs from route replay. Because the two implementations do not enumerate exactly the same maintenance decisions, these values are reported descriptively rather than converted into universal optimality gaps.}}{56}{table.caption.29}\protected@file@percent }
-\newlabel{tab:full_tournament_costs}{{7.14}{56}{Measured decomposed-cost comparison for the same tournament. The integrated MILP reference includes its assignment cost and the 100-unit maintenance-event penalty. Heuristic totals include assignment, ferry, and maintenance-event costs from route replay. Because the two implementations do not enumerate exactly the same maintenance decisions, these values are reported descriptively rather than converted into universal optimality gaps}{table.caption.29}{}}
-\newlabel{tab:full_tournament_costs@cref}{{[table][14][7]7.14}{[1][55][]56}{}{}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {7.1}{\ignorespaces Instance-matched wall-time comparison (log scale) for all seven heuristics plus classical and integrated MILP, generated from \texttt  {full\_seven\_method\_tournament.csv}.}}{56}{figure.caption.30}\protected@file@percent }
-\newlabel{fig:computational_runtime_instance_plot}{{7.1}{56}{Instance-matched wall-time comparison (log scale) for all seven heuristics plus classical and integrated MILP, generated from \texttt {full\_seven\_method\_tournament.csv}}{figure.caption.30}{}}
-\newlabel{fig:computational_runtime_instance_plot@cref}{{[figure][1][7]7.1}{[1][55][]56}{}{}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {7.2}{\ignorespaces Runtime distributions by method over the nine-instance benchmark (boxplots on a log-time axis), generated from \texttt  {full\_seven\_method\_tournament.csv}.}}{57}{figure.caption.31}\protected@file@percent }
-\newlabel{fig:computational_runtime_distribution_plot}{{7.2}{57}{Runtime distributions by method over the nine-instance benchmark (boxplots on a log-time axis), generated from \texttt {full\_seven\_method\_tournament.csv}}{figure.caption.31}{}}
-\newlabel{fig:computational_runtime_distribution_plot@cref}{{[figure][2][7]7.2}{[1][55][]57}{}{}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {7.15}{\ignorespaces MILP-to-timeline semantic alignment on the nine exact-feasible instances. A validated row means that the MILP assignment, when ordered by departure time, replays successfully through the heuristic timeline oracle.}}{57}{table.caption.32}\protected@file@percent }
-\newlabel{tab:semantic_alignment}{{7.15}{57}{MILP-to-timeline semantic alignment on the nine exact-feasible instances. A validated row means that the MILP assignment, when ordered by departure time, replays successfully through the heuristic timeline oracle}{table.caption.32}{}}
-\newlabel{tab:semantic_alignment@cref}{{[table][15][7]7.15}{[1][56][]57}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {7.7}Alternative soft-coverage formulation}{57}{section.7.7}\protected@file@percent }
-\newlabel{sec:computational_soft_coverage}{{7.7}{57}{Alternative soft-coverage formulation}{section.7.7}{}}
-\newlabel{sec:computational_soft_coverage@cref}{{[section][7][7]7.7}{[1][56][]57}{}{}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {7.3}{\ignorespaces Mode comparison trade-off plot: x-axis median runtime (log scale), y-axis mean coverage, color complete/optimal rate, bubble size mean total cost, computed from \texttt  {full\_seven\_method\_tournament.csv}.}}{58}{figure.caption.33}\protected@file@percent }
-\newlabel{fig:computational_modes_tradeoff_plot}{{7.3}{58}{Mode comparison trade-off plot: x-axis median runtime (log scale), y-axis mean coverage, color complete/optimal rate, bubble size mean total cost, computed from \texttt {full\_seven\_method\_tournament.csv}}{figure.caption.33}{}}
-\newlabel{fig:computational_modes_tradeoff_plot@cref}{{[figure][3][7]7.3}{[1][56][]58}{}{}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {7.16}{\ignorespaces Measured hard-versus-soft coverage comparison for Section~\ref {sec:computational_soft_coverage}. Secondary cost is $\DOTSB \sum@ \slimits@ c_{ij}x_{ij}+100\DOTSB \sum@ \slimits@ y_{jdc}$ and excludes the coverage reward term.}}{59}{table.caption.34}\protected@file@percent }
-\newlabel{tab:soft_coverage_measured}{{7.16}{59}{Measured hard-versus-soft coverage comparison for Section~\ref {sec:computational_soft_coverage}. Secondary cost is $\sum c_{ij}x_{ij}+100\sum y_{jdc}$ and excludes the coverage reward term}{table.caption.34}{}}
-\newlabel{tab:soft_coverage_measured@cref}{{[table][16][7]7.16}{[1][59][]59}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {7.8}LP lower bounds and gap reporting}{59}{section.7.8}\protected@file@percent }
-\newlabel{sec:computational_lp}{{7.8}{59}{LP lower bounds and gap reporting}{section.7.8}{}}
-\newlabel{sec:computational_lp@cref}{{[section][8][7]7.8}{[1][59][]59}{}{}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {7.17}{\ignorespaces Aggregate path-versus-arc results from \texttt  {step6\_arc\_vs\_path\_summary.csv}.}}{60}{table.caption.35}\protected@file@percent }
-\newlabel{tab:path_arc_aggregate}{{7.17}{60}{Aggregate path-versus-arc results from \texttt {step6\_arc\_vs\_path\_summary.csv}}{table.caption.35}{}}
-\newlabel{tab:path_arc_aggregate@cref}{{[table][17][7]7.17}{[1][60][]60}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {7.9}Path-based versus arc-based computation}{60}{section.7.9}\protected@file@percent }
-\newlabel{sec:computational_path_arc}{{7.9}{60}{Path-based versus arc-based computation}{section.7.9}{}}
-\newlabel{sec:computational_path_arc@cref}{{[section][9][7]7.9}{[1][60][]60}{}{}{}}
-\newlabel{fig:computational_path_runtime}{{7.4a}{61}{Total runtime comparison}{figure.caption.36}{}}
-\newlabel{fig:computational_path_runtime@cref}{{[subfigure][1][7,4]7.4a}{[1][60][]61}{}{}{}}
-\newlabel{sub@fig:computational_path_runtime}{{a}{61}{Total runtime comparison}{figure.caption.36}{}}
-\newlabel{sub@fig:computational_path_runtime@cref}{{[subfigure][1][7,4]7.4a}{[1][60][]61}{}{}{}}
-\newlabel{fig:computational_path_parity}{{7.4b}{61}{Objective parity across formulations}{figure.caption.36}{}}
-\newlabel{fig:computational_path_parity@cref}{{[subfigure][2][7,4]7.4b}{[1][60][]61}{}{}{}}
-\newlabel{sub@fig:computational_path_parity}{{b}{61}{Objective parity across formulations}{figure.caption.36}{}}
-\newlabel{sub@fig:computational_path_parity@cref}{{[subfigure][2][7,4]7.4b}{[1][60][]61}{}{}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {7.4}{\ignorespaces Measured path-versus-arc evidence from the ten-repeat boundary experiment. The figures are generated from the archived Step-6 CSV results; they do not represent the extended seven-heuristic comparison.}}{61}{figure.caption.36}\protected@file@percent }
-\newlabel{fig:computational_path_plots}{{7.4}{61}{Measured path-versus-arc evidence from the ten-repeat boundary experiment. The figures are generated from the archived Step-6 CSV results; they do not represent the extended seven-heuristic comparison}{figure.caption.36}{}}
-\newlabel{fig:computational_path_plots@cref}{{[figure][4][7]7.4}{[1][60][]61}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {7.10}Extended comparison and reporting template}{61}{section.7.10}\protected@file@percent }
-\newlabel{sec:computational_full_run}{{7.10}{61}{Extended comparison and reporting template}{section.7.10}{}}
-\newlabel{sec:computational_full_run@cref}{{[section][10][7]7.10}{[1][60][]61}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {7.11}Summary of measured evidence and remaining comparisons}{62}{section.7.11}\protected@file@percent }
-\newlabel{sec:computational_summary}{{7.11}{62}{Summary of measured evidence and remaining comparisons}{section.7.11}{}}
-\newlabel{sec:computational_summary@cref}{{[section][11][7]7.11}{[1][62][]62}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {7.12}Threats to validity}{62}{section.7.12}\protected@file@percent }
-\newlabel{sec:computational_validity}{{7.12}{62}{Threats to validity}{section.7.12}{}}
-\newlabel{sec:computational_validity@cref}{{[section][12][7]7.12}{[1][62][]62}{}{}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {7.13}Directions for strengthening the exact formulation}{63}{section.7.13}\protected@file@percent }
-\newlabel{sec:computational_strengthening}{{7.13}{63}{Directions for strengthening the exact formulation}{section.7.13}{}}
-\newlabel{sec:computational_strengthening@cref}{{[section][13][7]7.13}{[1][63][]63}{}{}{}}
+\newlabel{ch:heuristics}{{7}{43}{Heuristic Solution Methods}{chapter.7}{}}
+\newlabel{ch:heuristics@cref}{{[chapter][7][]7}{[1][43][]43}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {7.1}Taxonomy of heuristic methods}{43}{section.7.1}\protected@file@percent }
+\newlabel{sec:heuristic_taxonomy}{{7.1}{43}{Taxonomy of heuristic methods}{section.7.1}{}}
+\newlabel{sec:heuristic_taxonomy@cref}{{[section][1][7]7.1}{[1][43][]43}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {7.2}Shared feasibility oracle}{44}{section.7.2}\protected@file@percent }
+\newlabel{sec:heuristic_oracle}{{7.2}{44}{Shared feasibility oracle}{section.7.2}{}}
+\newlabel{sec:heuristic_oracle@cref}{{[section][2][7]7.2}{[1][44][]44}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {7.3}Greedy construction}{45}{section.7.3}\protected@file@percent }
+\newlabel{sec:heuristic_greedy}{{7.3}{45}{Greedy construction}{section.7.3}{}}
+\newlabel{sec:heuristic_greedy@cref}{{[section][3][7]7.3}{[1][45][]45}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {7.4}Insertion-based construction and repair}{46}{section.7.4}\protected@file@percent }
+\newlabel{sec:heuristic_insertion}{{7.4}{46}{Insertion-based construction and repair}{section.7.4}{}}
+\newlabel{sec:heuristic_insertion@cref}{{[section][4][7]7.4}{[1][45][]46}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {7.5}Ferry and no-ferry variants}{46}{section.7.5}\protected@file@percent }
+\newlabel{sec:heuristic_ferry}{{7.5}{46}{Ferry and no-ferry variants}{section.7.5}{}}
+\newlabel{sec:heuristic_ferry@cref}{{[section][5][7]7.5}{[1][46][]46}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {7.6}Path-based and arc-based representations}{47}{section.7.6}\protected@file@percent }
+\newlabel{sec:heuristic_path_arc}{{7.6}{47}{Path-based and arc-based representations}{section.7.6}{}}
+\newlabel{sec:heuristic_path_arc@cref}{{[section][6][7]7.6}{[1][47][]47}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {7.7}Modified Dijkstra heuristic}{48}{section.7.7}\protected@file@percent }
+\newlabel{sec:heuristic_network}{{7.7}{48}{Modified Dijkstra heuristic}{section.7.7}{}}
+\newlabel{sec:heuristic_network@cref}{{[section][7][7]7.7}{[1][47][]48}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {7.8}Ant colony optimisation heuristic}{48}{section.7.8}\protected@file@percent }
+\newlabel{sec:heuristic_aco}{{7.8}{48}{Ant colony optimisation heuristic}{section.7.8}{}}
+\newlabel{sec:heuristic_aco@cref}{{[section][8][7]7.8}{[1][48][]48}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {7.9}Application workflow and generated schedules}{49}{section.7.9}\protected@file@percent }
+\newlabel{sec:heuristic_application}{{7.9}{49}{Application workflow and generated schedules}{section.7.9}{}}
+\newlabel{sec:heuristic_application@cref}{{[section][9][7]7.9}{[1][49][]49}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {7.10}Quality assessment and computational role}{50}{section.7.10}\protected@file@percent }
+\newlabel{sec:heuristic_quality}{{7.10}{50}{Quality assessment and computational role}{section.7.10}{}}
+\newlabel{sec:heuristic_quality@cref}{{[section][10][7]7.10}{[1][50][]50}{}{}{}}
+\@writefile{toc}{\contentsline {chapter}{\numberline {8}Computational Study}{52}{chapter.8}\protected@file@percent }
+\@writefile{lof}{\addvspace {10\p@ }}
+\@writefile{lot}{\addvspace {10\p@ }}
+\newlabel{ch:experiments}{{8}{52}{Computational Study}{chapter.8}{}}
+\newlabel{ch:experiments@cref}{{[chapter][8][]8}{[1][52][]52}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {8.1}Scope and limitations}{52}{section.8.1}\protected@file@percent }
+\newlabel{sec:computational_scope}{{8.1}{52}{Scope and limitations}{section.8.1}{}}
+\newlabel{sec:computational_scope@cref}{{[section][1][8]8.1}{[1][52][]52}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {8.2}Research questions and evaluation principles}{53}{section.8.2}\protected@file@percent }
+\newlabel{sec:computational_questions}{{8.2}{53}{Research questions and evaluation principles}{section.8.2}{}}
+\newlabel{sec:computational_questions@cref}{{[section][2][8]8.2}{[1][52][]53}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {8.3}Software, hardware, and reproducibility protocol}{53}{section.8.3}\protected@file@percent }
+\newlabel{sec:computational_protocol}{{8.3}{53}{Software, hardware, and reproducibility protocol}{section.8.3}{}}
+\newlabel{sec:computational_protocol@cref}{{[section][3][8]8.3}{[1][53][]53}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.3.1}Execution protocol}{54}{subsection.8.3.1}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {8.1}{\ignorespaces Provenance classes used for the computational results.}}{55}{table.caption.24}\protected@file@percent }
+\newlabel{tab:computational_provenance}{{8.1}{55}{Provenance classes used for the computational results}{table.caption.24}{}}
+\newlabel{tab:computational_provenance@cref}{{[table][1][8]8.1}{[1][54][]55}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {8.4}Benchmark families}{55}{section.8.4}\protected@file@percent }
+\newlabel{sec:computational_instances}{{8.4}{55}{Benchmark families}{section.8.4}{}}
+\newlabel{sec:computational_instances@cref}{{[section][4][8]8.4}{[1][55][]55}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.4.1}Data construction and instance classification}{56}{subsection.8.4.1}\protected@file@percent }
+\newlabel{subsec:computational_data_classification}{{8.4.1}{56}{Data construction and instance classification}{subsection.8.4.1}{}}
+\newlabel{subsec:computational_data_classification@cref}{{[subsection][1][8,4]8.4.1}{[1][56][]56}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.4.2}Exact-feasible comparison and heuristic improvement}{57}{subsection.8.4.2}\protected@file@percent }
+\newlabel{subsec:computational_exact_feasible}{{8.4.2}{57}{Exact-feasible comparison and heuristic improvement}{subsection.8.4.2}{}}
+\newlabel{subsec:computational_exact_feasible@cref}{{[subsection][2][8,4]8.4.2}{[1][57][]57}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {8.2}{\ignorespaces Operational classification of computational instance difficulty.}}{58}{table.caption.25}\protected@file@percent }
+\newlabel{tab:instance_difficulty}{{8.2}{58}{Operational classification of computational instance difficulty}{table.caption.25}{}}
+\newlabel{tab:instance_difficulty@cref}{{[table][2][8]8.2}{[1][57][]58}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {8.3}{\ignorespaces Scope and interpretation of the exact-feasible comparison reported in the archived computational section \texttt  {prev/sections/07\_computational.tex}.}}{59}{table.caption.26}\protected@file@percent }
+\newlabel{tab:exact_feasible_summary}{{8.3}{59}{Scope and interpretation of the exact-feasible comparison reported in the archived computational section \texttt {prev/sections/07\_computational.tex}}{table.caption.26}{}}
+\newlabel{tab:exact_feasible_summary@cref}{{[table][3][8]8.3}{[1][58][]59}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {8.4}{\ignorespaces Benchmark families and their scientific role.}}{59}{table.caption.27}\protected@file@percent }
+\newlabel{tab:benchmark_families}{{8.4}{59}{Benchmark families and their scientific role}{table.caption.27}{}}
+\newlabel{tab:benchmark_families@cref}{{[table][4][8]8.4}{[1][59][]59}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {8.5}Measured exact-model results}{59}{section.8.5}\protected@file@percent }
+\newlabel{sec:computational_milp}{{8.5}{59}{Measured exact-model results}{section.8.5}{}}
+\newlabel{sec:computational_milp@cref}{{[section][5][8]8.5}{[1][59][]59}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {8.5}{\ignorespaces Measured LP relaxation bounds from the repository results \texttt  {step4\_lp\_lower\_bounds.csv}. A blank status or bound indicates that the corresponding run ended in an error rather than a certified LP result.}}{60}{table.caption.28}\protected@file@percent }
+\newlabel{tab:milp_lp_anchor}{{8.5}{60}{Measured LP relaxation bounds from the repository results \texttt {step4\_lp\_lower\_bounds.csv}. A blank status or bound indicates that the corresponding run ended in an error rather than a certified LP result}{table.caption.28}{}}
+\newlabel{tab:milp_lp_anchor@cref}{{[table][5][8]8.5}{[1][59][]60}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {8.6}{\ignorespaces Curated hierarchy-suite MILP results from the stored HiGHS batch results. Runtime values belong to this backend and are not pooled with archived CPLEX measurements.}}{60}{table.caption.29}\protected@file@percent }
+\newlabel{tab:hierarchy_batch}{{8.6}{60}{Curated hierarchy-suite MILP results from the stored HiGHS batch results. Runtime values belong to this backend and are not pooled with archived CPLEX measurements}{table.caption.29}{}}
+\newlabel{tab:hierarchy_batch@cref}{{[table][6][8]8.6}{[1][60][]60}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.5.1}Curated hierarchy-suite results}{60}{subsection.8.5.1}\protected@file@percent }
+\newlabel{subsec:computational_hierarchy_suite}{{8.5.1}{60}{Curated hierarchy-suite results}{subsection.8.5.1}{}}
+\newlabel{subsec:computational_hierarchy_suite@cref}{{[subsection][1][8,5]8.5.1}{[1][60][]60}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.5.2}Sensitivity to thresholds, durations, and capacity}{60}{subsection.8.5.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {8.7}{\ignorespaces Selected sensitivity results from \texttt  {step5\_sensitivity\_analysis.csv}.}}{61}{table.caption.30}\protected@file@percent }
+\newlabel{tab:sensitivity_anchor}{{8.7}{61}{Selected sensitivity results from \texttt {step5\_sensitivity\_analysis.csv}}{table.caption.30}{}}
+\newlabel{tab:sensitivity_anchor@cref}{{[table][7][8]8.7}{[1][61][]61}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {8.6}Constraint (13) and hierarchy validation}{61}{section.8.6}\protected@file@percent }
+\newlabel{sec:computational_c13}{{8.6}{61}{Constraint (13) and hierarchy validation}{section.8.6}{}}
+\newlabel{sec:computational_c13@cref}{{[section][6][8]8.6}{[1][61][]61}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {8.8}{\ignorespaces Available targeted C13 evidence. ``Not available'' denotes a result that requires additional matched experiments.}}{62}{table.caption.31}\protected@file@percent }
+\newlabel{tab:c13_anchor}{{8.8}{62}{Available targeted C13 evidence. ``Not available'' denotes a result that requires additional matched experiments}{table.caption.31}{}}
+\newlabel{tab:c13_anchor@cref}{{[table][8][8]8.8}{[1][62][]62}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {8.9}{\ignorespaces Independent validation of the Constraint~(13) loophole from \texttt  {results/tables/c13/c13\_loophole\_validation.csv}.}}{63}{table.caption.32}\protected@file@percent }
+\newlabel{tab:c13_loophole}{{8.9}{63}{Independent validation of the Constraint~(13) loophole from \texttt {results/tables/c13/c13\_loophole\_validation.csv}}{table.caption.32}{}}
+\newlabel{tab:c13_loophole@cref}{{[table][9][8]8.9}{[1][63][]63}{}{}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {8.6.1}Dedicated loophole validation}{63}{subsection.8.6.1}\protected@file@percent }
+\newlabel{subsec:computational_c13_loophole}{{8.6.1}{63}{Dedicated loophole validation}{subsection.8.6.1}{}}
+\newlabel{subsec:computational_c13_loophole@cref}{{[subsection][1][8,6]8.6.1}{[1][62][]63}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {8.7}Heuristic tournament}{63}{section.8.7}\protected@file@percent }
+\newlabel{sec:computational_heuristics}{{8.7}{63}{Heuristic tournament}{section.8.7}{}}
+\newlabel{sec:computational_heuristics@cref}{{[section][7][8]8.7}{[1][63][]63}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {8.10}{\ignorespaces Measured method comparison on the capacity-bottleneck boundary instance from \texttt  {oop\_all\_methods\_compare\_v2.csv}. Objective values are not comparable without the coverage column.}}{64}{table.caption.33}\protected@file@percent }
+\newlabel{tab:heuristic_boundary}{{8.10}{64}{Measured method comparison on the capacity-bottleneck boundary instance from \texttt {oop\_all\_methods\_compare\_v2.csv}. Objective values are not comparable without the coverage column}{table.caption.33}{}}
+\newlabel{tab:heuristic_boundary@cref}{{[table][10][8]8.10}{[1][64][]64}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {8.11}{\ignorespaces Measured heuristic comparison on the no-maintenance control instance from \texttt  {oop\_new\_methods\_smoke.csv}.}}{64}{table.caption.34}\protected@file@percent }
+\newlabel{tab:heuristic_no_maint}{{8.11}{64}{Measured heuristic comparison on the no-maintenance control instance from \texttt {oop\_new\_methods\_smoke.csv}}{table.caption.34}{}}
+\newlabel{tab:heuristic_no_maint@cref}{{[table][11][8]8.11}{[1][64][]64}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {8.12}{\ignorespaces Measured seven-heuristic tournament on the nine-instance exact-feasible family. Values are aggregated over instances; complete counts refer to schedules assigning all flights.}}{65}{table.caption.35}\protected@file@percent }
+\newlabel{tab:full_tournament_measured}{{8.12}{65}{Measured seven-heuristic tournament on the nine-instance exact-feasible family. Values are aggregated over instances; complete counts refer to schedules assigning all flights}{table.caption.35}{}}
+\newlabel{tab:full_tournament_measured@cref}{{[table][12][8]8.12}{[1][65][]65}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {8.13}{\ignorespaces Measured instance-level coverage in the nine-instance, seven-heuristic tournament. Each entry is assigned flights over total flights; therefore the table remains valid even when objective semantics differ.}}{66}{table.caption.36}\protected@file@percent }
+\newlabel{tab:full_tournament_coverage}{{8.13}{66}{Measured instance-level coverage in the nine-instance, seven-heuristic tournament. Each entry is assigned flights over total flights; therefore the table remains valid even when objective semantics differ}{table.caption.36}{}}
+\newlabel{tab:full_tournament_coverage@cref}{{[table][13][8]8.13}{[1][66][]66}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {8.14}{\ignorespaces Measured decomposed-cost comparison for the same tournament. The integrated MILP reference includes its assignment cost and the 100-unit maintenance-event penalty. Heuristic totals include assignment, ferry, and maintenance-event costs from route replay. Because the two implementations do not enumerate exactly the same maintenance decisions, these values are reported descriptively rather than converted into universal optimality gaps.}}{66}{table.caption.37}\protected@file@percent }
+\newlabel{tab:full_tournament_costs}{{8.14}{66}{Measured decomposed-cost comparison for the same tournament. The integrated MILP reference includes its assignment cost and the 100-unit maintenance-event penalty. Heuristic totals include assignment, ferry, and maintenance-event costs from route replay. Because the two implementations do not enumerate exactly the same maintenance decisions, these values are reported descriptively rather than converted into universal optimality gaps}{table.caption.37}{}}
+\newlabel{tab:full_tournament_costs@cref}{{[table][14][8]8.14}{[1][66][]66}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {8.1}{\ignorespaces Instance-matched wall-time comparison (log scale) for all seven heuristics plus classical and integrated MILP, generated from \texttt  {full\_seven\_method\_tournament.csv}.}}{67}{figure.caption.38}\protected@file@percent }
+\newlabel{fig:computational_runtime_instance_plot}{{8.1}{67}{Instance-matched wall-time comparison (log scale) for all seven heuristics plus classical and integrated MILP, generated from \texttt {full\_seven\_method\_tournament.csv}}{figure.caption.38}{}}
+\newlabel{fig:computational_runtime_instance_plot@cref}{{[figure][1][8]8.1}{[1][66][]67}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {8.15}{\ignorespaces MILP-to-timeline semantic alignment on the nine exact-feasible instances. A validated row means that the MILP assignment, when ordered by departure time, replays successfully through the heuristic timeline oracle.}}{67}{table.caption.40}\protected@file@percent }
+\newlabel{tab:semantic_alignment}{{8.15}{67}{MILP-to-timeline semantic alignment on the nine exact-feasible instances. A validated row means that the MILP assignment, when ordered by departure time, replays successfully through the heuristic timeline oracle}{table.caption.40}{}}
+\newlabel{tab:semantic_alignment@cref}{{[table][15][8]8.15}{[1][67][]67}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {8.2}{\ignorespaces Runtime distributions by method over the nine-instance benchmark (boxplots on a log-time axis), generated from \texttt  {full\_seven\_method\_tournament.csv}.}}{68}{figure.caption.39}\protected@file@percent }
+\newlabel{fig:computational_runtime_distribution_plot}{{8.2}{68}{Runtime distributions by method over the nine-instance benchmark (boxplots on a log-time axis), generated from \texttt {full\_seven\_method\_tournament.csv}}{figure.caption.39}{}}
+\newlabel{fig:computational_runtime_distribution_plot@cref}{{[figure][2][8]8.2}{[1][66][]68}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {8.8}Alternative soft-coverage formulation}{68}{section.8.8}\protected@file@percent }
+\newlabel{sec:computational_soft_coverage}{{8.8}{68}{Alternative soft-coverage formulation}{section.8.8}{}}
+\newlabel{sec:computational_soft_coverage@cref}{{[section][8][8]8.8}{[1][67][]68}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {8.3}{\ignorespaces Mode comparison trade-off plot: x-axis median runtime (log scale), y-axis mean coverage, color complete/optimal rate, bubble size mean total cost, computed from \texttt  {full\_seven\_method\_tournament.csv}.}}{69}{figure.caption.41}\protected@file@percent }
+\newlabel{fig:computational_modes_tradeoff_plot}{{8.3}{69}{Mode comparison trade-off plot: x-axis median runtime (log scale), y-axis mean coverage, color complete/optimal rate, bubble size mean total cost, computed from \texttt {full\_seven\_method\_tournament.csv}}{figure.caption.41}{}}
+\newlabel{fig:computational_modes_tradeoff_plot@cref}{{[figure][3][8]8.3}{[1][67][]69}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {8.9}LP lower bounds and gap reporting}{69}{section.8.9}\protected@file@percent }
+\newlabel{sec:computational_lp}{{8.9}{69}{LP lower bounds and gap reporting}{section.8.9}{}}
+\newlabel{sec:computational_lp@cref}{{[section][9][8]8.9}{[1][69][]69}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {8.16}{\ignorespaces Measured hard-versus-soft coverage comparison for Section~\ref {sec:computational_soft_coverage}. Secondary cost is $\DOTSB \sum@ \slimits@ c_{ij}x_{ij}+100\DOTSB \sum@ \slimits@ y_{jdc}$ and excludes the coverage reward term.}}{70}{table.caption.42}\protected@file@percent }
+\newlabel{tab:soft_coverage_measured}{{8.16}{70}{Measured hard-versus-soft coverage comparison for Section~\ref {sec:computational_soft_coverage}. Secondary cost is $\sum c_{ij}x_{ij}+100\sum y_{jdc}$ and excludes the coverage reward term}{table.caption.42}{}}
+\newlabel{tab:soft_coverage_measured@cref}{{[table][16][8]8.16}{[1][69][]70}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {8.10}Current commercial-CPLEX strengthening validation}{70}{section.8.10}\protected@file@percent }
+\newlabel{sec:computational_current_strengthening}{{8.10}{70}{Current commercial-CPLEX strengthening validation}{section.8.10}{}}
+\newlabel{sec:computational_current_strengthening@cref}{{[section][10][8]8.10}{[1][70][]70}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {8.17}{\ignorespaces Current commercial-CPLEX validation of the combined strengthening formulation on the 20-instance feasible A family.}}{71}{table.caption.43}\protected@file@percent }
+\newlabel{tab:current_strengthening_cplex}{{8.17}{71}{Current commercial-CPLEX validation of the combined strengthening formulation on the 20-instance feasible A family}{table.caption.43}{}}
+\newlabel{tab:current_strengthening_cplex@cref}{{[table][17][8]8.17}{[1][71][]71}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {8.11}Path-based versus arc-based computation}{71}{section.8.11}\protected@file@percent }
+\newlabel{sec:computational_path_arc}{{8.11}{71}{Path-based versus arc-based computation}{section.8.11}{}}
+\newlabel{sec:computational_path_arc@cref}{{[section][11][8]8.11}{[1][71][]71}{}{}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {8.18}{\ignorespaces Aggregate path-versus-arc results from \texttt  {step6\_arc\_vs\_path\_summary.csv}.}}{72}{table.caption.44}\protected@file@percent }
+\newlabel{tab:path_arc_aggregate}{{8.18}{72}{Aggregate path-versus-arc results from \texttt {step6\_arc\_vs\_path\_summary.csv}}{table.caption.44}{}}
+\newlabel{tab:path_arc_aggregate@cref}{{[table][18][8]8.18}{[1][71][]72}{}{}{}}
+\newlabel{fig:computational_path_runtime}{{8.4a}{72}{Total runtime comparison}{figure.caption.45}{}}
+\newlabel{fig:computational_path_runtime@cref}{{[subfigure][1][8,4]8.4a}{[1][72][]72}{}{}{}}
+\newlabel{sub@fig:computational_path_runtime}{{a}{72}{Total runtime comparison}{figure.caption.45}{}}
+\newlabel{sub@fig:computational_path_runtime@cref}{{[subfigure][1][8,4]8.4a}{[1][72][]72}{}{}{}}
+\newlabel{fig:computational_path_parity}{{8.4b}{72}{Objective parity across formulations}{figure.caption.45}{}}
+\newlabel{fig:computational_path_parity@cref}{{[subfigure][2][8,4]8.4b}{[1][72][]72}{}{}{}}
+\newlabel{sub@fig:computational_path_parity}{{b}{72}{Objective parity across formulations}{figure.caption.45}{}}
+\newlabel{sub@fig:computational_path_parity@cref}{{[subfigure][2][8,4]8.4b}{[1][72][]72}{}{}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {8.4}{\ignorespaces Measured path-versus-arc evidence from the ten-repeat boundary experiment. The figures are generated from the archived Step-6 CSV results; they do not represent the extended seven-heuristic comparison.}}{72}{figure.caption.45}\protected@file@percent }
+\newlabel{fig:computational_path_plots}{{8.4}{72}{Measured path-versus-arc evidence from the ten-repeat boundary experiment. The figures are generated from the archived Step-6 CSV results; they do not represent the extended seven-heuristic comparison}{figure.caption.45}{}}
+\newlabel{fig:computational_path_plots@cref}{{[figure][4][8]8.4}{[1][72][]72}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {8.12}Extended comparison and reporting template}{73}{section.8.12}\protected@file@percent }
+\newlabel{sec:computational_full_run}{{8.12}{73}{Extended comparison and reporting template}{section.8.12}{}}
+\newlabel{sec:computational_full_run@cref}{{[section][12][8]8.12}{[1][72][]73}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {8.13}Summary of measured evidence and remaining comparisons}{73}{section.8.13}\protected@file@percent }
+\newlabel{sec:computational_summary}{{8.13}{73}{Summary of measured evidence and remaining comparisons}{section.8.13}{}}
+\newlabel{sec:computational_summary@cref}{{[section][13][8]8.13}{[1][73][]73}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {8.14}Threats to validity}{74}{section.8.14}\protected@file@percent }
+\newlabel{sec:computational_validity}{{8.14}{74}{Threats to validity}{section.8.14}{}}
+\newlabel{sec:computational_validity@cref}{{[section][14][8]8.14}{[1][74][]74}{}{}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {8.15}Directions for strengthening the exact formulation}{74}{section.8.15}\protected@file@percent }
+\newlabel{sec:computational_strengthening}{{8.15}{74}{Directions for strengthening the exact formulation}{section.8.15}{}}
+\newlabel{sec:computational_strengthening@cref}{{[section][15][8]8.15}{[1][74][]74}{}{}{}}
 \citation{khaled2018compact}
-\@writefile{toc}{\contentsline {chapter}{\numberline {8}Conclusion}{64}{chapter.8}\protected@file@percent }
+\@writefile{toc}{\contentsline {chapter}{\numberline {9}Conclusion}{76}{chapter.9}\protected@file@percent }
 \@writefile{lof}{\addvspace {10\p@ }}
 \@writefile{lot}{\addvspace {10\p@ }}
-\newlabel{ch:conclusion}{{8}{64}{Conclusion}{chapter.8}{}}
-\newlabel{ch:conclusion@cref}{{[chapter][8][]8}{[1][64][]64}{}{}{}}
-\@writefile{toc}{\contentsline {paragraph}{Correction of the basic feasibility model.}{64}{section*.37}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Correction of Constraint~(13).}{64}{section*.38}\protected@file@percent }
+\newlabel{ch:conclusion}{{9}{76}{Conclusion}{chapter.9}{}}
+\newlabel{ch:conclusion@cref}{{[chapter][9][]9}{[1][76][]76}{}{}{}}
+\@writefile{toc}{\contentsline {paragraph}{Correction of the basic feasibility model.}{76}{section*.46}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Correction of Constraint~(13).}{76}{section*.47}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Full A/B/C/D hierarchy extension.}{77}{section*.48}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Heuristic methods and computational evaluation.}{77}{section*.49}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{MILP strengthening and current CPLEX validation.}{77}{section*.50}\protected@file@percent }
 \bibstyle{plainnat}
 \bibdata{refs}
-\@writefile{toc}{\contentsline {paragraph}{Full A/B/C/D hierarchy extension.}{65}{section*.39}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Heuristic methods and computational evaluation.}{65}{section*.40}\protected@file@percent }
-\bibcite{barnhart1998flight}{{1}{1998}{{Barnhart et~al.}}{{Barnhart, Boland, Clarke, Johnson, Nemhauser, and Shenoi}}}
-\bibcite{barnhart2003applications}{{2}{2003}{{Barnhart et~al.}}{{Barnhart, Belobaba, and Odoni}}}
-\bibcite{benahmed2015simulation}{{3}{2015}{{Ben~Ahmed et~al.}}{{Ben~Ahmed, Zeghal~Mansour, and Haouari}}}
-\bibcite{benahmed2017hybrid}{{4}{2017}{{Ben~Ahmed et~al.}}{{Ben~Ahmed, Ghroubi, Haouari, and Sherali}}}
-\bibcite{borndorfer2010robust}{{5}{2010}{{Bornd{\"o}rfer et~al.}}{{Bornd{\"o}rfer, Dovica, Nowak, and Schickinger}}}
-\bibcite{clarke1997aircraft}{{6}{1997}{{Clarke et~al.}}{{Clarke, Johnson, Nemhauser, and Zhu}}}
-\bibcite{clarke1996maintenance}{{7}{1996}{{Clarke et~al.}}{{Clarke, Hane, Johnson, and Nemhauser}}}
-\bibcite{cordeau2001benders}{{8}{2001}{{Cordeau et~al.}}{{Cordeau, Stojkovi\'c, Soumis, and Desrosiers}}}
-\bibcite{deng2020maintenance}{{9}{2020}{{Deng et~al.}}{{Deng, Santos, and Curran}}}
-\bibcite{deng2021dss}{{10}{2021}{{Deng et~al.}}{{Deng, Santos, and Verhagen}}}
-\bibcite{desaulniers1997daily}{{11}{1997}{{Desaulniers et~al.}}{{Desaulniers, Desrosiers, Dumas, Solomon, and Soumis}}}
-\bibcite{dijkstra1959note}{{12}{1959}{{Dijkstra}}{{}}}
-\bibcite{dorigo2004ant}{{13}{2004}{{Dorigo and St{\"u}tzle}}{{}}}
-\bibcite{dorigo1996ant}{{14}{1996}{{Dorigo et~al.}}{{Dorigo, Maniezzo, and Colorni}}}
-\bibcite{froyland2013recoverable}{{15}{2013}{{Froyland et~al.}}{{Froyland, Maher, and Wu}}}
-\bibcite{gopalan1998mathematical}{{16}{1998}{{Gopalan and Talluri}}{{}}}
-\bibcite{gronkvist2005tail}{{17}{2005}{{Gr\"{o}nkvist}}{{}}}
-\bibcite{hane1995fleet}{{18}{1995}{{Hane et~al.}}{{Hane, Barnhart, Johnson, Marsten, Nemhauser, and Sigismondi}}}
-\bibcite{haouari2012lifted}{{19}{2012}{{Haouari et~al.}}{{Haouari, Shao, and Sherali}}}
-\bibcite{khaled2018compact}{{20}{2018}{{Khaled et~al.}}{{Khaled, Minoux, Mousseau, Michel, and Ceugniet}}}
-\bibcite{klabjan2005large}{{21}{2005}{{Klabjan}}{{}}}
-\bibcite{lacasse2010aircraft}{{22}{2010}{{Lacasse-Guay et~al.}}{{Lacasse-Guay, Desaulniers, and Soumis}}}
-\bibcite{lavoie1988new}{{23}{1988}{{Lavoie et~al.}}{{Lavoie, Minoux, and Odier}}}
-\bibcite{levin1971scheduling}{{24}{1971}{{Levin}}{{}}}
-\bibcite{liang2011new}{{25}{2011}{{Liang and Chaovalitwongse}}{{}}}
-\bibcite{liang2012network}{{26}{2012}{{Liang and Chaovalitwongse}}{{}}}
-\bibcite{maher2018daily}{{27}{2018}{{Maher et~al.}}{{Maher, Desaulniers, and Soumis}}}
-\bibcite{mercier2005computational}{{28}{2005}{{Mercier et~al.}}{{Mercier, Cordeau, and Soumis}}}
-\bibcite{minoux1984column}{{29}{1984}{{Minoux}}{{}}}
-\bibcite{mirjafari2020integrated}{{30}{2020}{{Mirjafari et~al.}}{{Mirjafari, Rashidi~Komijan, and Shoja}}}
-\bibcite{sarac2006branch}{{31}{2006}{{Sarac et~al.}}{{Sarac, Batta, and Rump}}}
-\bibcite{shao2017integrated}{{32}{2017}{{Shao et~al.}}{{Shao, Sherali, and Haouari}}}
-\bibcite{sherali2006airline}{{33}{2006}{{Sherali et~al.}}{{Sherali, Bish, and Zhu}}}
-\bibcite{witteman2021binpacking}{{34}{2021}{{Witteman et~al.}}{{Witteman, Deng, and Santos}}}
-\gdef \@abspage@last{78}
+\bibcite{althani2016oamrp}{{1}{2016}{{Al-Thani et~al.}}{{Al-Thani, Ben~Ahmed, and Haouari}}}
+\bibcite{barnhart1998flight}{{2}{1998}{{Barnhart et~al.}}{{Barnhart, Boland, Clarke, Johnson, Nemhauser, and Shenoi}}}
+\bibcite{barnhart2003applications}{{3}{2003}{{Barnhart et~al.}}{{Barnhart, Belobaba, and Odoni}}}
+\bibcite{benahmed2015simulation}{{4}{2015}{{Ben~Ahmed et~al.}}{{Ben~Ahmed, Zeghal~Mansour, and Haouari}}}
+\bibcite{benahmed2017hybrid}{{5}{2017}{{Ben~Ahmed et~al.}}{{Ben~Ahmed, Ghroubi, Haouari, and Sherali}}}
+\bibcite{borndorfer2010robust}{{6}{2010}{{Bornd{\"o}rfer et~al.}}{{Bornd{\"o}rfer, Dovica, Nowak, and Schickinger}}}
+\bibcite{clarke1997aircraft}{{7}{1997}{{Clarke et~al.}}{{Clarke, Johnson, Nemhauser, and Zhu}}}
+\bibcite{clarke1996maintenance}{{8}{1996}{{Clarke et~al.}}{{Clarke, Hane, Johnson, and Nemhauser}}}
+\bibcite{cordeau2001benders}{{9}{2001}{{Cordeau et~al.}}{{Cordeau, Stojkovi\'c, Soumis, and Desrosiers}}}
+\bibcite{deng2020maintenance}{{10}{2020}{{Deng et~al.}}{{Deng, Santos, and Curran}}}
+\bibcite{deng2021dss}{{11}{2021}{{Deng et~al.}}{{Deng, Santos, and Verhagen}}}
+\bibcite{desaulniers1997daily}{{12}{1997}{{Desaulniers et~al.}}{{Desaulniers, Desrosiers, Dumas, Solomon, and Soumis}}}
+\bibcite{dijkstra1959note}{{13}{1959}{{Dijkstra}}{{}}}
+\bibcite{dorigo2004ant}{{14}{2004}{{Dorigo and St{\"u}tzle}}{{}}}
+\bibcite{dorigo1996ant}{{15}{1996}{{Dorigo et~al.}}{{Dorigo, Maniezzo, and Colorni}}}
+\bibcite{froyland2013recoverable}{{16}{2013}{{Froyland et~al.}}{{Froyland, Maher, and Wu}}}
+\bibcite{gopalan1998mathematical}{{17}{1998}{{Gopalan and Talluri}}{{}}}
+\bibcite{gronkvist2005tail}{{18}{2005}{{Gr\"{o}nkvist}}{{}}}
+\bibcite{hane1995fleet}{{19}{1995}{{Hane et~al.}}{{Hane, Barnhart, Johnson, Marsten, Nemhauser, and Sigismondi}}}
+\bibcite{haouari2012lifted}{{20}{2012}{{Haouari et~al.}}{{Haouari, Shao, and Sherali}}}
+\bibcite{khaled2018compact}{{21}{2018}{{Khaled et~al.}}{{Khaled, Minoux, Mousseau, Michel, and Ceugniet}}}
+\bibcite{klabjan2005large}{{22}{2005}{{Klabjan}}{{}}}
+\bibcite{lacasse2010aircraft}{{23}{2010}{{Lacasse-Guay et~al.}}{{Lacasse-Guay, Desaulniers, and Soumis}}}
+\bibcite{lavoie1988new}{{24}{1988}{{Lavoie et~al.}}{{Lavoie, Minoux, and Odier}}}
+\bibcite{levin1971scheduling}{{25}{1971}{{Levin}}{{}}}
+\bibcite{liang2011new}{{26}{2011}{{Liang and Chaovalitwongse}}{{}}}
+\bibcite{liang2012network}{{27}{2012}{{Liang and Chaovalitwongse}}{{}}}
+\bibcite{maher2018daily}{{28}{2018}{{Maher et~al.}}{{Maher, Desaulniers, and Soumis}}}
+\bibcite{mercier2005computational}{{29}{2005}{{Mercier et~al.}}{{Mercier, Cordeau, and Soumis}}}
+\bibcite{minoux1984column}{{30}{1984}{{Minoux}}{{}}}
+\bibcite{mirjafari2020integrated}{{31}{2020}{{Mirjafari et~al.}}{{Mirjafari, Rashidi~Komijan, and Shoja}}}
+\bibcite{ruan2021reinforcement}{{32}{2021}{{Ruan et~al.}}{{Ruan, Wang, Chan, Patnaik, and Tiwari}}}
+\bibcite{sarac2006branch}{{33}{2006}{{Sarac et~al.}}{{Sarac, Batta, and Rump}}}
+\bibcite{shao2017integrated}{{34}{2017}{{Shao et~al.}}{{Shao, Sherali, and Haouari}}}
+\bibcite{sherali2006airline}{{35}{2006}{{Sherali et~al.}}{{Sherali, Bish, and Zhu}}}
+\bibcite{witteman2021binpacking}{{36}{2021}{{Witteman et~al.}}{{Witteman, Deng, and Santos}}}
+\gdef \@abspage@last{92}

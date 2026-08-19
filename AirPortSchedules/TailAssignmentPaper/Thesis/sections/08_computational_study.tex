@@ -11,6 +11,28 @@ Figures~\ref{fig:computational_runtime_instance_plot},
 \ref{fig:computational_modes_tradeoff_plot} provide the main comparative
 visual evidence for runtime behavior and mode-level trade-offs.
 
+\section{Scope and limitations}
+\label{sec:computational_scope}
+
+The empirical evidence in this chapter is deliberately limited to synthetic,
+constructive feasible-instance families generated in the project repository and
+validated by the timeline simulator. These families are designed to isolate
+routing, maintenance, and feasibility effects under controlled parameter choices,
+but they are not a representative sample of all real airline schedules or of all
+operational environments. Accordingly, the chapter evaluates the corrected model
+and the strengthening variants as a benchmark on structured synthetic families,
+not as a universal claim about every airline network or every maintenance policy.
+
+The statistical evidence is also limited. No confidence intervals, repeated
+random-seed replications, or formal significance tests were performed for the
+reported comparisons; the computational conclusions therefore reflect the tested
+families and solver protocol rather than a broad probabilistic statement about
+out-of-sample airline operations. In particular, the strengthening result is
+framed as \emph{validated family evidence}: it supports the claim that the
+combined formulation improves the tested feasible family under the declared CPLEX
+configuration, without implying universal superiority across all instance classes
+or all airline schedules.
+
 \section{Research questions and evaluation principles}
 \label{sec:computational_questions}
 

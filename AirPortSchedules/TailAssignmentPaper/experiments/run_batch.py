@@ -49,6 +49,19 @@ def find_instances(input_dir: str, pattern: str) -> list[str]:
     return paths
 
 
+def _classify_result(returncode: int, stdout: str, stderr: str) -> dict:
+    """Classify a nonzero-returncode subprocess failure.
+
+    Distinguishes a solver's own size/license restriction (e.g. CPLEX's
+    Community/Preview edition, capped at 1000 variables/constraints -- see
+    ``CPLEX Error 1016``) from a generic, unexpected failure, so batch
+    summaries don't silently lump license limits in with real bugs.
+    """
+    if 'size limits exceeded' in stderr or 'CPLEX Error  1016' in stderr or 'CPLEX Error 1016' in stderr:
+        return {'status': 'solver_limit', 'error': stderr[:300]}
+    return {'status': 'ERROR', 'error': stderr[:300]}
+
+
 def run_one(instance_path: str, mode: str, solver: str, time_limit: int,
             output_dir: str, extra_flags: list[str]) -> dict:
     """Invoke src/model.py for a single instance and return result dict."""
@@ -145,8 +158,7 @@ def run_one(instance_path: str, mode: str, solver: str, time_limit: int,
                         pass
 
     if returncode != 0 and 'status' not in result:
-        result['status'] = 'ERROR'
-        result['error'] = stderr[:300]
+        result.update(_classify_result(returncode, stdout, stderr))
 
     return result
 

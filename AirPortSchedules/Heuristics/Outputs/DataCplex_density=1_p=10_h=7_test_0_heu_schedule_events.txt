@@ -1,0 +1,278 @@
+Aircraft 0:
+  Flight  F1       ->   day    start   525.0 - end   715.0
+  Flight  F45      ->   day    start   740.0 - end  1015.0
+  Maint   FERRY   day    start  1015.0 - end  1075.0
+  Maint   A       day    start  1075.0 - end  1315.0
+  Flight  F165     ->   day    start  1340.0 - end  1515.0
+  Maint   FERRY   day    start  1515.0 - end  1575.0
+  Flight  F190     ->   day    start  1975.0 - end  2190.0
+  Maint   FERRY   day    start  2190.0 - end  2250.0
+  Flight  F74      ->   day    start  2365.0 - end  2565.0
+  Maint   FERRY   day    start  2565.0 - end  2625.0
+  Maint   A       day    start  2625.0 - end  2865.0
+  Flight  F116     ->   day    start  2870.0 - end  2980.0
+  Maint   FERRY   day    start  2980.0 - end  3040.0
+  Flight  F9       ->   day    start  3425.0 - end  3530.0
+  Maint   FERRY   day    start  3530.0 - end  3590.0
+  Flight  F118     ->   day    start  3625.0 - end  3790.0
+  Flight  F145     ->   day    start  3820.0 - end  3995.0
+  Maint   A       day    start  3995.0 - end  4235.0
+  Flight  F195     ->   day    start  4930.0 - end  5070.0
+  Flight  F196     ->   day    start  5140.0 - end  5245.0
+  Flight  F100     ->   day    start  5275.0 - end  5420.0
+  Flight  F198     ->   day    start  5460.0 - end  5565.0
+  Maint   FERRY   day    start  5565.0 - end  5625.0
+  Maint   A       day    start  5625.0 - end  5865.0
+  Flight  F104     ->   day    start  6510.0 - end  6715.0
+  Maint   FERRY   day    start  6715.0 - end  6775.0
+  Flight  F155     ->   day    start  7745.0 - end  7850.0
+
+Aircraft 1:
+  Flight  F135     ->   day    start   535.0 - end   745.0
+  Flight  F2       ->   day    start   750.0 - end   955.0
+  Maint   FERRY   day    start   955.0 - end  1015.0
+  Maint   A       day    start  1015.0 - end  1255.0
+  Flight  F90      ->   day    start  1335.0 - end  1515.0
+  Flight  F91      ->   day    start  1965.0 - end  2155.0
+  Flight  F92      ->   day    start  2190.0 - end  2395.0
+  Maint   FERRY   day    start  2395.0 - end  2455.0
+  Maint   A       day    start  2455.0 - end  2695.0
+  Flight  F142     ->   day    start  2780.0 - end  2955.0
+  Maint   FERRY   day    start  2955.0 - end  3015.0
+  Flight  F54      ->   day    start  3415.0 - end  3600.0
+  Maint   FERRY   day    start  3600.0 - end  3660.0
+  Flight  F119     ->   day    start  3820.0 - end  3995.0
+  Maint   FERRY   day    start  3995.0 - end  4055.0
+  Maint   A       day    start  4055.0 - end  4295.0
+  Flight  F219     ->   day    start  4380.0 - end  4610.0
+  Maint   FERRY   day    start  4610.0 - end  4670.0
+  Flight  F148     ->   day    start  4870.0 - end  5040.0
+  Maint   FERRY   day    start  5040.0 - end  5100.0
+  Flight  F79      ->   day    start  5260.0 - end  5435.0
+  Maint   A       day    start  5435.0 - end  5675.0
+  Flight  F153     ->   day    start  6500.0 - end  6775.0
+  Maint   B       day    start  6775.0 - end  9655.0
+  Flight  F112     ->   day    start  9695.0 - end  9990.0
+
+Aircraft 2:
+  Maint   FERRY   day    start     0.0 - end    60.0
+  Maint   A       day    start    60.0 - end   300.0
+  Flight  F70      ->   day    start   825.0 - end   925.0
+  Maint   FERRY   day    start   925.0 - end   985.0
+  Maint   B       day    start   985.0 - end  3865.0
+  Flight  F31      ->   day    start  3930.0 - end  4035.0
+  Maint   FERRY   day    start  4035.0 - end  4095.0
+  Flight  F146     ->   day    start  4095.0 - end  4200.0
+  Flight  F147     ->   day    start  4310.0 - end  4420.0
+  Maint   FERRY   day    start  4420.0 - end  4480.0
+  Flight  F122     ->   day    start  4855.0 - end  5070.0
+  Maint   FERRY   day    start  5070.0 - end  5130.0
+  Maint   A       day    start  5130.0 - end  5370.0
+  Flight  F61      ->   day    start  5455.0 - end  5730.0
+  Maint   FERRY   day    start  5730.0 - end  5790.0
+  Flight  F103     ->   day    start  6285.0 - end  6475.0
+  Flight  F125     ->   day    start  6585.0 - end  6685.0
+  Maint   FERRY   day    start  6685.0 - end  6745.0
+  Maint   A       day    start  6745.0 - end  6985.0
+  Flight  F16      ->   day    start  7110.0 - end  7260.0
+  Flight  F17      ->   day    start  7735.0 - end  7920.0
+  Flight  F18      ->   day    start  7955.0 - end  8210.0
+  Maint   A       day    start  8210.0 - end  8450.0
+  Flight  F21      ->   day    start  9175.0 - end  9380.0
+  Flight  F67      ->   day    start  9395.0 - end  9650.0
+  Maint   FERRY   day    start  9650.0 - end  9710.0
+  Flight  F234     ->   day    start  9755.0 - end  9870.0
+
+Aircraft 3:
+  Flight  F69      ->   day    start   535.0 - end   745.0
+  Maint   FERRY   day    start   745.0 - end   805.0
+  Flight  F187     ->   day    start   850.0 - end  1110.0
+  Maint   FERRY   day    start  1110.0 - end  1170.0
+  Maint   A       day    start  1170.0 - end  1410.0
+  Flight  F5       ->   day    start  1990.0 - end  2245.0
+  Maint   FERRY   day    start  2245.0 - end  2305.0
+  Flight  F140     ->   day    start  2360.0 - end  2470.0
+  Flight  F141     ->   day    start  2540.0 - end  2745.0
+  Maint   A       day    start  2745.0 - end  2985.0
+  Flight  F10      ->   day    start  3620.0 - end  3895.0
+  Flight  F56      ->   day    start  3930.0 - end  4035.0
+  Flight  F12      ->   day    start  4110.0 - end  4230.0
+  Maint   A       day    start  4230.0 - end  4470.0
+  Flight  F13      ->   day    start  4920.0 - end  5175.0
+  Flight  F14      ->   day    start  5245.0 - end  5445.0
+  Maint   FERRY   day    start  5445.0 - end  5505.0
+  Flight  F152     ->   day    start  6305.0 - end  6410.0
+  Maint   B       day    start  6410.0 - end  9290.0
+  Flight  F160     ->   day    start  9380.0 - end  9655.0
+  Flight  F68      ->   day    start  9695.0 - end  9990.0
+
+Aircraft 4:
+  Maint   FERRY   day    start     0.0 - end    60.0
+  Flight  F44      ->   day    start   550.0 - end   710.0
+  Maint   FERRY   day    start   710.0 - end   770.0
+  Flight  F213     ->   day    start   940.0 - end  1115.0
+  Flight  F188     ->   day    start  1150.0 - end  1350.0
+  Maint   A       day    start  1350.0 - end  1590.0
+  Flight  F167     ->   day    start  2195.0 - end  2340.0
+  Flight  F168     ->   day    start  2380.0 - end  2555.0
+  Flight  F169     ->   day    start  2590.0 - end  2790.0
+  Maint   A       day    start  2790.0 - end  3030.0
+  Flight  F29      ->   day    start  3415.0 - end  3600.0
+  Flight  F30      ->   day    start  3635.0 - end  3890.0
+  Maint   FERRY   day    start  3890.0 - end  3950.0
+  Maint   A       day    start  3950.0 - end  4190.0
+  Flight  F121     ->   day    start  4380.0 - end  4610.0
+  Flight  F173     ->   day    start  4855.0 - end  5070.0
+  Maint   FERRY   day    start  5070.0 - end  5130.0
+  Flight  F59      ->   day    start  5145.0 - end  5245.0
+  Maint   FERRY   day    start  5245.0 - end  5305.0
+  Maint   B       day    start  5305.0 - end  8185.0
+  Flight  F39      ->   day    start  8250.0 - end  8355.0
+  Maint   FERRY   day    start  8355.0 - end  8415.0
+  Flight  F130     ->   day    start  8420.0 - end  8545.0
+  Maint   FERRY   day    start  8545.0 - end  8605.0
+  Flight  F159     ->   day    start  9190.0 - end  9350.0
+  Flight  F208     ->   day    start  9395.0 - end  9540.0
+
+Aircraft 5:
+  Maint   FERRY   day    start     0.0 - end    60.0
+  Flight  F211     ->   day    start   525.0 - end   715.0
+  Flight  F212     ->   day    start   755.0 - end   900.0
+  Maint   FERRY   day    start   900.0 - end   960.0
+  Flight  F46      ->   day    start  1050.0 - end  1155.0
+  Maint   FERRY   day    start  1155.0 - end  1215.0
+  Maint   A       day    start  1215.0 - end  1455.0
+  Flight  F139     ->   day    start  2055.0 - end  2290.0
+  Maint   FERRY   day    start  2290.0 - end  2350.0
+  Flight  F6       ->   day    start  2375.0 - end  2485.0
+  Flight  F7       ->   day    start  2555.0 - end  2775.0
+  Maint   FERRY   day    start  2775.0 - end  2835.0
+  Maint   A       day    start  2835.0 - end  3075.0
+  Flight  F96      ->   day    start  3620.0 - end  3895.0
+  Flight  F97      ->   day    start  3935.0 - end  4230.0
+  Maint   FERRY   day    start  4230.0 - end  4290.0
+  Maint   A       day    start  4290.0 - end  4530.0
+  Flight  F33      ->   day    start  4920.0 - end  5175.0
+  Flight  F34      ->   day    start  5245.0 - end  5445.0
+  Maint   FERRY   day    start  5445.0 - end  5505.0
+  Maint   B       day    start  5505.0 - end  8385.0
+  Flight  F85      ->   day    start  8415.0 - end  8520.0
+  Flight  F65      ->   day    start  8550.0 - end  8700.0
+  Flight  F66      ->   day    start  9175.0 - end  9360.0
+  Flight  F22      ->   day    start  9450.0 - end  9560.0
+
+Aircraft 6:
+  Flight  F113     ->   day    start   535.0 - end   750.0
+  Maint   FERRY   day    start   750.0 - end   810.0
+  Flight  F71      ->   day    start   955.0 - end  1105.0
+  Maint   FERRY   day    start  1105.0 - end  1165.0
+  Flight  F47      ->   day    start  1230.0 - end  1350.0
+  Maint   A       day    start  1350.0 - end  1590.0
+  Flight  F217     ->   day    start  2290.0 - end  2550.0
+  Flight  F75      ->   day    start  2595.0 - end  2870.0
+  Maint   FERRY   day    start  2870.0 - end  2930.0
+  Maint   A       day    start  2930.0 - end  3170.0
+  Flight  F95      ->   day    start  3430.0 - end  3590.0
+  Maint   FERRY   day    start  3590.0 - end  3650.0
+  Flight  F193     ->   day    start  3730.0 - end  3990.0
+  Maint   FERRY   day    start  3990.0 - end  4050.0
+  Flight  F77      ->   day    start  4865.0 - end  5035.0
+  Maint   FERRY   day    start  5035.0 - end  5095.0
+  Maint   A       day    start  5095.0 - end  5335.0
+  Flight  F80      ->   day    start  5535.0 - end  5640.0
+  Maint   FERRY   day    start  5640.0 - end  5700.0
+  Flight  F124     ->   day    start  6295.0 - end  6505.0
+  Flight  F176     ->   day    start  6585.0 - end  6685.0
+  Flight  F126     ->   day    start  6715.0 - end  6865.0
+  Maint   FERRY   day    start  6865.0 - end  6925.0
+  Maint   A       day    start  6925.0 - end  7165.0
+  Flight  F81      ->   day    start  7190.0 - end  7300.0
+
+Aircraft 7:
+  Maint   FERRY   day    start     0.0 - end    60.0
+  Flight  F86      ->   day    start   610.0 - end   750.0
+  Flight  F163     ->   day    start   920.0 - end  1030.0
+  Flight  F164     ->   day    start  1100.0 - end  1305.0
+  Maint   FERRY   day    start  1305.0 - end  1365.0
+  Maint   A       day    start  1365.0 - end  1605.0
+  Flight  F73      ->   day    start  2040.0 - end  2295.0
+  Maint   FERRY   day    start  2295.0 - end  2355.0
+  Flight  F51      ->   day    start  2380.0 - end  2555.0
+  Maint   FERRY   day    start  2555.0 - end  2615.0
+  Flight  F94      ->   day    start  2750.0 - end  2860.0
+  Maint   FERRY   day    start  2860.0 - end  2920.0
+  Maint   A       day    start  2920.0 - end  3160.0
+  Flight  F144     ->   day    start  3625.0 - end  3790.0
+  Maint   FERRY   day    start  3790.0 - end  3850.0
+  Flight  F172     ->   day    start  3990.0 - end  4280.0
+  Maint   FERRY   day    start  4280.0 - end  4340.0
+  Maint   A       day    start  4340.0 - end  4580.0
+  Flight  F78      ->   day    start  5065.0 - end  5230.0
+  Maint   FERRY   day    start  5230.0 - end  5290.0
+  Flight  F150     ->   day    start  5330.0 - end  5575.0
+  Maint   FERRY   day    start  5575.0 - end  5635.0
+  Flight  F102     ->   day    start  5655.0 - end  5835.0
+  Maint   FERRY   day    start  5835.0 - end  5895.0
+  Maint   A       day    start  5895.0 - end  6135.0
+  Flight  F203     ->   day    start  7810.0 - end  7950.0
+
+Aircraft 8:
+  Flight  F25      ->   day    start   535.0 - end   750.0
+  Maint   FERRY   day    start   750.0 - end   810.0
+  Flight  F87      ->   day    start   820.0 - end   925.0
+  Flight  F88      ->   day    start   955.0 - end  1100.0
+  Maint   FERRY   day    start  1100.0 - end  1160.0
+  Maint   A       day    start  1160.0 - end  1400.0
+  Flight  F48      ->   day    start  1400.0 - end  1635.0
+  Flight  F49      ->   day    start  1985.0 - end  2155.0
+  Flight  F50      ->   day    start  2185.0 - end  2350.0
+  Maint   FERRY   day    start  2350.0 - end  2410.0
+  Maint   A       day    start  2410.0 - end  2650.0
+  Flight  F52      ->   day    start  2655.0 - end  2760.0
+  Flight  F28      ->   day    start  2790.0 - end  2940.0
+  Maint   FERRY   day    start  2940.0 - end  3000.0
+  Flight  F171     ->   day    start  3415.0 - end  3630.0
+  Flight  F32      ->   day    start  4110.0 - end  4230.0
+  Maint   FERRY   day    start  4230.0 - end  4290.0
+  Maint   A       day    start  4290.0 - end  4530.0
+  Flight  F98      ->   day    start  4930.0 - end  5070.0
+  Flight  F99      ->   day    start  5140.0 - end  5245.0
+  Flight  F197     ->   day    start  5275.0 - end  5420.0
+  Flight  F101     ->   day    start  5450.0 - end  5625.0
+  Maint   FERRY   day    start  5625.0 - end  5685.0
+  Maint   A       day    start  5685.0 - end  5925.0
+  Flight  F225     ->   day    start  6515.0 - end  6660.0
+  Maint   B       day    start  6660.0 - end  9540.0
+  Flight  F209     ->   day    start  9580.0 - end  9755.0
+  Flight  F210     ->   day    start  9790.0 - end  9990.0
+
+Aircraft 9:
+  Maint   FERRY   day    start     0.0 - end    60.0
+  Maint   A       day    start    60.0 - end   300.0
+  Flight  F136     ->   day    start   825.0 - end   925.0
+  Maint   FERRY   day    start   925.0 - end   985.0
+  Maint   B       day    start   985.0 - end  3865.0
+  Flight  F11      ->   day    start  3930.0 - end  4035.0
+  Maint   FERRY   day    start  4035.0 - end  4095.0
+  Flight  F120     ->   day    start  4095.0 - end  4200.0
+  Flight  F76      ->   day    start  4310.0 - end  4420.0
+  Maint   FERRY   day    start  4420.0 - end  4480.0
+  Flight  F58      ->   day    start  4855.0 - end  5065.0
+  Maint   FERRY   day    start  5065.0 - end  5125.0
+  Flight  F221     ->   day    start  5320.0 - end  5370.0
+  Maint   FERRY   day    start  5370.0 - end  5430.0
+  Maint   A       day    start  5430.0 - end  5670.0
+  Flight  F62      ->   day    start  6360.0 - end  6615.0
+  Flight  F63      ->   day    start  6685.0 - end  6885.0
+  Flight  F227     ->   day    start  6960.0 - end  7095.0
+  Maint   FERRY   day    start  7095.0 - end  7155.0
+  Maint   A       day    start  7155.0 - end  7395.0
+  Flight  F37      ->   day    start  7735.0 - end  7920.0
+  Flight  F38      ->   day    start  7955.0 - end  8210.0
+  Flight  F19      ->   day    start  8250.0 - end  8355.0
+  Maint   FERRY   day    start  8355.0 - end  8415.0
+  Maint   A       day    start  8415.0 - end  8655.0
+  Flight  F110     ->   day    start  9175.0 - end  9360.0
+  Flight  F111     ->   day    start  9395.0 - end  9650.0
+  Maint   FERRY   day    start  9650.0 - end  9710.0
+  Flight  F24      ->   day    start  9950.0 - end 10060.0

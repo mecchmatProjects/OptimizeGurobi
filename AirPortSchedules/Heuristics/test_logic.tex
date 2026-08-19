@@ -1,0 +1,418 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage[ruled,vlined,linesnumbered]{algorithm2e}
+\usepackage{hyperref}
+\geometry{margin=1in}
+
+\title{Programmatic and Mathematical Logic of \texttt{LocalScheduler} and \texttt{optimize}}
+\author{Heuristics Documentation}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Purpose and Scope}
+This note explains the logic implemented in the class \texttt{LocalScheduler} and, in particular, its method \texttt{optimize} from \texttt{test\_create.py}. The explanation is both:
+\begin{itemize}[leftmargin=1.4em]
+    \item \textbf{Programmatic}: what each data structure and method does in code.
+    \item \textbf{Mathematical}: what optimization problem is approximated, what constraints are enforced, and why decisions are feasible.
+\end{itemize}
+
+The implementation is a constructive heuristic for aircraft--flight assignment with maintenance and repositioning costs.
+
+\section{Data Model and State Variables}
+\subsection{Sets and indices}
+\begin{align*}
+\mathcal{F} &= \{1,\dots,F\} &&\text{flights}\\
+\mathcal{A} &= \{0,\dots,P-1\} &&\text{aircraft ids}\\
+\mathcal{K} &= \text{set of airports}
+\end{align*}
+
+For each flight $f \in \mathcal{F}$, the input contains:
+\begin{align*}
+o_f &\in \mathcal{K} &&\text{origin airport}\\
+d_f &\in \mathcal{K} &&\text{destination airport}\\
+t_f^{\text{dep}} &\in \mathbb{R}_{\ge 0} &&\text{departure time (minutes)}\\
+t_f^{\text{arr}} &\in \mathbb{R}_{\ge 0} &&\text{arrival time (minutes)}\\
+\Delta_f &= t_f^{\text{arr}} - t_f^{\text{dep}} &&\text{flight duration}
+\end{align*}
+
+\subsection{Costs and constants}
+\begin{align*}
+C_{f,a} &\text{: assignment cost of flight } f \text{ to aircraft } a\\
+\tau^{\text{ferry}} &= 60 \text{ min}\\
+\kappa^{\text{ferry}} &= 6000
+\end{align*}
+
+Maintenance thresholds and durations are loaded as:
+\begin{align*}
+T_A,T_B &\text{ in minutes (flight-time based)}\\
+T_C,T_D &\text{ in days (calendar-time based)}\\
+L_A,L_B,L_C,L_D &\text{ in minutes (maintenance duration)}
+\end{align*}
+
+\subsection{Per-aircraft dynamic counters}
+For each aircraft, the scheduler tracks four counters while simulating a route:
+\begin{align*}
+a &\text{: accumulated flight minutes since last A-check}\\
+b &\text{: accumulated flight minutes since last B-check}\\
+c &\text{: elapsed days since last C-check}\\
+d &\text{: elapsed days since last D-check}
+\end{align*}
+
+In code, $c$ and $d$ are maintained as offsets plus current time in days.
+
+\section{Feasibility Simulation: \texttt{get\_timeline}}
+\texttt{get\_timeline(aid, fids)} attempts to execute an ordered flight list for one aircraft. It returns either:
+\begin{itemize}[leftmargin=1.4em]
+    \item \texttt{None} if infeasible, or
+    \item a dictionary with event list and total cost.
+\end{itemize}
+
+\subsection{Step 1: Repositioning (ferry) feasibility}
+If current airport $k$ differs from next flight origin $o_f$, the code inserts a ferry:
+\begin{align*}
+\text{require } t^{\text{curr}} + \tau^{\text{ferry}} \le t_f^{\text{dep}}.
+\end{align*}
+If violated, the timeline is infeasible.
+
+Cost update:
+\begin{align*}
+\text{cost} \leftarrow \text{cost} + \kappa^{\text{ferry}}.
+\end{align*}
+
+\subsection{Step 2: Maintenance trigger before each flight}
+Before flight $f$, the algorithm checks whether a maintenance action must occur. Priority is:
+\begin{align*}
+D \succ C \succ B \succ A.
+\end{align*}
+It selects the first triggered type:
+\begin{align*}
+&\text{if } d + t^{\text{curr}}/1440 \ge T_D \Rightarrow \text{need } D,\\
+&\text{else if } c + t^{\text{curr}}/1440 \ge T_C \Rightarrow \text{need } C,\\
+&\text{else if } b + \Delta_f \ge T_B \Rightarrow \text{need } B,\\
+&\text{else if } a + \Delta_f \ge T_A \Rightarrow \text{need } A.
+\end{align*}
+
+If needed type is $x \in \{A,B,C,D\}$, feasibility requires:
+\begin{align*}
+t^{\text{curr}} + L_x \le t_f^{\text{dep}}, \quad \text{station capacity at } o_f > 0.
+\end{align*}
+Otherwise infeasible.
+
+\subsection{Step 3: Counter reset hierarchy}
+After maintenance, counters are reset with hierarchy:
+\begin{itemize}[leftmargin=1.4em]
+    \item D-check resets $(a,b,c,d)$.
+    \item C-check resets $(a,b,c)$ and keeps $d$ running.
+    \item B-check resets $(a,b)$ only.
+    \item A-check resets $a$ only.
+\end{itemize}
+
+This encodes nested maintenance scope (heavier checks include lighter service effects).
+
+\subsection{Step 4: Flight execution feasibility}
+Final precondition:
+\begin{align*}
+t^{\text{curr}} \le t_f^{\text{dep}}.
+\end{align*}
+If violated, infeasible.
+
+Then flight event is added, and updates are:
+\begin{align*}
+t^{\text{curr}} &\leftarrow t_f^{\text{arr}},\\
+a &\leftarrow a + \Delta_f,\\
+b &\leftarrow b + \Delta_f,\\
+\text{cost} &\leftarrow \text{cost} + C_{f,aid}.
+\end{align*}
+
+\section{Optimization Heuristic: \texttt{optimize}}
+\subsection{Problem perspective}
+The target combinatorial problem is a constrained assignment and sequencing problem:
+\begin{align*}
+\min \sum_{f \in \mathcal{F}} C_{f,\pi(f)} + \text{ferry and maintenance-induced costs}
+\end{align*}
+subject to routing-time and maintenance feasibility.
+
+Exact global optimization is hard (mixed-integer and sequencing structure), so the code uses a two-phase constructive local-improvement heuristic.
+
+\subsection{Pseudocode (algorithm2e style)}
+\begin{algorithm}[h]
+\caption{\texttt{get\_timeline(aid, fids)}}
+\KwIn{Aircraft id $aid$, ordered flight list $fids$}
+\KwOut{\texttt{None} if infeasible, else \{events, cost\}}
+Initialize $curr\_apt \leftarrow init\_pos[aid]$, $curr\_time \leftarrow 0$, counters $(a,b,c,d)$\;
+$events \leftarrow [\,]$, $total\_cost \leftarrow 0$\;
+\ForEach{$f \in fids$}{
+    \If{$curr\_apt \neq o_f$}{
+        \If{$curr\_time + \tau^{ferry} > t_f^{dep}$}{\Return \texttt{None}}
+        append ferry event\;
+        $curr\_time \leftarrow curr\_time + \tau^{ferry}$, $curr\_apt \leftarrow o_f$\;
+        $total\_cost \leftarrow total\_cost + \kappa^{ferry}$\;
+    }
+    Determine required check $x \in \{D,C,B,A\}$ by priority and thresholds\;
+    \If{a check $x$ is required}{
+        \If{$curr\_time + L_x > t_f^{dep}$}{\Return \texttt{None}}
+        \If{$station\_cap[o_f] = 0$}{\Return \texttt{None}}
+        append maintenance event\;
+        $curr\_time \leftarrow curr\_time + L_x$\;
+        apply hierarchy reset to counters\;
+    }
+    \If{$curr\_time > t_f^{dep}$}{\Return \texttt{None}}
+    append flight event\;
+    $curr\_time \leftarrow t_f^{arr}$, $curr\_apt \leftarrow d_f$\;
+    $a \leftarrow a + \Delta_f$, $b \leftarrow b + \Delta_f$\;
+    $total\_cost \leftarrow total\_cost + C_{f,aid}$\;
+}
+\Return \{events, cost = $total\_cost$\}\;
+\end{algorithm}
+
+\begin{algorithm}[h]
+\caption{\texttt{optimize()}: greedy + insertion repair}
+\KwIn{Flight set $\mathcal{F}$, aircraft set $\mathcal{A}$}
+\KwOut{Routes $R_a$ for each $a \in \mathcal{A}$ and unassigned set}
+Initialize $R_a \leftarrow [\,]$ for all $a$, $Assigned \leftarrow \emptyset$\;
+Sort flights by departure time\;
+\ForEach{flight $f$ in sorted order}{
+    $best \leftarrow \texttt{None}$\;
+    \ForEach{$a \in \mathcal{A}$}{
+        evaluate $get\_timeline(a, R_a \Vert [f])$\;
+        \If{feasible and cheaper than $best$}{update $best$}
+    }
+    \If{$best \neq \texttt{None}$}{assign $f$ to selected aircraft; mark assigned}
+}
+
+\For{$pass \leftarrow 1$ \KwTo $5$}{
+    $U \leftarrow \mathcal{F} \setminus Assigned$\;
+    \ForEach{$f \in U$}{
+        $bestIns \leftarrow \texttt{None}$\;
+        \ForEach{$a \in \mathcal{A}$}{
+            \For{$i \leftarrow 0$ \KwTo $|R_a|$}{
+                $trial \leftarrow R_a[0:i] \Vert [f] \Vert R_a[i:]$\;
+                evaluate $get\_timeline(a, trial)$\;
+                \If{feasible and cheaper than $bestIns$}{update $bestIns$}
+            }
+        }
+        \If{$bestIns \neq \texttt{None}$}{apply insertion and mark assigned}
+    }
+}
+\Return $\{R_a\}_{a\in\mathcal{A}}$ and $\mathcal{F} \setminus Assigned$\;
+\end{algorithm}
+
+\subsection{Phase I: Greedy assignment by departure order}
+Flights are processed in nondecreasing departure time.
+For each flight $f$, evaluate every aircraft $a$ by testing feasibility of appending $f$:
+\begin{align*}
+\text{trial route } R_a' = R_a \Vert [f].
+\end{align*}
+If feasible, compute route cost via \texttt{get\_timeline}. Choose aircraft with minimum feasible resulting cost.
+
+This is a myopic best-append decision:
+\begin{align*}
+a^*(f) = \arg\min_{a \in \mathcal{A}} \{\text{Cost}(R_a \Vert [f]) : \text{feasible}\}.
+\end{align*}
+
+If no feasible append exists, $f$ remains unassigned temporarily.
+
+\subsection{Phase II: Insertion repair (5 passes)}
+For still-unassigned flights, algorithm tries insertion at all positions for all aircraft:
+\begin{align*}
+R_a^{(i)} = R_a[0:i] \Vert [f] \Vert R_a[i:]
+\end{align*}
+for $i = 0,\dots,|R_a|$.
+
+Among all feasible insertions, choose minimum resulting route cost and apply it. This is repeated for all remaining flights, and the whole process is repeated 5 rounds to capture interactions from earlier insertions.
+
+\subsection{Returned solution}
+The method returns:
+\begin{itemize}[leftmargin=1.4em]
+    \item dictionary $R_a$ of flight sequences per aircraft,
+    \item list of flights that remained infeasible under this heuristic.
+\end{itemize}
+
+\section{Algorithmic Complexity}
+Let:
+\begin{align*}
+F &= |\mathcal{F}|, \quad P = |\mathcal{A}|, \quad L = \text{typical route length}.
+\end{align*}
+A timeline simulation is $\mathcal{O}(L)$ for one route.
+
+\subsection{Phase I}
+For each of $F$ flights, up to $P$ simulations:
+\begin{align*}
+\mathcal{O}(F \cdot P \cdot L).
+\end{align*}
+With $L=\mathcal{O}(F)$ worst-case, this is $\mathcal{O}(P F^2)$.
+
+\subsection{Phase II}
+For each pass, each unassigned flight may try all aircraft and all insertion positions. Roughly:
+\begin{align*}
+\mathcal{O}(U \cdot P \cdot L \cdot L) = \mathcal{O}(U P L^2)
+\end{align*}
+where $U$ is unassigned count at start of the pass. With 5 fixed passes, constant factor only. Worst-case with $U,L=\mathcal{O}(F)$ gives $\mathcal{O}(P F^3)$.
+
+In practice, early feasibility pruning and limited unassigned set reduce runtime significantly.
+
+\section{Heuristic Properties and Trade-offs}
+\subsection{Strengths}
+\begin{itemize}[leftmargin=1.4em]
+    \item Ensures route-level temporal and maintenance feasibility by explicit simulation.
+    \item Deterministic and reproducible for fixed input.
+    \item Fast enough for repeated synthetic-instance scoring.
+\end{itemize}
+
+\subsection{Limitations}
+\begin{itemize}[leftmargin=1.4em]
+    \item Greedy append and local insertion are not globally optimal.
+    \item Cost comparison is route-local, not full-system re-optimization.
+    \item No backtracking or large-neighborhood search; can get stuck in local minima.
+\end{itemize}
+
+\section{Can This Be Solved by Dynamic Programming?}
+
+\subsection{Short Answer}
+A full exact dynamic program for this optimization task is theoretically possible, but generally not computationally practical for realistic instance sizes. The current logic in \texttt{optimize} is a heuristic, not a Bellman-optimal dynamic program.
+
+\subsection{Why the Current Heuristic Is Not a Dynamic Program}
+Dynamic programming requires a value function and a Bellman recursion of the form
+\begin{align*}
+V(s) = \min_{u \in \mathcal{U}(s)} \{ c(s,u) + V(T(s,u)) \},
+\end{align*}
+where:
+\begin{itemize}[leftmargin=1.4em]
+    \item $s$ is the current system state,
+    \item $u$ is a feasible control or decision,
+    \item $c(s,u)$ is the immediate cost,
+    \item $T(s,u)$ is the transition to the next state.
+\end{itemize}
+
+The current implementation does not define or solve such a recursion. Instead, it performs:
+\begin{itemize}[leftmargin=1.4em]
+    \item greedy append decisions based on current best route extension,
+    \item local insertion repair over a limited neighborhood,
+    \item no exact global value function over all partial assignments.
+\end{itemize}
+Therefore, the logic is constructive and locally optimizing, but not dynamically optimal in the strict Bellman sense.
+
+\subsection{State Needed for an Exact Dynamic Program}
+To solve the full aircraft assignment problem exactly by DP, the state would need to encode at least:
+\begin{align*}
+s = \Big(M, \{(\ell_a, t_a, \alpha_a, \beta_a, \gamma_a, \delta_a)\}_{a \in \mathcal{A}}\Big),
+\end{align*}
+where:
+\begin{itemize}[leftmargin=1.4em]
+    \item $M \subseteq \mathcal{F}$ is the subset of flights already assigned,
+    \item $\ell_a$ is the current airport of aircraft $a$,
+    \item $t_a$ is its current time,
+    \item $\alpha_a, \beta_a$ are accumulated A/B flight-minute counters,
+    \item $\gamma_a, \delta_a$ are elapsed C/D day counters.
+\end{itemize}
+
+This state is already very large. The subset variable $M$ alone yields $2^{|\mathcal{F}|}$ possibilities. The aircraft states multiply that by many possible airport, time, and counter configurations.
+
+\subsection{Why the State Space Explodes}
+Even with coarse discretization, an exact DP would have complexity of the form
+\begin{align*}
+\mathcal{O}\bigl(2^F \cdot \mathrm{poly}(F,P,|\mathcal{K}|,H)\bigr),
+\end{align*}
+where $H$ represents the discretized horizon and counter space. This is fundamentally much larger than the heuristic procedure analyzed earlier.
+
+In other words, the optimization task contains two hard components simultaneously:
+\begin{enumerate}[leftmargin=1.4em]
+    \item assignment of flights to aircraft,
+    \item sequencing of assigned flights with maintenance feasibility.
+\end{enumerate}
+DP must remember enough information to preserve both, and that memory becomes exponential in the number of flights.
+
+\subsection{Where Dynamic Programming Could Still Help}
+Although a full-system DP is usually impractical, dynamic programming can still be useful in restricted forms:
+\begin{enumerate}[leftmargin=1.4em]
+    \item \textbf{Very small instances}: for a small number of flights, a subset-based DP may be feasible.
+    \item \textbf{Single-aircraft route optimization}: once a small candidate subset of flights is fixed for one aircraft, DP can be used to find the best feasible order under maintenance logic.
+    \item \textbf{Decomposition methods}: one can combine route-generation subproblems with a master assignment model, for example in a column-generation or branch-and-price framework.
+    \item \textbf{Look-ahead heuristics}: a limited-horizon DP can be embedded inside the heuristic to reduce myopic choices.
+\end{enumerate}
+
+\subsection{Relation to the Current Heuristic}
+The current heuristic can be viewed as an approximation that avoids the DP state explosion by using simulation and local decisions:
+\begin{itemize}[leftmargin=1.4em]
+    \item \texttt{get\_timeline} acts as a feasibility and cost oracle for one proposed route,
+    \item \texttt{optimize} uses this oracle to make greedy and insertion-based decisions,
+    \item the algorithm sacrifices global optimality in exchange for tractable runtime.
+\end{itemize}
+
+\subsection{Practical Conclusion}
+So the answer is:
+\begin{itemize}[leftmargin=1.4em]
+    \item \textbf{Yes}, the problem can be written in dynamic-programming terms.
+    \item \textbf{No}, the present logic is not itself a true DP for the full optimization problem.
+    \item \textbf{And yes}, there are important possible flaws if one tries to interpret it as DP: the Bellman principle does not hold because local best route extension does not guarantee global best system solution.
+\end{itemize}
+
+For realistic instances, exact MILP or decomposition-based methods are more natural for full optimization, while dynamic programming is most useful as a subroutine or for very small cases.
+
+\section{Consistency With the Generator Workflow}
+In \texttt{test\_create.py}, objective reporting uses this class to compute:
+\begin{align*}
+\text{Objective} = \sum_{a \in \mathcal{A}} \text{Cost}(R_a)
+\end{align*}
+for the heuristic solution it constructs. Therefore, the CSV summary records a feasible heuristic objective under the same maintenance/routing semantics implemented by \texttt{LocalScheduler}.
+
+\section{Can This Be Solved by Dynamic Programming?}
+
+\subsection{Short Answer}
+A full exact dynamic program for this optimization task is theoretically possible, but generally not computationally practical for realistic instance sizes. The current logic in \texttt{optimize} is a heuristic, not a Bellman-optimal DP.
+
+\subsection{Why the Current Heuristic Is Not a DP}
+Dynamic programming requires a state transition model with Bellman optimality:
+\begin{align*}
+V(s) = \min_{u \in \mathcal{U}(s)} \{ c(s,u) + V(T(s,u)) \}.
+\end{align*}
+The implemented method uses:
+\begin{itemize}[leftmargin=1.4em]
+    \item greedy append decisions (myopic),
+    \item local insertion repair (limited neighborhood),
+    \item no globally consistent value function $V(s)$.
+\end{itemize}
+So it does not satisfy exact DP recursion for the global objective.
+
+\subsection{State Explosion for an Exact DP}
+For exact optimization, a DP state must encode at least:
+\begin{align*}
+s = \Big(M,\; \{(\ell_a, t_a, a_a, b_a, c_a, d_a)\}_{a \in \mathcal{A}}\Big),
+\end{align*}
+where:
+\begin{itemize}[leftmargin=1.4em]
+    \item $M \subseteq \mathcal{F}$ is the set of already assigned flights,
+    \item $\ell_a$ is aircraft location,
+    \item $t_a$ is current time,
+    \item $(a_a,b_a,c_a,d_a)$ are maintenance counters.
+\end{itemize}
+
+Even before time/counter discretization, the subset component alone yields $2^{|\mathcal{F}|}$ possibilities. Therefore the total state space becomes intractable for medium/large $|\mathcal{F}|$.
+
+\subsection{Complexity Intuition}
+A full-set DP typically scales like:
+\begin{align*}
+\mathcal{O}(2^{F} \cdot \text{poly}(F,P,\text{state-grid})),
+\end{align*}
+which quickly dominates the heuristic complexity shown earlier ($\mathcal{O}(PF^2)$ to $\mathcal{O}(PF^3)$ worst-case).
+
+\subsection{Where DP Is Still Useful}
+DP can still be effective in restricted settings:
+\begin{enumerate}[leftmargin=1.4em]
+    \item very small instances (small $F$),
+    \item single-aircraft subproblems with fixed candidate flight subsets,
+    \item hybrid decomposition (route-generation subproblem by DP, assignment master problem separately).
+\end{enumerate}
+
+\subsection{Practical Conclusion}
+For the full multi-aircraft, maintenance-constrained assignment problem, exact DP is usually not the right primary solver. The current heuristic is a practical approximation; exact methods are better approached through MILP/branch-and-bound/decomposition, while DP can be a subroutine in tightly scoped components.
+
+\end{document}

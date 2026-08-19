@@ -1,0 +1,135 @@
+"""Write the new ABCD_multi_check_test.json with a 4-day horizon."""
+import json, os
+
+data = {
+    "_comment": [
+        "=== TEST FILE: Multiple checks of same type + mixed types on one aircraft ===",
+        "",
+        "HORIZON: 4 days.  n=4 << min(C_thresh=10, D_thresh=14) so c12 sliding-window",
+        "is skipped for C/D.  Only c12b fires for AC2 (C) and AC3 (D).",
+        "",
+        "Thresholds (identical to ABCD_all_checks_test for parameter consistency):",
+        "  A : flight-hour threshold = 1 200 min,  duration =   360 min",
+        "  B : flight-hour threshold = 3 600 min,  duration = 2 880 min (2 days)",
+        "  C : calendar-day threshold =  10 days,  duration = 1 440 min (1 day)",
+        "  D : calendar-day threshold =  14 days,  duration = 2 880 min (2 days)",
+        "",
+        "Aircraft (all start at B, 4 aircraft total):",
+        "",
+        "  AC0 -- 2x A-check (A_init=1000, thresh=1200):",
+        "    F01 (B->C day 1 dep=60 arr=260): A_accum=1200 -> 1st A-check day 1.",
+        "    Window [260, 620].  F02 (C->B dep=1441) > 620 -> OK.",
+        "    3 round-trips post-reset; F02 moved to day 2 so all 7 post-check",
+        "    flights fall in c13 window (1..4], giving sum=1400>1200 -> 2nd check forced:",
+        "      F02 C->B dep=1441 arr=1641 day2 (cumul=200)",
+        "      F03 B->C dep=1800 arr=2000 day2 (cumul=400)",
+        "      F04 C->B dep=2440 arr=2640 day2 (cumul=600)",
+        "      F05 B->C dep=3000 arr=3200 day3 (cumul=800)",
+        "      F06 C->B dep=3400 arr=3600 day3 (cumul=1000)",
+        "      F07 B->C dep=4500 arr=4700 day4 (cumul=1200, 2nd A-check forced!)",
+        "    c13 for (d=1,d'=4): sum=7x200=1400>1200 -> Row2 forces mega[0,4,A]=1.",
+        "    Window [4700, 5060].  F08 (C->B dep=5100) > 5060 -> OK.",
+        "",
+        "  AC1 -- 1x B-check then 1x A-check (B_init=3400, A_init=800):",
+        "    F09 (B->C day 1 dep=120 arr=320): B_accum=3600 -> B-check day 1.",
+        "    Window [320, 3200].  F10 (C->B dep=3300) > 3200 -> OK.",
+        "    A_accum: 800+200(F09)+200(F10)=1200 -> A-check needed before/at next FM.",
+        "    F11 (B->C day 4 dep=4400 arr=4600): triggers A-check.",
+        "    c13b at d=4: sum=600 <= (1200-800)=400 + M*mega[1,4,A] -> OK.",
+        "    Window [4600, 4960].  F12 (C->B dep=5000) > 4960 -> OK.",
+        "",
+        "  AC2 -- 1x C-check (C_Days_init=9, remaining=1 < n=4 -> c12b fires):",
+        "    F13 (B->C day 1 dep=180 arr=380): 1st C-check day 1.",
+        "    Window [380, 1820].  F14 (C->B dep=1900) > 1820 -> OK.",
+        "",
+        "  AC3 -- 1x D-check (D_Days_init=13, remaining=1 < n=4 -> c12b fires):",
+        "    F15 (B->C day 1 dep=240 arr=440): 1st D-check day 1.",
+        "    c12days (D ival=2): z[15,3,2,D]=z[15,3,1,D] -> mega[3,2,D]=1.",
+        "    No AC3 day-2 flights from C -> no c15 conflict.",
+        "    Window [440, 3320].  F16 (C->B dep=3400) > 3320 -> OK.",
+        "",
+        "Station_Capacity C=4: all 4 aircraft at C on day 1 (exactly 4).",
+        "",
+        "Expected MILP output (--no-check-hierarchy):",
+        "  AC0: A-check day 1 (F01),  A-check day 4 (F07)  -- 2x type A",
+        "  AC1: B-check day 1 (F09),  A-check day 4 (F11)  -- types B + A",
+        "  AC2: C-check day 1 (F13)                        -- 1x type C",
+        "  AC3: D-check day 1 (F15)                        -- 1x type D",
+        "",
+        "Run command:",
+        "  py -3 heu180h.py --mode milp --data inputsABCD/ABCD_multi_check_test.json",
+        "                   --solver cplex --no-check-hierarchy --no-show"
+    ],
+    "Aircrafts": [0, 1, 2, 3],
+    "AIRCRAFT_INIT_POS": {
+        "0": "B",
+        "1": "B",
+        "2": "B",
+        "3": "B"
+    },
+    "Flights": [
+        [ 1, "B", "C",    60.0,   261.0],
+        [ 2, "C", "B",  1441.0,  1641.0],
+        [ 3, "B", "C",  1800.0,  2000.0],
+        [ 4, "C", "B",  2440.0,  2640.0],
+        [ 5, "B", "C",  3000.0,  3301.0],
+        [ 6, "C", "B",  3700.0,  4001.0],
+        [ 7, "B", "C",  4500.0,  4801.0],
+        [ 8, "C", "B",  5200.0,  5501.0],
+        [ 9, "B", "C",   120.0,   320.0],
+        [10, "C", "B",  3300.0,  3500.0],
+        [11, "B", "C",  4400.0,  4600.0],
+        [12, "C", "B",  5000.0,  5200.0],
+        [13, "B", "C",   180.0,   380.0],
+        [14, "C", "B",  1900.0,  2100.0],
+        [15, "B", "C",   240.0,   440.0],
+        [16, "C", "B",  3400.0,  3600.0]
+    ],
+    "Cost_Matrix": [
+        [1000.0, 9999.0, 9999.0, 9999.0],   # F01 -> AC0
+        [1000.0, 9999.0, 9999.0, 9999.0],   # F02 -> AC0
+        [1000.0, 9999.0, 9999.0, 9999.0],   # F03 -> AC0
+        [1000.0, 9999.0, 9999.0, 9999.0],   # F04 -> AC0
+        [1000.0, 9999.0, 9999.0, 9999.0],   # F05 -> AC0
+        [1000.0, 9999.0, 9999.0, 9999.0],   # F06 -> AC0
+        [1000.0, 9999.0, 9999.0, 9999.0],   # F07 -> AC0
+        [1000.0, 9999.0, 9999.0, 9999.0],   # F08 -> AC0
+        [9999.0, 1000.0, 9999.0, 9999.0],   # F09 -> AC1
+        [9999.0, 1000.0, 9999.0, 9999.0],   # F10 -> AC1
+        [9999.0, 1000.0, 9999.0, 9999.0],   # F11 -> AC1
+        [9999.0, 1000.0, 9999.0, 9999.0],   # F12 -> AC1
+        [9999.0, 9999.0, 1000.0, 9999.0],   # F13 -> AC2
+        [9999.0, 9999.0, 1000.0, 9999.0],   # F14 -> AC2
+        [9999.0, 9999.0, 9999.0, 1000.0],   # F15 -> AC3
+        [9999.0, 9999.0, 9999.0, 1000.0]    # F16 -> AC3
+    ],
+    "Maintenance_Thresholds": {
+        "A": 1200,
+        "B": 3600,
+        "C": 10,
+        "D": 14
+    },
+    "Maintenance_Durations": {
+        "A":   360,
+        "B":  2880,
+        "C":  1440,
+        "D":  2880
+    },
+    "Station_Capacity": {
+        "C": 4,
+        "B": 0
+    },
+    "Initial_Checks": {
+        "A":      {"0": 1000, "1":  800, "2":    0, "3":    0},
+        "B":      {"0":    0, "1": 3400, "2":    0, "3":    0},
+        "C_Days": {"0":    0, "1":    0, "2":    9, "3":    0},
+        "D_Days": {"0":    0, "1":    0, "2":    0, "3":   13}
+    }
+}
+
+# Remove inline comments from Cost_Matrix (JSON doesn't support comments)
+out = json.dumps(data, indent=4)
+path = os.path.join(os.path.dirname(__file__), 'inputsABCD', 'ABCD_multi_check_test.json')
+with open(path, 'w') as f:
+    f.write(out)
+print(f"Written {path}")

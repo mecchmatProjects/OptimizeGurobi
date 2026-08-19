@@ -1,0 +1,130 @@
+Aircraft 1:
+  Flight  F1      K -> B  day 1   start   550.0 - end   710.0
+  Flight  F2      B -> D  day 1   start   740.0 - end  1015.0
+  Flight  F3      D -> H  day 1   start  1050.0 - end  1155.0
+  Flight  F4      H -> D  day 1   start  1230.0 - end  1350.0
+  Flight  F5      D -> I  day 1   start  1400.0 - end  1635.0
+  No maintenance scheduled  |  total flight mins = 895.0
+
+Aircraft 2:
+  Flight  F88     J -> F  day 1   start  1300.0 - end  1415.0
+  Flight  F78     F -> B  day 2   start  1985.0 - end  2090.0
+  Flight  F99     B -> K  day 2   start  2370.0 - end  2540.0
+  Flight  F67     K -> B  day 2   start  2660.0 - end  2785.0
+  Flight  F77     B -> C  day 2   start  2845.0 - end  3045.0
+  Flight  F79     C -> D  day 3   start  3490.0 - end  3695.0
+  Flight  F84     D -> C  day 3   start  3730.0 - end  3990.0
+  Flight  F95     C -> K  day 3   start  4100.0 - end  4305.0
+  Flight  F93     K -> C  day 4   start  4930.0 - end  5145.0
+  Flight  F11     C -> R  day 4   start  5230.0 - end  5335.0
+  Flight  F94     R -> C  day 4   start  5365.0 - end  5475.0
+  Flight  F89     C -> D  day 4   start  5530.0 - end  5735.0
+  Flight  F76     D -> B  day 5   start  6360.0 - end  6615.0
+  Flight  F18     B -> A  day 5   start  6765.0 - end  6960.0
+  Flight  F17     A -> B  day 5   start  6990.0 - end  7185.0
+  Flight  F90     B -> C  day 6   start  7820.0 - end  8025.0
+  Flight  F91     C -> R  day 6   start  8110.0 - end  8215.0
+  Flight  F92     R -> C  day 6   start  8245.0 - end  8355.0
+  Flight  F98     C -> Q  day 6   start  8425.0 - end  8550.0
+  Flight  F97     Q -> B  day 6   start  8605.0 - end  8850.0
+  Flight  F38     B -> A  day 7   start  9645.0 - end  9840.0
+  Flight  F39     A -> B  day 7   start  9870.0 - end 10065.0
+  No maintenance scheduled  |  total flight mins = 3845.0
+
+Aircraft 3:
+  Flight  F86     C -> M  day 1   start   905.0 - end  1045.0
+  Flight  F87     M -> J  day 1   start  1115.0 - end  1230.0
+  No maintenance scheduled  |  total flight mins = 255.0
+
+Aircraft 4:
+  Flight  F21     P -> C  day 1   start   705.0 - end  1010.0
+  No maintenance scheduled  |  total flight mins = 305.0
+
+Aircraft 5:
+  Flight  F55     B -> K  day 1   start   930.0 - end  1100.0
+  Flight  F56     K -> B  day 1   start  1220.0 - end  1345.0
+  Flight  F57     B -> C  day 1   start  1405.0 - end  1605.0
+  Flight  F73     C -> L  day 2   start  2095.0 - end  2285.0
+  Flight  F72     L -> K  day 2   start  2355.0 - end  2480.0
+  Flight  F102    K -> B  day 2   start  2660.0 - end  2785.0
+  Flight  F53     B -> C  day 2   start  2845.0 - end  3045.0
+  Maint   MA      day 3   start  2880.0 - end  3240.0
+  Flight  F68     C -> A  day 3   start  3525.0 - end  3815.0
+  Flight  F69     A -> D  day 3   start  4210.0 - end  4420.0
+  Flight  F58     D -> I  day 4   start  4935.0 - end  5170.0
+  Flight  F59     I -> N  day 4   start  5240.0 - end  5350.0
+  Flight  F60     N -> A  day 4   start  5440.0 - end  5555.0
+  Flight  F61     A -> K  day 4   start  5630.0 - end  5740.0
+  Flight  F62     K -> B  day 5   start  6310.0 - end  6470.0
+  Flight  F63     B -> O  day 5   start  6515.0 - end  6660.0
+  Flight  F64     O -> C  day 5   start  6700.0 - end  6875.0
+  Flight  F42     C -> G  day 5   start  6915.0 - end  7190.0
+  Flight  F52     G -> C  day 6   start  7260.0 - end  7490.0
+  Flight  F65     C -> P  day 6   start  7820.0 - end  8125.0
+  Flight  F66     P -> K  day 6   start  8500.0 - end  8635.0
+  Flight  F74     K -> F  day 7   start  9260.0 - end  9445.0
+  Flight  F75     F -> B  day 7   start  9480.0 - end  9590.0
+  Flight  F70     B -> I  day 7   start  9670.0 - end  9845.0
+  Flight  F71     I -> K  day 7   start  9875.0 - end  9980.0
+  Maintenance statistics:
+    Check A:  #1: flight mins before =   970.0  cum days before =   2.00
+
+Aircraft 6:
+  Flight  F49     C -> A  day 1   start   645.0 - end   935.0
+  Flight  F44     A -> K  day 1   start  1310.0 - end  1420.0
+  Flight  F45     K -> I  day 2   start  2055.0 - end  2160.0
+  Flight  F46     I -> H  day 2   start  2190.0 - end  2490.0
+  Flight  F47     H -> C  day 2   start  2760.0 - end  3050.0
+  Flight  F43     C -> H  day 3   start  3415.0 - end  3630.0
+  Flight  F40     H -> D  day 3   start  4110.0 - end  4230.0
+  Flight  F50     D -> E  day 4   start  4960.0 - end  5225.0
+  Flight  F48     E -> B  day 4   start  5660.0 - end  5845.0
+  Flight  F100    B -> T  day 5   start  6700.0 - end  6910.0
+  Flight  F101    T -> B  day 5   start  6985.0 - end  7210.0
+  Flight  F9      B -> D  day 6   start  7940.0 - end  8215.0
+  Flight  F10     D -> F  day 6   start  8310.0 - end  8555.0
+  Flight  F19     F -> C  day 7   start  9290.0 - end  9460.0
+  Flight  F20     C -> B  day 7   start  9565.0 - end  9775.0
+  No maintenance scheduled  |  total flight mins = 3215.0
+
+Aircraft 7:
+  Flight  F54     D -> B  day 1   start   600.0 - end   855.0
+  No maintenance scheduled  |  total flight mins = 255.0
+
+Aircraft 8:
+  Flight  F85     B -> C  day 1   start   620.0 - end   825.0
+  Flight  F22     C -> B  day 1   start  1040.0 - end  1250.0
+  Flight  F23     B -> P  day 1   start  1330.0 - end  1525.0
+  Flight  F24     P -> C  day 2   start  2145.0 - end  2450.0
+  Flight  F25     C -> B  day 2   start  2480.0 - end  2690.0
+  Flight  F26     B -> P  day 2   start  2770.0 - end  2965.0
+  Flight  F27     P -> C  day 3   start  3585.0 - end  3890.0
+  Flight  F28     C -> B  day 3   start  3920.0 - end  4130.0
+  Flight  F29     B -> P  day 3   start  4210.0 - end  4405.0
+  Flight  F30     P -> C  day 4   start  5025.0 - end  5330.0
+  Flight  F31     C -> B  day 4   start  5360.0 - end  5570.0
+  Flight  F32     B -> P  day 4   start  5650.0 - end  5845.0
+  Flight  F33     P -> B  day 5   start  6575.0 - end  6780.0
+  Flight  F34     B -> E  day 5   start  6880.0 - end  7065.0
+  Flight  F35     E -> B  day 6   start  7745.0 - end  7925.0
+  Flight  F36     B -> A  day 6   start  8205.0 - end  8400.0
+  Flight  F37     A -> B  day 6   start  8430.0 - end  8625.0
+  Flight  F80     B -> I  day 7   start  9250.0 - end  9390.0
+  Flight  F81     I -> K  day 7   start  9460.0 - end  9565.0
+  Flight  F82     K -> A  day 7   start  9595.0 - end  9740.0
+  Flight  F83     A -> J  day 7   start  9770.0 - end  9945.0
+  No maintenance scheduled  |  total flight mins = 4265.0
+
+Aircraft 9:
+  Flight  F6      I -> J  day 2   start  1985.0 - end  2155.0
+  Flight  F7      J -> I  day 2   start  2185.0 - end  2350.0
+  Flight  F8      I -> B  day 2   start  2380.0 - end  2555.0
+  Flight  F14     B -> C  day 2   start  2695.0 - end  2945.0
+  Flight  F16     C -> R  day 3   start  3505.0 - end  3610.0
+  Flight  F15     R -> B  day 3   start  4125.0 - end  4335.0
+  Flight  F13     B -> C  day 4   start  4940.0 - end  5145.0
+  Flight  F96     C -> R  day 4   start  5230.0 - end  5335.0
+  Flight  F12     R -> B  day 4   start  5565.0 - end  5775.0
+  Flight  F41     B -> C  day 5   start  6685.0 - end  6885.0
+  Flight  F51     C -> G  day 5   start  6915.0 - end  7190.0
+  No maintenance scheduled  |  total flight mins = 2070.0

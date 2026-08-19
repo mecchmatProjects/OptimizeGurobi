@@ -1,0 +1,11 @@
+Dataset : InputsABCD\ABCD_check_hierarchy_test.json
+Mode    : heuristic
+Flights : 11/13 assigned  (2 unassigned)
+Cost    : 35000
+CPU     : 3.9s
+
+  AID    Flt   Busy(min)   Free(min)
+    0      3        3540        1960
+    1      1        3140        2360
+    2      2         820        4680
+    3      5        1060        4440

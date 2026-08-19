@@ -1,0 +1,17 @@
+stem,mode,flights,assigned,unassigned,cost,obj,gap_%,status,cpu_s
+ABCD_all_checks_test,heuristic,9,8,1,52997.0,52997.0,,heuristic,9.28
+ABCD_all_checks_test,milp,9,9,0,9600.0,9600.0,,optimal,4.23
+ABCD_capacity_bottleneck_test,heuristic,8,7,1,37000.0,37000.0,,heuristic,2.45
+ABCD_capacity_bottleneck_test,milp,8,8,0,8300.0,8300.0,,optimal,22.84
+ABCD_check_hierarchy_test,heuristic,13,11,2,35000.0,35000.0,,heuristic,3.88
+ABCD_check_hierarchy_test,milp,13,13,0,13600.0,13600.0,,optimal,4.46
+ABCD_multi_check_test,heuristic,16,14,2,43998.0,43998.0,,heuristic,4.58
+ABCD_multi_check_test,milp,16,16,0,16800.0,16800.0,,optimal,12.12
+ABCD_multi_check_test_OLD,heuristic,21,21,0,155989.0,155989.0,,heuristic,6.0
+ABCD_multi_check_test_OLD,milp,21,0,21,0.0,0.0,,infeasible,4.26
+ABCD_near_threshold_test,heuristic,20,20,0,20000.0,20000.0,,heuristic,5.73
+ABCD_near_threshold_test,milp,20,20,0,21100.0,21100.0,,optimal,7.05
+ABCD_no_maint_test,heuristic,14,14,0,14000.0,14000.0,,heuristic,2.52
+ABCD_no_maint_test,milp,14,14,0,14000.0,14000.0,,optimal,2.96
+ABCD_two_b_one_c_test,heuristic,14,13,1,43000.0,43000.0,,heuristic,3.6
+ABCD_two_b_one_c_test,milp,14,14,0,15800.0,15800.0,,optimal,8.71

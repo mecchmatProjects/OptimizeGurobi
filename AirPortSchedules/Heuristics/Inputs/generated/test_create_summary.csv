@@ -1,0 +1,4 @@
+file,density,p,h,objective,assigned,unassigned,status
+DataCplex_density=0.75_p=8_h=7_test_0.json,0.75,8,7,158029.0,42,0,ok
+DataCplex_density=0.75_p=8_h=7_test_1.json,0.75,8,7,161648.0,42,0,ok
+DataCplex_density=0.75_p=8_h=7_test_2.json,0.75,8,7,162897.0,42,0,ok

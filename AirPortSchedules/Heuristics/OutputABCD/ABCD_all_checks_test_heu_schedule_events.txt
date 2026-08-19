@@ -1,0 +1,29 @@
+Aircraft 0:
+  Maint   FERRY   day    start     0.0 - end    60.0
+  Maint   A       day    start    60.0 - end   420.0
+  Flight  F5       ->   day    start   700.0 - end   900.0
+  Maintenance statistics:
+    Check A:  #1: flight mins before =     0.0  cum days before =   0.04
+
+Aircraft 1:
+  Maint   FERRY   day    start     0.0 - end    60.0
+  Maint   B       day    start    60.0 - end  2940.0
+  Flight  F8       ->   day    start  3400.0 - end  3600.0
+  Maintenance statistics:
+    Check B:  #1: flight mins before =     0.0  cum days before =   0.04
+
+Aircraft 2:
+  Flight  F1       ->   day    start    60.0 - end   260.0
+  Flight  F7       ->   day    start  2000.0 - end  2200.0
+  No maintenance scheduled  |  total flight mins = 400.0
+
+Aircraft 3:
+  Flight  F2       ->   day    start   120.0 - end   320.0
+  Flight  F9       ->   day    start  3500.0 - end  3700.0
+  No maintenance scheduled  |  total flight mins = 400.0
+
+Aircraft 4:
+  Maint   FERRY   day    start     0.0 - end    60.0
+  Flight  F3       ->   day    start   180.0 - end   380.0
+  Flight  F6       ->   day    start  1800.0 - end  2000.0
+  No maintenance scheduled  |  total flight mins = 400.0

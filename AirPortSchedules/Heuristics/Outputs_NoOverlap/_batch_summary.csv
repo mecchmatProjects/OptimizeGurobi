@@ -1,0 +1,5 @@
+stem,mode,flights,assigned,unassigned,cost,obj,gap_%,status,cpu_s
+DataCplex_density=1_p=10_h=15_test_0,milp,420,0,420,0,0,,infeasible,69.5
+DataCplex_density=1_p=10_h=21_test_0,milp,498,0,498,0,0,,infeasible,105.14
+DataCplex_density=1_p=10_h=30_test_0,milp,575,0,575,0,0,,infeasible,169.6
+DataCplex_density=1_p=10_h=7_test_0,milp,234,0,234,0,0,,infeasible,20.99

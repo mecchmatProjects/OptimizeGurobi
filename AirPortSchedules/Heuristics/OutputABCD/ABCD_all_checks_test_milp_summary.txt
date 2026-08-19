@@ -1,0 +1,217 @@
+
+=== MILP Aircraft Assignment Report ===
+  Status : optimal
+  Vars   : 1005   Constraints: 3029
+  Gap    : 0.0000%   CPU: 0.56s
+  Obj    : 9600.0
+
+--- Assignment ---
+  Flight    1  -> Aircraft 0
+  Flight    2  -> Aircraft 1
+  Flight    3  -> Aircraft 2
+  Flight    4  -> Aircraft 3
+  Flight    5  -> Aircraft 0
+  Flight    6  -> Aircraft 4
+  Flight    7  -> Aircraft 2
+  Flight    8  -> Aircraft 1
+  Flight    9  -> Aircraft 3
+
+--- Maintenance ---
+  Aircraft 0  day   1  check A after flight:
+1 arr 260.0 
+
+
+  Aircraft 1  day   1  check B after flight:
+2 arr 320.0 
+
+
+  Aircraft 1  day   1  check B triggered by initial position, assigned flight:
+8 dep 3400.0 
+
+
+  Aircraft 1  day   1  check B triggered by initial position, assigned flight:
+8 dep 3400.0 
+
+
+  Aircraft 1  day   1  check B triggered by initial position, assigned flight:
+8 dep 3400.0 
+
+
+  Aircraft 1  day   1  check B triggered by initial position, assigned flight:
+8 dep 3400.0 
+
+
+  Aircraft 1  day   1  check B triggered by initial position, assigned flight:
+8 dep 3400.0 
+
+
+  Aircraft 1  day   1  check B triggered by initial position, assigned flight:
+8 dep 3400.0 
+
+
+  Aircraft 1  day   1  check B triggered by initial position, assigned flight:
+8 dep 3400.0 
+
+
+  Aircraft 1  day   1  check B triggered by initial position, assigned flight:
+8 dep 3400.0 
+
+
+  Aircraft 1  day   2  check B after flight:
+2 arr 320.0 
+
+
+  Aircraft 1  day   2  check B triggered by initial position, assigned flight:
+8 dep 3400.0 
+
+
+  Aircraft 1  day   2  check B triggered by initial position, assigned flight:
+8 dep 3400.0 
+
+
+  Aircraft 1  day   2  check B triggered by initial position, assigned flight:
+8 dep 3400.0 
+
+
+  Aircraft 1  day   2  check B triggered by initial position, assigned flight:
+8 dep 3400.0 
+
+
+  Aircraft 1  day   2  check B triggered by initial position, assigned flight:
+8 dep 3400.0 
+
+
+  Aircraft 1  day   2  check B triggered by initial position, assigned flight:
+8 dep 3400.0 
+
+
+  Aircraft 1  day   2  check B triggered by initial position, assigned flight:
+8 dep 3400.0 
+
+
+  Aircraft 1  day   2  check B triggered by initial position, assigned flight:
+8 dep 3400.0 
+
+
+  Aircraft 2  day   1  check C after flight:
+3 arr 380.0 
+
+
+  Aircraft 2  day   1  check C triggered by initial position, assigned flight:
+7 dep 2000.0 
+
+
+  Aircraft 2  day   1  check C triggered by initial position, assigned flight:
+7 dep 2000.0 
+
+
+  Aircraft 2  day   1  check C triggered by initial position, assigned flight:
+7 dep 2000.0 
+
+
+  Aircraft 2  day   1  check C triggered by initial position, assigned flight:
+7 dep 2000.0 
+
+
+  Aircraft 2  day   1  check C triggered by initial position, assigned flight:
+7 dep 2000.0 
+
+
+  Aircraft 2  day   1  check C triggered by initial position, assigned flight:
+7 dep 2000.0 
+
+
+  Aircraft 2  day   1  check C triggered by initial position, assigned flight:
+7 dep 2000.0 
+
+
+  Aircraft 2  day   1  check C triggered by initial position, assigned flight:
+7 dep 2000.0 
+
+
+  Aircraft 3  day   1  check D after flight:
+4 arr 440.0 
+
+
+  Aircraft 3  day   1  check D triggered by initial position, assigned flight:
+9 dep 3500.0 
+
+
+  Aircraft 3  day   1  check D triggered by initial position, assigned flight:
+9 dep 3500.0 
+
+
+  Aircraft 3  day   1  check D triggered by initial position, assigned flight:
+9 dep 3500.0 
+
+
+  Aircraft 3  day   1  check D triggered by initial position, assigned flight:
+9 dep 3500.0 
+
+
+  Aircraft 3  day   1  check D triggered by initial position, assigned flight:
+9 dep 3500.0 
+
+
+  Aircraft 3  day   1  check D triggered by initial position, assigned flight:
+9 dep 3500.0 
+
+
+  Aircraft 3  day   1  check D triggered by initial position, assigned flight:
+9 dep 3500.0 
+
+
+  Aircraft 3  day   1  check D triggered by initial position, assigned flight:
+9 dep 3500.0 
+
+
+  Aircraft 3  day   2  check D after flight:
+4 arr 440.0 
+
+
+  Aircraft 3  day   2  check D triggered by initial position, assigned flight:
+9 dep 3500.0 
+
+
+  Aircraft 3  day   2  check D triggered by initial position, assigned flight:
+9 dep 3500.0 
+
+
+  Aircraft 3  day   2  check D triggered by initial position, assigned flight:
+9 dep 3500.0 
+
+
+  Aircraft 3  day   2  check D triggered by initial position, assigned flight:
+9 dep 3500.0 
+
+
+  Aircraft 3  day   2  check D triggered by initial position, assigned flight:
+9 dep 3500.0 
+
+
+  Aircraft 3  day   2  check D triggered by initial position, assigned flight:
+9 dep 3500.0 
+
+
+  Aircraft 3  day   2  check D triggered by initial position, assigned flight:
+9 dep 3500.0 
+
+
+  Aircraft 3  day   2  check D triggered by initial position, assigned flight:
+9 dep 3500.0 
+
+
+y[0,1,A] = 1.0  (check A for aircraft 0 on day 1)
+z[1,0,1,A] = 1.0  (flight 1 triggers check A for aircraft 0 on day 1)
+y[1,1,B] = 1.0  (check B for aircraft 1 on day 1)
+z[2,1,1,B] = 1.0  (flight 2 triggers check B for aircraft 1 on day 1)
+y[1,2,B] = 1.0000000000000002  (check B for aircraft 1 on day 2)
+z[2,1,2,B] = 1.0000000000000002  (flight 2 triggers check B for aircraft 1 on day 2)
+y[2,1,C] = 1.0  (check C for aircraft 2 on day 1)
+z[3,2,1,C] = 1.0  (flight 3 triggers check C for aircraft 2 on day 1)
+y[3,1,D] = 1.0  (check D for aircraft 3 on day 1)
+z[4,3,1,D] = 1.0  (flight 4 triggers check D for aircraft 3 on day 1)
+y[3,2,D] = 1.0  (check D for aircraft 3 on day 2)
+z[4,3,2,D] = 1.0  (flight 4 triggers check D for aircraft 3 on day 2)
+
+Total cost: 9600.00

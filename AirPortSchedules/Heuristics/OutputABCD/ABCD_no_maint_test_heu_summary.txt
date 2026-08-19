@@ -1,0 +1,11 @@
+Dataset : InputsABCD\ABCD_no_maint_test.json
+Mode    : heuristic
+Flights : 14/14 assigned  (0 unassigned)
+Cost    : 14000
+CPU     : 2.5s
+
+  AID    Flt   Busy(min)   Free(min)
+    0      4         800        8540
+    1      4         800        8540
+    2      4         800        8540
+    3      2         400        8940

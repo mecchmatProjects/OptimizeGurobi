@@ -1,0 +1,12 @@
+
+=== MILP Aircraft Assignment Report ===
+  Status : infeasible
+  Vars   : 226740   Constraints: 984167
+  Gap    : nan%   CPU: 56.98s
+  Obj    : None
+
+--- Assignment ---
+
+--- Maintenance ---
+
+Total cost: 0.00

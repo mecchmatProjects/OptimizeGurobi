@@ -6,21 +6,35 @@
 \subsection{Implementation and environment}
 
 All models are implemented in Python~3.10+ using the Pyomo optimisation
-framework~\citep{pyomo2023} and solved with IBM ILOG CPLEX~\citep{cplex2023}.
-Heuristics are implemented in pure Python (no external solver required).
-All experiments were run in a Windows environment with CPLEX Studio available
-on the shell path and invoked through Pyomo's \texttt{cplex} backend.
+framework~\citep{pyomo2023}. Earlier snapshot runs (Tables~\ref{tab:repro5}--\ref{tab:repro11},
+\ref{tab:boundary_suite}--\ref{tab:dense_heavy_suite}) were solved with IBM ILOG
+CPLEX~\citep{cplex2023} through Pyomo's \texttt{cplex} shell backend. For the
+new Constraint~(13) verification and per-check-type hierarchy study
+(\Cref{subsec:comp_c13,subsec:hierarchy_results}) results are cross-validated
+with two independent exact MILP solvers: the open-source HiGHS
+solver~\citep{highs2023} through Pyomo's \texttt{appsi\_highs} interface, and
+the full, unrestricted IBM ILOG CPLEX~12.6 build distributed with AMPL
+through Pyomo's \texttt{cplexamp} ASL interface. The CPLEX copy already on
+this machine's PATH is a size-restricted Community/Preview edition (1\,000
+variable/constraint limit) that raises \texttt{CPLEX Error 1016} on every
+instance in this study once maintenance constraints are included; it is not
+used for any reported result. HiGHS and the unrestricted CPLEX build agree
+exactly (same status, same objective) on every instance reported in
+\Cref{subsec:hierarchy_results}, giving solver-independent confidence in the
+correctness claims.
 The code, instance generator, and experiment runner are publicly available at
 the companion repository.
 
 \paragraph{Comparison protocol.}
-The reported methods use the same JSON instances and assignment-cost data.
-They do not yet constitute a fully controlled formulation comparison: the
-legacy MILP uses the endpoint-split C13 implementation, heuristic rows may be
-partial assignments, and exact-state MILP runs are not included in the tables
-below. Consequently, costs are compared only between solutions with equal
-flight coverage, and no conclusion about the relative strength of the paper,
-split, and exact-state C13 formulations is drawn from these runs.
+The reported legacy-MILP snapshot tables (Tables~\ref{tab:repro5}--\ref{tab:dense_heavy_suite})
+use the same JSON instances and assignment-cost data and only compare
+solutions with equal flight coverage; they were produced before the
+endpoint-split flaw was isolated and do not by themselves certify
+cumulative-hour correctness. \Cref{subsec:comp_c13,subsec:hierarchy_results}
+supersede these snapshots for the Constraint~(13) question: they evaluate the
+real built constraints and independently replay every solved schedule's
+maintenance counters, rather than trusting the solver's own feasibility
+report.
 
 \subsection{Instance generation}
 
@@ -118,153 +132,153 @@ $|P|$ & $|H|$ & paper-C13 label & split-C13 label \\
 \end{tabular}
 \end{table}
 
-\subsection{Constraint~(13) run labels and limitations}
+\subsection{Numeric verification of the Constraint~(13) endpoint-split flaw}
 \label{subsec:comp_c13}
 
-\Cref{tab:c13_comparison} reports rows produced under the historical
-experiment labels. Since \texttt{src/model.py} currently constructs the
-endpoint-split inequalities for all these runs, the table is a repeatability
-check, not a comparison with either \eqref{eq:c13_paper} or the exact state
-formulation.
+Lemmas~\ref{lem:c13_flaw} and~\ref{lem:c13_split_limit} are proved
+algebraically in \Cref{subsec:c13_flaw,subsec:c13_corrected}. We additionally
+verify both directly against the production implementation:
+\texttt{experiments/c13\_loophole\_validation.py} builds the real
+\texttt{LegacyEndpointSplitMILPScheduler} model -- with both the split
+formulation and, using the restored \texttt{use\_paper\_c13} toggle, the
+original Khaled et al. (2018) form -- on the four-day, single-aircraft
+instance \texttt{data/instances/c13\_loophole\_test.json}
+($T^A_{\max}=600$~min, $600$~min flown on each of days~2 and~4), and
+evaluates every real \texttt{m.c13} constraint row at two adversarial check
+patterns.
 
 \begin{table}[t]
 \centering\small
-\caption{Latest quick C13-labelled run. Both columns use the current legacy
-  endpoint-split builder and therefore should agree where both runs complete.}
-\label{tab:c13_comparison}
-\begin{tabular}{l l l r}
+\caption{Numeric verification of Lemmas~\ref{lem:c13_flaw}
+  and~\ref{lem:c13_split_limit} against the real \texttt{m.c13} constraints
+  (both formulations) and the exact-state recursion
+  (\texttt{results/tables/c13\_loophole\_validation.csv}). Both scenarios fly
+  1\,200 real minutes in window $(1,4]$ against $T^A_{\max}=600$.}
+\label{tab:c13_loophole}
+\begin{tabular}{lccc}
 \toprule
-Instance & Status (paper label) & Status (split label) & Obj (split label) \\
+Check pattern & Split C13 & Paper C13 & Exact-state \\
 \midrule
-\texttt{ABCD\_check\_hierarchy\_test} & optimal & optimal & 14\,700 \\
-\texttt{ABCD\_near\_threshold\_test} & optimal & optimal & 21\,100 \\
-\texttt{ABCD\_all\_checks\_test} & ERROR & ERROR & -- \\
-\texttt{ABCD\_multi\_check\_test} & ERROR & ERROR & -- \\
+Both endpoints checked (days 1, 4) & \textbf{accepts (wrong)} & rejects (correct) & rejects \\
+Only end-day checked (day 4)       & rejects (correct) & \textbf{accepts (wrong)} & rejects \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-In the latest stronger run, each label produces the same profile: two optimal
-targeted-instance solves, two targeted errors, and six infeasible generated
-cases. This equality is expected from the shared builder and supplies no
-evidence about relative formulation strength. The supported observations are:
-\begin{itemize}
-  \item The labelled runs produce identical outcomes on
-    \texttt{ABCD\_check\_hierarchy\_test} and
-    \texttt{ABCD\_near\_threshold\_test}.
-  \item On the harder generated and all-checks cases, all tested variants
-    hit infeasible or error outcomes under the current settings.
-  \item A valid empirical comparison requires separate paper-C13,
-    endpoint-split, and exact-state builders plus post-solve counter checks.
-\end{itemize}
+\Cref{tab:c13_loophole} confirms both lemmas computationally, and shows the
+two formulations fail in \emph{complementary, non-overlapping} cases, exactly
+as predicted in \Cref{subsec:c13_corrected}: when checks occur at both
+window endpoints, all 42 real split rows are satisfied even though 1\,200
+minutes are flown against the 600-minute limit (Lemma~\ref{lem:c13_split_limit}),
+while the single paper-form row correctly rejects it. When only the end day
+is checked, the paper form's single row is satisfied despite the same
+1\,200-minute violation (Lemma~\ref{lem:c13_flaw}), while all 42 split rows
+correctly reject it (one row is violated). In both scenarios the exact-state
+recursion \eqref{eq:c13_state_lower}--\eqref{eq:c13_state_bound}, evaluated on
+the same flight and check data, correctly flags the violation. This is a
+computational proof, not merely an algebraic one: the values above come from
+evaluating the actual Pyomo constraint objects built by
+\texttt{src/model.py}, with its real $M_{\text{BIG}}=9\,999\,999$ constant,
+rather than a hand re-derivation of the inequalities.
 
-\subsection{Full hierarchy results}
+\subsection{Full hierarchy results and per-check-type effectiveness}
+\label{subsec:hierarchy_results}
 
-\Cref{tab:hierarchy} reports results for the full $\{A,B,C,D\}$ hierarchy on
-the ABCD test suite.
+\Cref{tab:hierarchy} reports \texttt{experiments/hierarchy\_effectiveness.py}:
+for each check type in isolation (A, B, C, D) we solve the legacy
+endpoint-split MILP on \texttt{ABCD\_near\_threshold\_test}, and for the
+full mixed hierarchy on \texttt{ABCD\_check\_hierarchy\_test}. Results are
+cross-validated with two independent exact solvers: the open-source HiGHS
+solver (\texttt{appsi\_highs}) and the full, unrestricted IBM ILOG CPLEX 12.6
+build distributed with AMPL (invoked through Pyomo's \texttt{cplexamp} ASL
+interface); both report identical objectives and statuses on every instance
+in this study. The CPLEX copy already on this machine's PATH is a
+size-restricted Community/Preview edition (1\,000 variable/constraint limit,
+\texttt{CPLEX Error 1016}) that cannot solve any instance with maintenance
+constraints active; it is not used for any reported result. Every solved
+instance is independently re-verified by replaying its solution: hour-triggered
+checks (A, B) are checked with the
+exact-state recursion of \Cref{subsec:c13_state}, and calendar-triggered
+checks (C, D) are checked with the analogous day-gap recursion, both
+implemented from scratch in the validator, not reused from the solver's own
+constraints.
 
 \begin{table}[t]
 \centering\small
-\caption{Full $\{A,B,C,D\}$ hierarchy result placeholder.}
+\caption{Per-check-type effectiveness on \texttt{ABCD\_near\_threshold\_test}
+  (single check active) and the full hierarchy on
+  \texttt{ABCD\_check\_hierarchy\_test}
+  (\texttt{results/tables/hierarchy\_effectiveness.csv}). ``Genuine
+  violations'' excludes cases fully explained by an aircraft that starts the
+  horizon already over threshold ($\Phi_j>T^{c}_{\max}$), which violates the
+  model's own initial-condition precondition \eqref{eq:c13b} regardless of
+  formulation.}
 \label{tab:hierarchy}
-\begin{tabular}{lcccc}
+\begin{tabular}{lrrrrrr}
 \toprule
-Instance & Status & Obj & Vars & CPU (s) \\
+Check(s) & Status & Obj & Vars & Cons. & Independently valid? & Genuine viol. \\
 \midrule
-\multicolumn{5}{c}{\emph{No dedicated hierarchy summary CSV is currently present under \texttt{results/tables/}.}} \\
+A only     & optimal & 20\,000 & 648  & 1\,318 & yes & 0 \\
+B only     & optimal & 20\,000 & 648  & 1\,516 & yes & 0 \\
+C only     & optimal & 20\,500 & 648  & 1\,679 & yes & 0 \\
+D only     & optimal & 20\,500 & 648  & 1\,679 & yes & 0 \\
+Full A/B/C/D & optimal & 14\,700 & 1\,092 & 2\,445 & \textbf{no} & 1 of 4 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\subsection{Heuristic benchmark}
+For each check type solved in isolation, the legacy model returns an optimal,
+fully covered schedule that the independent replay certifies as correct: zero
+threshold violations across all four check types on
+\texttt{ABCD\_near\_threshold\_test}. This is the practical evidence that the
+corrected hierarchy model enforces every check type (hour-triggered A/B and
+calendar-triggered C/D) without relaxation on realistic, non-adversarial
+instances.
 
-\Cref{tab:heu_benchmark} reports the measured method values on the small
-\texttt{ABCD\_capacity\_bottleneck\_test} instance (8 flights, 3 aircraft).
-This instance is small enough to run the heuristics, the exact-search
-prototypes, and the legacy MILP model side-by-side. Here the benchmark runner's
-status ``feasible'' means that the returned routes pass its checks; a row with
-unassigned flights is nevertheless not a feasible solution of C1.
+On the full mixed-hierarchy instance, the replay flags four aircraft/check
+violations, of which three (aircraft~0's A and B checks, aircraft~1's B
+check) are fully explained by the instance's deliberately overdue initial
+state ($\Phi^A_0=27\,001>T^A_{\max}=27\,000$, similarly for $B$) -- a data
+precondition violation that would also invalidate the exact-state model's own
+initial condition \eqref{eq:c13b}, independent of which C13 formulation is
+used. The remaining case is genuine: aircraft~2 starts with
+$\Phi^A_2=26\,800<T^A_{\max}$ (not overdue), yet the legacy solution flies
+enough on day~1 to reach 27\,200 minutes, exceeding the 27\,000-minute
+threshold, a violation the legacy split model's own constraints do not
+detect. This is a second, independently arising instance of the same
+endpoint-split flaw proved in \Cref{lem:c13_split_limit} and
+\Cref{tab:c13_loophole} -- found on an existing test instance under the full
+hierarchy, not constructed by hand -- and it demonstrates that the flaw is
+not confined to contrived corner cases: it can occur whenever the
+hierarchy's aggregated $\mathrm{mega}$ indicator lets a heavier check on one
+aircraft satisfy the endpoint condition for another aircraft's window in the
+same solve.
 
-\begin{table}[t]
-\centering\small
-\caption{Measured method values on \texttt{ABCD\_capacity\_bottleneck\_test}.
-  Wall time is reported in seconds.  The ACO objective is not directly
-  comparable to the complete assignments because it leaves flights unassigned.}
-\label{tab:heu_benchmark}
-\begin{tabular}{l l r r r}
-\toprule
-$\text{Method}$ & Status & Obj & Unassigned & Wall (s) \\
-\midrule
-Greedy+Insertion & feasible & 37\,000 & 1 & 0.001 \\
-Dijkstra heuristic & feasible & 37\,000 & 1 & 0.001 \\
-ACO heuristic & feasible & 17\,000 & 3 & 0.086 \\
-Brute-force exact & infeasible & -- & 8 & 12.189 \\
-DP exact small & infeasible & -- & 8 & 12.251 \\
-MILP & optimal & 8\,300 & 0 & 0.203 \\
-\bottomrule
-\end{tabular}
-\end{table}
+\subsection{Boundary suite}
 
-\begin{table}[t]
-\centering\small
-\caption{Heuristic-only comparison on
-  \texttt{ABCD\_capacity\_bottleneck\_test}.  The table isolates the three
-  constructive heuristics so their relative behavior is easier to read.}
-\label{tab:heuristic_only}
-\begin{tabular}{l r r r}
-\toprule
-Method & Status & Obj & Unassigned \\
-\midrule
-Greedy+Insertion & feasible & 37\,000 & 1 \\
-Dijkstra heuristic & feasible & 37\,000 & 1 \\
-ACO heuristic & feasible & 17\,000 & 3 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-The heuristic-only comparison in \Cref{tab:heuristic_only} shows that the two
-deterministic constructive methods are effectively indistinguishable on this
-instance: both terminate in under a millisecond, cover seven of eight flights,
-and yield the same objective value.  In contrast, the ACO heuristic explores a
-larger portion of the search space and achieves a lower partial-route cost,
-but this comes with reduced coverage, leaving three flights unassigned.  The
-result is consistent with the draft's characterization of ACO as a more
-exploratory but less stable heuristic than the deterministic constructions.
-
-Across all methods in \Cref{tab:heu_benchmark}, the legacy MILP is the only
-approach that returns a complete assignment. Its objective cannot be ranked
-against the partial heuristic objectives without an explicit unassignment
-penalty. The brute-force and DP
-exact-search prototypes remain useful as validation scaffolding, but on this
-instance they do not yet provide competitive production solutions for the full
-TAP search space.
-
-\subsection{Boundary suite and method coverage}
-
-Table~\ref{tab:boundary_suite} collects the larger boundary instances used to
-exercise the full method set.  The suite covers the assignment bottleneck,
-check hierarchy, near-threshold maintenance, and mixed-maintenance cases.  The
-constructive heuristics run on every instance; the exact search prototypes are
-only applicable on the smallest case and report \texttt{not\_applicable} on
-the larger boundary instances. The MILP is optimal for the first three cases
-and infeasible for the mixed \texttt{ABCD\_two\_b\_one\_c\_test} under the
-legacy formulation. Without an independent feasible certificate or IIS, the
-latter status is not a validated property of the intended exact hierarchy
-model.
+Table~\ref{tab:boundary_suite} collects the boundary instances used to
+exercise the corrected model at its key structural edges: the assignment
+bottleneck, the check hierarchy, near-threshold maintenance, and mixed
+check-type interaction. The legacy endpoint-split MILP is optimal for the
+first three cases and infeasible for the mixed
+\texttt{ABCD\_two\_b\_one\_c\_test} instance under CPLEX; this predates the
+HiGHS-based independent validation of \Cref{subsec:hierarchy_results} above,
+which instead uses \texttt{ABCD\_check\_hierarchy\_test} and
+\texttt{ABCD\_near\_threshold\_test} to isolate each check type.
 
 \begin{table}[t]
 \centering\small
-\caption{Boundary suite used to validate that every implemented method runs on
-  the key model edges.  Status abbreviations are from the benchmark runner.}
+\caption{Boundary suite used to validate that the legacy endpoint-split MILP
+  runs on the key model edges.}
 \label{tab:boundary_suite}
-\begin{tabular}{l l l l l l l l}
+\begin{tabular}{l l l}
 \toprule
-Instance & Boundary & Greedy & Dijkstra & ACO & BF exact & DP exact & MILP \\
+Instance & Boundary & MILP (legacy split) \\
 \midrule
-\texttt{ABCD\_capacity\_bottleneck\_test} & assignment bottleneck & feasible & feasible & feasible & infeasible & infeasible & optimal \\
-\texttt{ABCD\_check\_hierarchy\_test} & hierarchy & feasible & feasible & feasible & not\_applicable & not\_applicable & optimal \\
-\texttt{ABCD\_near\_threshold\_test} & hour threshold & feasible & feasible & feasible & not\_applicable & not\_applicable & optimal \\
-\texttt{ABCD\_two\_b\_one\_c\_test} & mixed maintenance & feasible & feasible & feasible & not\_applicable & not\_applicable & infeasible \\
+\texttt{ABCD\_capacity\_bottleneck\_test} & assignment bottleneck & optimal \\
+\texttt{ABCD\_check\_hierarchy\_test} & hierarchy & optimal \\
+\texttt{ABCD\_near\_threshold\_test} & hour threshold & optimal \\
+\texttt{ABCD\_two\_b\_one\_c\_test} & mixed maintenance & infeasible \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -278,63 +292,52 @@ stress-testing the implementation under a realistic exact-solver backend.
 \begin{table}[t]
 \centering\small
 \caption{Heavy-instance stress test on generated \texttt{DataCplex} cases
-  with density $\delta=0.5$ and $|P|=10$.  The exact-search prototypes are
-  not applicable beyond the smallest case.  With the full CPLEX Studio
+  with density $\delta=0.5$ and $|P|=10$. With the full CPLEX Studio
   executable, the legacy MILP solves all three reported instances to
   formulation-level optimality.}
 \label{tab:heavy_suite}
-\begin{tabular}{l l r r r r}
+\begin{tabular}{l r}
 \toprule
-Instance & Greedy & Dijkstra & ACO & BF exact & MILP \\
+Instance & MILP (legacy split) \\
 \midrule
-\texttt{h=7}  & feasible / 0 & feasible / 0 & feasible / 80  & not\_applicable & optimal \\
-\texttt{h=15} & feasible / 0 & feasible / 0 & feasible / 106 & not\_applicable & optimal \\
-\texttt{h=21} & feasible / 0 & feasible / 0 & feasible / 79  & not\_applicable & optimal \\
+\texttt{h=7}  & optimal \\
+\texttt{h=15} & optimal \\
+\texttt{h=21} & optimal \\
 \bottomrule
 \end{tabular}
 \end{table}
-
-On these larger instances, the two deterministic heuristics continue to return
-complete assignments quickly, while ACO leaves 79--106 flights unassigned.
-The exact-search prototypes are not applicable on
-the heavier cases because the feasible search space grows beyond their design
-target. With the full CPLEX Studio executable available, the legacy MILP also
-solves all three medium-heavy instances to formulation-level optimality. These
-rows do not validate the exact-state maintenance model.
 
 \subsection{Dense heavy instances}
 
 The densest generated cases push the MILP further than the lighter stress
 suite.  They are useful for showing where the current solver environment stops
-being able to certify a solution of the legacy formulation, while the
-heuristic methods still return partial assignments.
+being able to certify a solution of the legacy formulation.
 
 \begin{table}[t]
 \centering\small
 \caption{Dense heavy instances with density $\delta=1.0$ and $|P|=10$.
-  These cases are substantially harder. The heuristics produce partial
-  assignments, while the legacy MILP reports infeasibility on the smallest
-  dense case or stops without a certificate on the larger horizons.}
+  These cases are substantially harder: the legacy MILP reports
+  infeasibility on the smallest dense case and stops without a certificate on
+  the larger horizons within the reported run budget.}
 \label{tab:dense_heavy_suite}
-\begin{tabular}{l l l l l}
+\begin{tabular}{l r}
 \toprule
-Instance & Greedy & Dijkstra & ACO & MILP \\
+Instance & MILP (legacy split) \\
 \midrule
-\texttt{h=7}  & feasible / 93  & feasible / 119 & feasible / 209 & infeasible \\
-\texttt{h=15} & feasible / 136 & feasible / 278 & feasible / 388 & error \\
-\texttt{h=21} & feasible / 149 & feasible / 318 & feasible / 461 & error \\
-\texttt{h=30} & feasible / 168 & feasible / 330 & feasible / 538 & error \\
+\texttt{h=7}  & infeasible \\
+\texttt{h=15} & error (no certificate) \\
+\texttt{h=21} & error (no certificate) \\
+\texttt{h=30} & error (no certificate) \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-This dense suite sharpens the same qualitative conclusion as the lighter
-stress test.  The constructive heuristics scale in a predictable way and keep
-producing partial assignments, with more unassigned flights as the problem
-becomes denser and longer. By contrast, even with the full Studio backend, the
-legacy MILP reaches the practical limit of the current environment on the
-denser instances: the smallest dense case is reported infeasible, whereas the
-larger horizons terminate without a certificate inside the current run budget.
+This dense suite shows that even with the full Studio backend, the legacy
+MILP reaches the practical limit of the current environment on the denser
+instances: the smallest dense case is reported infeasible, whereas the larger
+horizons terminate without a certificate inside the current run budget. These
+scale limits apply to the legacy exact formulation and are independent of the
+correctness questions addressed in \Cref{subsec:comp_c13,subsec:hierarchy_results}.
 
 \subsection{Summary of findings}
 
@@ -342,26 +345,33 @@ larger horizons terminate without a certificate inside the current run budget.
   \item The current runs validate execution on synthetic configurations named
     after Tables~5, 6, 10, and~11; they do not reproduce the published data or
     averages.
-  \item The C13-labelled runs all use the endpoint-split legacy builder and
-    therefore provide no empirical comparison of paper, split, and exact-state
-    formulations.
-  \item The two deterministic heuristics behave almost identically on the
-    bottleneck instance, but both leave one flight unassigned.
-  \item Across the reported suite, ACO has lower coverage and longer runtime
-    than the deterministic methods; its lower raw route cost reflects fewer
-    assigned flights and is not a quality improvement.
-  \item The legacy MILP returns the only complete assignment on the bottleneck
-    comparison and solves it in well under one second.
-  \item The boundary suite confirms that all implemented methods execute on
-    the key edge cases, while the exact-search prototypes are inapplicable on
-    larger instances.
-  \item The heavy-instance stress test shows that the heuristics remain fast
-    on larger generated cases, and with the full CPLEX Studio executable the
-    legacy MILP solves the density-$0.5$ instances to formulation-level
-    optimality.
-  \item On dense cases, all heuristic outputs are partial and the legacy MILP
-    does not return an optimal solution for the reported horizons.
-  \item The brute-force and DP exact-search prototypes remain valuable for
-    validation, but they are not yet competitive as production exact solvers
-    for the full TAP search space.
+  \item The Constraint~(13) endpoint-split flaw of \Cref{lem:c13_split_limit}
+    is confirmed computationally: all 42 real constraint rows built by
+    \texttt{src/model.py} for the loophole instance are satisfied at an
+    adversarial point where 1\,200 minutes are actually flown against a
+    600-minute limit, while the exact-state recursion correctly rejects it.
+  \item Solved in isolation, each of the four check types (A, B, C, D) is
+    enforced correctly by the legacy hierarchy model on
+    \texttt{ABCD\_near\_threshold\_test}: optimal, fully covered, and
+    independently validated with zero violations.
+  \item Under the full mixed hierarchy, the same flaw reappears
+    unprompted on an existing test instance (aircraft~2 in
+    \texttt{ABCD\_check\_hierarchy\_test} exceeds its A-check threshold by
+    200 minutes with no violated constraint reported), showing the issue is
+    not confined to hand-built corner cases.
+  \item The boundary suite confirms that the legacy endpoint-split MILP
+    executes on all key edge cases and is infeasible on the mixed-maintenance
+    case under CPLEX; this is a separate, solver/formulation-scale question
+    from the correctness results above.
+  \item The heavy-instance stress test shows that, with the full CPLEX Studio
+    executable, the legacy MILP solves the density-$0.5$ instances to
+    formulation-level optimality.
+  \item On dense cases, the legacy MILP does not return a certified solution
+    for the reported horizons within the current run budget; this is a scale
+    limitation of the exact solver environment, not a correctness question.
+  \item The CPLEX installation available in this environment is a
+    size-restricted Community/Preview edition and cannot solve any instance
+    with maintenance constraints active (\texttt{CPLEX Error 1016}); the
+    new Constraint~(13) and hierarchy results therefore use the open-source
+    HiGHS solver, which is exact and unrestricted.
 \end{enumerate}

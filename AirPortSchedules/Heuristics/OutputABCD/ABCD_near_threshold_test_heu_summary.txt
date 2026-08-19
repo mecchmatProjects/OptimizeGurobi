@@ -1,0 +1,13 @@
+Dataset : InputsABCD\ABCD_near_threshold_test.json
+Mode    : heuristic
+Flights : 20/20 assigned  (0 unassigned)
+Cost    : 20000
+CPU     : 5.7s
+
+  AID    Flt   Busy(min)   Free(min)
+    0      2         400        4290
+    1      4        3680        1010
+    2      4         800        3890
+    3      3         600        4090
+    4      4         800        3890
+    5      3         600        4090

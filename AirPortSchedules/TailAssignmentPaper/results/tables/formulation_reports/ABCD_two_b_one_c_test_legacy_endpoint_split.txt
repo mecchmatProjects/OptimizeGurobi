@@ -1,0 +1,12 @@
+
+=== Legacy Endpoint-Split MILP Aircraft Assignment Report ===
+  Status : unknown
+  Vars   : 2530   Constraints: 6261
+  Gap    : nan%   CPU: 0.18s
+  Obj    : None
+
+--- Assignment ---
+
+--- Maintenance ---
+
+Total cost: 0.00

@@ -25,7 +25,7 @@ USE_CHECK_HIERARCHY = True  # If we use D check - we reload other checks too, C 
 USE_CHECKS_SANITY = True
 USE_OVERLAP_CHECKS = False
 
-DPHT = (0.5, 10, 7, 0)  # None  #  # (0.5, 10, 15, 3)
+DPHT = (1, 10, 7, 0)  # None  #  # (0.5, 10, 15, 3)
 
 # Inputs ---
 
@@ -615,26 +615,26 @@ if __name__ == "__main__":
                                     model.maint_cumulative.add(t_sum <= All_Check_Done_hours[check]*60 + Mbig * y_sum + Mbig * model.mega_check[j, d_, check])
 
 
-                # Constraint 13-1
-                # Constraint for counting previous flight hours before start - my version
-                # Planes could not fly without checks for All_Check_Done_hours - Previous flight hours without checks
-                if USE_EXISTING_HRS_CHECK:
-                    model.maint_cumulative_start = ConstraintList()
-                    for check in All_Check_List:
-                        for j in model.P:
-                            for end in range(1, min(len(Days)-1, All_Check_days[check])):
-                                d = Days[0]
-                                d_ = Days[end]
-                                t_sum = sum(FlightData[i]['duration'] * model.x[i, j] for i in F_d_next(0, d_
-                                                                                                        ))
-                                y_sum = sum(model.mega_check[j, r, check] for r in Days[:end-1])
-                                if DEBUG:
-                                    print("Plane ", j, "unchecked hrs", All_Check_Done_hours[check], All_Checks[check][j], "start/end days",d, d_)
-                                    # input()
-                                # Flight minutes is small or we have either y_sum or y[j,end]
-                                model.maint_cumulative_start.add(t_sum <= (All_Check_Done_hours[check] - All_Checks[check][j]) * 60 +
-                                                                 Mbig * y_sum +
-                                                                 Mbig * model.mega_check[j, d_, check])
+                # # Constraint 13-1
+                # # Constraint for counting previous flight hours before start - my version
+                # # Planes could not fly without checks for All_Check_Done_hours - Previous flight hours without checks
+                # if USE_EXISTING_HRS_CHECK:
+                #     model.maint_cumulative_start = ConstraintList()
+                #     for check in All_Check_List:
+                #         for j in model.P:
+                #             for end in range(1, min(len(Days)-1, All_Check_days[check])):
+                #                 d = Days[0]
+                #                 d_ = Days[end]
+                #                 t_sum = sum(FlightData[i]['duration'] * model.x[i, j] for i in F_d_next(0, d_
+                #                                                                                         ))
+                #                 y_sum = sum(model.mega_check[j, r, check] for r in Days[:end-1])
+                #                 if DEBUG:
+                #                     print("Plane ", j, "unchecked hrs", All_Check_Done_hours[check], All_Checks[check][j], "start/end days",d, d_)
+                #                     # input()
+                #                 # Flight minutes is small or we have either y_sum or y[j,end]
+                #                 model.maint_cumulative_start.add(t_sum <= (All_Check_Done_hours[check] - All_Checks[check][j]) * 60 +
+                #                                                  Mbig * y_sum +
+                #                                                  Mbig * model.mega_check[j, d_, check])
 
                 # Constraint 14??
                 # Constraint - my version of no double check
@@ -669,34 +669,34 @@ if __name__ == "__main__":
                             model.maint_checks_days.add(sum(model.mega_check[j, Days[d1], check] for d1 in range(d + 1, K)) +
                                                         Mbig * model.mega_check[j, Days[d - 1], check] +
                                                         Mbig * (1 - model.mega_check[j, Days[d], check]) >= K - d - 1)
-
-                # Version of CPLEX sent - not sure they are correct
-                # Constraint no flight during checks
-                # for j in model.P:
-                #     for d in model.D:
-                #         for k in model.A:
-                #             for i in F_dep_k[k]:
-                #                 if flight_data[i]['day'] !=d:
-                #                     continue
                 #
-                #                 t_dep = flight_data[i]['departureTime']
+                # # Version of CPLEX sent - not sure they are correct
+                # # Constraint no flight during checks
+                # # for j in model.P:
+                # #     for d in model.D:
+                # #         for k in model.A:
+                # #             for i in F_dep_k[k]:
+                # #                 if flight_data[i]['day'] !=d:
+                # #                     continue
+                # #
+                # #                 t_dep = flight_data[i]['departureTime']
+                # #
+                # #                 for check in All_Check_List:
+                # #                     lhs_lt = sum(model.x[i1, j] for i1 in F_dep_t_t1(k,t_dep, t_dep + All_Check_durations[check]))
+                # #                     model.maint_block_flights.add(lhs_lt <= Mbig * model.y[j, d, check])
                 #
-                #                 for check in All_Check_List:
-                #                     lhs_lt = sum(model.x[i1, j] for i1 in F_dep_t_t1(k,t_dep, t_dep + All_Check_durations[check]))
-                #                     model.maint_block_flights.add(lhs_lt <= Mbig * model.y[j, d, check])
-
-                # for j in model.P:
-                #     for d in model.D:
-                #         for i in model.F:
-                #             t_dep = flight_data[i]['departureTime']
-                #             if flight_data[i]['day'] < d:
-                #                 continue
+                # # for j in model.P:
+                # #     for d in model.D:
+                # #         for i in model.F:
+                # #             t_dep = flight_data[i]['departureTime']
+                # #             if flight_data[i]['day'] < d:
+                # #                 continue
+                # #
+                # #             for check in model.C:
+                # #                 if t_dep < d * 24 * 60 + All_Check_durations[check]:
+                # #                     print(j,i,d,check)
+                # #                     model.maint_block_flights.add(model.x[i, j] + model.y[j, d, check] <=1)
                 #
-                #             for check in model.C:
-                #                 if t_dep < d * 24 * 60 + All_Check_durations[check]:
-                #                     print(j,i,d,check)
-                #                     model.maint_block_flights.add(model.x[i, j] + model.y[j, d, check] <=1)
-
                 # Constraint (15)
                 # Constraint no flight during checks - my version\
                 # For checks A-B hours

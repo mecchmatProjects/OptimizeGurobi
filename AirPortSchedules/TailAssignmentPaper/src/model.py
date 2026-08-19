@@ -634,7 +634,9 @@ class MILP_Sheduler:
                     use_sanity=False,
                     use_overlap=True,
                     allow_ferry=True,
-                    use_maintenance=True):
+                    use_maintenance=True,
+                    use_paper_c13=False,
+                    use_tight_c13_m=False):
         """Construct the ConcreteModel.  Call before solve().
 
         Parameters
@@ -650,6 +652,21 @@ class MILP_Sheduler:
             added.  Set to *False* to solve a pure flight-assignment model
             (no check scheduling) — dramatically fewer constraints, much
             faster to solve, useful as an upper-bound / relaxation benchmark.
+        use_paper_c13 : bool
+            When *True*, build the original Khaled et al. (2018) Eq. (13)
+            single-constraint form (vacuous whenever either endpoint
+            indicator is 0; see paper/sections/04_maintenance_model.tex,
+            Lemma ``lem:c13_flaw``) instead of the corrected two-row split.
+            Default *False* uses the split formulation that is the base of
+            this codebase (still provably insufficient in isolation; see
+            Lemma ``lem:c13_split_limit`` and
+            ``experiments/c13_loophole_validation.py``).
+        use_tight_c13_m : bool
+            When *True*, replace the global ``M_BIG`` constant in C13 with
+            an interval-specific valid upper bound (the real maximum
+            flyable time between the two boundary days, minus the
+            threshold). Tightens the LP relaxation without changing the
+            integer-feasible region or either C13 correctness lemma.
         """
         m = ConcreteModel()
         self.model = m
@@ -676,7 +693,8 @@ class MILP_Sheduler:
             self._add_c12_day_spacing_days(m)
             if use_existing_hrs:
                 self._add_c13b_existing_hrs(m)
-            self._add_c13_hr_accumulation(m)
+            self._add_c13_hr_accumulation(m, use_paper_c13=use_paper_c13,
+                                          use_tight_m=use_tight_c13_m)
             self._add_c15_no_flight_during_maint(m)
         if use_sanity:
             self._add_sanity(m)
@@ -1141,7 +1159,17 @@ class MILP_Sheduler:
     # unless a check occurs in between (uses big-M relaxation).
     # ------------------------------------------------------------------
 
-    def _add_c13_hr_accumulation(self, m):
+    def _c13_big_m(self, c, aircraft, start_day, end_day):
+        """Return a valid interval-specific C13 relaxation bound in minutes."""
+        upper_bound = sum(
+            self.flight_data[flight]['duration']
+            for flight in self._f_dep_between_days(start_day, end_day)
+            if self._x_has_arc(flight, aircraft)
+        )
+        threshold = self.check_hrs[c] * 60.0
+        return max(0.0, upper_bound - threshold)
+
+    def _add_c13_hr_accumulation(self, m, use_paper_c13=False, use_tight_m=False):
         m.c13 = ConstraintList()
         days  = sorted(self.days)
         n     = len(days)
@@ -1164,6 +1192,21 @@ class MILP_Sheduler:
                         )
                         y_mid  = sum(m.mega[j, days[r], c]
                                      for r in range(si + 1, ei))
+                        big_m = (
+                            self._c13_big_m(c, j, d, d_)
+                            if use_tight_m else self.M_BIG
+                        )
+                        if use_paper_c13:
+                            # Original Khaled et al. (2018) Eq. (13): a single
+                            # constraint keyed on (2 - mega[d] - mega[d_]), which
+                            # is trivially satisfied whenever either endpoint
+                            # indicator is 0 (Lemma lem:c13_flaw).
+                            m.c13.add(
+                                t_sum <= hr_limit * 60
+                                         + big_m * (2 - m.mega[j, d, c] - m.mega[j, d_, c])
+                                         + big_m * y_mid
+                            )
+                            continue
                         # Two separate constraints: each relaxed by one boundary
                         # check so the pair is binding whenever either boundary
                         # day (or the interior) has no check.
@@ -1173,13 +1216,13 @@ class MILP_Sheduler:
                         #   t_sum <= hr_limit*60  → correctly enforced.
                         m.c13.add(
                             t_sum <= hr_limit * 60
-                                     + self.M_BIG * y_mid
-                                     + self.M_BIG * m.mega[j, d, c]
+                                     + big_m * y_mid
+                                     + big_m * m.mega[j, d, c]
                         )
                         m.c13.add(
                             t_sum <= hr_limit * 60
-                                     + self.M_BIG * y_mid
-                                     + self.M_BIG * m.mega[j, d_, c]
+                                     + big_m * y_mid
+                                     + big_m * m.mega[j, d_, c]
                         )
          
 
@@ -1300,8 +1343,12 @@ class MILP_Sheduler:
     # ------------------------------------------------------------------
 
     def solve(self, solver_name='cplex', tee=False, out_path=None,
-              time_limit=None, warm_start=False):
+              time_limit=None, warm_start=False, executable=None):
         """Invoke the solver on the built model.
+
+        executable : str | None
+            Explicit path to the solver binary (e.g. an unrestricted CPLEX
+            build); overrides PATH lookup without changing os.environ.
 
         Parameters
         ----------
@@ -1325,7 +1372,8 @@ class MILP_Sheduler:
             self.warm_start_from_heuristic()
 
         solver_name = solver_name or os.environ.get('TAP_PYOMO_SOLVER', 'cplex_direct')
-        solver = SolverFactory(solver_name)
+        executable = executable or os.environ.get('TAP_PYOMO_SOLVER_EXECUTABLE')
+        solver = SolverFactory(solver_name, executable=executable) if executable else SolverFactory(solver_name)
 
         # --- solver-specific time-limit options ---
         _sn = solver_name.lower()
@@ -1780,7 +1828,8 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
              use_day_spacing=True, use_existing_hrs=True,
              use_check_hierarchy=True, use_sanity=False, use_overlap=True,
              allow_ferry=True, use_maintenance=True, warm_start=True,
-             max_hour_check_deferral_days=None, enabled_checks=None):
+             max_hour_check_deferral_days=None, enabled_checks=None,
+             executable=None, use_paper_c13=False, use_tight_c13_m=False):
     """Build and solve the MILP model, then display results.
 
     Parameters
@@ -1806,9 +1855,12 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
                     use_sanity=use_sanity,
                     use_overlap=use_overlap,
                     allow_ferry=allow_ferry,
-                    use_maintenance=use_maintenance)
+                    use_maintenance=use_maintenance,
+                    use_paper_c13=use_paper_c13,
+                    use_tight_c13_m=use_tight_c13_m)
     summary = opt.solve(solver_name=solver, tee=tee, out_path=out_txt,
-                        time_limit=time_limit, warm_start=warm_start)
+                        time_limit=time_limit, warm_start=warm_start,
+                        executable=executable)
     opt.plot_gantt(save_path=gantt_path, show=show_gantt, fname=f'{out_txt[:-4]}_events.txt' if out_txt else None)
     return opt, summary
 

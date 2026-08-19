@@ -30,7 +30,7 @@ $\mathcal O$ defined in \Cref{sec:basic}.
 
 \subsection*{Our contributions}
 
-The present paper makes four contributions that check, correct, and extend
+The present paper makes three contributions that check, correct, and extend
 those results:
 
 \begin{enumerate}
@@ -56,16 +56,10 @@ those results:
   are flight-hour triggered and type-C and~D checks are calendar-day triggered.
   A heavier check subsumes all lighter checks (hierarchical counter resets).
   We further account for pre-horizon accumulated maintenance hours/days per
-  aircraft.
-
-\item \textbf{Heuristic benchmark.}  We implement and evaluate two
-  constructive heuristics: (a) a greedy/insertion heuristic operating
-  directly on flight lists, and (b) a Dijkstra-based heuristic on the
-  space-time network representation (adapted from
-  \citet{gronkvist2005tail}).  Both heuristics respect the full maintenance
-  hierarchy. We compare coverage, cost, and runtime against the available MILP
-  results. Because some heuristic runs leave flights unassigned, objective
-  values and optimality gaps are reported only when coverage is comparable.
+  aircraft, and we validate the extension with a dedicated computational
+  study that isolates each check type (A, B, C, D) and their combination,
+  independently re-verifying every reported solution against the raw flight
+  timetable.
 \end{enumerate}
 
 \subsection*{Paper organisation}
@@ -75,6 +69,6 @@ basic TAP model and proves a C2--C4 corner-case correction.  \Cref{sec:maintenan
 presents the maintenance-extended model, the Constraint~(13) correction, and
 the induced interpretation updates for C8--C14 under the corrected basic model.
 \Cref{sec:hierarchy} describes the
-full $\{A,B,C,D\}$ extension.  \Cref{sec:heuristics} analyses the heuristic
-algorithms.  \Cref{sec:computational} reports all computational results.
-\Cref{sec:conclusion} concludes.
+full $\{A,B,C,D\}$ extension.  \Cref{sec:computational} reports the
+numeric Constraint~(13) counterexample and the per-check-type computational
+study.  \Cref{sec:conclusion} concludes.

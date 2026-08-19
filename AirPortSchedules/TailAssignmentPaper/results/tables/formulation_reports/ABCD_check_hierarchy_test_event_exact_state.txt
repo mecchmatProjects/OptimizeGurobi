@@ -1,0 +1,10 @@
+
+=== Event MILP Aircraft Assignment Report ===
+  Status : unknown
+  Vars   : 439   Constraints: 1552
+  Gap    : nan%   CPU: 0.03s
+  Obj    : None
+
+--- Assignment ---
+
+--- Maintenance ---

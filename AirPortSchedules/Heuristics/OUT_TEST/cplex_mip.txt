@@ -1,0 +1,4 @@
+read OUT_TEST/debug_infeas_mip.lp
+mipopt
+display solution status
+quit

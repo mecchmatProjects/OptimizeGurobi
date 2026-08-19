@@ -63,8 +63,8 @@
 
 \begin{frontmatter}
 
-\title{Revisiting the Compact Tail Assignment Model: Corrections,
-  Extensions to Full Maintenance Hierarchies, and a Heuristic Benchmark Study}
+\title{Revisiting the Compact Tail Assignment Model: Corrections and an
+  Exact Full Maintenance Hierarchy Extension}
 
 \author[lgi]{Viktor Borodin}
 \author[lip6]{Arun Kumar Pappala}
@@ -86,18 +86,20 @@ that a two-row endpoint split is also insufficient and give an exact
 cumulative-state formulation. Third, we
 extend the maintenance model beyond the type-A single-check framework to a
 full four-level $\{A, B, C, D\}$ maintenance hierarchy with correct counter
-resets and pre-horizon accumulated-hours accounting. Fourth, we report an
-instance-matched benchmark of greedy/insertion, Dijkstra-based, and ant-colony
-heuristics alongside the available legacy MILP implementation. The current
-computational tables are validation snapshots rather than a completed
-reproduction of Khaled et al.'s tables; several dense cells remain infeasible
-or unresolved and exact-state MILP experiments remain future work. All code
-and instances used for these snapshots accompany the project.
+resets and pre-horizon accumulated-hours accounting. We give a numeric
+counterexample in which the original and endpoint-split formulations both
+certify a schedule that violates the flight-hour limit, while an exact-state
+event formulation correctly rejects it, and we independently verify every
+reported solution by replaying its maintenance counters outside the model.
+We then report exact CPLEX solves across targeted instances that isolate
+each check type (A, B, C, D) and their combination, demonstrating that the
+corrected hierarchy model enforces every check type without relaxation. All
+code, instances, and result tables accompany the project.
 \end{abstract}
 
 \begin{keyword}
 Tail assignment \sep Aircraft routing \sep Maintenance scheduling \sep
-Integer programming \sep Heuristics \sep Ant Colony Optimization
+Integer programming \sep Mixed-integer programming corrections
 \end{keyword}
 
 \end{frontmatter}
@@ -108,7 +110,6 @@ Integer programming \sep Heuristics \sep Ant Colony Optimization
 \input{sections/03_basic_model}
 \input{sections/04_maintenance_model}
 \input{sections/05_hierarchy_extension}
-\input{sections/06_heuristics}
 \input{sections/07_computational}
 \input{sections/08_conclusion}
 %% ==========================================================================

@@ -1,0 +1,310 @@
+﻿**********************
+Windows PowerShell transcript start
+Start time: 20260305200507
+Username: DESKTOP-ICMO22D\brpri
+RunAs User: DESKTOP-ICMO22D\brpri
+Configuration Name: 
+Machine: DESKTOP-ICMO22D (Microsoft Windows NT 10.0.19045.0)
+Host Application: C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -noexit -command try { . "f:\Microsoft VS Code\072586267e\resources\app\out\vs\workbench\contrib\terminal\common\scripts\shellIntegration.ps1" } catch {}
+Process ID: 14896
+PSVersion: 5.1.19041.6456
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.19041.6456
+BuildVersion: 10.0.19041.6456
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+Transcript started, output file is F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics\test_run.txt
+    opt.build_model(use_day_spacing=use_day_spacing,
+  File "F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics\heu
+180h.py", line 432, in build_model
+    self._add_c8_maint_blocks_flights(m)
+  File "F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics\heu
+180h.py", line 585, in _add_c8_maint_blocks_flights
+    if fd2['day_departure'] == d_i and fd2['departureTime'] > dep_i:
+       ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt
+PS>TerminatingError(): "The pipeline has been stopped."
+>> TerminatingError(): "The pipeline has been stopped."
+]633;D;1]633;A]633;P;Cwd=F:\x5cLectures\x5cFacultative\x5cOptimizers\x5cTasks\x5cAirPortSchedules\x5cHeuristicsPS F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics> ]633;B
+PS>py -3 heu180h.py --mode milp --no-ferry --no-overlap --no-sanity --time-limit 30 2>&1
+
+>> TerminatingError(): "The pipeline has been stopped."
+>> TerminatingError(): "The pipeline has been stopped."
+]633;D;1]633;A]633;P;Cwd=F:\x5cLectures\x5cFacultative\x5cOptimizers\x5cTasks\x5cAirPortSchedules\x5cHeuristicsPS F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics> ]633;B
+PS>cd "F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics"
+]633;D;0]633;A]633;P;Cwd=F:\x5cLectures\x5cFacultative\x5cOptimizers\x5cTasks\x5cAirPortSchedules\x5cHeuristicsPS F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics> ]633;B
+PS>py -3 heu180h.py --mode milp --no-ferry --no-overlap --no-sanity --time-limit 60
+
+PS>TerminatingError(): "The pipeline has been stopped."
+>> TerminatingError(): "The pipeline has been stopped."
+]633;D;1]633;A]633;P;Cwd=F:\x5cLectures\x5cFacultative\x5cOptimizers\x5cTasks\x5cAirPortSchedules\x5cHeuristicsPS F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics> ]633;B
+PS>echo "shell ready"
+shell ready
+]633;D;0]633;A]633;P;Cwd=F:\x5cLectures\x5cFacultative\x5cOptimizers\x5cTasks\x5cAirPortSchedules\x5cHeuristicsPS F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics> ]633;B
+PS>echo "shell ready"
+shell ready
+]633;D;0]633;A]633;P;Cwd=F:\x5cLectures\x5cFacultative\x5cOptimizers\x5cTasks\x5cAirPortSchedules\x5cHeuristicsPS F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics> ]633;B
+PS>py -3 heu180h.py --mode milp --no-ferry --no-overlap --no-sanity --time-limit 60 2>&1
+
+>> TerminatingError(): "The pipeline has been stopped."
+>> TerminatingError(): "The pipeline has been stopped."
+]633;D;1]633;A]633;P;Cwd=F:\x5cLectures\x5cFacultative\x5cOptimizers\x5cTasks\x5cAirPortSchedules\x5cHeuristicsPS F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics> ]633;B
+PS>echo "wait_complete"
+wait_complete
+]633;D;0]633;A]633;P;Cwd=F:\x5cLectures\x5cFacultative\x5cOptimizers\x5cTasks\x5cAirPortSchedules\x5cHeuristicsPS F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics> ]633;B
+PS>echo "wait_complete"
+wait_complete
+]633;D;0]633;A]633;P;Cwd=F:\x5cLectures\x5cFacultative\x5cOptimizers\x5cTasks\x5cAirPortSchedules\x5cHeuristicsPS F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics> ]633;B
+PS>echo "wait_complete"
+wait_complete
+]633;D;0]633;A]633;P;Cwd=F:\x5cLectures\x5cFacultative\x5cOptimizers\x5cTasks\x5cAirPortSchedules\x5cHeuristicsPS F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics> ]633;B
+PS>echo "wait_complete"
+wait_complete
+]633;D;0]633;A]633;P;Cwd=F:\x5cLectures\x5cFacultative\x5cOptimizers\x5cTasks\x5cAirPortSchedules\x5cHeuristicsPS F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics> ]633;B
+PS>py -3 heu180h.py --mode milp --no-ferry --no-overlap --no-sanity --time-limit 60 > milp_test.txt 2>&1 ; echo "exit=$LASTEXITCODE" ; Select-String -Path milp_test.txt -Pattern "Status|Gap|Obj|CPU|infeasible|optimal|Traceback|Error" | ForEach { $_.Line } | Select-Object -First 15
+PS>TerminatingError(): "The pipeline has been stopped."
+>> TerminatingError(): "The pipeline has been stopped."
+]633;D;1]633;A]633;P;Cwd=F:\x5cLectures\x5cFacultative\x5cOptimizers\x5cTasks\x5cAirPortSchedules\x5cHeuristicsPS F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics> ]633;B
+PS>echo "sync"
+sync
+]633;D;0]633;A]633;P;Cwd=F:\x5cLectures\x5cFacultative\x5cOptimizers\x5cTasks\x5cAirPortSchedules\x5cHeuristicsPS F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics> ]633;B
+PS>Get-Content milp_test.txt | Select-String "Status|Gap|Obj|CPU|infeasible|optimal|Traceback|Error" | Select-Object -First 20
+]633;D;0]633;A]633;P;Cwd=F:\x5cLectures\x5cFacultative\x5cOptimizers\x5cTasks\x5cAirPortSchedules\x5cHeuristicsPS F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics> ]633;B
+PS>Test-Path milp_test.txt; if (Test-Path milp_test.txt) { (Get-Content milp_test.txt).Count; Get-Content milp_test.txt | Select-Object -Last 20 }
+True
+0
+]633;D;0]633;A]633;P;Cwd=F:\x5cLectures\x5cFacultative\x5cOptimizers\x5cTasks\x5cAirPortSchedules\x5cHeuristicsPS F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics> ]633;B
+PS>Get-Item milp_test.txt | Select-Object Length; Get-Content milp_test.txt -Tail 5
+
+Length
+------
+     0
+
+
+]633;D;0]633;A]633;P;Cwd=F:\x5cLectures\x5cFacultative\x5cOptimizers\x5cTasks\x5cAirPortSchedules\x5cHeuristicsPS F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics> ]633;B
+PS>py -3 heu180h.py --mode milp --no-ferry --no-overlap --no-sanity --time-limit 60 *> milp_test2.txt; Get-Item milp_test2.txt | Select-Object Length
+PS>TerminatingError(): "The pipeline has been stopped."
+>> TerminatingError(): "The pipeline has been stopped."
+]633;D;1]633;A]633;P;Cwd=F:\x5cLectures\x5cFacultative\x5cOptimizers\x5cTasks\x5cAirPortSchedules\x5cHeuristicsPS F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics> ]633;B
+PS>echo "poll"
+poll
+]633;D;0]633;A]633;P;Cwd=F:\x5cLectures\x5cFacultative\x5cOptimizers\x5cTasks\x5cAirPortSchedules\x5cHeuristicsPS F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics> ]633;B
+PS>Get-Item milp_test2.txt | Select-Object Length; Get-Content milp_test2.txt | Select-String "Status|Gap|Obj|CPU|infeasible|optimal|Traceback|Error" | Select-Object -First 15
+
+Length
+------
+     0
+
+
+]633;D;0]633;A]633;P;Cwd=F:\x5cLectures\x5cFacultative\x5cOptimizers\x5cTasks\x5cAirPortSchedules\x5cHeuristicsPS F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics> ]633;B
+PS>py -3 heu180h.py --mode milp --no-ferry --no-overlap --no-sanity --time-limit 120 *> milp_test3.txt ; Get-Item milp_test3.txt | Select-Object Length ; Get-Content milp_test3.txt | Select-String "Status|Gap|Obj|CPU|infeasible|optimal|Traceback|Error|cons=" | Select-Object -First 15
+PS>TerminatingError(): "The pipeline has been stopped."
+>> TerminatingError(): "The pipeline has been stopped."
+]633;D;1]633;A]633;P;Cwd=F:\x5cLectures\x5cFacultative\x5cOptimizers\x5cTasks\x5cAirPortSchedules\x5cHeuristicsPS F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics> ]633;B
+PS>echo "waitpoll"
+waitpoll
+]633;D;0]633;A]633;P;Cwd=F:\x5cLectures\x5cFacultative\x5cOptimizers\x5cTasks\x5cAirPortSchedules\x5cHeuristicsPS F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics> ]633;B
+PS>Get-Item milp_test3.txt | Select-Object Length; Get-Content milp_test3.txt -Tail 30
+
+Length
+------
+     0
+
+
+]633;D;0]633;A]633;P;Cwd=F:\x5cLectures\x5cFacultative\x5cOptimizers\x5cTasks\x5cAirPortSchedules\x5cHeuristicsPS F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics> ]633;B
+PS>py -3 quick_test.py 2>&1
+
+]633;D;0]633;A]633;P;Cwd=F:\x5cLectures\x5cFacultative\x5cOptimizers\x5cTasks\x5cAirPortSchedules\x5cHeuristicsPS F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics> ]633;B
+PS>py -3 heu180h.py --mode milp --no-ferry --no-overlap --no-sanity --time-limit 120 2>&1
+
+>> TerminatingError(): "The pipeline has been stopped."
+>> TerminatingError(): "The pipeline has been stopped."
+]633;D;1]633;A]633;P;Cwd=F:\x5cLectures\x5cFacultative\x5cOptimizers\x5cTasks\x5cAirPortSchedules\x5cHeuristicsPS F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics> ]633;B
+PS>echo "final_poll"
+final_poll
+]633;D;0]633;A]633;P;Cwd=F:\x5cLectures\x5cFacultative\x5cOptimizers\x5cTasks\x5cAirPortSchedules\x5cHeuristicsPS F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics> ]633;B
+PS>Get-Content milp_report.txt | Select-Object -First 20
+Get-Content : Cannot find path 'F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics\milp_report.txt' 
+because it does not exist.
+At line:1 char:1
++ Get-Content milp_report.txt | Select-Object -First 20
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (F:\Lectures\Fac...milp_report.txt:String) [Get-Content], 
+ItemNotFoundException
+    + FullyQualifiedErrorId : PathNotFound,Microsoft.PowerShell.Commands.GetContentCommand
+Get-Content : Cannot find path 'F:\Lectures\Facultative\Optimizers\Tasks\AirPor
+tSchedules\Heuristics\milp_report.txt' because it does not exist.
+At line:1 char:1
++ Get-Content milp_report.txt | Select-Object -First 20
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (F:\Lectures\Fac...milp_report.t
+   xt:String) [Get-Content], ItemNotFoundException
+    + FullyQualifiedErrorId : PathNotFound,Microsoft.PowerShell.Commands.GetCo
+   ntentCommand
+
+]633;D;1]633;A]633;P;Cwd=F:\x5cLectures\x5cFacultative\x5cOptimizers\x5cTasks\x5cAirPortSchedules\x5cHeuristicsPS F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics> ]633;B
+PS>Get-ChildItem *.txt | Select-Object Name, Length, LastWriteTime | Sort-Object LastWriteTime -Descending | Select-Object -First 10
+
+Name            Length LastWriteTime
+----            ------ -------------
+test_run.txt     10755 3/5/2026 8:52:26 PM
+milp_test3.txt       0 3/5/2026 8:33:56 PM
+milp_test2.txt       0 3/5/2026 8:28:43 PM
+milp_test.txt        0 3/5/2026 8:24:20 PM
+chapter4.txt     19816 3/5/2026 5:25:21 PM
+pdf_extract.txt  87958 3/5/2026 5:24:14 PM
+
+
+]633;D;0]633;A]633;P;Cwd=F:\x5cLectures\x5cFacultative\x5cOptimizers\x5cTasks\x5cAirPortSchedules\x5cHeuristicsPS F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics> ]633;B
+PS>Get-Content test_run.txt | Select-String "Status|Gap|Obj|CPU|infeasible|optimal|Traceback|Error|cons=" | Select-Object -First 20
+
+PS>TerminatingError(): "The pipeline has been stopped."
+>> TerminatingError(): "The pipeline has been stopped."
+>> TerminatingError(): "The pipeline has been stopped."
+>> TerminatingError(): "The pipeline has been stopped."
+PS>TerminatingError(): "The pipeline has been stopped."
+>> TerminatingError(): "The pipeline has been stopped."
+>> TerminatingError(): "The pipeline has been stopped."
+>> TerminatingError(): "The pipeline has been stopped."
+PS>py -3 heu180h.py --mode milp --no-ferry --no-overlap --no-sanity
+--time-limit 60 > milp_test.txt 2>&1 ; echo "exit=$LASTEXITCODE" ;
+Select-String -Path milp_test.txt -Pattern
+"Status|Gap|Obj|CPU|infeasible|optimal|Traceback|Error" | ForEach { $_.Line }
+| Select-Object -First 15
+PS>TerminatingError(): "The pipeline has been stopped."
+>> TerminatingError(): "The pipeline has been stopped."
+PS>Get-Content milp_test.txt | Select-String
+"Status|Gap|Obj|CPU|infeasible|optimal|Traceback|Error" | Select-Object -First
+20
+PS>Test-Path milp_test.txt; if (Test-Path milp_test.txt) { (Get-Content
+milp_test.txt).Count; Get-Content milp_test.txt | Select-Object -Last 20 }
+PS>Get-Item milp_test.txt | Select-Object Length; Get-Content milp_test.txt
+-Tail 5
+PS>py -3 heu180h.py --mode milp --no-ferry --no-overlap --no-sanity
+--time-limit 60 *> milp_test2.txt; Get-Item milp_test2.txt | Select-Object
+Length
+PS>TerminatingError(): "The pipeline has been stopped."
+>> TerminatingError(): "The pipeline has been stopped."
+PS>Get-Item milp_test2.txt | Select-Object Length; Get-Content milp_test2.txt
+| Select-String "Status|Gap|Obj|CPU|infeasible|optimal|Traceback|Error" |
+Select-Object -First 15
+PS>py -3 heu180h.py --mode milp --no-ferry --no-overlap --no-sanity
+--time-limit 120 *> milp_test3.txt ; Get-Item milp_test3.txt | Select-Object
+Length ; Get-Content milp_test3.txt | Select-String
+"Status|Gap|Obj|CPU|infeasible|optimal|Traceback|Error|cons=" | Select-Object
+-First 15
+PS>TerminatingError(): "The pipeline has been stopped."
+
+
+]633;D;0]633;A]633;P;Cwd=F:\x5cLectures\x5cFacultative\x5cOptimizers\x5cTasks\x5cAirPortSchedules\x5cHeuristicsPS F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics> ]633;B
+PS>py -3 -c "
+import subprocess, sys
+result = subprocess.run(['py', '-3', 'heu180h.py', '--mode', 'milp', '--no-ferry', '--no-overlap', '--no-sanity', '--time-limit', '120'], capture_output=True, text=True, cwd='F:/Lectures/Facultative/Optimizers/Tasks/AirPortSchedules/Heuristics', timeout=200)
+lines = (result.stdout + result.stderr).splitlines()
+for line in lines:
+    if any(k in line for k in ['Status', 'Gap', 'Obj', 'CPU', 'infeasible', 'optimal', 'Traceback', 'Error', 'cons=']):
+        print(line)
+print('---LAST 5---')
+for line in lines[-5:]:
+    print(line)
+" 2>&1
+py : Traceback (most recent call last):
+At line:1 char:1
++ py -3 -c "
++ ~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Traceback (most recent call last)
+   ::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+  File "<string>", line 3, in <module>
+  File
+"C:\Users\brpri\AppData\Local\Programs\Python\Python312\Lib\subprocess.py",
+line 550, in run
+    stdout, stderr = process.communicate(input, timeout=timeout)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File
+"C:\Users\brpri\AppData\Local\Programs\Python\Python312\Lib\subprocess.py",
+line 1209, in communicate
+    stdout, stderr = self._communicate(input, endtime, timeout)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File
+"C:\Users\brpri\AppData\Local\Programs\Python\Python312\Lib\subprocess.py",
+line 1628, in _communicate
+    raise TimeoutExpired(self.args, orig_timeout)
+subprocess.TimeoutExpired: Command '['py', '-3', 'heu180h.py', '--mode',
+'milp', '--no-ferry', '--no-overlap', '--no-sanity', '--time-limit', '120']'
+timed out after 200 seconds
+
+]633;D;1]633;A]633;P;Cwd=F:\x5cLectures\x5cFacultative\x5cOptimizers\x5cTasks\x5cAirPortSchedules\x5cHeuristicsPS F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics> ]633;B
+PS>py -3 quick_test.py 2>&1
+
+]633;D;0]633;A]633;P;Cwd=F:\x5cLectures\x5cFacultative\x5cOptimizers\x5cTasks\x5cAirPortSchedules\x5cHeuristicsPS F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics> ]633;B
+PS>py -3 -c "
+import subprocess, sys
+result = subprocess.run(['py', '-3', 'heu180h.py', '--mode', 'milp', '--no-ferry', '--no-overlap', '--no-sanity', '--time-limit', '30'], capture_output=True, text=True, cwd='F:/Lectures/Facultative/Optimizers/Tasks/AirPortSchedules/Heuristics', timeout=120)
+lines = (result.stdout + result.stderr).splitlines()
+for line in lines:
+    if any(k in line.lower() for k in ['status', 'gap', 'obj', 'cpu', 'infeasible', 'optimal', 'traceback', 'error', 'cons=']):
+        print(line)
+print('---RC:', result.returncode)
+" 2>&1
+py : Traceback (most recent call last):
+At line:1 char:1
++ py -3 -c "
++ ~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Traceback (most recent call last)
+   ::String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+
+  File "<string>", line 3, in <module>
+  File
+"C:\Users\brpri\AppData\Local\Programs\Python\Python312\Lib\subprocess.py",
+line 550, in run
+    stdout, stderr = process.communicate(input, timeout=timeout)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File
+"C:\Users\brpri\AppData\Local\Programs\Python\Python312\Lib\subprocess.py",
+line 1209, in communicate
+    stdout, stderr = self._communicate(input, endtime, timeout)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File
+"C:\Users\brpri\AppData\Local\Programs\Python\Python312\Lib\subprocess.py",
+line 1628, in _communicate
+    raise TimeoutExpired(self.args, orig_timeout)
+subprocess.TimeoutExpired: Command '['py', '-3', 'heu180h.py', '--mode',
+'milp', '--no-ferry', '--no-overlap', '--no-sanity', '--time-limit', '30']'
+timed out after 120 seconds
+
+]633;D;1]633;A]633;P;Cwd=F:\x5cLectures\x5cFacultative\x5cOptimizers\x5cTasks\x5cAirPortSchedules\x5cHeuristicsPS F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics> ]633;B
+PS>py -3 quick_solve.py 2>&1
+
+]633;D;0]633;A]633;P;Cwd=F:\x5cLectures\x5cFacultative\x5cOptimizers\x5cTasks\x5cAirPortSchedules\x5cHeuristicsPS F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics> ]633;B
+PS>py -3 heu180h.py --mode batch --batch-mode milp --no-ferry --no-overlap --no-sanity --time-limit 120 2>&1
+
+]633;D;0]633;A]633;P;Cwd=F:\x5cLectures\x5cFacultative\x5cOptimizers\x5cTasks\x5cAirPortSchedules\x5cHeuristicsPS F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics> ]633;B
+PS>cd "F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics"; git add heu180h.py; git commit -m "fix: C12 day-spacing and C8 constraint bugs causing infeasibility
+
+C12 bug: A/B check thresholds are in flight-minutes (not calendar days).
+Converting them as int(minutes/60/24) gave 0->max(1,0)=1, forcing a check
+every single day for every aircraft (impossible). Fix: set check_days=None
+for A/B types (flight-hour governed by C13) and skip them in C12.
+Also skip check types where interval >= horizon (trivially inactive).
+
+C8 bug: looped over ALL days d generating z[i,j,d,c]+x[i2,j]<=1 for every
+d, not just d==d_i (the flight's actual arrival day). This created:
+4 x 234 x 10 x 8 x 234 = ~17.5M iterations causing >60s model build time.
+Fix: only add C8 constraints for d==d_i, pre-compute blocking flights list.
+
+C13/C13b also updated to handle None check_days gracefully (use n as bound).
+
+Results after fix:
+- Model builds in ~2s (was >60s, 35x speedup)
+- Constraints ~158k (was ~1.2M)
+- All 4 instances now FEASIBLE with full maintenance constraints
+  h=7: 0.10% gap, h=15: 0.49%, h=21: 0.42%, h=30: feasible (120s limit)"
+
+
+]633;D;0]633;A]633;P;Cwd=F:\x5cLectures\x5cFacultative\x5cOptimizers\x5cTasks\x5cAirPortSchedules\x5cHeuristicsPS F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\Heuristics> ]633;B

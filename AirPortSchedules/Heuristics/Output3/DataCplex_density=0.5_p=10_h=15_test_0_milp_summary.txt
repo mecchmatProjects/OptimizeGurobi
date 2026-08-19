@@ -1,0 +1,158 @@
+
+=== MILP Aircraft Assignment Report ===
+  Status : optimal
+  Vars   : 59640   Constraints: 209676
+  Gap    : 0.0088%   CPU: 3.35s
+  Obj    : 1132128.0
+
+--- Assignment ---
+  Flight    1  -> Aircraft 2
+  Flight    2  -> Aircraft 2
+  Flight    3  -> Aircraft 2
+  Flight    4  -> Aircraft 2
+  Flight    5  -> Aircraft 2
+  Flight    6  -> Aircraft 2
+  Flight    7  -> Aircraft 2
+  Flight    8  -> Aircraft 2
+  Flight    9  -> Aircraft 2
+  Flight   10  -> Aircraft 8
+  Flight   11  -> Aircraft 2
+  Flight   12  -> Aircraft 2
+  Flight   13  -> Aircraft 2
+  Flight   14  -> Aircraft 2
+  Flight   15  -> Aircraft 2
+  Flight   16  -> Aircraft 2
+  Flight   17  -> Aircraft 2
+  Flight   18  -> Aircraft 5
+  Flight   19  -> Aircraft 5
+  Flight   20  -> Aircraft 5
+  Flight   21  -> Aircraft 5
+  Flight   22  -> Aircraft 5
+  Flight   23  -> Aircraft 5
+  Flight   24  -> Aircraft 5
+  Flight   25  -> Aircraft 2
+  Flight   26  -> Aircraft 2
+  Flight   27  -> Aircraft 2
+  Flight   28  -> Aircraft 2
+  Flight   29  -> Aircraft 2
+  Flight   30  -> Aircraft 5
+  Flight   31  -> Aircraft 6
+  Flight   32  -> Aircraft 6
+  Flight   33  -> Aircraft 6
+  Flight   34  -> Aircraft 2
+  Flight   35  -> Aircraft 5
+  Flight   36  -> Aircraft 5
+  Flight   37  -> Aircraft 5
+  Flight   38  -> Aircraft 2
+  Flight   39  -> Aircraft 2
+  Flight   40  -> Aircraft 2
+  Flight   41  -> Aircraft 2
+  Flight   42  -> Aircraft 5
+  Flight   43  -> Aircraft 5
+  Flight   44  -> Aircraft 5
+  Flight   45  -> Aircraft 5
+  Flight   46  -> Aircraft 2
+  Flight   47  -> Aircraft 9
+  Flight   48  -> Aircraft 2
+  Flight   49  -> Aircraft 6
+  Flight   50  -> Aircraft 8
+  Flight   51  -> Aircraft 6
+  Flight   52  -> Aircraft 0
+  Flight   53  -> Aircraft 2
+  Flight   54  -> Aircraft 0
+  Flight   55  -> Aircraft 2
+  Flight   56  -> Aircraft 8
+  Flight   57  -> Aircraft 5
+  Flight   58  -> Aircraft 5
+  Flight   59  -> Aircraft 5
+  Flight   60  -> Aircraft 5
+  Flight   61  -> Aircraft 5
+  Flight   62  -> Aircraft 8
+  Flight   63  -> Aircraft 8
+  Flight   64  -> Aircraft 5
+  Flight   65  -> Aircraft 5
+  Flight   66  -> Aircraft 8
+  Flight   67  -> Aircraft 2
+  Flight   68  -> Aircraft 2
+  Flight   69  -> Aircraft 5
+  Flight   70  -> Aircraft 5
+  Flight   71  -> Aircraft 5
+  Flight   72  -> Aircraft 2
+  Flight   73  -> Aircraft 2
+  Flight   74  -> Aircraft 2
+  Flight   75  -> Aircraft 2
+  Flight   76  -> Aircraft 2
+  Flight   77  -> Aircraft 2
+  Flight   78  -> Aircraft 2
+  Flight   79  -> Aircraft 6
+  Flight   80  -> Aircraft 6
+  Flight   81  -> Aircraft 8
+  Flight   82  -> Aircraft 5
+  Flight   83  -> Aircraft 5
+  Flight   84  -> Aircraft 2
+  Flight   85  -> Aircraft 2
+  Flight   86  -> Aircraft 2
+  Flight   87  -> Aircraft 8
+  Flight   88  -> Aircraft 8
+  Flight   89  -> Aircraft 8
+  Flight   90  -> Aircraft 8
+  Flight   91  -> Aircraft 2
+  Flight   92  -> Aircraft 5
+  Flight   93  -> Aircraft 5
+  Flight   94  -> Aircraft 2
+  Flight   95  -> Aircraft 2
+  Flight   96  -> Aircraft 2
+  Flight   97  -> Aircraft 5
+  Flight   98  -> Aircraft 5
+  Flight   99  -> Aircraft 5
+  Flight  100  -> Aircraft 2
+  Flight  101  -> Aircraft 5
+  Flight  102  -> Aircraft 2
+  Flight  103  -> Aircraft 5
+  Flight  104  -> Aircraft 5
+  Flight  105  -> Aircraft 5
+  Flight  106  -> Aircraft 2
+  Flight  107  -> Aircraft 5
+  Flight  108  -> Aircraft 2
+  Flight  109  -> Aircraft 8
+  Flight  110  -> Aircraft 2
+  Flight  111  -> Aircraft 2
+  Flight  112  -> Aircraft 5
+  Flight  113  -> Aircraft 8
+  Flight  114  -> Aircraft 8
+  Flight  115  -> Aircraft 8
+  Flight  116  -> Aircraft 8
+  Flight  117  -> Aircraft 5
+  Flight  118  -> Aircraft 5
+  Flight  119  -> Aircraft 8
+  Flight  120  -> Aircraft 8
+  Flight  121  -> Aircraft 8
+  Flight  122  -> Aircraft 8
+  Flight  123  -> Aircraft 8
+  Flight  124  -> Aircraft 8
+  Flight  125  -> Aircraft 8
+  Flight  126  -> Aircraft 8
+  Flight  127  -> Aircraft 8
+  Flight  128  -> Aircraft 6
+  Flight  129  -> Aircraft 8
+  Flight  130  -> Aircraft 8
+  Flight  131  -> Aircraft 8
+  Flight  132  -> Aircraft 8
+  Flight  133  -> Aircraft 8
+  Flight  134  -> Aircraft 8
+  Flight  135  -> Aircraft 6
+  Flight  136  -> Aircraft 8
+  Flight  137  -> Aircraft 8
+  Flight  138  -> Aircraft 8
+  Flight  139  -> Aircraft 8
+  Flight  140  -> Aircraft 8
+
+--- Maintenance ---
+  Aircraft 6  day   4  check A after flight:
+128 arr 1455.0 
+
+
+y[6,4,A] = 1.0  (check A for aircraft 6 on day 4)
+z[128,6,4,A] = 1.0  (flight 128 triggers check A for aircraft 6 on day 4)
+
+Total cost: 1132128.00

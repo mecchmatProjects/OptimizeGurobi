@@ -1,0 +1,9 @@
+stem,mode,flights,assigned,unassigned,cost,obj,gap_%,status,cpu_s
+DataCplex_density=1_p=10_h=15_test_0,heuristic,420,284,136,3338053.0,3338053.0,,heuristic,7.45
+DataCplex_density=1_p=10_h=15_test_0,milp,420,420,0,3422164.0,3422164.0,,optimal,10.52
+DataCplex_density=1_p=10_h=21_test_0,heuristic,498,349,149,4020092.0,4020092.0,,heuristic,11.36
+DataCplex_density=1_p=10_h=21_test_0,milp,498,498,0,4062850.0,4062850.0,,optimal,18.02
+DataCplex_density=1_p=10_h=30_test_0,heuristic,575,407,168,5033378.0,5033378.0,,heuristic,17.3
+DataCplex_density=1_p=10_h=30_test_0,milp,575,575,0,4701523.0,4701523.0,,optimal,28.41
+DataCplex_density=1_p=10_h=7_test_0,heuristic,234,141,93,1620593.0,1620593.0,,heuristic,2.19
+DataCplex_density=1_p=10_h=7_test_0,milp,234,234,0,1921697.0,1921697.0,,optimal,3.49

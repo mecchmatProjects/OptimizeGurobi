@@ -1,0 +1,10 @@
+Dataset : InputsABCD\ABCD_capacity_bottleneck_test.json
+Mode    : heuristic
+Flights : 7/8 assigned  (1 unassigned)
+Cost    : 37000
+CPU     : 2.4s
+
+  AID    Flt   Busy(min)   Free(min)
+    0      3        1080        2720
+    1      3        1080        2720
+    2      1         620        3180

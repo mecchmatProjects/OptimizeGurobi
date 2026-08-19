@@ -1,0 +1,2767 @@
+=== FILE: FA45_A compact optimization model for the tail assignment problem.pdf ===
+European Journal of Operational Research 264 (2018) 548–557 
+Contents lists available at ScienceDirect 
+European Journal of Operational Research 
+journal homepage: www.elsevier.com/locate/ejor 
+Production, Manufacturing and Logistics 
+A compact optimization model for the tail assignment problem 
+Oumaima Khaled a , d , Michel Minoux b , Vincent Mousseau a , ∗, Stéphane Michel c , 
+Xavier Ceugniet c 
+a Laboratoire Genie Industriel, CentraleSupélec, Université Paris-Saclay, Grande Voie des Vignes, 92290, Chatenay-Malabry, France 
+b Laboratoire d’Informatique de Paris 6, Université Pierre et Marie Curie, 4 Place Jussieu, 75005, Paris, France 
+c France Lab, IBM, 1681 Route Des Dolines, Les Taissounieres Hb2, 06560, Valbonne, France 
+d France Lab, IBM, Gentilly, France 
+a r t i c l e 
+i n f o 
+Article history: 
+Received 28 May 2016 
+Accepted 20 June 2017 
+Available online 23 June 2017 
+Keywords: 
+OR in airlines 
+Tail assignment 
+Aircraft routing 
+Maintenance routing 
+Integer linear program 
+a b s t r a c t 
+This paper investigates a new model for the so-called Tail Assignment Problem, which consists in as- 
+signing a well-identiﬁed airplane to each ﬂight leg of a given ﬂight schedule, in order to minimize total 
+cost (cost of operating the ﬂights and possible maintenance costs) while complying with a number of 
+operational constraints. The mathematical programming formulation proposed is compact (i.e., involves 
+a number of 0 −1 decision variables and constraints polynomial in the problem size parameters) and is 
+shown to be of signiﬁcantly reduced dimension as compared with previously known compact models. 
+Computational experiments on series of realistic problem instances (obtained by random sampling from 
+real-world data set) are reported. It is shown that with the proposed model, current state-of-the art MIP 
+solvers can eﬃciently solve to exact optimality large instances representing 30-day ﬂight schedules with 
+typically up to 40 airplanes and 1500 ﬂight legs connecting as many as 21 airports. The model also in- 
+cludes the main existing types of maintenance constraints, and extensive computational experiments are 
+reported on problem instances of size typical of practical applications. 
+© 2017 Elsevier B.V. All rights reserved. 
+1. Introduction 
+The airline sector is characterized by high operational costs, 
+strong regulations, and a complex planning process. In today’s 
+competitive environment a permanent concern for companies is to 
+utilize the available resources (crew personnel, gates, airport slots, 
+aircraft...) in the most eﬃcient way. This fact has led airline compa- 
+nies to constantly seek for improved eﬃciency of the planning pro- 
+cess through the use of advanced optimization models and tools. 
+The airline planning process is commonly divided into several 
+subproblems, which are usually addressed and solved sequentially: 
+1. Timetable construction based on traﬃc forecast between 
+cities/airports; 
+2. Fleet Assignment, which consists in deciding which ﬂeet (i.e., 
+aircraft type) is going to operate each ﬂight in the timetable; 
+3. Crew planning (or: rostering) which is to assign crew personnel 
+to the various ﬂights; 
+∗Corresponding author. 
+E-mail addresses: oumaima.khaled@centralesupelec.fr (O. Khaled), 
+michel.minoux@lip6.fr (M. Minoux), vincent.mousseau@centralesupelec.fr (V. 
+Mousseau), stephane.michel@fr.ibm.com (S. Michel), CEUGNIET@fr.ibm.com (X. 
+Ceugniet). 
+4. Tail Assignment, which is to allocate a speciﬁc airplane (identi- 
+ﬁed by its tail number) to each ﬂight leg; 
+5. Recovery planning, which aims at adjusting the schedule in 
+case of unexpected events (airport closure, absence of crew, de- 
+lays, etc.). 
+For more details on the above overall planning process, refer to 
+survey papers such as Barnhart et al. (2003) ; Gopalan and Talluri 
+(1998) . 
+In this paper, we are interested in the Tail Assignment prob- 
+lem, also referred to as aircraft routing problem ( Clarke, Johnson, 
+Nemhauser, & Zhu, 1997; Kabbani & Patty, 1992 ). As mentioned 
+above, Tail Assignment is the problem of deciding which individual 
+airplane should be assigned to each ﬂight of a given timetable in 
+order to optimize some objective function (minimizing assignment 
+costs and/or maintenance costs) under a number of structural or 
+operational constraints. 
+The main constraints to consider in the Tail Assignment prob- 
+lem are those specifying whether it is possible to successively op- 
+erate two given ﬂights with the same airplane. This implies com- 
+pliance with (a) a minimum time condition; (b) an equipment 
+continuity condition. Condition (a) aims at ensuring that a mini- 
+mum time is left for cleaning, changing crew and passengers, and 
+preparing aircraft for the next ﬂight. Condition (b) enforces the 
+http://dx.doi.org/10.1016/j.ejor.2017.06.045 
+0377-2217/© 2017 Elsevier B.V. All rights reserved. 
+
+O. Khaled et al. / European Journal of Operational Research 264 (2018) 548–557 
+549 
+arrival airport of the ﬁrst ﬂight to be the same as the departure 
+airport for the second ﬂight. Besides this, we have to take into ac- 
+count a set of “initial conditions” which impose that each airplane 
+should start from some given initial airport. 
+In addition to the above basic constraints, other types of restric- 
+tions may arise such as: 
+• constraints prohibiting some speciﬁed airplanes to land on 
+some speciﬁed airports for a variety of reasons (noise, unavail- 
+able equipment, etc.); 
+• various types of maintenance constraints, the introduction of 
+such constraints is postponed to Section 5 of the present pa- 
+per where it will be shown how they can be incorporated into 
+our model; 
+• other constraints, less frequently considered, can also be men- 
+tioned such as achieving balanced ﬂight duration among the 
+airplanes, or limiting the number of landings in some speciﬁed 
+airports per airplane (see e.g., Jünger, Elf, & Kaibel, 2003 ). 
+As will become apparent from the sequel, most of the above- 
+mentioned constraints can be taken into account in our tail assign- 
+ment model. 
+The paper is organized as follows. The new compact 0–1 linear 
+programming formulation for a basic version of the tail assignment 
+problem (i.e., without handling of the maintenance constraints) is 
+presented and discussed in Section 3 . Section 4 is devoted to an 
+extensive computational study of the model. Results are reported 
+for exact solution of instances featuring up to about 1500 ﬂight 
+legs and a ﬂeet with up to 40 airplanes. Section 5 then discusses 
+the various types of maintenance constraints and shows how to 
+include the most important ones into the model at the expense of 
+only moderate increase in problem size. Extensive computational 
+results on this version of the model are also reported. 
+2. Literature review and comparison with existing models and 
+solutions techniques 
+In the last two decades, the Tail Assignment problem and var- 
+ious closely related ﬂeeting problems have been extensively stud- 
+ied in the Operations Research literature, see for instance Klabjan 
+(2005) ; Sherali et al. (2006) . 
+There are three main mathematical programming formulations 
+underlying most existing work, namely: 
+(a) the so-called set packing/partitioning model which is non- 
+compact in the sense that it involves a number of decision 
+variables depending exponentially on the problem size pa- 
+rameters. In these models, each 0–1 decision variable cor- 
+responds to a string, i.e., an ordered sequence of ﬂights that 
+originates and terminates at airports with maintenance facil- 
+ity. Since the number of feasible strings is usually much too 
+large to be handled explicitly by problem solvers, it requires 
+the use of the so-called column generation technique (addi- 
+tional strings being generated as needed in the course of the 
+optimization process). If exact optimality is required, column 
+generation has to be combined with Branch and Bound (this 
+is referred to as ‘Branch and Price’ see e.g., Barnhart et al., 
+1998 ). 
+(b) the so-called integral multi-commodity ﬂow formulation 
+( Levin, 1971 ) which is a compact model in the sense that its 
+size (number of 0–1 decision variables and number of con- 
+straints) is a polynomial function of the problem size param- 
+eters (number of aircraft, number of ﬂight legs); 
+(c) the so-called time-space network model , ﬁrst proposed in 
+( Hane et al., 1995 ) to model the ﬂeet assignment prob- 
+lem and subsequently generalized to aircraft routing and 
+crew pairing problems ( Clarke, Hane, Johnson, & Nemhauser, 
+1996 ). In the time-space network, each station is repre- 
+sented by a time line spanning the time horizon consid- 
+ered and each node in the time-space network denotes an 
+event of departure or arrival of a ﬂight at a station at a spe- 
+ciﬁc time; to allow connection between ﬂights, a minimum 
+ground time is added to the actual ﬂight arrival time to ob- 
+tain the time of arrival associated with the corresponding 
+arrival node. Connections between the nodes involve three 
+types of arcs, namely: ground arcs, ﬂight arcs and overnight 
+arcs. This formulation also gives rise to a compact model with 
+large number of variables and constraints. To reduce the size 
+of the formulation, two preprocessing methods can be used, 
+namely node aggregation and island isolation (see e.g., Hane 
+et al., 1995; Sherali et al., 2006 ). 
+The column-generation approach related to (a) has been exten- 
+sively used to solve airline operations problems. This approach was 
+initiated by the work of Lavoie, Minoux, and Odier (1988) ; Minoux 
+(1984) on the crew pairing problem and then followed by many 
+studies in various airline ﬁelds specially in ﬂeet assignment, air- 
+craft routing and robust aircraft routing ( Barnhart et al., 1998; 
+Daskin & Panayotopoulos, 1989; Desaulniers, Desrosiers, Dumas, 
+Solomon, & Soumis, 1997; Grönkvist, 2005; Hane et al., 1995; Kab- 
+bani & Patty, 1992; Sarac et al., 2006 ). Cordeau, Stojkovi ´c, Soumis, 
+and Desrosiers (2001) ; Mercier, Cordeau, and Soumis (2005) ap- 
+ply column generation technique starting from a multi-commodity 
+ﬂow model with non linear resource constraints representing 
+maintenance requirements. More recently, the column generation 
+approach has been proposed for addressing robust versions of 
+the tail assignment problem in Borndörfer, Dovica, Nowak, and 
+Schickinger (2010) and Froyland, Maher, and Wu (2013) . All these 
+formulations are noncompact and thus completely different from 
+the one proposed in the present paper. 
+The second type of model (item (b)) is a compact formulation 
+based on a multi-commodity ﬂow problem ﬁrst proposed by Levin 
+(1971) in the context of aircraft routing and ﬂeeting problems. The 
+resulting integer linear program uses {0, 1} decision variables ( x k 
+ij ) 
+which take the value 1 if and only if ﬂight i and j are successively 
+operated by airplane k corresponding to a sequence between two 
+successive ﬂights i and j . The number of variables in this problem 
+is O (| F | 2 | P |) where | F | and | P | are respectively the total number of 
+ﬂights in the timetable and the total number of airplanes. 
+As compared with Levin’s model, our model features much re- 
+duced size. More precisely, carrying out the comparison on the 
+40 instances solved in Section 4 , we ﬁnd a size reduction factor 
+ranging from 32 to 78, with an average value of 55. As a typ- 
+ical example, we mention the case of 10 instances composed of 
+1251 ﬂight legs, 40 airplanes and 21 airports on average leading to 
+3,083,104 binary decision variables under Levin’s model, while the 
+new model only features 52,256 binary variables; the number of 
+0–1 variables in this example is reduced on average by a factor 59, 
+thus enabling us to get exact optimal solutions within less than 1 
+hour CPU time. 
+The third widely used formulation (item (c)) is the so-called 
+time-space network model which has been proposed by Hane et al. 
+(1995) to handle ﬂeet assignment problems. All the existing work 
+based on time-space network models we are aware of address 
+ﬂeeting problems with an homogeneous ﬂeet assumption together 
+with additional constraints, which we do not impose in our model . 
+Contrasting with this, in the present work the various airplanes 
+considered are handled individually , which means that there is a 
+cost speciﬁc to each of them, the initial position (airport) of each 
+aircraft is taken into account; it is not required that the aircraft 
+returns to its initial airport by the end of the time horizon con- 
+sidered (we refer to this as the ‘cyclic constraint’). This capabil- 
+ity of handling each aircraft individually enables us for instance to 
+
+550 
+O. Khaled et al. / European Journal of Operational Research 264 (2018) 548–557 
+Fig. 1. Optimal ﬂight schedule for example of Section 3.3 . 
+properly address a situation frequently encountered by airline 
+companies, namely the case of two aircraft which, in spite of be- 
+ing of the same type, differ by ages thus resulting in a signif- 
+icant difference w.r.t. fuel consumption (as is well-known, fuel 
+consumption represents the essential part of the cost to be 
+minimized). 
+Though part of the constraints in our model can be interpreted 
+as combinations of ﬂow-conservation constraints similar to those 
+appearing in Hane et al. (1995) and other related works ( Haouari, 
+Shao, & Sherali, 2012; Liang & Chaovalitwongse, 2012; Liang, Chao- 
+valitwongse, Huang, & Johnson, 2011 ), some distinctive features 
+and advantages of our model are worth pointing out. Indeed, it 
+is possible to re-express our model using the same set of deci- 
+sion variables as those involved in time-space network models (the 
+variables expressing assignment of aircraft to ﬂight sequences and 
+the variables corresponding to ground arcs), but doing it results in 
+a signiﬁcant increase of the size of the model (both the number of 
+variables and the number of constraints are typically augmented 
+by a factor 1.25 to 2). 
+Another important distinctive feature is that, due to the fact 
+that we do not impose all the constraints of a ﬂeeting problem, in 
+particular the requirement that the ﬂight schedules determined to 
+cover the various ﬂight legs should lend themselves to cyclic repe- 
+tition over time (the ‘ cyclic constraint ’), some more ﬂexibility is left 
+to ﬁnd a feasible schedule. This fact is illustrated in Section 3.3 by 
+means of a small example featuring 6 ﬂight legs, 2 aircraft and 
+2 airports. For this example our model admits a feasible solution 
+( Fig. 1 ), while imposing the cyclic constraint (as is done for in- 
+stance in Hane et al., 1995 ) leads to an infeasible problem . 
+It is therefore clear from this analysis that, even if the models 
+in Hane et al. (1995) and ours feature some structural similarity, 
+they are different by size, by the solution space considered and by 
+a number of constraints. 
+Finally we note that a close look at the most recent works 
+related to the time-space network model leads to conﬁrm the 
+main distinctive features highlighted above. Liang et al. (2011) ad- 
+dressed a daily aircraft maintenance-routing problem by construct- 
+ing a rotation-tour time-space network with wraparound mainte- 
+nance arcs. Their model is of polynomial size but the size of the 
+problem instances solved is limited to 352 ﬂights. In a follow- 
+on paper, Liang and Chaovalitwongse (2012) extended their pre- 
+vious model to consider the weekly aircraft maintenance routing 
+problem by duplicating the daily network multiple times and link- 
+ing them with proper maintenance arcs. Fleet assignment deci- 
+sions are also included within this modeling framework by repli- 
+cating the same routing network for each type of aircraft. However, 
+the resulting large scale model is not solved exactly but only ap- 
+proximate solutions are obtained via variable ﬁxing heuristics. In 
+Haouari et al. (2012) , the authors present a compact formulation 
+for the aircraft routing problem including nonlinear constraints 
+that are subsequently linearized by applying the reformulation–
+linearization technique (RLT). In addition to the fact that their 
+model is quite different from ours (at least because it is nonlin- 
+ear), the largest instances solved are limited to 344 ﬂights only. 
+All the above-mentioned works focus on daily or weekly repeated 
+ﬂight schedules therefore assuming the same “cyclic constraint” as 
+in Hane et al. (1995) . 
+In the present work, we introduce an improved compact for- 
+mulation for the Tail Assignment problem featuring only O (| F || P |) 
+variables which, to the best of our knowledge, appears to be new. 
+Our model, is of signiﬁcantly reduced size as compared with other 
+existing models, does not impose the cyclic constraint and handles 
+the various airplanes individually. As will be shown through ex- 
+tensive computational experiments, the new formulation enables 
+one to solve to exact optimality real size instances of the problem 
+simultaneously taking into account all kinds of maintenance con- 
+straints with standard state-of-the art MIP solvers. 
+3. Modeling the Tail Assignment problem 
+3.1. Problem deﬁnition 
+The problem addressed is described by means of a timetable 
+including a speciﬁed set of ﬂight legs, where each ﬁght leg i is 
+deﬁned by a departure airport a ↗ 
+i , an arrival airport a ↘ 
+i , a depar- 
+ture time t ↗ 
+i and an arrival time t ↘ 
+i . n f denotes the number of 
+ﬂight legs and the set of ﬂight legs is F = 1 , . . . , i, . . . , n f . A typi- 
+cal timetable is shown in Table 2 . 
+The Tail Assignment problem aims at deﬁning for each speciﬁc 
+airplane of a given ﬂeet, the subset of ﬂights which should be op- 
+erated by this airplane in such a way that: (a) all ﬂights of the 
+timetable are covered; (b) total cost is minimized. 
+In this section, we limit ourselves to presenting ﬁrst a basic ver- 
+sion of the model which does not take maintenance constraints 
+into account, the extended version including maintenance will be 
+the subject of Section 5 . Besides the fact that such a progressive 
+approach is likely to make it easier to understand the model, we 
+ﬁnd it valuable to begin with highlighting what constitutes the 
+generic part (the ‘core’) of the model, i.e., that part which is in- 
+dependent of a particular way of specifying the maintenance con- 
+straints. 
+The set of airplanes considered is indexed by j = 1 , . . . , n p , we 
+set P = { 1 , 2 , . . . n p } . In the assignment process, each ﬂight i from 
+the timetable is assigned to an airplane j ∈ P = { 1 , . . . , j, . . . , n p } 
+and the corresponding cost c ij is supposed to be known and given. 
+Even if, in practice, the tail assignment problem often concerns an 
+homogeneous ﬂeet (i.e., a set of airplanes having similar techni- 
+cal characteristics), the model to be proposed doesn’t rely on any 
+homogeneity assumption . In particular, if several distinct airplanes 
+are capable of operating a given ﬂight i , the associated costs are 
+allowed to be different. 
+
+O. Khaled et al. / European Journal of Operational Research 264 (2018) 548–557 
+551 
+Table 1 
+Notation summary. 
+F 
+The set of ﬂights: F = { 1 , . . . , i, . . . ., n f } 
+P 
+The set of airplanes to plan: P = { 1 , . . . , j, . . . ., n p } 
+A 
+The set of airports: A = { 1 , . . . , k, . . . ., n k } 
+a ↘ 
+i 
+Arrival airport of ﬂight i 
+a ↗ 
+i 
+Departure airport of ﬂight i 
+t ↘ 
+i 
+Arrival time of ﬂight i 
+t ↗ 
+i 
+Departure time of ﬂight i 
+t 
+Minimum time on ground needed between an arrival and a 
+departure time 
+c ij 
+Cost of assigning ﬂight i to airplane j 
+a 0 
+j 
+The airport corresponding to the initial position of airplane j at the 
+beginning of the horizon 
+F ↘ 
+k 
+The set of ﬂights which land in airport k 
+F ↗ 
+k 
+The set of ﬂights which take off from airport k 
+F ↘ 
+k (θ) 
+The set of ﬂight i ∈ F ↘ 
+k such that t ↘ 
+i ⩽ θ −t
+F ↗ 
+k (θ) 
+The set of ﬂights i ∈ F ↗ 
+k such that t ↗ 
+i < θ
+In the basic version of the Tail Assignment problem addressed 
+in the present section (i.e., not considering maintenance), there are 
+four main types of constraints that should be accounted for when 
+assigning airplanes to ﬂights: 
+(C1) Flight coverage : this classical constraint requires that each 
+ﬂight i ∈ F should be covered by exactly one airplane j ∈ 
+P . 
+(C2) Equipment continuity : airplane j can be assigned to ﬂight i 
+which departs from airport k only if it has previously landed 
+in the same airport k early enough. This guarantees that air- 
+plane j is actually positioned in airport k = a ↗ 
+i considering 
+its previous ﬂights. 
+(C3) Initial conditions : these constraints specify that every air- 
+plane j must depart from its initial position denoted a 0 
+j . In 
+other words the departure airport of the ﬁrst ﬂight i oper- 
+ated by an airplane j must correspond to the initial position 
+of the airplane: a ↗ 
+i = a 0 
+j . 
+(C4) Turn time constraints : the last type of constraints states that 
+a minimum allowed time interval t , called either ground 
+time or turn time, is necessary between the arrival and de- 
+parture of an airplane. Thus, two ﬂights i and i’ can be car- 
+ried out in sequence by the same airplane only if a ↘ 
+i = a ↗ 
+i ′ 
+and t ↘ 
+i ′ ≤t ↗ 
+i −t. 
+Deﬁnition 1. An assignment of airplanes to ﬂights will be called a 
+‘feasible ﬂight plan’ if it satisﬁes all the constraints 1–4 above. 
+3.2. Mathematical programming formulation 
+We now formulate the problem as a binary linear programming 
+problem with | F || P | 0-1 decision variables x ij , where: 
+x ij = 
+
+1 
+if ﬂight i is operated by airplane j 
+0 
+else 
+(1) 
+The objective is to minimize the total assignment cost 
+i ∈ F j ∈ P c ij x ij where, for each i ∈ F and j ∈ P , the cost c ij of as- 
+signing airplane j to ﬂight i is known and given. 
+Using the notation subsumed in Table 1 , the proposed model is 
+stated as: 
+Minimize 
+ 
+i ∈ F 
+ 
+j∈ P c ij x ij 
+(2) 
+s.t. 
+ 
+j∈ P x ij = 1 , ∀ i ∈ F 
+(3) 
+ 
+i ′ ∈ F ↘ 
+k (t ↗ 
+i ) x i ′ j − 
+i ′ ∈ F ↗ 
+k (t ↗ 
+i ) x i ′ j ≥x ij 
+∀ j ∈ P, ∀ k ∈ A \{ a 0 
+j } , ∀ i ∈ F ↗ 
+k 
+(4) 
+ 
+i ′ ∈ F ↘ 
+k (t ↗ 
+i ) x i ′ j − 
+i ′ ∈ F ↗ 
+k (t ↗ 
+i ) x i ′ j ≥x ij −1 
+∀ j ∈ P, k = a 0 
+j , ∀ i ∈ F ↗ 
+k 
+(5) 
+x ij ∈ { 0 , 1 } , ∀ i ∈ F , j ∈ P 
+(6) 
+The objective function (2) represents the cost of assigning air- 
+planes to ﬂights. The ﬂight coverage constraints (3) ensure that 
+each ﬂight i should be assigned to a single airplane j . Constraints 
+(4) and (5) aim at ensuring both conditions (C2) (equipment con- 
+tinuity) and (C4) (turn time constraints) as explained below. Let 
+t = min i ∈ F t ↗ 
+i , and t = max i ∈ F t ↘ 
+i . 
+Given any solution x to (3) –(6) , for any θ ∈ [ t , t ] , for any j ∈ P 
+and k ∈ A , the expression: 
+B ( j, k, θ) = 
+ 
+i ∈ F ↘ 
+k (θ) 
+x ij −
+ 
+i ∈ F ↗ 
+k (θ) 
+x ij 
+represents the difference between the number of landings (not 
+later than time θ −t) and the number of take-offs (strictly be- 
+fore time θ) for airplane j and at airport k (net balance be- 
+tween landings and take-offs). With this notation, constraint (4) for 
+j ∈ P, k ∈ A \{ a 0 
+j } , i ∈ F ↗ 
+k expresses the fact that setting x ij = 1 is 
+only possible if B ( j, k, t ↗ 
+i ) ≥1 . And constraint (5) for j ∈ P, k = 
+a 0 
+j , i ∈ F ↗ 
+k expresses the fact that setting x ij = 1 is only possible 
+if: 1 + B ( j, k, t ↗ 
+i ) ≥1 
+It is readily realized that any feasible plan complying with 
+Deﬁnition 1 necessary satisﬁes constraints (4) and (5) . The fol- 
+lowing proposition shows that, conversely, any feasible solution to 
+program (3) –(6) corresponds to a feasible plan. 
+Proposition 1. Any feasible solution to the system (3) –(6) is a feasi- 
+ble plan. 
+Proof. Let x denotes any feasible solution to (3) –(6) and for any 
+airplane j ∈ P , let S j = { i 1 , i 2 , . . . ., i p } denote the subset of ﬂights 
+i such that x ij = 1 in this solution, ordered according to non de- 
+creasing values of departure time i.e: 
+t ↗ 
+i 1 ≤t ↗ 
+i 2 ≤· · · · · · ≤t ↗ 
+i p . 
+We are going to show that all the conditions (C2),(C3), and (C4) 
+for airplane j are satisﬁed. First, suppose that (4) does not hold, 
+i.e., that a ↗ 
+i 1 ̸ = a 0 
+j . Then in this case: B ( j, a ↗ 
+i 1 , t ↗ 
+i 1 ) = 0 and since 
+x i 1 j = 1 this shows that constraints (5) corresponding to i = i 1 is 
+violated, contradicting our assumption that x satisﬁed (3) –(6) . Thus 
+(C3) holds true. 
+Suppose now that conditions (C2) and/or (C4) for airplane j 
+are not satisﬁed, and let ( i , i ′ ) denote the ﬁrst pair of consecutive 
+ﬂights in the ordered sequence S j such that at least one of the con- 
+ditions (C2) or (C4) does not hold true. 
+First assume that this is so because (C2) is not satisﬁed, i.e., 
+that: a ↘ 
+i ̸ = a ↗ 
+i ′ . Two cases have to be examined separately, depend- 
+ing on whether a ↗ 
+i ′ ̸ = a 0 
+j (case 1), or a ↗ 
+i ′ = a 0 
+j (case 2). 
+In case 1, it is easily checked that B ( j, a ↗ 
+i ′ , t ↗ 
+i ′ ) = 0 . Since x i ′ j = 
+1 , this implies that constraint (4) corresponding to i = i ′ is violated, 
+contradicting the fact that x is a solution to (3) –(6) . 
+In case 2, it is easily checked that: B ( j, a ↗ 
+i ′ , t ↗ 
+i ′ ) = −1 . Since 
+x i ′ j = 1 , this implies that the corresponding constraints (5) for 
+i = i ′ is violated, again leading to a contradiction. 
+In view of the above, (C2) necessary holds, which means that 
+a ↘ 
+i = a ↗ 
+i ′ and if ( i , i ′ ) is the ﬁrst pair of consecutive ﬂights for 
+which at least one out of (C2) and (C4) does not hold true, this 
+is necessarily because (C4) does not hold true. 
+So, assume that ( i , i ′ ) is such that a ↘ 
+i = a ↗ 
+i ′ = k, and, because 
+(C4) does not hold: t ↗ 
+i ′ < t ↘ 
+i + t. 
+
+552 
+O. Khaled et al. / European Journal of Operational Research 264 (2018) 548–557 
+Table 2 
+Example of a ﬂight timetable. 
+Flight i 
+a ↗ ( i ) 
+a ↘ ( i ) 
+t ↗ ( i ) 
+t ↘ ( i ) 
+1 
+A 
+B 
+1.10.2016 09:00 
+1.10.2016 11:00 
+2 
+B 
+A 
+1.10.2016 11:30 
+1.10.2016 13:30 
+3 
+A 
+B 
+1.10.2016 14:00 
+1.10.2016 16:00 
+4 
+B 
+A 
+1.10.2016 09:30 
+1.10.2016 11:30 
+5 
+A 
+B 
+1.10.2016 12:00 
+1.10.2016 14:00 
+6 
+B 
+A 
+1.10.2016 14:30 
+1.10.2016 16:30 
+Table 3 
+Assignment costs c ij . 
+Flight i 
+Airplane 
+1 
+2 
+3 
+1 
+6804 
+6870 
+6771 
+2 
+4536 
+4580 
+4514 
+3 
+7216 
+7286 
+7181 
+4 
+1133 
+1144 
+1128 
+5 
+6185 
+6245 
+6155 
+6 
+5773 
+5829 
+5745 
+Again two cases have to be examined, depending on whether 
+k ̸ = a 0 
+j (case 3) or k = a 0 
+j (case 4). 
+In case 3, it is easily checked that: B ( j, k, t ↗ 
+i ′ ) = 0 . Since x i ′ j = 1 , 
+this implies that constraints (4) corresponding to i = i ′ is violated, 
+and a contradiction results. 
+In case 4, it is easy to check that: B ( j, k, t ↗ 
+i ′ ) = −1 . Since x i ′ j = 
+1 , this implies violation of constraint (5) corresponding to i = i ′ , 
+from which a contradiction is obtained. 
+From the above it is concluded that all the conditions (C2), (C3), 
+and (C4) are satisﬁed for airplane j , and since this is true for any j 
+∈ P , the proof of Proposition 1 is concluded. □
+The following proposition states the number of variables and 
+constraints in model (2) –(6) and shows that it is a compact model . 
+Proposition 2. Model (2) –(6) contains n f × n p binary decision vari- 
+ables. The number of constraints is bounded by O ( n f × n p ), where n f 
+and n p represent the number of airplanes and ﬂights. 
+Proof. Clearly the model involves n f × n p decision variables ( x ij ). 
+The number of constraints (3) is equal to n f . The number of con- 
+straints (4) is bounded by O ( n f × n p × n a ) but is actually less than 
+this upper bound because we just consider ﬂights which only de- 
+part from airport k . However for constraints (5) , only ﬂights de- 
+parting from the initial position of airplanes are considered (( k ∈ 
+{ a 0 
+j } ), the number of such constraints is bounded by O ( n f × n p ). 
+In practice, the number of ﬂights is more important than the 
+number of airplanes which is also bigger than the number of air- 
+ports so we can conclude that n f ≫n p > n a and the number of 
+constraints in our mathematical formulation is O ( n f × n p ). □
+As already pointed out in the introduction section, a distinctive 
+feature of our model is that it involves signiﬁcantly fewer decision 
+variables and constraints as compared to other compact models ex- 
+isting in the literature. 
+3.3. Illustrative example 
+To illustrate, we present the following example extracted from 
+a real timetable of an airline company. The data set includes 2 air- 
+planes and 6 ﬂights presented in Table 2 and Table 3 shows assign- 
+ment costs. There are two airports (A and B), the turn time is set 
+equal to 30 minutes, and the “initial conditions” are airport A for 
+airplane 1 and airport B for airplane 2 . The optimal ﬂight schedule 
+is shown in Fig. 1 and the ﬂight sequences corresponding to the 
+Table 4 
+Optimal solution. 
+Airplane 
+Sequence of ﬂights 
+1 
+1 → 2 → 3 
+2 
+4 → 5 → 6 
+two airplanes in the optimal solution for this example are shown 
+in Table 4 . 
+This example is also useful to illustrate one of the signiﬁcant 
+differences between the model of the present paper and those 
+addressing ﬂeeting problems, in which the so-called ‘cyclic con- 
+straint’ is present. If we impose that each airplane returns to its 
+initial airport at the end of the time horizon, then it is easily 
+checked that the problem has no feasible solution. 
+4. Computational Study 
+In this section, we report on computational experiments aimed 
+at assessing the relevance and eﬃciency of our compact model on 
+realistic instances of the Tail Assignment problem. 
+4.1. Data-generation procedure 
+In order to carry out our experimental analysis and to investi- 
+gate the main parameters inﬂuencing computation time ( size and 
+density ), a data generation procedure producing test instances with 
+controlled size and density has been designed (the concept of den- 
+sity of a problem instance will be made more precise below). It 
+makes use of an existing large scale real data set from a domestic 
+low cost airline in Asia (composed of 1580 ﬂight legs over 30 days 
+with 37 airports and 50 airplanes involved). 
+The data-generation procedure takes as input parameters: 
+• a real parameter δ ∈ [0, 1] called density of the instance; 
+• the ﬁrst and last day of the desired time period (between 1 and 
+30), deﬁning the horizon h ; 
+• the number of airplanes ( np ). 
+The procedure constructs a subset of ﬂights forming the 
+timetable of the generated instance as follows: 
+(a) First we solve the problem of determining np min , the mini- 
+mum number of airplanes necessary to cover all the ﬂights 
+in the set  
+F of ﬂights which have to be carried out in the 
+speciﬁed horizon h . The initial positions of various airplanes 
+are assumed to be the same as for the whole real data set. 
+This problem can easily be formulated as the search for a 
+minimum ﬂow in a network describing the possible connec- 
+tions between ﬂights, with lower and upper capacity bounds 
+on the arcs. It can be very eﬃciently solved by using linear 
+programming or via a specialized network ﬂow algorithm. 
+We denote ¯P the subset of airplanes used in the resulting 
+optimum solution, np min = | ¯P | , and for each airplane j ∈ ¯P , 
+we denote L j ⊂ 
+F the subset of ﬂights operated by this air- 
+plane. 
+(b) After checking that np ∈ { 1 , . . . , np min } , which is the case for 
+all the instances of the test set as soon as np ≤40, we per- 
+form the following : a subset  
+P of np district airplanes is ran- 
+domly selected out of ¯P to compose the ﬂeet corresponding 
+to the instances generated; 
+(c) A subset  
+P of δ × np airplanes is randomly chosen out of the 
+set  
+P , and the set of ﬂights composing the desired instance 
+is ﬁnally obtained as :  
+j∈  
+P 
+L j . 
+Thus, the density of an instance is the ratio between the mini- 
+mum number of airplanes necessary to cover all the ﬂights of the 
+
+O. Khaled et al. / European Journal of Operational Research 264 (2018) 548–557 
+553 
+timetable and the number of airplanes in the available ﬂeet. Ac- 
+cordingly, a 100% dense instance is an instance for which the num- 
+ber of available airplanes is exactly equal to the minimum number 
+of airplanes necessary to ensure feasibility. When the density is 
+lower, more ﬂexility is left to ﬁnd feasible solutions and the prob- 
+lem may be expected to be easier to solve. 
+Our experiments will conﬁrm this guess: for higher density, in- 
+creased computation times will be observed. To the best of our 
+knowledge, this is the ﬁrst time the inﬂuence of the density pa- 
+rameter on the practical diﬃculty of solving this class of problems 
+is systematically investigated. 
+4.2. Computational results 
+In order to assess the performance of the proposed tail assign- 
+ment model (3) –(6) , we have implemented it with Python 2.7 and 
+Cplex Studio 12.6.2 All computations have been performed on a 
+workstation running Intel(R) Core(TM) i7-3740QM CPU @ 2.7 giga- 
+hertz. Tests are carried out on 400 instances generated randomly 
+using our data-generation procedure. Each instance corresponds to 
+a timetable of h days of ﬂights for np airplanes. The various in- 
+stances considered in our experiments have been obtained by vary- 
+ing the value of the three parameters: 
+• the density δ: 95%, 100%. 
+• the number of airplanes np : 10, 20, 30, 40; 
+• the time horizon h : 7, 15, 21, 30 days. 
+The timetables obtained differ in terms of the value of param- 
+eter h and number of ﬂights f . Actually, for the same value of np 
+and h , a timetable generated with a lower density δ necessarily 
+features a smaller number of ﬂights. 
+The results presented in Tables 5 and 6 have been obtained by 
+disabling the Cplex cut generation option. The reason is that the 
+generation of cuts does not add too much to the results obtained; 
+indeed, we could observe that there is almost no difference what- 
+soever between the CPU times and number of nodes obtained by 
+activating or by disabling this parameter. On the other hand, with 
+have included in the tables a comparison of the results obtained 
+with and without activation of the Cplex ‘presolve’ option. The in- 
+terest of carrying out such a comparison will be explained below. 
+The computational results obtained concern two series of in- 
+stances corresponding to two different values of the density pa- 
+rameter ( δ = 0.95 ( Table 5 ) and δ = 1 ( Table 6 )). The ﬁgures ap- 
+pearing on each line are average values for 10 distinct randomly 
+generated instances for each choice of the following parameters: 
+number of airplanes; horizon (in days); number of ﬂight legs; 
+number of variables and constraints of the resulting MIP model; 
+number of nodes required by the tree search procedure (and, in 
+parenthesis the maximum number of nodes over the 10 instances); 
+the value of the residual gap (when equal to zero, this means that 
+an exact optimal solution has been obtained for each of the 10 
+instances solved); value of the integrality gap upon starting the 
+Branch-and-Bound procedure. The main comments suggested by 
+these results are the following: 
+1. We observe that there is a signiﬁcant gain in time obtained 
+while activating the presolve option. The reduction is about 30–
+50% of CPU time. Moreover for a number of instances, small 
+differences in objective values are observed, the best values be- 
+ing obtained without presolve in a majority of cases. However, 
+the observed discrepancy does not seem to be signiﬁcant as 
+compared with the value of CPLEX default tolerance parameter 
+( 10 −4 ). 
+The next comments will concern the results without presolve op- 
+tion . 
+2. The values of the integrality gaps (displayed in the column “Gap 
+at root”) are extremely low: 0.25% on average, and always less 
+than 0.5%. These ﬁgures conﬁrm that the compact formulation 
+proposed in the present paper is indeed very strong i.e., its lin- 
+ear relaxation very closely approximates the integer 0–1 prob- 
+lem to be solved. A further conﬁrmation of the strength of the 
+formulation is provided in Table 8 where the average values of 
+the percentage of integral variables in the optimal solutions to 
+the linear relaxation are shown. In all instances considered this 
+percentage is more than 85%. 
+3. The number of nodes examined in the tree-search procedure 
+for getting exact optimal solutions are also observed to be ex- 
+tremely low, with an average value less than 15 and a maxi- 
+mum value 55 over all the instances solved; these ﬁgures are 
+quite remarkable for such large sized 0–1 linear problems (fea- 
+turing up to about 59,0 0 0 binary variables and 60,0 0 0 con- 
+straints), and can be viewed as further evidence of the strength 
+of the formulation. 
+4. Even with the pre-solve option of CPLEX switched off, the com- 
+putation times are rather reduced, typically less than 10 min- 
+utes for a majority of the instances, and not exceeding 1 hour 
+for a few of the largest instances. 
+Table 5 
+Computational results for problem density δ = 95%( | P| = number of airplanes, | H| = horizon (number of days), | F | = number of ﬂights). 
+|P| 
+|H| 
+|F| 
+# 
+# 
+Without presolve 
+With presolve 
+Var 
+Const 
+# nodes 
+Residual 
+Gap at 
+CPU 
+Objective 
+CPU 
+Objective 
+(Max) 
+gap (%) 
+root (%) 
+(sec) 
+value 
+(sec) 
+value 
+10 
+7 
+206 
+2057 
+3600 
+0(0) 
+0.00 
+0.02 
+2.62 
+1,672,661 
+0.51 
+1,672,662 
+15 
+301 
+3006 
+4549 
+0(0) 
+0.00 
+0.04 
+11.54 
+2,4 4 4,206 
+1.01 
+2,4 4 4,206 
+21 
+339 
+3386 
+4929 
+0(0) 
+0,00 
+0.05 
+21.13 
+2,757,809 
+1.32 
+2,757,815 
+30 
+321 
+3213 
+4756 
+0(0) 
+0.00 
+0.10 
+39.71 
+2,609,676 
+1.15 
+2,609,680 
+20 
+7 
+362 
+7248 
+7610 
+0(0) 
+0.00 
+0.05 
+6.80 
+2,948,290 
+6.00 
+2,948,289 
+15 
+592 
+11,834 
+12,426 
+2(9) 
+0.00 
+0.07 
+46.99 
+4,842,097 
+24.43 
+4,842,140 
+21 
+620 
+12,402 
+13,022 
+4(16) 
+0.00 
+0.12 
+61.46 
+5,076,054 
+25.10 
+5,076,054 
+30 
+697 
+13,944 
+14,641 
+4(15) 
+0.00 
+0.15 
+72.84 
+5,709,698 
+35.81 
+5,709,752 
+30 
+7 
+574 
+17,223 
+17,797 
+2(6) 
+0.00 
+0.10 
+76.82 
+4,698,590 
+34.04 
+4,698,608 
+15 
+914 
+27,426 
+28,340 
+3(6) 
+0.00 
+0.15 
+347.62 
+7,511,488 
+167.38 
+7,511,489 
+21 
+999 
+29,973 
+30,972 
+4(9) 
+0.00 
+0.19 
+534.93 
+8,202,223 
+216.99 
+8,202,224 
+30 
+1052 
+31,566 
+32,618 
+2(5) 
+0.00 
+0.32 
+636.80 
+8,641,467 
+249.40 
+8,641,523 
+40 
+7 
+746 
+29,828 
+30,574 
+4(16) 
+0.00 
+0.21 
+271.47 
+6,121,668 
+125.23 
+6,121,669 
+15 
+1167 
+46,688 
+47,855 
+9(53) 
+0.00 
+0.25 
+1681.50 
+9,613,017 
+797.85 
+9,613,018 
+21 
+1273 
+50,920 
+52,193 
+7(37) 
+0.00 
+0.30 
+2337.68 
+10,495,557 
+952.51 
+10,495,561 
+30 
+1378 
+55,112 
+56,490 
+1(5) 
+0.00 
+0.34 
+3871.14 
+11,326,359 
+1919.52 
+11,326,361 
+
+554 
+O. Khaled et al. / European Journal of Operational Research 264 (2018) 548–557 
+Table 6 
+Computational results for problem density δ = 100% ( | P| = number of airplanes, | H| = horizon (number of days), | F | = number of ﬂights). 
+|P| 
+|H| 
+|F| 
+# 
+# 
+Without presolve 
+With presolve 
+Var 
+Const 
+# Nodes 
+Residual 
+Gap at 
+CPU 
+Objective 
+CPU 
+Objective 
+(Max) 
+gap (%) 
+root (%) 
+(sec) 
+value 
+(sec) 
+value 
+10 
+7 
+230 
+2041 
+1542 
+0(0) 
+0.00 
+0.01 
+5.49 
+1,868,915 
+0.80 
+1,874,699 
+15 
+417 
+3932 
+3344 
+0(0) 
+0.00 
+0.04 
+13.15 
+3,405,043 
+3.32 
+3,405,043 
+21 
+496 
+4750 
+4043 
+0(0) 
+0.00 
+0.13 
+33.47 
+4,051,775 
+5.35 
+4,051,775 
+30 
+574 
+5533 
+4600 
+1(5) 
+0.00 
+0.15 
+56.01 
+4,711,709 
+8.87 
+4,711,835 
+20 
+7 
+446 
+8922 
+9368 
+1(3) 
+0.00 
+0.20 
+18.03 
+3,639,950 
+10.63 
+3,639,950 
+15 
+734 
+14,672 
+15,406 
+5(16) 
+0.00 
+0.24 
+110.65 
+6,023,260 
+38.88 
+6,024,530 
+21 
+881 
+17,626 
+18,507 
+8(55) 
+0.00 
+0.27 
+184.53 
+7,360,725 
+72.05 
+7,360,961 
+30 
+999 
+19,980 
+20,979 
+15(25) 
+0.00 
+0.30 
+263.11 
+8,223,005 
+94.09 
+8,226,049 
+30 
+7 
+623 
+18,696 
+19,319 
+4(6) 
+0.00 
+0.24 
+101.43 
+5,111,686 
+32.79 
+5,111,686 
+15 
+1021 
+30,633 
+31,654 
+6(9) 
+0.00 
+0.30 
+616.92 
+8,397,863 
+198.58 
+8,397,863 
+21 
+1178 
+35,337 
+36,515 
+4(5) 
+0.00 
+0.36 
+910.63 
+9,715,431 
+302.18 
+9,715,431 
+30 
+1251 
+37,533 
+38,784 
+6(9) 
+0.00 
+0.42 
+1101.36 
+10,326,645 
+575,05 
+10,326,645 
+40 
+7 
+786 
+31,440 
+32,226 
+4(10) 
+0.00 
+0.27 
+318.68 
+6,451,054 
+100.97 
+6,451,054 
+15 
+1225 
+49,012 
+50,237 
+6(15) 
+0.00 
+0.38 
+2069.98 
+10,121,282 
+673.23 
+10,121,282 
+21 
+1306 
+52,256 
+53,562 
+10(18) 
+0.00 
+0.45 
+2986.84 
+10,758,751 
+987.09 
+10,759,131 
+30 
+1494 
+59,764 
+61,258 
+5(5) 
+0.09 
+0.47 
+4864.96 
+12,252,010 
+2901.69 
+12,253,167 
+Table 7 
+Average CPU times (seconds) as a function of problem size (number of variables) 
+and density. 
+Number of variables 
+Density 
+δ = 0,9 
+δ = 0,95 
+δ = 1 
+[10 0 0–60 0 0] 
+12.69 
+18.75 
+27.03 
+[60 0 0–12,0 0 0] 
+15.27 
+26.89 
+28.59 
+[12,0 0 0–18,0 0 0] 
+62.45 
+70.37 
+147.59 
+[18,0 0 0–24,0 0 0] 
+128.45 
+153.45 
+182.27 
+[24,0 0 0–60,0 0 0] 
+956.73 
+1087.56 
+1195.68 
+Table 8 
+Proportion of integral variables in the optimal solutions to the linear relaxations 
+(averages). 
+Number of variables 
+Density 
+δ = 0,9 
+δ = 0,95 
+δ = 1 
+[10 0 0–60 0 0] 
+98.6 
+98.1 
+98.2 
+[60 0 0–12,0 0 0] 
+93.5 
+95.2 
+95.1 
+[12,0 0 0–18,0 0 0] 
+89.7 
+90.6 
+91.2 
+[18,0 0 0–24,0 0 0] 
+89.6 
+87.4 
+86.9 
+[24,0 0 0–60,0 0 0] 
+89.1 
+89.9 
+87.5 
+5. The inﬂuence of the density parameter δ on the practical dif- 
+ﬁculty of solving the problem exactly is illustrated in Table 7 : 
+for various ranges for problem size (number of variables) the 
+average CPU times are shown for three values of the density 
+parameter (0.9, 0.95, 1). It is seen that the computational effort 
+signiﬁcantly increases with δ. In practice we observe that for 
+most airline companies, if the number of aircraft in the ﬂeet 
+supposed to carry out a given timetable is correctly adjusted, 
+the corresponding value of the density parameter should typ- 
+ically be in the range 90–100%. As a typical example, consid- 
+ering the real data set used for generating our test instances 
+(1580 ﬂight legs over 30 days with 37 airports) the number of 
+aircraft in the ﬂeet is 50, while np min , the minimum number 
+of aircraft necessary to cover all the ﬂights, is equal to 47, thus 
+resulting in a density value of 94%. 
+5. Including maintenance constraints in the model 
+We now turn to discuss an extension of the basic model aimed 
+at taking into account maintenance constraints. They correspond to 
+requiring that all airplanes should regularly undergo various types 
+of maintenance activities. These activities are of major importance 
+for airline companies which have to implement schedules comply- 
+ing with the many types of security requirements involving main- 
+tenance; this is why many existing works in the literature deal- 
+ing with aircraft routing include maintenance constraints i.e., aim 
+at simultaneously optimizing assignment of aircraft to ﬂights and 
+assignment of aircraft to maintenance stations (see e.g., Lacasse- 
+Guay, Desaulniers, & Soumis, 2010 ). Let us ﬁrst brieﬂy recall the 
+different types of maintenance activities imposed by the aviation 
+authority (FAA). 
+The are four major types of checks denoted A, B, C and D. 
+These vary in scope, duration, and frequency ( Clarke et al., 1997 ). 
+The ﬁrst major check (denoted as Type A) actually mandated by 
+the FAA occurs at every 65 ﬂight-hours, or about once a week. 
+Type A checks involve inspection of all major systems such as 
+landing gear, engines and control surfaces. However, the second 
+major check (designated as Type B) is performed every 300 to 600 
+ﬂight-hours, and entails a thorough visual inspection plus lubrica- 
+tion of all moving parts such as horizontal stabilizers and ailerons. 
+The very major checks referred to as Type C and D are done about 
+once every one to four years, respectively, and require leaving the 
+aircraft out of service for up to a month at a time. Because Type 
+B, C and D checks are spaced at relatively large time intervals 
+and because of the dynamic nature of the market, these need 
+not be taken into account in maintenance scheduling. The main 
+concern of the airlines when solving aircraft routing and ﬂeeting 
+problems is in meeting Type A check requirements through their 
+self-imposed 4–5 days inspection and maintenance policy. As a 
+general rule, inspections and repairs take place at night. 
+To the best of our knowledge, there are only a few existing 
+works in the literature that succeeded in simultaneously handling 
+all maintenance constraints of type A . One can mention the string 
+model of Barnhart et al. (1998) , in which ﬂight strings satisfy- 
+ing all the maintenance constraints can eﬃciently be generated 
+via the use of constrained shortest path algorithms. Another ap- 
+proach, more recently proposed in Haouari et al. (2012) is based on 
+a nonlinear (quadratic) mixed-integer model to solve the daily air- 
+craft maintenance routing problem; the linearized model (obtained 
+through application of the so-called ‘Reformulation-Linearization 
+Technique’) can only solve medium-size instances (the largest in- 
+stances considered involve up to 344 ﬂights). In this section, we 
+show how it is possible to include all these type-A maintenance 
+constraints into our model while preserving linearity of the result- 
+ing formulation . Extensive computational results are presented and 
+discussed in Section 5.3 . 
+
+O. Khaled et al. / European Journal of Operational Research 264 (2018) 548–557 
+555 
+Table 9 
+Notation used for expressing maintenance constraints. 
+MA 
+The set of maintenance airports: MA ⊂A 
+D 
+The set of days of the planning: D = { 1 , . . . , d, . . . , n d } 
+d ↗ 
+i 
+Departure day of ﬂight i 
+mc ijd 
+Cost of assigning a night maintenance activity in the arrival airport 
+of ﬂight i to airplane j on day d 
+mcap md 
+Maintenance capacity of airport m ∈ MA on day d 
+F (d, i ) 
+The set of ﬂights i ′ where t ↗ 
+i 
+′ > t ↘ 
+i and d ↗ 
+i 
+= d 
+dmax 
+The maximum allowed number of days for each aircraft without 
+maintenance (typically 4 or 5 days) 
+Tmax 
+The maximum allowed ﬂight time for each aircraft without 
+maintenance (typically between 50 and 100 hours) 
+M dd 
+′ 
+The big constant representing the maximum possible cumulated 
+ﬂight time for an airplane between days d and d’ 
+F dd 
+′ 
+The set of ﬂights which depart between day d and day d ′ 
+5.1. Problem deﬁnition 
+In the model described here for maintenance, night mainte- 
+nance activities are considered and thus, for each airplane, a main- 
+tenance activity on day d can only take place in the arrival airport 
+of the last ﬂight operated by the airplane on that day. We deﬁne 
+D = { 1 , . . . , d, . . . , n d } the set of days of the planning and MA ⊂A 
+the set of maintenance airports where maintenance activities could 
+take place. Each maintenance airport m ∈ MA is characterized by 
+a capacity mcap m , d i.e., the maximum number of airplanes which 
+can be handled on each day d ∈ D . 
+In the extended model, we show that all types of mainte- 
+nance constraints which have been considered in the existing lit- 
+erature can be taken into account and eﬃciently handled by our 
+model: essentially these correspond to what is referred to as type 
+A checks, which have to be carried out: 
+• at least once every dmax days (where dmax is a parameter, typ- 
+ically between 2 and 6), this can be referred to as a ‘ maximum 
+spacing constraint ’; 
+• at least after no more than Tmax hours of ﬂight ( Tmax is a pa- 
+rameter typically chosen between 40 and 100) or at least after 
+no more than ν take-offs ( ν is a parameter typically chosen be- 
+tween 10 and 20), in both cases this is the so-called ‘ cumulative 
+constraint ’. 
+5.2. Mathematical programming formulation 
+Maintenance incurs additional costs mc ijd related to the night 
+maintenance activity in the arrival airport of ﬂight i when assigned 
+to airplane j on day d . 
+The binary decision variables used in the formulation are z ijd ∈ 
+{0, 1} where: 
+z ijd = 
+⎧ 
+⎪ 
+⎨ 
+⎪ 
+⎩ 
+1 
+if a night maintenance takes place in the arrival 
+airport of ﬂight i and it is assigned to airplane j 
+on day d, 
+0 
+else 
+y jd = 
+
+1 
+if maintenance of aircraft j takes place on day d, 
+0 
+else . 
+Using the additional notation to the basic tail assignment problem 
+displayed in Table 9 , the extended model is as follows: 
+Min  
+i ∈ F 
+ 
+j∈ P c ij x ij +  
+m ∈ MA 
+ 
+i ∈ F ↘ (m ) 
+ 
+j∈ P 
+ 
+d∈ D mc ijd z ijd 
+(7) 
+s.t. 
+ 
+j∈ P x ij = 1 , ∀ i ∈ F 
+ 
+i ′ ∈ F ↘ 
+k (t ↗ 
+i ) x i ′ j − 
+i ′ ∈ F ↗ 
+k (t ↗ 
+i ) x i ′ j ≥x ij 
+∀ j ∈ P, ∀ k ∈ A \{ a 0 
+j } , ∀ i ∈ F ↗ 
+k 
+ 
+i ′ ∈ F ↘ 
+k (t ↗ 
+i ) x i ′ j − 
+i ′ ∈ F ↗ 
+k (t ↗ 
+i ) x i ′ j ≥x ij −1 
+∀ j ∈ P, k = a 0 
+j , ∀ i ∈ F ↗ 
+k 
+z ijd + x i ′ j ≤1 , ∀ i ∈ F , i ′ ∈ F (d, i ) , j ∈ P, d ∈ D 
+(8) 
+x ij ≥z ijd , ∀ i ∈ F , j ∈ P, d ∈ D 
+(9) 
+ 
+i ∈ F ↗ 
+m 
+ 
+j∈ P z ijd ≤mcap md 
+∀ d ∈ D, ∀ m ∈ MA 
+(10) 
+ 
+i ∈ F ↗ 
+m z ijd = y jd 
+∀ d ∈ D, ∀ m ∈ MA, ∀ j ∈ P 
+(11) 
+ 
+r∈ [ d ,d ′ ] y jr ≥1 , 
+∀ d , d ′ ∈ D/d ′ −d = d max −1 , ∀ j ∈ P 
+(12) 
+ 
+i ∈ F d+1 ,d ′ x ij t ij ≤T max + M d d ′ (2 −y jd −y j d ′ ) 
++ M d d ′ 
+ 
+r∈ [ d +1 ,d ′ −1] 
+y jr 
+∀ d , d ′ ∈ D s.t. : 2 ≤d ′ −d 
+≤dmax −1 , d < n d , ∀ j ∈ P 
+(13) 
+x ij ∈ { 0 , 1 } , ∀ i ∈ F , j ∈ P 
+z ijd ∈ { 0 , 1 } , ∀ i ∈ F , j ∈ P, d ∈ D 
+(14) 
+y jd ∈ { 0 , 1 } , j ∈ P, d ∈ D 
+(15) 
+The objective function (7) represents the total cost of assign- 
+ing airplanes to ﬂights and assigning night maintenance activities 
+to airplanes. Constraints (8) are used to express the fact that ﬂight 
+i is the last ﬂight of the day d = d ↗ 
+i and in its arrival airport air- 
+plane j undergo a maintenance when y jd = 1 . They impose the fact 
+that there is no ﬂight i ′ assigned to airplane j and departing af- 
+ter the arrival time of ﬂight i on day d . Constraints (9) state that 
+if a maintenance activity is assigned to airplane j in the arrival 
+airport of ﬂight i and on day d , necessarily ﬂight i should be as- 
+signed to airplane j . Capacity constraints (10) guarantee that the 
+sum of maintenance activities in a maintenance airport on each 
+day does not exceed its maintenance capacity per day. Constraints 
+(11) are used to express the relation between variables y and z . 
+Constraints (12) impose that for every period of time of dmax con- 
+secutive days we insure that at least one maintenance has been 
+done for each airplane. Constraints (13) represent the cumulative 
+ﬂight time constraints. The maximum allowed ﬂight time between 
+two successive maintenances is equal to Tmax . In expressing con- 
+straint (13) we use the fact that a given pair of days d and d ′ 
+such that 1 < = d ′ −d < = dmax −1 correspond to two successive 
+maintenance activities for aircraft j if the three conditions: y jd = 1 , 
+y j d ′ = 1 and  
+r∈ [ d +1 ,d ′ −1] y jr = 0 hold. The constants M d d ′ are cho- 
+sen big enough to express the fact that when these conditions 
+are not simultaneously fulﬁlled, no limit on cumulative ﬂight time 
+should be imposed. Constraints (14) and (15) impose binary condi- 
+tions to variables y and z . 
+We note that the proposed extension to our basic Tail Assign- 
+ment model is only moderately increased in size: in all the in- 
+stances solved (see Tables 10 and 11 ) the number of variables and 
+constraints is augmented by a factor less than 2.2. 
+
+556 
+O. Khaled et al. / European Journal of Operational Research 264 (2018) 548–557 
+Table 10 
+Computational results with maintenance constraints ( | P| = number of airplanes, | H| = horizon (number of days), | F | = number of ﬂights). 
+dmax = 4 days and Tmax = 64 hours 
+dmax = 5 days and Tmax = 72 hours 
+| P | 
+| H | 
+| F | 
+# 
+# 
+# 
+Residual 
+Gap at 
+CPU 
+# 
+# 
+Residual 
+Gap at 
+CPU 
+Var 
+Const 
+Nodes 
+gap (%) 
+root (%) 
+(sec) 
+Const 
+Nodes 
+gap (%) 
+root (%) 
+(sec) 
+10 
+15 
+417 
+4708 
+7134 
+2468 
+0 
+0.47 
+908 
+6688 
+2350 
+0 
+0.45 
+865 
+21 
+496 
+6002 
+8625 
+4673 
+0 
+0.32 
+1756 
+8086 
+4450 
+0 
+0.34 
+1672 
+30 
+574 
+7555 
+9813 
+5775 
+0 
+0.51 
+2578 
+9200 
+5500 
+0 
+0.56 
+2455 
+20 
+15 
+734 
+17,174 
+32,866 
+4599 
+0 
+0.48 
+3376 
+30,812 
+4380 
+0 
+0.41 
+3215 
+21 
+881 
+21,746 
+39,482 
+6899 
+0 
+0.37 
+5670 
+37,014 
+6570 
+0 
+0.37 
+5400 
+30 
+999 
+26,574 
+44,755 
+6851 
+0 
+0.39 
+6867 
+41,958 
+6525 
+0 
+0.39 
+6540 
+30 
+15 
+1021 
+35,678 
+67,529 
+8245 
+0 
+0.61 
+8054 
+63,308 
+7852 
+0 
+0.56 
+7670 
+21 
+1178 
+43,388 
+77,899 
+9009 
+0 
+0.55 
+10,800 
+73,030 
+8580 
+0 
+0.57 
+9700 
+30 
+1251 
+49,692 
+82,739 
+9755 
+0.31 
+0.62 
+10,800 
+77,568 
+9290 
+0.20 
+0.61 
+10,800 
+40 
+15 
+1225 
+56,962 
+107,172 
+10,710 
+0.30 
+0.70 
+10,800 
+100,474 
+10,200 
+0.23 
+0.66 
+10,800 
+21 
+1306 
+64,066 
+114,266 
+10,841 
+0.40 
+0.68 
+10,800 
+107,124 
+10,325 
+0.31 
+0.65 
+10,800 
+30 
+1494 
+78,892 
+130,684 
+10,873 
+0.46 
+0.65 
+10,800 
+122,516 
+10,355 
+0.40 
+0.66 
+10,800 
+Table 11 
+Computational results with maximum number of landings ν = 14 and maximum spacing of 4 
+days ( dmax = 4)( | P| = number of airplanes, | H| = horizon (number of days), | F | = number of 
+ﬂights). 
+| P | 
+| H | 
+| F | 
+# 
+# 
+# nodes 
+Residual 
+Gap at 
+CPU 
+variables 
+constraints 
+gap (%) 
+root (%) 
+(sec) 
+10 
+15 
+417 
+4708 
+7134 
+2446 
+0 
+0.45 
+878 
+21 
+496 
+6002 
+8625 
+4651 
+0 
+0.33 
+1534 
+30 
+574 
+7555 
+9813 
+5562 
+0 
+0.47 
+2557 
+20 
+15 
+734 
+17,174 
+32,866 
+4570 
+0 
+0.52 
+3124 
+21 
+881 
+21,746 
+39,482 
+6715 
+0 
+0.36 
+5564 
+30 
+999 
+26,574 
+44,755 
+7122 
+0 
+0.36 
+6031 
+30 
+15 
+1021 
+35,678 
+67,529 
+8024 
+0 
+0.52 
+7985 
+21 
+1178 
+43,388 
+77,899 
+9026 
+0 
+0.46 
+10,800 
+30 
+1251 
+49,692 
+82,739 
+9664 
+0.31 
+0.66 
+10,800 
+40 
+15 
+1225 
+56,962 
+107,172 
+10,655 
+0.30 
+0.65 
+10,800 
+21 
+1306 
+64,066 
+114,266 
+10,802 
+0.40 
+0.73 
+10,800 
+30 
+1494 
+78,892 
+130,684 
+10,655 
+0.46 
+0.75 
+10,800 
+5.3. Computational experiments 
+In order to validate the proposed extension, we have carried out 
+systematic computational experiments reported in Tables 10 and 
+11 below. In these experiments we have generated instances with 
+the highest density ( δ = 1 ) imposing that for each ﬂight timetable 
+we have; (1) 1/4 of airports could be maintenance airports. These 
+airports represent the most important ones based on the number 
+of take offs and landings, (2) maintenance costs have been gener- 
+ated randomly. 
+For each pair of days ( d , d ′ ) with 1 < = d ′ −d < = dmax −1 , the 
+constant M d d ′ has been calculated as follows. For each pair of 
+ﬂights ( i , i ′ ) where i takes place on day d and i ′ on day d ′ , that 
+sequence of ﬂights starting with i and ending with i ′ and satisfy- 
+ing the equipment continuity condition (see Section 1) which leads 
+to maximum total ﬂight time MFT ( i , i ′ ) is determined. M d d ′ is then 
+set equal to the maximum of MFT ( i , i ′ ) over all possible pairs ( i , 
+i ′ ). Please note that computing all the MFT ( i , i ′ ) values for a given 
+pair of days ( d , d ′ ) can be done through application of a longest 
+path algorithm in the (circuitless) graph representing all feasible 
+sequences of ﬂights (the complexity of such an algorithm is known 
+to be linear in the number of arcs of the graph, therefore the total 
+time taken by the preprocessing task of computing the M d d ′ values 
+is practically negligible as compared with the task of solving the 
+Tail Assignment model). 
+The additional constraints ( 8 –15 ) have been implemented with 
+Python 2.7 and Cplex Studio 12.6.2 All computations have been 
+performed on a workstation running Intel(R) Core(TM) i7-3740QM 
+CPU @ 2.7 gigahertz. For these experiments the presolve option has 
+been activated. Tests have been carried out on 240 instances gener- 
+ated randomly using our data-generation procedure. Each instance 
+corresponds to a timetable of h consecutive days for np airplanes. 
+The various instances considered in Table 10 have been obtained 
+by varying the value of the three parameters: 
+• the dmax and Tmax parameters either take the values dmax = 
+4 and T max = 64 hours or dmax = 5 and T max = 72 h ours . 
+• the number of airplanes np : 10, 20, 30, 40; 
+• the time horizon h : 7, 15, 21, 30 days. 
+Table 11 reports on computational results obtained when im- 
+posing a maximum number ν of landings for any airplane between 
+any two successive maintenance checks. This constraint is a special 
+case of the cumulative constraint (13) simply obtained by replac- 
+ing Tmax by ν and the sum of ﬂight durations by the total number 
+of ﬂights operated. In the reported experiments, the value of the 
+ν parameter is set to 14, with dmax = 4 (thus a maximum of 14 
+landings is allowed between two consecutive maintenance checks). 
+The results reported conﬁrm the eﬃcient solvability of the 
+model when applied to large practical-size instances, and its ca- 
+pability of handling all the constraints relating to Type A mainte- 
+nance checks. Also, comparison with the results obtained in sec- 
+tion 4 on the basic version of the model shows that handling 
+maintenance constraints tends to make the problem somewhat 
+more diﬃcult to solve exactly, and, more precisely: 
+• the CPU time is about twice the one required by the basic 
+model, and the largest instances (typically those featuring more 
+than 1200 ﬂight legs) are not solved to exact optimality within 
+
+O. Khaled et al. / European Journal of Operational Research 264 (2018) 548–557 
+557 
+the time limit of 3 hours (though the residual gaps obtained 
+are quite reduced, typically less than 0.5%); 
+• signiﬁcantly more nodes (typically several thousands) have to 
+be explored in the tree search process; 
+• the values of the integrality gaps (‘gap at root’) tend to be 
+somewhat larger than those observed for the basic model (Sec- 
+tion 4) but are still remarkably low for such large scale MIP 
+models (featuring up to 78,0 0 0 variables and 130,0 0 0 con- 
+straints). This conﬁrms that the strength of the model does 
+not signiﬁcantly deteriorate when including maintenance con- 
+straints. 
+6. Conclusions and perspectives 
+In this paper, a new compact formulation for the tail assign- 
+ment problem has been investigated. The computational results 
+obtained have conﬁrmed that, with the proposed model, real-size 
+instances can be eﬃciently solved to exact optimality via current 
+state-of-the art MIP solvers within CPU times compatible with op- 
+erational use. All instances generated for the experiments can be 
+used for benchmarks on other tail assignment model proposition. 
+The instances and their solutions are available at http://www.lgi. 
+ecp.fr/Tail-assignment . 
+The consideration of typical maintenance checks in an aircraft 
+maintenance scheduling has been shown to be a critical one for 
+any airline operation. We present an extension to the proposed tail 
+assignment model taking into account 4 and 5-day maintenance, 
+together with cumulative ﬂight time constraints. The results ob- 
+tained show that, in spite of an increase in the computational ef- 
+fort required, the proposed model can be used to produce exact 
+optimal solutions to instances of size typical of practical applica- 
+tions. To the best of our knowledge, these results correspond to the 
+largest instances of Tail Assignment solved to date, given that: (a) 
+ﬂight legs and maintenance tasks are assigned to airplanes on an 
+individual basis; (b) all the daily maintenance constraints arising 
+from the current regulation are simultaneously taken into account. 
+Among the possible topics for future research, we mention the 
+potential interest in further investigating the links between the 
+model of the present paper and time-space network based formu- 
+lations. New ideas possibly leading to model strengthening and im- 
+proved computational eﬃciency could emerge from such an anal- 
+ysis. Also worth mentioning is the investigation of integrated mod- 
+els capable of simultaneously handling aircraft ﬂeeting and routing , 
+and, if possible, part of crew scheduling . The fact that the main 
+available techniques for addressing aircraft routing almost exclu- 
+sively relied, up to now, on column generation, has certainly been 
+a nontrivial obstacle in view of such an integration. We hope, how- 
+ever, that the compact model presented here will turn out to be a 
+useful tool for eventually bypassing these diﬃculties, thus opening 
+new perspectives towards increasing the eﬃciency of airline plan- 
+ning processes. 
+Acknowledgments 
+The authors thank the Associate Editor and three anonymous 
+referees for many constructive comments that lead to a signiﬁ- 
+cantly improved ﬁnal version of the paper. 
+References 
+Barnhart, C. , Belobaba, P. , & Odoni, A. R. (2003). Applications of operations research 
+in the air transport industry. Transportation science, 37 (4), 368–391 . 
+Barnhart, C., Boland, N. L., Clarke, L. W., Johnson, E. L., Nemhauser, G. L., & 
+Shenoi, R. G. (1998). Flight string models for aircraft ﬂeeting and routing. Trans- 
+portation Science, 32 (3), 208–220. doi: 10.1287/trsc.32.3.208 . 
+Borndörfer, R. , Dovica, I. , Nowak, I. , & Schickinger, T. (2010). Robust tail assignment. 
+Technical Report . Konrad-Zuse-Zentrum fur Informationstechnik Berlin . 
+Clarke, L., Johnson, E., Nemhauser, G., & Zhu, Z. (1997). The aircraft rotation problem. 
+Annals of Operations Research, 69 (0), 33–46. doi: 10.1023/A:1018945415148 . 
+Clarke, L. W. , Hane, C. A. , Johnson, E. L. , & Nemhauser, G. L. (1996). Maintenance and 
+crew considerations in ﬂeet assignment. Transportation Science, 30 (3), 249–260 . 
+Cordeau, J.-F. , Stojkovi ´c, G. , Soumis, F. , & Desrosiers, J. (2001). Benders decomposi- 
+tion for simultaneous aircraft routing and crew scheduling. Transportation sci- 
+ence, 35 (4), 375–388 . 
+Daskin, M. S. , & Panayotopoulos, N. D. (1989). A Lagrangian relaxation approach to 
+assigning aircraft to routes in hub and spoke networks. Transportation Science, 
+23 (2), 91–99 . 
+Desaulniers, G. , Desrosiers, J. , Dumas, Y. , Solomon, M. M. , & Soumis, F. (1997). Daily 
+aircraft routing and scheduling. Management Science, 43 (6), 841–855 . 
+Froyland, G. , Maher, S. J. , & Wu, C.-L. (2013). The recoverable robust tail assignment 
+problem. Transportation Science, 48 (3), 351–372 . 
+Gopalan, R. , & Talluri, K. T. (1998). Mathematical models in airline schedule plan- 
+ning: A survey. Annals of Operations Research, 76 , 155–185 . 
+Grönkvist, M. (2005). The tail assignment problem . Chalmers, Göteborg University 
+(Ph.D. thesis) . 
+Hane, C. A. , Barnhart, C. , Johnson, E. L. , Marsten, R. E. , Nemhauser, G. L. , & Sigis- 
+mondi, G. (1995). The ﬂeet assignment problem: Solving a large-scale integer 
+program. Mathematical Programming, 70 (1-3), 211–232 . 
+Haouari, M. , Shao, S. , & Sherali, H. D. (2012). A lifted compact formulation for 
+the daily aircraft maintenance routing problem. Transportation Science, 47 (4), 
+508–525 . 
+Jünger, M. , Elf, M. , & Kaibel, V. (2003). Rotation planning for the continental service 
+of a european airline. In Mathematics key technology for the future (pp. 675–689). 
+Springer . 
+Kabbani, N. M. , & Patty, B. W. (1992). Aircraft routing at American airlines.. In Pro- 
+ceedings of the AGIFORS symposium . 
+Klabjan, D. (2005). Large-scale models in the airline industry. In G. Desaulniers, 
+J. Desrosiers, & M. M. Solomon (Eds.), Column generation (pp. 163–195). Springer 
+US . 
+Lacasse-Guay, E. , Desaulniers, G. , & Soumis, F. (2010). Aircraft routing under differ- 
+ent business processes. Journal of Air Transport Management, 16 (5), 258–263 . 
+Lavoie, S. , Minoux, M. , & Odier, E. (1988). A new approach for crew pairing prob- 
+lems by column generation with an application to air transportation. European 
+Journal of Operational Research, 35 (1), 45–58 . 
+Levin, A. (1971). Scheduling and ﬂeet routing models for transportation systems. 
+Transportation Science, 5 (3), 232–255 . 
+Liang, Z. , & Chaovalitwongse, W. A. (2012). A network-based model for the in- 
+tegrated weekly aircraft maintenance routing and ﬂeet assignment problem. 
+Transportation Science, 47 (4), 493–507 . 
+Liang, Z. , Chaovalitwongse, W. A. , Huang, H. C. , & Johnson, E. L. (2011). On a new 
+rotation tour network model for aircraft maintenance routing problem. Trans- 
+portation Science, 45 (1), 109–120 . 
+Mercier, A., Cordeau, J.-F., & Soumis, F. (2005). A computational study of benders 
+decomposition for the integrated aircraft routing and crew scheduling problem. 
+Computers & Operations Research, 32 (6), 1451–1476 . http://www.sciencedirect. 
+com/science/article/pii/S0305054803003447 , doi: 10.1016/j.cor.2003.11.013 . 
+Minoux, M. (1984). Column generation techniques in combinatorial optimization, 
+a new application to crew pairing problems. Proceedings of the twenty-fourth 
+AGIFORS Symposium, Strasbourg, France. 
+Sarac, A. , Batta, R. , & Rump, C. M. (2006). A branch-and-price approach for oper- 
+ational aircraft maintenance routing. European Journal of Operational Research, 
+175 (3), 1850–1869 . 
+Sherali, H. D. , Bish, E. K. , & Zhu, X. (2006). Airline ﬂeet assignment concepts, mod- 
+els, and algorithms. European Journal of Operational Research, 172 (1), 1–30 . 
+
+
+=== FILE: 08_chapter_4.pdf ===
+77 
+ 
+CHAPTER 4 
+HEURISTICS 
+4.1 INTRODUCTION 
+Decisions pertaining to the strategic and tactical level aspects might not be dynamic 
+in nature. Nevertheless, decisions have to be taken within a reasonable amount of 
+time. Owing to the NP-complete nature of the problem, we saw in the previous 
+chapter that exact methodologies fail to arrive at an optimum solution within 
+computational times deemed practical. In this chapter, we propose two heuristics to 
+solve the integrated LAP. The first heuristic is designed based on 
+algorithm whereas the second heuristic uses ant colony optimization (ACO)-based 
+approach to arrive at a solution. 
+4.2 
+ 
+4.2.1 Input Parameters 
+We design the heuristic as a series of least cost path problems for each chosen 
+locomotive that needs to be solved in such a way that each locomotive serves as 
+many trains as possible and at the same time the total number of locomotives is also 
+minimized. To solve the problems as lowest cost path problem, the arcs in the 
+network need to have costs associated with them. Since not all arcs have costs or 
+distance associated with them, there is a need for proxy costs. Hence, we assign 
+proxy costs to all arcs.  
+
+78 
+ 
+The priority is to ensure that each locomotive serves as many train arcs as possible. 
+Accordingly, TrArcs are assigned the least cost. These arcs are assigned costs equal 
+to the ranks of actual costs when they are arranged in ascending order of their actual 
+costs. Once serviced by a locomotive, the costs of TrArcs are increased marginally 
+but higher than the cost of other un-serviced TrArcs. This is to ensure that the 
+possibility of selection of such TrArcs for deadhauling of locomotive remains open. 
+Once two locomotives serve any TrArc, the cost is increased to infinity to avoid the 
+selection of such TrArcs. 
+Each TrArc is preceeded and succeeded by CDArcs. They are assigned the next 
+lowest cost to ensure that whenever a TrArcs is chosen, other incoming/ outgoing 
+Arcs are avoided.  
+Waiting Arcs at the shed and at stations are assigned costs which are proportional 
+to the duration of the time (difference between arrival time and departure time of 
+the arc). 
+Deadheading arcs originating either at the shed or stations but terminating only at 
+a station are assigned the next lowest cost. Deadheading arcs terminating at the 
+sheds are given very high costs so as to avoid locomotive trips to sheds unless 
+absolutely necessary. Such cases include situations when the locomotive is due for 
+periodic maintenance, the locomotive trip has reached the end of the planning 
+horizon or when a direct link between two stations is absent and the locomotive has 
+to take a detour through a locomotive shed to reach some other station where a train 
+is waiting to be serviced. 
+
+79 
+ 
+Trip maintenance and periodic maintenance arcs are given the highest costs. Since 
+the algorithm needs to avoid these arcs unless the locomotives are due for 
+maintenance. 
+4.2.2 Locomotive Selection 
+Depending on its type, hp rating and top speed, the procurement cost of each 
+locomotive varies. Capital investment represents the major cost in our objective 
+function. Further, depending on the route and distance travelled, the operating cost 
+associated with each locomotive varies while servicing any particular TrArc or 
+DArc or D`Arc. This cost also depends on the age of the locomotive as older 
+locomotives tend to consume more power/fuel depending on whether it is electric/ 
+diesel and hence are prone to be less efficient. We also assign penalty costs to 
+locomotives servicing certain TrArcs when a particular type of locomotive is 
+preferred less/ not preferred to service the corresponding TrArc. Given this set of 
+costs, we need to select one locomotive at a time which will service as many TrArcs 
+as possible, while adhering to the constraints and return back to its home shed at 
+the end of the planning horizon. We calculate the total cost of each locomotive by 
+adding the respective annuitized capital investment cost to the operating costs and 
+penalty cost of all the arcs. We then use a greedy approach of selecting the 
+locomotive with the lowest total cost first. Once the locomotive has served a set of 
+TrArcs as allotted by the algorithm, we replace the cost with infinity and then 
+choose the second lowest cost locomotive. 
+ 
+
+80 
+ 
+4.2.3 
+ 
+lgorithm for the shortest path problem with the function 
+algorithm starts at the start node and visits all the nodes on its way to find the 
+shortest path/ lowest cost path to the end node. Once all the nodes have been visited, 
+for each locomotive from the start node, which is the home shed at the beginning 
+of the planning horizon, to the end node, which again is the home shed, albeit at the 
+end of the planning horizon. Since the network is a space-time network, once we 
+move ahead in time, we cannot travel back in time visit an unvisited node at an 
+earlier point of time. Consequently, we apply a different termination rule for this 
+function. We terminate the function when one of the following conditions is met: 
+1. Locomotive is due for periodic maintenance 
+2. Locomotive is due for trip maintenance 
+3. Locomotive is due for both, trip and periodic maintenance 
+4. Locomotive has reached the end of the planning horizon 
+The path updation rule too is different for the function as compared to the original 
+th from the start node to each of the other nodes is 
+updated only if the new path has a lower cost/distance as compared the old path. In 
+contrast, since the aim is for each locomotive to serve as many trains as possible 
+and since distance is associated only with TrArcs, we update the path if the distance 
+
+81 
+ 
+of the new path is greater than the old path irrespective of the cost to reach that 
+node. If the distance of the new path is equal to the old path, then the path is updated 
+if the cost of the new path is less than the cost of the old path. The algorithm for 
+ 
+ 
+ 
+ 
+
+82 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Figure107
+ 
+ 
+START 
+Initialize cost/distance from source node to source node as 0 
+Initialize distance to all other vertices from source node as 0 and cost as infinity 
+Designate source node as current node 
+For current node, calculate distance & cost of each neighbor node from the source 
+d
+Is the calculated distance greater 
+than the known distance?
+Is the calculated cost less 
+than the known cost?
+Update the distance/cost from source node 
+Update previous node for each updated distance/cost 
+Add current node to the list of visited nodes 
+Are the termination 
+criteria met?
+Visit the unvisited node with the largest known distance 
+In case of a tie, visit node with lowest known cost from source node 
+Designate this node as current node 
+Choose the farthest node form the list of visited vertices and traceback 
+the path to the source node 
+Yes 
+No 
+Yes 
+Retain 
+cost
+No 
+Yes 
+No 
+
+83 
+ 
+4.2.4 Algorithm 
+The algorithm for the heuristic is given in the flowchart below. Each locomotive is 
+selected based on the rules as explained in section 4.3.2. Post identification of the 
+ion 4.3.3 
+to identify the lowest cost path for the locomotive. Based on the position of the 
+locomotive in the space-time network, restart node is calculated and the procedure 
+repeated till the locomotive reaches the end of the planning horizon. Restart node 
+for a locomotive depends on the type of maintenance undergone by the locomotive. 
+If the function is terminated as a result of locomotive being due for trip 
+maintenance, restart node is the same station at which the locomotive ended its trip 
+previously but after a time duration of two hours. Similarly, if the function is 
+terminated as a result of locomotive being due for periodic maintenance, restart 
+node is the home shed of the locomotive after such time as is needed for the 
+locomotive to head back to the home shed and undergo the preventive maintenance. 
+At the end of the planning horizon, the algorithm checks for un-serviced TrArcs. 
+Existence of un-serviced TrArcs necessitates selection of a new locomotive and a 
+repetition of the above procedure. The heuristic is terminated when all TrArcs have 
+been serviced by locomotives. 
+ 
+ 
+ 
+
+84 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Figure118
+-based Heuristic 
+ 
+START 
+Identify Locomotive with the 
+lowest Total Cost 
+to find the lowest cost path 
+Is Locomotive 
+due for Periodic 
+Maintenance?
+Calculate 
+Restart Node
+Is Locomotive 
+due for Trip 
+Maintenance?
+Are there any 
+TrArcs 
+unserved?
+Replace Cost of 
+Loco with Infinity 
+Terminate 
+Heuristic
+STOP 
+No 
+No 
+No 
+Yes 
+Yes 
+Yes 
+
+85 
+ 
+4.3 ANT COLONY OPTIMIZATION BASED HEURISTIC 
+Ant Colony optimization is a technique for optimization that was introduced in 
+establishing the shortest path between food sources and nests and this technique is 
+applied on number of combinatorial optimization problem. In this section, we 
+design an ACO based algorithm to solve the LAP.  
+4.3.1 Input Parameters 
+TrArcs, DArcs and DlArcs are the only that have costs and distance associated with 
+them. As a result, there is a need for proxy costs. We assign proxy costs to all arcs. 
+The priority is to ensure that each locomotive serves as many train arcs as possible. 
+To ensure this, we need to ensure that TrArcs have the maximum amount of 
+pheromones and consequently TrArcs are assigned the least cost. These arcs 
+assigned costs equal to the ranks of actual costs when they are arranged in 
+ascending order of their actual costs. Once serviced by a locomotive, the costs of 
+TrArcs are increased to a level higher than the cost of other un-serviced TrArcs. 
+This ensures that the un-serviced TrArcs will still have a higher probability of 
+selection on account of higher pheromone levels, but the possibility of selection of 
+serviced TrArcs for deadhauling of locomotive remains open as well. Once, 2 
+locomotives serve any TrArc, the cost is increasing the cost to infinity is not 
+sufficient to avoid the selection of such TrArcs. 
+
+86
+Figure129: Space-Time Network Representation for ACO
+Consider a portion of the space-time network as shown in the figure. Arcs 9-10 and 
+6-14 are TrArcs. Assume that TrArc 6-14 has already been served by 2 locomotives. 
+infinity to TrArc 6-14 would be insufficient from preventing the future locomotives 
+to serve the TrArc. For eg. any locomotive arriving at node 6 has only one route to 
+go forward. Hence, Arc 6-14 has a relative probability 1 of being chosen as the 
+outgoing arc from node 6. Consequently, we need to ensure that all paths leading 
+up to node 6 have zero pheromone levels so that arc 6-14 is not chosen. 
+Accordingly, all arcs on the paths 4-8-7-6-14, 3-7-6-14, 2-6-14 are reassigned zero 
+pheromone levels. On path 1-5-6-14, arc 1-5 is not assigned zero pheromones since 
+at node 5; there is another outgoing arc 5-9 which does not lead to TrArc 6-14. 
+Hence, on path 1-5-6-14, only arcs 5-6 and 6-14 are assigned zero pheromone 
+levels. In the network diagram, the arcs with zero pheromone levels are represented 
+
+87 
+ 
+by hashed lines whereas the solid lines represent arcs with some amount of 
+pheromones. 
+Prior to servicing a train and post reaching the destination, each locomotive has to 
+couple and decouple itself respectively from the train. So, in the time-space 
+network, each TrArc is preceeded and succeeded by CDArcs. To ensure that 
+whenever a TrArc is chosen, CDArcs are preferred over other incoming/ outgoing 
+Arcs, they are assigned the next lowest cost so as to ascertain that CDArcs have the 
+next highest level of pheromones.  
+For Waiting Arcs at the shed and at stations costs (pheromones) are assigned 
+proportional (inversely proportional) to the duration of the time (difference between 
+arrival time and departure time of the arc). 
+Deadheading arcs originating either at the shed or stations but terminating only at 
+a station are assigned the next lowest cost. Deadheading arcs terminating at the 
+sheds are given very high costs or negligible levels of pheromones so as to avoid 
+locomotive trips to sheds unless absolutely necessary. Such cases include situations 
+when the locomotive is due for periodic maintenance, the locomotive trip has 
+reached the end of the planning horizon or when a direct link between two stations 
+is absent and the locomotive has to take a detour through a locomotive shed to reach 
+some other station where a train is waiting to be serviced. 
+Trip maintenance and periodic maintenance arcs are given the highest costs or the 
+least levels of pheromones since the algorithm needs to avoid these arcs unless the 
+locomotives are due for maintenance. 
+
+88 
+ 
+ 
+4.3.2 Locomotive Selection 
+The locomotive selection procedure follows the same logic outlined in the section 
+4.2.2 earlier. 
+4.3.3 ACO Funciton 
+In the ACO function, an individual ant simulates a locomotive. The chosen 
+ted by incrementally selecting stations until the status 
+of the locomotive necessitates maintenance or the locomotive has reached the end 
+of the planning horizon. Each ant starts at the source node defined by the heuristic, 
+which, at the beginning of the planning horizon is the shed node. At intermediate 
+stages, the source node could be either the stations or the sheds, depending on the 
+node at which the ACO function terminated at the previous stage. The next node to 
+be visited by the ant is selected from one among the neighbours of the source node. 
+The total distance is computed based on the number TrArcs served. Time elapsed 
+is computed based on the position of the ant in the time-space network. This 
+continues till one of the termination criteria is met. 
+Using ACO, each ant constructs a locomotive route that serves as many TrArcs as 
+possible. To select the next node j, the ant uses the following probabilistic formula  
+ 
+
+89 
+ 
+where 
+ is equal to the amount of pheromone on the path between the current 
+node i and neighbouring nodes u. The value 
+ is defined as the inverse of the 
+distance between the two nodes and the parameter  establishes the importance of 
+distance in comparison to pheromone quantity in the selection algorithm. Arcs 
+already served by the ant are stored in an array. The ant will return to maintenance 
+shed or home shed depending on whether the maintenance conditions are met or 
+the planning horizon has ended. 
+Trail updating is conducted by reducing the amount of pheromone on all visited 
+arcs in order to simulate the natural evaporation of pheromone and to ensure that 
+no one path becomes too dominant. This is done with the following trail updating 
+equation,  
+ 
+where  is a parameter that controls the speed of evaporation and 
+ is equal to an 
+initial pheromone value assigned to all arcs in graph G. DArcs, DlArcs and TrArcs 
+which have already met the bounds on equipment numbers are updated with zero 
+pheromone levels. The algorithm for the ACO function is given in the flowchart 
+below: 
+ 
+
+90 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Figure1310: Algorithm for the ACO function 
+ 
+ 
+START 
+Initialize ants at shed node 
+Designate this node as source 
+node 
+Select next node based on probability 
+ 
+Are the 
+termination 
+criteria met?
+Revise pheromone levels to 
+ 
+Identify Arcs that have satisfied 
+bounds on equipment number and 
+reset the pheromone levels to zero
+STOP 
+No 
+Yes 
+
+91 
+ 
+4.3.4 Algorithm 
+The algorithm for the heuristic is given in the flowchart below. Each locomotive 
+that is simulated by the ant is selected based on the rules as explained in section 
+4.2.2. Post identification of the lowest total cost locomotive, we use ACO function 
+explained in section 4.2.3 to identify the lowest cost path for the locomotive. Based 
+on the position of the locomotive in the time-space network, restart node is 
+calculated and the procedure repeated till the locomotive reaches the end of the 
+planning horizon. At the end of the planning horizon, the algorithm checks for un-
+serviced TrArcs. Existence of un-serviced TrArcs necessitates selection of a new 
+locomotive and a repetition of the above procedure. The heuristic is terminated 
+when all TrArcs have been serviced by locomotives. 
+ 
+ 
+
+92 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Figure1411: Algorithm for the ACO-based Heuristic 
+ 
+START 
+Identify Locomotive with the 
+lowest Total Cost 
+Apply ACO (function) to find the 
+lowest cost path 
+Is Locomotive 
+due for Periodic 
+Maintenance?
+Calculate 
+Restart Node
+Is Locomotive 
+due for Trip 
+Maintenance?
+Are there any 
+TrArcs 
+unserved?
+Replace Cost of 
+Loco with Infinity 
+Terminate 
+Heuristic
+STOP 
+No 
+No 
+No 
+Yes 
+Yes 
+Yes 
+
+93 
+ 
+4.4 RESULTS AND DISCUSSIONS 
+We use the same set of 25 problem instances that were used to test the mathematical 
+models. 
+-based heuristic, we were able to arrive at 
+solutions within a reasonable amount of time. The quality of the solution also is 
+reasonably good for the given test problem instances. In contrast, although, we were 
+able to arrive at solutions within a reasonable amount of time, the quality of the 
+solution is is not very encouraging even for the test problem instances. A summary 
+of the test results is given in table 10 below. 
+-based heuristic 
+and ACO-based heuristic co
+a polynomial time algorithm for the least cost path problem. Whereas, ACO is a 
+heuristic approach to find the least cost path for a problem. Since, the locomotive 
+selection procedure is same for both our heuristics, the difference boils down to 
+how we find the shortest path for each locomotive.  
+ 
+ 
+
+94 
+Sr. 
+No. 
+No. of 
+loco 
+types 
+No. of 
+stations 
+Planning 
+horizon 
+No. of 
+Trains 
+Time gap 
+between 
+two 
+consecutive 
+time slots 
+Termination 
+time (sec) 
+Optimality 
+gap 
+ACO 
+Termination 
+time (sec) 
+Optimality gap 
+1 
+2 
+2 
+1 day 
+2 
+0.5 
+2 
+0.00% 
+8 
+3.73% 
+2 
+2 
+2 
+3 days 
+12 
+0.5 
+4 
+0.00% 
+31 
+7.35% 
+3 
+2 
+2 
+4 days 
+16 
+0.5 
+2 
+0.00% 
+4 
+3.48% 
+4 
+2 
+3 
+2 days 
+12 
+0.5 
+6 
+0.00% 
+48 
+12.19% 
+5 
+2 
+4 
+2 days 
+14 
+0.5 
+5 
+0.00% 
+15 
+3.94% 
+6 
+2 
+3 
+3 days 
+18 
+0.5 
+16
+0.00%
+1639 
+1.96% 
+7 
+2 
+2 
+22 days 
+24 
+1 
+13 
+0.00% 
+280 
+11.48% 
+8 
+2 
+4 
+20 days 
+28 
+1 
+69 
+10.78% 
+365 
+36.87% 
+9 
+2 
+3 
+14 days 
+36 
+1 
+48 
+0.00% 
+2307 
+31.92% 
+10 
+2 
+4 
+5 days 
+28 
+0.5 
+35
+0.18%
+511 
+0.00% 
+11 
+2 
+3 
+4 days 
+36 
+0.5 
+28 
+18.13% 
+2922 
+29.31% 
+12 
+2 
+12 
+48 days 
+36 
+4 
+346 
+0.92% 
+317 
+0.00% 
+13 
+2 
+12 
+48 days 
+42 
+4 
+428 
+0.88% 
+885 
+42.59% 
+14 
+5 
+12 
+48 days 
+42 
+4 
+468 
+4.83% 
+693 
+25.25% 
+15 
+2 
+12 
+48 days 
+48 
+4 
+838 
+0.00% 
+1777 
+11.47% 
+16
+2 
+14 
+48 days 
+42 
+4 
+837
+13.06%
+556 
+0.00% 
+17 
+5 
+14 
+48 days 
+42 
+4 
+876
+0.00%
+700 
+36.94% 
+18 
+5 
+12 
+48 days 
+36 
+4 
+508
+0.00%
+342 
+18.93% 
+19 
+2 
+6 
+48 days 
+36 
+4 
+156 
+0.00% 
+463 
+9.96% 
+20
+5 
+6 
+48 days 
+36 
+4 
+146 
+0.00% 
+487 
+5.71% 
+21 
+2 
+6 
+48 days 
+36 
+4 
+145 
+0.00% 
+485 
+5.13% 
+22 
+5 
+10 
+48 days 
+36 
+4 
+276
+0.22%
+335 
+0.47% 
+23 
+2 
+10 
+48 days 
+36 
+4 
+277
+7.80%
+377 
+19.43% 
+24
+2 
+8 
+48 days 
+36 
+4 
+185 
+7.30% 
+518 
+43.62% 
+25 
+5 
+8 
+48 days 
+36 
+4 
+178 
+4.50% 
+514 
+48.85% 
+ 
+Table 10: Summary of Computational Tests  Heuristics 
+
+

@@ -1,0 +1,184 @@
+
+=== MILP Aircraft Assignment Report ===
+  Status : optimal
+  Vars   : 22140   Constraints: 98219
+  Gap    : 0.0075%   CPU: 1.13s
+  Obj    : 827858.0
+
+--- Assignment ---
+  Flight    1  -> Aircraft 1
+  Flight    2  -> Aircraft 1
+  Flight    3  -> Aircraft 1
+  Flight    4  -> Aircraft 1
+  Flight    5  -> Aircraft 1
+  Flight    6  -> Aircraft 9
+  Flight    7  -> Aircraft 6
+  Flight    8  -> Aircraft 6
+  Flight    9  -> Aircraft 6
+  Flight   10  -> Aircraft 6
+  Flight   11  -> Aircraft 2
+  Flight   12  -> Aircraft 6
+  Flight   13  -> Aircraft 6
+  Flight   14  -> Aircraft 6
+  Flight   15  -> Aircraft 6
+  Flight   16  -> Aircraft 6
+  Flight   17  -> Aircraft 2
+  Flight   18  -> Aircraft 2
+  Flight   19  -> Aircraft 6
+  Flight   20  -> Aircraft 6
+  Flight   21  -> Aircraft 4
+  Flight   22  -> Aircraft 8
+  Flight   23  -> Aircraft 8
+  Flight   24  -> Aircraft 8
+  Flight   25  -> Aircraft 8
+  Flight   26  -> Aircraft 8
+  Flight   27  -> Aircraft 8
+  Flight   28  -> Aircraft 8
+  Flight   29  -> Aircraft 8
+  Flight   30  -> Aircraft 8
+  Flight   31  -> Aircraft 8
+  Flight   32  -> Aircraft 8
+  Flight   33  -> Aircraft 8
+  Flight   34  -> Aircraft 8
+  Flight   35  -> Aircraft 8
+  Flight   36  -> Aircraft 8
+  Flight   37  -> Aircraft 8
+  Flight   38  -> Aircraft 8
+  Flight   39  -> Aircraft 8
+  Flight   40  -> Aircraft 3
+  Flight   41  -> Aircraft 3
+  Flight   42  -> Aircraft 3
+  Flight   43  -> Aircraft 3
+  Flight   44  -> Aircraft 3
+  Flight   45  -> Aircraft 3
+  Flight   46  -> Aircraft 3
+  Flight   47  -> Aircraft 3
+  Flight   48  -> Aircraft 3
+  Flight   49  -> Aircraft 3
+  Flight   50  -> Aircraft 3
+  Flight   51  -> Aircraft 5
+  Flight   52  -> Aircraft 5
+  Flight   53  -> Aircraft 5
+  Flight   54  -> Aircraft 7
+  Flight   55  -> Aircraft 5
+  Flight   56  -> Aircraft 5
+  Flight   57  -> Aircraft 5
+  Flight   58  -> Aircraft 5
+  Flight   59  -> Aircraft 5
+  Flight   60  -> Aircraft 5
+  Flight   61  -> Aircraft 5
+  Flight   62  -> Aircraft 5
+  Flight   63  -> Aircraft 5
+  Flight   64  -> Aircraft 5
+  Flight   65  -> Aircraft 5
+  Flight   66  -> Aircraft 5
+  Flight   67  -> Aircraft 2
+  Flight   68  -> Aircraft 5
+  Flight   69  -> Aircraft 5
+  Flight   70  -> Aircraft 5
+  Flight   71  -> Aircraft 5
+  Flight   72  -> Aircraft 5
+  Flight   73  -> Aircraft 5
+  Flight   74  -> Aircraft 5
+  Flight   75  -> Aircraft 5
+  Flight   76  -> Aircraft 2
+  Flight   77  -> Aircraft 2
+  Flight   78  -> Aircraft 2
+  Flight   79  -> Aircraft 2
+  Flight   80  -> Aircraft 2
+  Flight   81  -> Aircraft 2
+  Flight   82  -> Aircraft 2
+  Flight   83  -> Aircraft 2
+  Flight   84  -> Aircraft 2
+  Flight   85  -> Aircraft 8
+  Flight   86  -> Aircraft 6
+  Flight   87  -> Aircraft 6
+  Flight   88  -> Aircraft 2
+  Flight   89  -> Aircraft 2
+  Flight   90  -> Aircraft 2
+  Flight   91  -> Aircraft 2
+  Flight   92  -> Aircraft 2
+  Flight   93  -> Aircraft 2
+  Flight   94  -> Aircraft 2
+  Flight   95  -> Aircraft 2
+  Flight   96  -> Aircraft 6
+  Flight   97  -> Aircraft 2
+  Flight   98  -> Aircraft 2
+  Flight   99  -> Aircraft 2
+  Flight  100  -> Aircraft 6
+  Flight  101  -> Aircraft 6
+  Flight  102  -> Aircraft 5
+
+--- Maintenance ---
+  Aircraft 5  day   3  check A after flight:
+68 arr 3815.0 
+
+
+  Aircraft 5  day   3  check A triggered by initial position, assigned flight:
+63 dep 6515.0 
+
+
+  Aircraft 5  day   3  check A triggered by initial position, assigned flight:
+70 dep 9670.0 
+
+
+  Aircraft 5  day   3  check A triggered by initial position, assigned flight:
+63 dep 6515.0 
+
+
+  Aircraft 5  day   3  check A triggered by initial position, assigned flight:
+70 dep 9670.0 
+
+
+  Aircraft 5  day   3  check A triggered by initial position, assigned flight:
+63 dep 6515.0 
+
+
+  Aircraft 5  day   3  check A triggered by initial position, assigned flight:
+70 dep 9670.0 
+
+
+  Aircraft 5  day   3  check A triggered by initial position, assigned flight:
+63 dep 6515.0 
+
+
+  Aircraft 5  day   3  check A triggered by initial position, assigned flight:
+70 dep 9670.0 
+
+
+  Aircraft 5  day   3  check A triggered by initial position, assigned flight:
+63 dep 6515.0 
+
+
+  Aircraft 5  day   3  check A triggered by initial position, assigned flight:
+70 dep 9670.0 
+
+
+  Aircraft 5  day   3  check A triggered by initial position, assigned flight:
+63 dep 6515.0 
+
+
+  Aircraft 5  day   3  check A triggered by initial position, assigned flight:
+70 dep 9670.0 
+
+
+  Aircraft 5  day   3  check A triggered by initial position, assigned flight:
+63 dep 6515.0 
+
+
+  Aircraft 5  day   3  check A triggered by initial position, assigned flight:
+70 dep 9670.0 
+
+
+  Aircraft 5  day   3  check A triggered by initial position, assigned flight:
+63 dep 6515.0 
+
+
+  Aircraft 5  day   3  check A triggered by initial position, assigned flight:
+70 dep 9670.0 
+
+
+y[5,3,A] = 1.0  (check A for aircraft 5 on day 3)
+z[68,5,3,A] = 1.0  (flight 68 triggers check A for aircraft 5 on day 3)
+
+Total cost: 827858.00

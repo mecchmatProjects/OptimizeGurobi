@@ -1,0 +1,5 @@
+read OUT_TEST/debug_infeas2.lp
+optimize
+tools conflict
+write OUT_TEST/debug_iis2.ilp clp
+quit

@@ -1,0 +1,12 @@
+Dataset : InputsABCD\ABCD_multi_check_test_OLD.json
+Mode    : heuristic
+Flights : 21/21 assigned  (0 unassigned)
+Cost    : 155989
+CPU     : 6.0s
+
+  AID    Flt   Busy(min)   Free(min)
+    0      4        1280       20820
+    1      5        3940       18160
+    2      6        2700       19400
+    3      3        3540       18560
+    4      3         660       21440

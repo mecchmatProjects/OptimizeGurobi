@@ -5,10 +5,16 @@ import sys
 import logging
 from venv import logger
 
-import matplotlib.pyplot as plt
-from matplotlib.patches import Patch
-import matplotlib.patches as mpatches
 import pandas as pd
+
+try:
+    import matplotlib.pyplot as plt
+    import matplotlib.patches as mpatches
+    PLOTTING_AVAILABLE = True
+except Exception:
+    plt = None
+    mpatches = None
+    PLOTTING_AVAILABLE = False
 
 # Force UTF-8 output on Windows (avoids UnicodeEncodeError for box-drawing chars)
 if hasattr(sys.stdout, 'reconfigure'):
@@ -271,7 +277,8 @@ class MILP_Sheduler:
         'D': ['D'],
     }
 
-    def __init__(self, data_path, maintenance_airports=None):
+    def __init__(self, data_path, maintenance_airports=None,
+                 max_hour_check_deferral_days=None):
         """Load data from *data_path* and prepare all MILP index sets.
 
         Parameters
@@ -295,6 +302,7 @@ class MILP_Sheduler:
             raw = json.load(f)
 
         logger.debug(f"Loaded data from {data_path}")
+        self.max_hour_check_deferral_days = max_hour_check_deferral_days
         # ── Flights ──────────────────────────────────────────────────────────
         self.flight_ids  = []
         self.flight_data = {}
@@ -401,10 +409,41 @@ class MILP_Sheduler:
         self.cost_matrix = raw['Cost_Matrix']
         self._aid_index  = {aid: idx for idx, aid in enumerate(self.aircraft_ids)}
 
+        # Sparse assignment arcs.
+        # Treat cost >= 9999 as effectively forbidden; if a flight has no arc
+        # below that cutoff, fall back to all aircraft so the model remains
+        # constructible.
+        self.x_arcs_by_flight = {}
+        self.x_arcs_by_aircraft = {aid: [] for aid in self.aircraft_ids}
+        self.x_arcs_set = set()
+        self.x_var_count = 0
+        for fid in self.flight_ids:
+            feasible = [aid for aid in self.aircraft_ids
+                        if self._flight_cost(fid, aid) < 9999]
+            if not feasible:
+                feasible = list(self.aircraft_ids)
+            self.x_arcs_by_flight[fid] = tuple(feasible)
+            self.x_var_count += len(feasible)
+            for aid in feasible:
+                self.x_arcs_by_aircraft[aid].append(fid)
+                self.x_arcs_set.add((fid, aid))
+
         # ── Planning horizon (days) ───────────────────────────────────────────
         max_day = max(fd['day_arrival'] for fd in self.flight_data.values()) + 1
         max_day = max(8, max_day)
         self.days = list(range(1, max_day + 1))
+
+        # Cached flight groupings to avoid repeated full-table scans inside
+        # routing and maintenance constraint builders.
+        self._dep_flights_by_airport = {a: [] for a in self.airports}
+        self._arr_flights_by_airport = {a: [] for a in self.airports}
+        self._dep_flights_by_day_airport = {
+            (d, a): [] for d in self.days for a in self.airports
+        }
+        for fid, fd in self.flight_data.items():
+            self._dep_flights_by_airport[fd['origin']].append(fid)
+            self._arr_flights_by_airport[fd['destination']].append(fid)
+            self._dep_flights_by_day_airport[(fd['day_departure'], fd['origin'])].append(fid)
 
         # ── Big-M values ──────────────────────────────────────────────────────
         # M_BIG is used in C13/C13b (hour-accumulation) big-M relaxations.
@@ -426,9 +465,89 @@ class MILP_Sheduler:
         ]
         logger.debug(f"Loaded maintenance-eligible flights: {self.maint_flight_ids}")
 
+        # Sparse z-domain cache.
+        # A/B checks may start on any day from the trigger flight's arrival day
+        # through the end of the horizon. C/D checks only need the consecutive
+        # days they occupy; the old model created the full horizon and then
+        # forced most of those variables to zero.
+        self.z_days_by_flight_check = {}
+        self.z_flights_by_day_check = {
+            (d, c): [] for d in self.days for c in self.CHECK_LIST
+        }
+        self.z_var_count = 0
+        last_day = self.days[-1]
+        for fid in self.maint_flight_ids:
+            arr_day = self.flight_data[fid]['day_arrival']
+            for ck in self.CHECK_LIST:
+                if self.check_days[ck] is None:
+                    if self.max_hour_check_deferral_days is None:
+                        end_day = last_day
+                    else:
+                        end_day = min(
+                            arr_day + int(self.max_hour_check_deferral_days),
+                            last_day,
+                        )
+                else:
+                    span_days = max(1, self.check_dur_days[ck])
+                    end_day = min(arr_day + span_days - 1, last_day)
+                days_for_key = tuple(range(arr_day, end_day + 1))
+                self.z_days_by_flight_check[(fid, ck)] = days_for_key
+                self.z_var_count += len(days_for_key) * len(self.aircraft_ids)
+                for day in days_for_key:
+                    self.z_flights_by_day_check[(day, ck)].append(fid)
+
+        self.c8_same_day_block = {}
+        self.c8_escape = {}
+        self.c8_same_day_block_feasible = {}
+        self.c8_escape_feasible = {}
+        self.c8_check_day_departures_feasible = {}
+        for fid in self.maint_flight_ids:
+            fd_i = self.flight_data[fid]
+            apt = fd_i['destination']
+            d_i = fd_i['day_arrival']
+            arr_i = fd_i['arrivalTime']
+            same_day_deps = tuple(self._dep_flights_by_day_airport[(d_i, apt)])
+            escape = tuple(fid2 for fid2 in same_day_deps if self.flight_data[fid2]['departureTime'] > arr_i)
+            for ck in self.CHECK_LIST:
+                dur = self.check_dur[ck]
+                same_day_block = tuple(
+                    fid2 for fid2 in same_day_deps
+                    if arr_i < self.flight_data[fid2]['departureTime'] <= arr_i + dur
+                )
+                self.c8_same_day_block[(fid, ck)] = same_day_block
+                self.c8_escape[(fid, ck)] = escape
+                for aid in self.aircraft_ids:
+                    self.c8_same_day_block_feasible[(fid, ck, aid)] = tuple(
+                        fid2 for fid2 in same_day_block if self._x_has_arc(fid2, aid)
+                    )
+                    self.c8_escape_feasible[(fid, ck, aid)] = tuple(
+                        fid2 for fid2 in escape if self._x_has_arc(fid2, aid)
+                    )
+            for day in self.days:
+                day_deps = tuple(self._dep_flights_by_day_airport[(day, apt)])
+                for aid in self.aircraft_ids:
+                    self.c8_check_day_departures_feasible[(fid, day, aid)] = tuple(
+                        fid2 for fid2 in day_deps if self._x_has_arc(fid2, aid)
+                    )
+
         # Model and results (populated by build_model / solve)
         self.model   = None
         self.results = None
+
+    def _z_days_for(self, fid, check_type):
+        return self.z_days_by_flight_check[(fid, check_type)]
+
+    def _z_trigger_flights(self, day, check_type):
+        return self.z_flights_by_day_check.get((day, check_type), ())
+
+    def _x_aircrafts_for_flight(self, fid):
+        return self.x_arcs_by_flight[fid]
+
+    def _x_flights_for_aircraft(self, aid):
+        return self.x_arcs_by_aircraft[aid]
+
+    def _x_has_arc(self, fid, aid):
+        return (fid, aid) in self.x_arcs_set
 
     # ------------------------------------------------------------------
     # Model construction
@@ -502,10 +621,28 @@ class MILP_Sheduler:
         m.C   = Set(initialize=self.CHECK_LIST)
 
         # x[i,j] = 1  iff flight i assigned to aircraft j
-        m.x = Var(m.F, m.P, domain=Binary, initialize=0)
+        def _x_index_init(_m):
+            for i in self.flight_ids:
+                for j in self._x_aircrafts_for_flight(i):
+                    yield (i, j)
+        m.X = Set(dimen=2, initialize=_x_index_init)
+        m.x = Var(m.X, domain=Binary, initialize=0)
         # z[i,j,d,c] = 1  iff aircraft j does check c on day d triggered by flight i
-        # Only indexed over FM (flights arriving at MA) to reduce model size.
-        m.z = Var(m.FM, m.P, m.D, m.C, domain=Binary, initialize=0)
+        # Only indexed over feasible (flight, aircraft, day, check) tuples.
+        def _z_index_init(_m):
+            for i in self.maint_flight_ids:
+                for j in self.aircraft_ids:
+                    for c in self.CHECK_LIST:
+                        for d in self._z_days_for(i, c):
+                            yield (i, j, d, c)
+        m.Z = Set(dimen=4, initialize=_z_index_init)
+        print("DEBUG |FM| =", len(m.FM))
+        print("DEBUG |P| =", len(m.P))
+        print("DEBUG |D| =", len(m.D))
+        print("DEBUG |C| =", len(m.C))
+        print("DEBUG x vars =", self.x_var_count, flush=True)
+        print("DEBUG z vars =", self.z_var_count, flush=True)
+        m.z = Var(m.Z, domain=Binary, initialize=0)
         # y[j,d,c] = 1  iff aircraft j undergoes check c on day d
         m.y = Var(m.P, m.D, m.C, domain=Binary, initialize=0)
         # mega_check[j,d,c] = 1 if aircraft j has a check of type ≥c on day d (hierarchy)
@@ -517,9 +654,9 @@ class MILP_Sheduler:
         m.obj = Objective(
             expr=(
                 sum(self._flight_cost(i, j) * m.x[i, j]
-                    for i in m.F for j in m.P)
-                + sum(maint_cost * m.z[i, j, d, c]
-                      for i in m.FM for j in m.P for d in m.D for c in m.C)
+                    for i, j in m.X)
+                + sum(maint_cost * m.y[j, d, c]
+                      for j in m.P for d in m.D for c in m.C)
             ),
             sense=minimize,
         )
@@ -529,26 +666,26 @@ class MILP_Sheduler:
     # ------------------------------------------------------------------
     def _f_arr_k(self, k):
         """Flights landing at airport k."""
-        return [i for i, fd in self.flight_data.items() if fd['destination'] == k]
+        return list(self._arr_flights_by_airport[k])
 
     def _f_dep_k(self, k):
         """Flights departing from airport k."""
-        return [i for i, fd in self.flight_data.items() if fd['origin'] == k]
+        return list(self._dep_flights_by_airport[k])
 
     def _f_arr_before(self, k, t, delta):
         """Flights landing at k with arrivalTime ≤ t − delta."""
-        return [i for i in self._f_arr_k(k)
+        return [i for i in self._arr_flights_by_airport[k]
                 if self.flight_data[i]['arrivalTime'] <= t - delta]
 
     def _f_dep_before(self, k, t):
         """Flights departing from k with departureTime < t."""
-        return [i for i in self._f_dep_k(k)
+        return [i for i in self._dep_flights_by_airport[k]
                 if self.flight_data[i]['departureTime'] < t]
 
     def _f_dep_window(self, k, t0, t1):
         """Flights departing from k with t0 < departureTime ≤ t1."""
-        return [i for i in self._f_dep_k(k)
-                if t0 < self.flight_data[i]['departureTime'] <= t1]
+        return [i for i in self._dep_flights_by_airport[k]
+            if t0 < self.flight_data[i]['departureTime'] <= t1]
 
     def _f_dep_between_days(self, d1, d2):
         """Flights whose day_departure is in (d1, d2]."""
@@ -557,7 +694,7 @@ class MILP_Sheduler:
 
     def _f_dep_on_day_airport(self, d, k):
         """Flights departing on day d from airport k."""
-        return [i for i, fd in self.flight_data.items() if fd['day_departure'] == d and fd['origin'] == k]
+        return list(self._dep_flights_by_day_airport[(d, k)])
 
     def _f_dep_on_day_airport_after(self, d, k, t):
         """Flights departing on day d from airport k after time t."""
@@ -590,7 +727,7 @@ class MILP_Sheduler:
     def _add_c1_coverage(self, m):
         m.c1 = ConstraintList()
         for i in m.F:
-            m.c1.add(sum(m.x[i, j] for j in m.P) == 1)
+            m.c1.add(sum(m.x[i, j] for j in self._x_aircrafts_for_flight(i)) == 1)
 
     # ------------------------------------------------------------------
     # Constraints C2–C3 – equipment-flow / turnaround feasibility
@@ -606,9 +743,13 @@ class MILP_Sheduler:
             init_apt = self.aircraft_init[j]
             for k in m.A:
                 for i in self._f_dep_k(k):
+                    if not self._x_has_arc(i, j):
+                        continue
                     t = self.flight_data[i]['departureTime']
-                    lhs = (sum(m.x[i1, j] for i1 in self._f_arr_before(k, t, tau))
-                           - sum(m.x[i1, j] for i1 in self._f_dep_before(k, t)))
+                    lhs = (sum(m.x[i1, j] for i1 in self._f_arr_before(k, t, tau)
+                                 if self._x_has_arc(i1, j))
+                           - sum(m.x[i1, j] for i1 in self._f_dep_before(k, t)
+                                 if self._x_has_arc(i1, j)))
                     rhs = m.x[i, j] if k != init_apt else m.x[i, j] - 1
                     m.c23.add(lhs >= rhs)
 
@@ -630,7 +771,7 @@ class MILP_Sheduler:
                     continue
                 if fd_i1['departureTime'] >= fd_i['arrivalTime'] + tau:
                     continue
-                for j in m.P:
+                for j in (set(self._x_aircrafts_for_flight(i)) & set(self._x_aircrafts_for_flight(i1))):
                     m.c_overlap.add(m.x[i, j] + m.x[i1, j] <= 1)
 
     # ------------------------------------------------------------------
@@ -640,53 +781,66 @@ class MILP_Sheduler:
     # ------------------------------------------------------------------
 
     def _add_c8_maint_blocks_flights(self, m):
-        """C8: if z[i,j,d_i,c]=1 (check c triggered by flight i on its arrival
-        day d_i), then aircraft j cannot fly any flight i2 that departs from the
-        SAME airport on the SAME day AFTER flight i arrives.
-        Only add constraint for d == d_i (the actual arrival day of flight i);
-        the original loop over all days was incorrect and exponentially wasteful."""
+        """C8: maintenance-triggered flight-blocking constraints.
+
+        Three sub-blocks per (check c, trigger flight i, aircraft j):
+
+        (a) z==0 for d < d_arr_i  — sanity: can't trigger before arrival.
+
+        (b) Same-day trigger (d == d_arr_i): if the check STARTS on the same
+            day the trigger flight lands, block departures from the maintenance
+            airport that fall WITHIN the check window [t_arr_i, t_arr_i+dur(c)].
+            Flights departing AFTER the check ends are NOT blocked here — the
+            aircraft is free once maintenance is finished.
+
+        (c) Deferred trigger (d > d_arr_i): if the check START is pushed to a
+            later day d, the aircraft must wait at the maintenance airport from
+            t_arr_i until day d.  Block:
+              c1) escapes on d_arr_i after t_arr_i (can't fly away while waiting)
+              c2) all departures from the maintenance airport on day d (check day)
+        """
         m.c8 = ConstraintList()
-        
-        for check in self.CHECK_LIST:
-                for i in m.FM:
-                    for j in m.P:
-                        d_arr_i = self.flight_data[i]['day_arrival']
-                        airport = self.flight_data[i]['destination']
-                        arr_time_i = self.flight_data[i]['arrivalTime']
-                        for i2 in self._f_dep_on_day_after(d_arr_i, arr_time_i):
-                            m.c8.add(m.z[i, j, d_arr_i, check] + m.x[i2, j] <= 1)
-                            logger.debug(f"Added C8 constraint: if z[{i},{j},{d_arr_i},{check}]=1 then x[{i2},{j}]=0 (flight {i2} departs after flight {i} arrives on day {d_arr_i} at airport {airport})") 
-
-                        for d in m.D:
-                            if d < d_arr_i:
-                                m.c8.add(m.z[i, j, d, check] == 0)
-                            if d > d_arr_i:
-                                for i2 in self._f_dep_on_day_airport(d, airport):
-                                    m.c8.add(m.z[i, j, d, check] + m.x[i2, j] <= 1)
-                                    logger.debug(f"Added C8 constraint: if z[{i},{j},{d},{check}]=1 then x[{i2},{j}]=0 (flight {i2} departs on day {d} at airport {airport})")
-
 
         for c in self.CHECK_LIST:
-            for i in m.FM:  # only maintenance-eligible flights (have z variables)
+            dur = self.check_dur[c]
+            for i in m.FM:
                 fd_i  = self.flight_data[i]
-                arr_i = fd_i['arrivalTime']
                 d_i   = fd_i['day_arrival']
-                dest_i = fd_i['destination']
-                # Only flights that depart from same airport as i's destination,
-                # same day, and AFTER i arrives
-                blocking = [
-                    i2 for i2, fd2 in self.flight_data.items()
-                    if fd2['origin'] == dest_i
-                    and fd2['day_departure'] == d_i
-                    and fd2['departureTime'] > arr_i
-                ]
-                if not blocking:
-                    continue
+                arr_i = fd_i['arrivalTime']
+                apt   = fd_i['destination']   # maintenance airport
+
+                # (b) same-day blocking: WITHIN check window only
+                same_day_block = self.c8_same_day_block[(i, c)]
+
+                # (c1) escape list: all maint-airport departures on d_arr_i after arr_i
+                #      used for deferred triggers (waiting-period escape prevention)
+                escape = self.c8_escape[(i, c)]
+
                 for j in m.P:
-                    # Only d == d_i is semantically correct
-                    if d_i in m.D:
-                        for i2 in blocking:
-                            m.c8.add(m.z[i, j, d_i, c] + m.x[i2, j] <= 1)
+                    # (b) same-day: block in-window departures from maint airport
+                    same_day_block_j = self.c8_same_day_block_feasible[(i, c, j)]
+                    if same_day_block_j:
+                        m.c8.add(
+                            sum(m.x[i2, j] for i2 in same_day_block_j)
+                            <= len(same_day_block) * (1 - m.z[i, j, d_i, c])
+                        )
+
+                    # (c) deferred: block escape + check-day departures
+                    for d in self._z_days_for(i, c):
+                        if d <= d_i:
+                            continue
+                        escape_j = self.c8_escape_feasible[(i, c, j)]
+                        if escape_j:  # c1: waiting-period
+                            m.c8.add(
+                                sum(m.x[i2, j] for i2 in escape_j)
+                                <= len(escape) * (1 - m.z[i, j, d, c])
+                            )
+                        check_day_departures = self.c8_check_day_departures_feasible[(i, d, j)]
+                        if check_day_departures:  # c2: check day
+                            m.c8.add(
+                                sum(m.x[i2, j] for i2 in check_day_departures)
+                                <= len(check_day_departures) * (1 - m.z[i, j, d, c])
+                            )
 
     # ------------------------------------------------------------------
     # Constraint C9 – z[i,j,d,c] can only be 1 if x[i,j]=1
@@ -697,9 +851,15 @@ class MILP_Sheduler:
         m.c9 = ConstraintList()
         for c in self.CHECK_LIST:
             for i in m.FM:  # only maintenance-eligible flights
-                for j in m.P:
-                    for d in m.D:
-                        m.c9.add(m.x[i, j] >= m.z[i, j, d, c])
+                z_days = self._z_days_for(i, c)
+                start_day = z_days[0]
+                for j in self._x_aircrafts_for_flight(i):
+                    if self.check_days[c] is None:
+                        m.c9.add(
+                            sum(m.z[i, j, d, c] for d in z_days) <= m.x[i, j]
+                        )
+                    else:
+                        m.c9.add(m.x[i, j] >= m.z[i, j, start_day, c])
                         
                     # di = self.flight_data[i]['day_arrival']
                     # m.c9.add(m.x[i, j] >= m.z[i, j, di, c])
@@ -725,7 +885,9 @@ class MILP_Sheduler:
                     m.c10.add(
                         sum(m.z[i, j, d, c]
                             for c in self.CHECK_LIST
-                            for i in flights_a for j in m.P) <= cap[a]
+                            for i in self._z_trigger_flights(d, c)
+                            if i in flights_a
+                            for j in m.P) <= cap[a]
                     )
 
     # ------------------------------------------------------------------
@@ -739,7 +901,7 @@ class MILP_Sheduler:
             for d in m.D:
                 for j in m.P:
                     m.c11.add(
-                        sum(m.z[i, j, d, c] for i in m.FM)
+                        sum(m.z[i, j, d, c] for i in self._z_trigger_flights(d, c))
                         == m.y[j, d, c]
                     )
 
@@ -887,16 +1049,12 @@ class MILP_Sheduler:
                         
             for j in m.P:
                 for i in m.FM:  # only maintenance-eligible flights (have z variables)
-                        days_i = self.flight_data[i]['day_arrival']
-
-                        for d in range(days[0], days_i):
-                            m.c12days.add(m.z[i, j, d, c] == 0)
-                                                
-                        for d in range(days_i+1, min(days_i + ival, days[-1] + 1)):
-                            m.c12days.add(m.z[i, j, d, c] ==  m.z[i, j, days_i, c])
-
-                        for d in range(days_i + ival, days[-1] +1):
-                            m.c12days.add(m.z[i, j, d, c] == 0)
+                        z_days = self._z_days_for(i, c)
+                        if not z_days:
+                            continue
+                        start_day = z_days[0]
+                        for d in z_days[1:]:
+                            m.c12days.add(m.z[i, j, d, c] == m.z[i, j, start_day, c])
                                
 
     
@@ -927,6 +1085,7 @@ class MILP_Sheduler:
                         t_sum  = sum(
                             self.flight_data[i]['duration'] * m.x[i, j]
                             for i in self._f_dep_between_days(d, d_)
+                            if self._x_has_arc(i, j)
                         )
                         y_mid  = sum(m.mega[j, days[r], c]
                                      for r in range(si + 1, ei))
@@ -974,6 +1133,7 @@ class MILP_Sheduler:
                     t_sum = sum(
                         self.flight_data[i]['duration'] * m.x[i, j]
                         for i in self._f_dep_between_days(0, d_)
+                        if self._x_has_arc(i, j)
                     )
                     y_mid = sum(m.mega[j, days[r], c] for r in range(ei))
                     # Relax when any check occurs in [day_1 .. d_] (y_mid covers
@@ -1001,7 +1161,7 @@ class MILP_Sheduler:
                 apt  = fd['destination']
                 t_arr = fd['arrivalTime']
                 d_i   = fd['day_arrival']
-                for j in m.P:
+                for j in self._x_aircrafts_for_flight(i):
                     for i2 in self._f_dep_window(apt, t_arr, t_arr + dur):
                         # Block i2 for aircraft j when:
                         #   x[i,j]=1  (j flew into apt via flight i)
@@ -1025,6 +1185,8 @@ class MILP_Sheduler:
                 seen_apts.add(apt)
                 for j2 in m.P:
                     for i2 in self._f_dep_window(apt, 0, dur):
+                        if not self._x_has_arc(i2, j2):
+                            continue
                         m.c15.add(m.mega[j2, d0, c] + m.x[i2, j2] <= 1)
         
         # Note: Multi-day check blocking is already handled by C15a above,
@@ -1043,7 +1205,7 @@ class MILP_Sheduler:
             for i in m.FM:  # only maintenance-eligible flights
                 arr_day = self.flight_data[i]['day_arrival']
                 for j in m.P:
-                    for d in m.D:
+                    for d in self._z_days_for(i, c):
                         if d < arr_day:
                             m.c_sanity.add(m.z[i, j, d, c] == 0)
 
@@ -1166,7 +1328,7 @@ class MILP_Sheduler:
 
         _p("\n--- Assignment ---")
         for i in m.F:
-            for j in m.P:
+            for j in self._x_aircrafts_for_flight(i):
                 if pyo_value(m.x[i, j]) > 0.5:
                     _p(f"  Flight {i:4d}  -> Aircraft {j}")
 
@@ -1176,7 +1338,7 @@ class MILP_Sheduler:
                 for d in m.D:
                     val = pyo_value(m.y[j, d, c])
                     if val > 0.5:
-                        for i in m.FM:
+                        for i in self._z_trigger_flights(d, c):
                             if pyo_value(m.z[i, j, d, c]) > 0.5:
                                 _p(f"  Aircraft {j}  day {d:3d}  check {c} after flight:")
                                 _p(f"{i} arr {self.flight_data[i]['arrivalTime']} ")
@@ -1184,6 +1346,8 @@ class MILP_Sheduler:
                         for d1 in m.D:
                             for i1 in m.F:
                                 if self.flight_data[i1]['origin'] != self.flight_data[i]['destination'] or self.flight_data[i1]['day_departure'] <= d:
+                                    continue
+                                if not self._x_has_arc(i1, j):
                                     continue
                                 if pyo_value(m.x[i1, j]) > 0.5:
                                     _p(f"  Aircraft {j}  day {d:3d}  check {c} triggered by initial position, assigned flight:")
@@ -1195,7 +1359,7 @@ class MILP_Sheduler:
                 for c in self.CHECK_LIST:
                     if pyo_value(m.y[j, d, c]) > 0.5:
                         _p(f"y[{j},{d},{c}] = {pyo_value(m.y[j, d, c])}  (check {c} for aircraft {j} on day {d})")
-                    for i in m.FM:
+                    for i in self._z_trigger_flights(d, c):
                         if pyo_value(m.z[i, j, d, c]) > 0.5:
                             _p(f"z[{i},{j},{d},{c}] = {pyo_value(m.z[i, j, d, c])}  (flight {i} triggers check {c} for aircraft {j} on day {d})")
               
@@ -1220,6 +1384,8 @@ class MILP_Sheduler:
         events = []
         for j in m.P:
             for i in m.F:
+                if not self._x_has_arc(i, j):
+                    continue
                 if pyo_value(m.x[i, j]) > 0.5:
                     fd = self.flight_data[i]
                     events.append({
@@ -1236,12 +1402,21 @@ class MILP_Sheduler:
             for d in m.D:
                 for c in self.CHECK_LIST:
                     if pyo_value(m.y[j, d, c]) > 0.5:
-                        # Find the trigger flight to get start time.
+                        # Skip continuation days: only emit one event per
+                        # maintenance block (the first day of the check).
+                        # A multi-day check sets y[j,d,c]=1 for each day it
+                        # spans; emitting one event per day produces duplicate
+                        # entries with wrong start/end times for days > 1.
+                        prev_d = d - 1
+                        if prev_d in m.D and pyo_value(m.y[j, prev_d, c]) > 0.5:
+                            continue  # continuation of an earlier block
+
+                        # Find the trigger flight to get the actual start time.
                         # Only use the trigger flight's arrivalTime if it arrives
                         # on the same day d as the maintenance; otherwise fall back
                         # to the start of day d so the event sorts correctly.
                         t_start = (d - 1) * self.DAY_SHIFT
-                        for i in m.FM:
+                        for i in self._z_trigger_flights(d, c):
                             if pyo_value(m.z[i, j, d, c]) > 0.5:
                                 fd_trig = self.flight_data[i]
                                 if fd_trig['day_arrival'] == d:
@@ -1309,6 +1484,14 @@ def _plot_gantt(events, aid_list, unassigned_flights=None, unassigned_ids=None,
     show             : call plt.show()
     title            : chart title
     """
+    if not PLOTTING_AVAILABLE:
+        if fname is not None:
+            with open(fname, 'w', encoding='utf-8') as fh:
+                fh.write('Plotting unavailable in this environment.\n')
+        if save_path:
+            print(f"Skipping Gantt plot (matplotlib unavailable): {save_path}")
+        return
+
     colors = _GANTT_COLORS
     fig, ax = plt.subplots(figsize=(18, max(6, len(aid_list) * 0.6 + 2)))
 
@@ -1402,9 +1585,10 @@ def _plot_gantt(events, aid_list, unassigned_flights=None, unassigned_ids=None,
     ax.set_yticklabels(labels)
     ax.set_xlabel('Time (minutes)')
 
-    legend_patches = [mpatches.Patch(color=c, label=k) for k, c in colors.items()]
-    ax.legend(handles=legend_patches, title='Event Types',
-              loc='upper left', bbox_to_anchor=(1, 1))
+    if mpatches is not None:
+        legend_patches = [mpatches.Patch(color=c, label=k) for k, c in colors.items()]
+        ax.legend(handles=legend_patches, title='Event Types',
+                  loc='upper left', bbox_to_anchor=(1, 1))
     plt.title(title)
     plt.tight_layout()
 
@@ -1507,7 +1691,8 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
              out_txt=None, gantt_path=None, show_gantt=True,
              use_day_spacing=True, use_existing_hrs=True,
              use_check_hierarchy=True, use_sanity=False, use_overlap=True,
-             allow_ferry=True, use_maintenance=True, warm_start=True):
+             allow_ferry=True, use_maintenance=True, warm_start=True,
+             max_hour_check_deferral_days=None):
     """Build and solve the MILP model, then display results.
 
     Parameters
@@ -1519,7 +1704,10 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
     warm_start     : bool        When True (default), seed MILP x-variables with
                                  the greedy heuristic solution before solving.
     """
-    opt = MILP_Sheduler(data_path)
+    opt = MILP_Sheduler(
+        data_path,
+        max_hour_check_deferral_days=max_hour_check_deferral_days,
+    )
     opt.build_model(use_day_spacing=use_day_spacing,
                     use_existing_hrs=use_existing_hrs,
                     use_check_hierarchy=use_check_hierarchy,
@@ -1587,7 +1775,8 @@ def _run_one_heuristic(fp, out_dir, stem, show_gantt):
 
 def _run_one_milp(fp, out_dir, stem, solver, tee, show_gantt, time_limit,
                   allow_ferry=True, use_maintenance=True,
-                  use_overlap=True, use_sanity=False, warm_start=True, use_check_hierarchy=True):
+                  use_overlap=True, use_sanity=False, warm_start=True,
+                  use_check_hierarchy=True, max_hour_check_deferral_days=None):
     """Run MILP on a single file; return metrics dict."""
     import time, os
     gantt_out = os.path.join(out_dir, f'{stem}_milp_gantt.png')
@@ -1603,12 +1792,16 @@ def _run_one_milp(fp, out_dir, stem, solver, tee, show_gantt, time_limit,
         use_sanity=use_sanity,
         warm_start=warm_start,
         use_check_hierarchy=use_check_hierarchy,
+        max_hour_check_deferral_days=max_hour_check_deferral_days,
     )
     cpu = time.time() - t0
 
     # Count assigned flights from model
     m = opt.model
-    n_assigned = sum(1 for i in m.F for j in m.P if pyo_value(m.x[i, j]) > 0.5)
+    n_assigned = sum(
+        1 for i in m.F for j in opt._x_aircrafts_for_flight(i)
+        if pyo_value(m.x[i, j]) > 0.5
+    )
     n_total    = len(list(m.F))
 
     print(f"    [milp] status={info.get('status')}  obj={info.get('obj')}  "
@@ -1627,6 +1820,10 @@ def _plot_comparison(rows, out_dir):
     """Bar-chart comparison of heuristic vs MILP across all datasets."""
     import os
     import numpy as np
+
+    if not PLOTTING_AVAILABLE:
+        print("[batch] Skipping comparison chart (matplotlib unavailable)")
+        return
 
     df = pd.DataFrame(rows)
     if df.empty or 'mode' not in df.columns:
@@ -1675,7 +1872,8 @@ def _plot_comparison(rows, out_dir):
 def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
               solver='cplex', tee=False, show_gantt=False, time_limit=300,
               allow_ferry=True, use_maintenance=True,
-              use_overlap=True, use_sanity=False, warm_start=True, use_check_hierarchy=True):
+              use_overlap=True, use_sanity=False, warm_start=True,
+              use_check_hierarchy=True, max_hour_check_deferral_days=None):
     """Process every JSON file in *input_dir* and write results to *output_dir*.
 
     For each dataset the following files are created in output_dir::
@@ -1722,6 +1920,8 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
     print(f"[batch] {len(json_files)} file(s) in '{input_dir}'")
     print(f"[batch] mode={mode}  solver={solver}  time_limit={time_limit}s")
     print(f"[batch] ferry={ferry_label}  maintenance={maint_label}  overlap={over_label}  sanity={san_label}  check_hierarchy={check_label}")
+    if max_hour_check_deferral_days is not None:
+        print(f"[batch] max_hour_check_deferral_days={max_hour_check_deferral_days}")
     print(f"[batch] output -> '{output_dir}'\n")
 
     all_rows = []
@@ -1749,6 +1949,7 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
                                     use_sanity=use_sanity,
                                     warm_start=warm_start,
                                     use_check_hierarchy=use_check_hierarchy,
+                                    max_hour_check_deferral_days=max_hour_check_deferral_days,
                                     )
                 all_rows.append(row)
             except Exception as exc:
@@ -1845,6 +2046,9 @@ def main():
                         help='Do not seed MILP with heuristic solution (warm start OFF).')
     parser.add_argument('--no-check-hierarchy', dest='use_check_hierarchy', action='store_false',
                         help='Omit check hierarchy constraints from MILP.')
+    parser.add_argument('--max-hour-check-deferral-days', type=int, default=None,
+                        help='Cap how many days after arrival an A/B check may be deferred. '
+                             'Use 0 for same-day only; default keeps the full horizon.')
     parser.set_defaults(show=True, allow_ferry=True, use_maintenance=True,
                         use_overlap=True, use_sanity=False, warm_start=True, use_check_hierarchy=True)
     args = parser.parse_args()
@@ -1865,6 +2069,7 @@ def main():
                  use_sanity=args.use_sanity,
                  warm_start=args.warm_start,
                  use_check_hierarchy=args.use_check_hierarchy,
+                 max_hour_check_deferral_days=args.max_hour_check_deferral_days,
                  )
     else:  # batch
         run_batch(input_dir=args.input_dir,
@@ -1878,7 +2083,9 @@ def main():
                   use_overlap=args.use_overlap,
                   use_sanity=args.use_sanity,
                   warm_start=args.warm_start,
-                  use_check_hierarchy=args.use_check_hierarchy,)
+                  use_check_hierarchy=args.use_check_hierarchy,
+                  max_hour_check_deferral_days=args.max_hour_check_deferral_days,
+                  )
         
 
 

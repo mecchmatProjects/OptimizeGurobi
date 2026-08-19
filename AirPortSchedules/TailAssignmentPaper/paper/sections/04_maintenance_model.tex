@@ -287,9 +287,20 @@ split rows are active when at least one corresponding endpoint indicator is
 zero. Neither pattern alone gives an exact cumulative counter.
 
 \begin{remark}[Implementation status]
-  The legacy implementation in \texttt{src/model.py} currently constructs the
-  endpoint-split inequalities~\eqref{eq:c13_new_a}--\eqref{eq:c13_new_b}; its
-  output does not by itself certify the exact between-check bound. The
+  The default builder in \texttt{src/model.py} constructs the endpoint-split
+  inequalities~\eqref{eq:c13_new_a}--\eqref{eq:c13_new_b}; the original
+  single-row form~\eqref{eq:c13_paper} remains available as an explicit,
+  opt-in \texttt{use\_paper\_c13} flag for controlled comparison, and an
+  interval-specific tight big-$M$ (\texttt{use\_tight\_c13\_m}) is available
+  as a formulation-preserving strengthening of either row family.
+  \Cref{subsec:comp_c13} numerically confirms both Lemma~\ref{lem:c13_flaw}
+  and Lemma~\ref{lem:c13_split_limit} against the real built constraint
+  objects of both forms, at two adversarial check patterns on the same
+  four-day test instance: with checks at both window endpoints, all 42 split
+  rows are satisfied while the true cumulative flying time exceeds
+  $T^A_{\max}$ by a factor of two, and the single paper-form row correctly
+  rejects it; with only the end-day checked, the paper-form row is satisfied
+  at the same violation while all 42 split rows correctly reject it. The
   event-based implementation in \texttt{src/event\_model.py} uses a
   flight-sequence state recursion analogous to the exact formulation below.
 \end{remark}

@@ -1,0 +1,15 @@
+Dataset : Inputs\generated\DataCplex_density=0.75_p=8_h=7_test_2.json
+Mode    : heuristic
+Flights : 42/42 assigned  (0 unassigned)
+Cost    : 162897
+CPU     : 0.0s
+
+  AID    Flt   Busy(min)   Free(min)
+    0      5         833        9056
+    1      6        1037        8852
+    2      5         735        9154
+    3      3         509        9380
+    4      5         626        9263
+    5      8        1157        8732
+    6      7         888        9001
+    7      3         561        9328

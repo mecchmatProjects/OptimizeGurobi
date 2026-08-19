@@ -1,0 +1,183 @@
+\label{ch:strengthening}
+
+This chapter investigates formulation-strengthening methods for the integrated aircraft routing and maintenance model. The analysis is deliberately separated from the baseline contributions of Chapters~\ref{ch:ground}--\ref{ch:hierarchy}: the corrected ground model and corrected Constraint~(13) remain the reference formulation, while each strengthening is implemented as an opt-in variant. The purpose is to determine which methods improve compactness or relaxation strength without silently changing the intended planning problem.
+
+\section{Research questions and baseline}
+
+The strengthening study addresses four questions:
+
+\begin{enumerate}
+    \item Can maintenance-trigger variables be removed by preprocessing without removing any feasible aircraft route?
+    \item Can the C13 relaxation be tightened with interval-specific bounds without changing the integer feasible region?
+    \item Do stronger maintenance-linking and maintenance-window constraints improve the linear relaxation or only increase model size?
+    \item Does a combined strengthening package improve exact MILP performance on a larger feasible benchmark family?
+\end{enumerate}
+
+The baseline is the default configuration of \texttt{MILP\_Sheduler} in \texttt{src/model.py}. It uses the corrected split form of Constraint~(13), the original maintenance-trigger domain, aggregate C8 blocking, and the global value $M=9{,}999{,}999$. All new options default to \texttt{False}; therefore, the experiments are additive and the main formulation remains reproducible.
+
+\section{Strengthening methods}
+
+\subsection{Aircraft-compatible maintenance domains}
+
+The baseline creates a maintenance trigger variable $z_{ijdc}$ for every maintenance-eligible flight $i$, aircraft $j$, candidate day $d$, and check type $c$. If the assignment arc $(i,j)$ is already excluded from the sparse assignment set $X$, the corresponding maintenance variable cannot participate in a feasible solution. The sparse-domain variant therefore creates $z_{ijdc}$ only when $(i,j)\in X$. This is a preprocessing reduction, not a relaxation: an aircraft cannot perform maintenance triggered by a flight it cannot operate.
+
+\subsection{Deferred-trigger reachability}
+
+For a trigger flight arriving at maintenance airport $m$, a deferred check on day $d$ is possible only if the aircraft can remain at $m$ until that day. The reachability filter removes a candidate day whenever a departure from $m$ is forced after the trigger arrival and before the candidate maintenance day. Same-day candidates remain subject to the detailed C8 maintenance-window constraints. This necessary-condition test reduces the trigger domain while preserving all trigger days that can be compatible with the observed timetable.
+
+\subsection{Strong trigger linking}
+
+For the sparse candidate-day set $D(i,c)$, the strong-link variant adds
+
+\begin{equation}
+    \sum_{d\in D(i,c)} z_{ijdc} \leq x_{ij},
+    \qquad \forall i,j,c.
+    \label{eq:strength_strong_link}
+\end{equation}
+
+Equation~\eqref{eq:strength_strong_link} links every possible trigger day to the assignment variable. It is particularly relevant to deferred C/D triggers, for which the baseline link may constrain only the first candidate day. The inequality is redundant for integral assignments when the remaining model logic is sufficient, but it can eliminate unsupported fractional trigger mass from the LP relaxation.
+
+\subsection{Interval-specific C13 bounds}
+
+The global C13 constant is replaced, optionally, by
+
+\begin{equation}
+    M_{jdd'}^c = \max\left\{0,
+    \sum_{i\in F_{d,d'}:(i,j)\in X}\tilde{t}_i
+    - T_{\max}^c\right\}.
+    \label{eq:strength_tight_m}
+\end{equation}
+
+The summation includes every flight compatible with aircraft $j$ in the interval, so it is an upper bound on the cumulative flight time of any feasible assignment in that interval. Replacing the global constant by equation~\eqref{eq:strength_tight_m} preserves integer-feasible solutions and can strengthen the LP relaxation. The pre-horizon C13b constraints are not modified by this experiment.
+
+\subsection{Pairwise maintenance conflicts}
+
+The baseline C8 formulation aggregates all blocked departures in one inequality. The pairwise variant disaggregates it into
+
+\begin{equation}
+    z_{ijdc}+x_{i'j}\leq 1,
+    \qquad \forall i'\text{ blocked by the maintenance window of }(i,d,c).
+    \label{eq:strength_pairwise_conflict}
+\end{equation}
+
+This formulation is at least as strong for the corresponding blocked-flight set, but may create more rows. It is therefore evaluated as a separate option rather than enabled by default.
+
+\section{Combined formulation}
+
+The combined Strengthening formulation enables sparse aircraft-compatible domains, reachability filtering, strong trigger linking, interval-specific C13 bounds, and pairwise maintenance conflicts. The C10 builder also skips empty station-day expressions rather than passing a trivial Boolean to Pyomo. This last change is a construction robustness correction: it does not alter a nonempty capacity constraint, but it permits long-horizon sparse experiments to distinguish model infeasibility from a model-building error.
+
+The combined package is controlled by independent flags, so the contribution of each family can be isolated. The comparison harness \texttt{experiments/compare\_strong\_maint\_link.py} records variables, constraints, maintenance-domain size, build time, solver status, objective, and solve time for every matched run.
+
+\section{Correctness and implementation checks}
+
+The structural test suite verifies five properties. First, all strengthening flags are opt-in and the baseline default is unchanged. Second, every sparse maintenance variable has a corresponding assignment arc. Third, the reachability filter removes only deferred days following a forced station departure. Fourth, interval-specific $M$ values are nonnegative and finite. Fifth, pairwise conflict mode creates direct blocking rows for every blocked flight. The tests also verify that the controlled baseline and strengthened models preserve the same objective on feasible fixtures.
+
+The complete explicitly discovered suite contains 18 tests and passes after the strengthening changes. This structural evidence is necessary but not sufficient: a smaller model is useful only if it preserves the intended solutions and improves, or at least does not materially damage, exact-solver performance.
+
+\section{Benchmark design}
+
+The principal efficacy experiment uses a newly generated feasible family of 20 instances. Each instance contains 64 flights, 8 aircraft, a 14-day horizon, and an A-check maintenance profile. The repository's constructive generator creates a seeded rotation for every aircraft and validates it with the local timeline scheduler; all 20 instances contain 64 seeded assignments and no unassigned flights. A supplementary family of ten AB instances was generated for future maintenance-hierarchy experiments, but the 20-instance A family is used for the matched exact comparison in this chapter.
+
+Every baseline and combined run uses the same input, objective, solver, solver time limit, and maintenance semantics. LP runs relax all binary variables to $[0,1]$. MILP runs retain the binary domains. The commercial CPLEX AMPL driver is used for the reported efficacy results.
+
+\section{Model-size results}
+
+Table~\ref{tab:strength_model_size} summarises the average model-size effect over the 20 feasible instances, measured on the same A-check models that are subsequently solved. The combined package reduces the maintenance trigger domain from an average of 2,048 variables to 256 variables. The average total constraint count decreases from 6,374 to 3,045.
+
+\begin{table}[htbp]
+\centering
+\caption{Average model size over the 20-instance feasible A family (A-check configuration, as solved).}
+\label{tab:strength_model_size}
+\begin{tabular}{lrrr}
+\toprule
+Variant & $z$ variables & Total constraints & Reduction in $z$ \\
+\midrule
+Baseline & 2,048 & 6,374 & -- \\
+Combined Strengthening & 256 & 3,045 & 87.5\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The reduction is caused primarily by aircraft-compatible domain pruning and reachability filtering. Strong linking and tight-$M$ do not add variables; their role is to strengthen the formulation already remaining after preprocessing. For reference, building the same instances with the full A/B/C/D check set yields a proportionally similar reduction, from an average of 4,608 to 1,024 trigger variables. The per-instance data are stored in \texttt{results/tables/step7\_feasible\_large\_A\_cplexamp\_lp.csv} and \texttt{results/tables/step7\_feasible\_large\_A\_combined\_cplexamp\_lp.csv}.
+
+To make structural variation visible, Figure~\ref{fig:strength_model_size} uses a separate heterogeneous family of 20 validated feasible instances. This family varies fleet size, horizon, number of flights per aircraft, density, and maintenance family. The table above remains tied to the A-only family used for the solver efficacy comparison; the figure is a broader structural view and should not be read as a plot of the table's repeated A-only coordinates.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.78\textwidth]{figures/strength_model_size.png}
+    \caption{Maintenance-trigger reduction plotted against baseline domain size for the heterogeneous feasible structural family; colors distinguish A and AB maintenance families.}
+    \label{fig:strength_model_size}
+\end{figure}
+
+\section{LP-relaxation results}
+
+All 40 LP runs reached optimality. The combined formulation increased the LP lower bound by 196.0264 on every matched instance. This result is consistent with the intended strengthening: unsupported trigger assignments are removed, the C13 relaxation is tighter, and the feasible maintenance domain is reduced before the LP is solved.
+
+The mean LP runtime was 0.8112 seconds for the baseline and 0.8434 seconds for the combined formulation. The combined variant was faster on 4 of 20 instances. Thus, the LP evidence establishes a stronger lower bound, but not a uniform LP runtime improvement. Figures~\ref{fig:strength_lp_bounds} and~\ref{fig:strength_lp_runtime} present the paired lower bounds and the paired LP runtimes on a logarithmic scale; both are generated directly from the LP result files.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/strength_lp_bounds.png}
+    \caption{Baseline and combined LP lower bounds for the 20-instance feasible A family (CPLEX).}
+    \label{fig:strength_lp_bounds}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/strength_lp_runtime.png}
+    \caption{Baseline and combined LP runtimes on a logarithmic scale (CPLEX).}
+    \label{fig:strength_lp_runtime}
+\end{figure}
+
+\section{MILP results}
+
+All 40 MILP runs reached optimality. The baseline and combined objectives matched on all 20 instances, providing evidence that the opt-in package did not change the intended integer optimum for this family. The combined variant was faster on all 20 instances. Mean runtime decreased from 1.0092 seconds to 0.8501 seconds, a reduction of approximately 15.8\%.
+
+\begin{table}[htbp]
+\centering
+\caption{Exact MILP efficacy over the 20-instance feasible A family.}
+\label{tab:strength_milp_results}
+\begin{tabular}{lrrrr}
+\toprule
+Variant & Optimal runs & Mean runtime (s) & Faster instances & Objective mismatches \\
+\midrule
+Baseline & 20/20 & 1.0092 & -- & -- \\
+Combined Strengthening & 20/20 & 0.8501 & 20/20 & 0/20 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Figures~\ref{fig:strength_milp_runtime}--\ref{fig:strength_objective_parity} present the paired MILP runtimes, the per-instance speedup, and the objective parity between the two formulations. The machine-readable inputs are \texttt{step7\_feasible\_large\_A\_cplexamp\_milp.csv} and \texttt{step7\_feasible\_large\_A\_combined\_cplexamp\_milp.csv}.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/strength_milp_runtime.png}
+    \caption{Baseline and combined exact MILP runtimes for the 20 feasible instances (CPLEX).}
+    \label{fig:strength_milp_runtime}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.9\textwidth]{figures/strength_speedup.png}
+    \caption{Exact MILP speedup, defined as baseline runtime divided by combined runtime; values above one indicate improvement.}
+    \label{fig:strength_speedup}
+\end{figure}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.68\textwidth]{figures/strength_objective_parity.png}
+    \caption{Objective parity between baseline and combined exact MILP solutions.}
+    \label{fig:strength_objective_parity}
+\end{figure}
+
+\section{Interpretation and limitations}
+
+The larger feasible family changes the status of the strengthening study. The combined formulation is no longer supported only by a single control case: it has been tested on 20 feasible instances, all LP and MILP solves are optimal, every integer objective is preserved, and mean MILP runtime falls by 15.8\%. The compactness result is also substantial, with an 87.5\% average reduction in maintenance-trigger variables on the solved A-check models.
+
+The evidence nevertheless has a defined scope. The family uses an A-check profile and seeded constructive rotations; it does not establish the same performance for every A/B/C/D hierarchy or for all airline schedules. LP runtime is slightly higher on average, and pairwise conflicts can increase constraint counts. The correct conclusion is therefore not that every strengthening is universally beneficial, but that the combined package is effective on the validated feasible family under the stated CPLEX protocol.
+
+The original harder random-grid instances remain infeasible under both baseline and combined formulations, so they are excluded from efficacy claims and retained only as diagnostic cases. This separation between feasible efficacy evidence and infeasible stress cases is essential for a defensible computational conclusion.
+
+\section{Reproducibility}
+
+The chapter figures are produced by \texttt{experiments/plot\_step7\_strengthening.py} directly from the experiment CSV files, so every plotted value is traceable to a matched solver run rather than to a manually transcribed number. The experiment CSV files remain the authoritative numerical evidence, and the figures are presentation views of those files. Re-running the comparison harness and the plotting script regenerates both the tables and the figures without manual editing.

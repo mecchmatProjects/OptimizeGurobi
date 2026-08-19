@@ -89,6 +89,12 @@ The exact protocol is:
   --data <instance.json> --solver <solver> --time-limit <seconds> --no-show
 \end{verbatim}
 
+The current strengthening validation uses the commercial CPLEX 12.6 AMPL
+driver, \texttt{CPLEXamp.exe}, with the same instance and solver settings for
+the baseline and combined formulations. These runs are distinct from the
+archived CPLEX values and from the HiGHS/CBC validation runs; their results
+are reported separately and are not pooled with other backend timings.
+
 The batch protocol runs the same instance directory with a fixed mode, solver,
 and time limit. For heuristics, ferry-enabled and no-ferry runs are separate
 treatments: the former inserts explicit 60-minute ferry events with the
@@ -964,6 +970,58 @@ solver error. For the 64-flight random-grid instance, the integrated LP bound
 is 827,659.026; the corresponding integer and complete-heuristic comparison is
 reserved for the full run.
 
+\section{Current commercial-CPLEX strengthening validation}
+\label{sec:computational_current_strengthening}
+
+The formulation-strengthening study of Chapter~\ref{ch:strengthening} was
+extended with a larger feasible family before the final computational claims
+were made. The family contains 20 constructive A-maintenance instances, each
+with 64 flights, 8 aircraft, and a 14-day horizon. Every seeded rotation was
+validated by the constructive timeline scheduler before serialization, so the
+family is suitable for a matched exact comparison rather than only structural
+model-size analysis.
+
+The baseline uses the default corrected model. The combined formulation enables
+aircraft-compatible maintenance domains, deferred-trigger reachability,
+interval-specific C13 bounds, pairwise maintenance conflicts, and strong
+trigger linking. All comparisons use the commercial CPLEX 12.6 AMPL driver,
+identical input files, and the same solver budget. LP variables are relaxed to
+$[0,1]$; MILP variables retain their binary domains.
+
+\begin{table}[t]
+\centering\small
+\caption{Current commercial-CPLEX validation of the combined strengthening
+formulation on the 20-instance feasible A family.}
+\label{tab:current_strengthening_cplex}
+\begin{tabular}{lrrrrr}
+\toprule
+Run type & Variant & Optimal & Mean time (s) & Faster cases & Objective mismatches \\
+\midrule
+LP & Baseline & 20/20 & 0.8112 & -- & -- \\
+LP & Combined & 20/20 & 0.8434 & 4/20 & -- \\
+MILP & Baseline & 20/20 & 1.0092 & -- & -- \\
+MILP & Combined & 20/20 & 0.8501 & 20/20 & 0/20 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The combined formulation increased the LP lower bound by 196.0264 on every
+matched instance. Its average LP runtime was slightly higher, reflecting the
+cost of additional preprocessing and stronger rows. The exact MILP result is
+more decisive: all 20 combined runs reached optimality, all objectives matched
+the baseline, and mean runtime decreased by 15.8\%, from 1.0092 to 0.8501
+seconds. Thus, the updated CPLEX evidence supports a computational efficacy
+claim for the combined formulation on this validated feasible family, while
+not implying universal improvement for all maintenance profiles or random
+stress instances.
+
+The machine-readable results are stored in
+\texttt{results/tables/step7\_feasible\_large\_A\_cplexamp\_lp.csv},
+\texttt{results/tables/step7\_feasible\_large\_A\_combined\_cplexamp\_lp.csv},
+\texttt{results/tables/step7\_feasible\_large\_A\_cplexamp\_milp.csv}, and
+\texttt{results/tables/step7\_feasible\_large\_A\_combined\_cplexamp\_milp.csv}.
+The structural and figure-level analysis is presented in Chapter~\ref{ch:strengthening}.
+
 \section{Path-based versus arc-based computation}
 \label{sec:computational_path_arc}
 
@@ -1069,7 +1127,7 @@ from complete-schedule gap averages unless a common penalty is specified.
 \section{Summary of measured evidence and remaining comparisons}
 \label{sec:computational_summary}
 
-The currently available evidence establishes four points. First, activating
+The currently available evidence establishes five points. First, activating
 the hierarchy greatly increases the number of constraints and can create sharp
 feasibility transitions under threshold, duration, and capacity perturbations.
 Second, LP relaxations are fast and provide useful lower bounds even when the
@@ -1077,6 +1135,11 @@ integer model is too difficult to certify. Third, the boundary method table
 shows that complete MILP solutions and partial heuristic costs must be compared
 with coverage explicitly. Fourth, the path/arc experiment provides reproducible
 evidence that representation choice affects runtime even when objectives match.
+Fifth, the current commercial-CPLEX validation on the 20-instance feasible
+A-family shows that the combined Step~7 formulation preserves every MILP
+objective and reduces mean exact-solve time by 15.8\%. This is the strongest
+current evidence for the formulation-strengthening claim, and its scope is
+restricted to the validated constructive family and declared CPLEX protocol.
 
 The complete comparative claims for the seven heuristics against one another
 and against MILP require the matched experiments described in

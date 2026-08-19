@@ -901,10 +901,28 @@ class MILP_Sheduler:
         self.results = None
 
     def _z_days_for(self, fid, check_type):
-        return self.z_days_by_flight_check[(fid, check_type)]
+        days = self.z_days_by_flight_check[(fid, check_type)]
+        if not getattr(self, 'use_maint_reachability', False):
+            return days
+        return tuple(day for day in days if self._trigger_day_reachable(fid, day))
 
     def _z_trigger_flights(self, day, check_type):
-        return self.z_flights_by_day_check.get((day, check_type), ())
+        return tuple(
+            fid for fid in self.z_flights_by_day_check.get((day, check_type), ())
+            if day in self._z_days_for(fid, check_type)
+        )
+
+    def _trigger_day_reachable(self, fid, start_day):
+        """Return whether a trigger flight can remain at its station until day."""
+        arrival = self.flight_data[fid]
+        if start_day <= arrival['day_arrival']:
+            return True
+        day_start = (start_day - 1) * self.DAY_SHIFT
+        return not any(
+            self.flight_data[other]['departureTime'] > arrival['arrivalTime']
+            and self.flight_data[other]['departureTime'] < day_start
+            for other in self._dep_flights_by_airport[arrival['destination']]
+        )
 
     def _x_aircrafts_for_flight(self, fid):
         return self.x_arcs_by_flight[fid]
@@ -928,6 +946,11 @@ class MILP_Sheduler:
                     allow_ferry=True,
                     use_maintenance=True,
                     use_strong_maint_link=False,
+                    use_sparse_maint_aircraft_domain=False,
+                    use_capacity=True,
+                    use_tight_c13_m=False,
+                    use_maint_reachability=False,
+                    use_strong_maint_conflicts=False,
                     use_paper_c13=False,
                     soft_coverage=False,
                     coverage_weight=1_000_000.0):
@@ -950,6 +973,23 @@ class MILP_Sheduler:
             When *True*, use the strengthened sparse trigger-to-assignment
             link for every maintenance check type.  The default preserves
             the baseline formulation.
+        use_sparse_maint_aircraft_domain : bool
+            When *True*, create maintenance-trigger variables only for
+            feasible flight-aircraft assignment arcs. The default preserves
+            the baseline maintenance domain.
+        use_capacity : bool
+            When *True* (default), enforce station maintenance capacities.
+            This flag is provided for isolated formulation experiments.
+        use_tight_c13_m : bool
+            When *True*, use interval-specific valid upper bounds for the
+            C13 big-M terms. The default preserves the global-M formulation.
+        use_maint_reachability : bool
+            When *True*, remove deferred trigger days for which the aircraft
+            would have to leave the maintenance airport before the check day.
+            The default preserves the baseline trigger domain.
+        use_strong_maint_conflicts : bool
+            When *True*, use individual trigger-to-flight conflict rows for
+            maintenance windows. The default preserves aggregate C8 rows.
         use_paper_c13 : bool
             When *True*, add the original Khaled et al. (2018) Eq. (13)
             single-constraint form (vacuous when either endpoint indicator
@@ -959,6 +999,8 @@ class MILP_Sheduler:
         """
         m = ConcreteModel()
         self.model = m
+        self.use_sparse_maint_aircraft_domain = bool(use_sparse_maint_aircraft_domain)
+        self.use_maint_reachability = bool(use_maint_reachability)
         self.soft_coverage = bool(soft_coverage)
         self.coverage_weight = float(coverage_weight)
         self._add_sets_and_variables(m)
@@ -971,20 +1013,28 @@ class MILP_Sheduler:
             
             self._add_overlap(m)
         if use_maintenance:
-            self._add_c8_maint_blocks_flights(m)
+            self._add_c8_maint_blocks_flights(
+                m,
+                strong_conflicts=use_strong_maint_conflicts,
+            )
             self._add_c9_maint_assignment(m, strong_link=use_strong_maint_link)
-            self._add_c10_capacity(m)
+            if use_capacity:
+                self._add_c10_capacity(m)
             self._add_c11_maint_link(m)
             self._add_hierarchy(m, use_check_hierarchy)
             self._add_c14_one_check_per_day(m)
             self._add_c14b_check_duration(m)
             if use_day_spacing:
                 self._add_c12_day_spacing(m)
-            self._add_c12b_initial_days(m)   # enforce first C/D check within remaining-days window
-            self._add_c12_day_spacing_days(m)
+                self._add_c12b_initial_days(m)   # enforce first C/D check within remaining-days window
+                self._add_c12_day_spacing_days(m)
             if use_existing_hrs:
                 self._add_c13b_existing_hrs(m)
-            self._add_c13_hr_accumulation(m, use_paper_c13=use_paper_c13)
+            self._add_c13_hr_accumulation(
+                m,
+                use_paper_c13=use_paper_c13,
+                use_tight_m=use_tight_c13_m,
+            )
             self._add_c15_no_flight_during_maint(m)
         if use_sanity:
             self._add_sanity(m)
@@ -1015,7 +1065,12 @@ class MILP_Sheduler:
         # Only indexed over feasible (flight, aircraft, day, check) tuples.
         def _z_index_init(_m):
             for i in self.maint_flight_ids:
-                for j in self.aircraft_ids:
+                aircraft_ids = (
+                    self._x_aircrafts_for_flight(i)
+                    if self.use_sparse_maint_aircraft_domain
+                    else self.aircraft_ids
+                )
+                for j in aircraft_ids:
                     for c in self.CHECK_LIST:
                         for d in self._z_days_for(i, c):
                             yield (i, j, d, c)
@@ -1179,7 +1234,7 @@ class MILP_Sheduler:
     # any flight i2 that departs the same day AFTER flight i is blocked.
     # ------------------------------------------------------------------
 
-    def _add_c8_maint_blocks_flights(self, m):
+    def _add_c8_maint_blocks_flights(self, m, strong_conflicts=False):
         """C8: maintenance-triggered flight-blocking constraints.
 
         Three sub-blocks per (check c, trigger flight i, aircraft j):
@@ -1216,30 +1271,46 @@ class MILP_Sheduler:
                 escape = self.c8_escape[(i, c)]
 
                 for j in m.P:
+                    if (i, j, d_i, c) not in m.Z:
+                        continue
                     # (b) same-day: block in-window departures from maint airport
                     same_day_block_j = self.c8_same_day_block_feasible[(i, c, j)]
                     if same_day_block_j:
-                        m.c8.add(
-                            sum(m.x[i2, j] for i2 in same_day_block_j)
-                            <= len(same_day_block) * (1 - m.z[i, j, d_i, c])
-                        )
+                        if strong_conflicts:
+                            for i2 in same_day_block_j:
+                                m.c8.add(m.z[i, j, d_i, c] + m.x[i2, j] <= 1)
+                        else:
+                            m.c8.add(
+                                sum(m.x[i2, j] for i2 in same_day_block_j)
+                                <= len(same_day_block) * (1 - m.z[i, j, d_i, c])
+                            )
 
                     # (c) deferred: block escape + check-day departures
                     for d in self._z_days_for(i, c):
                         if d <= d_i:
                             continue
+                        if (i, j, d, c) not in m.Z:
+                            continue
                         escape_j = self.c8_escape_feasible[(i, c, j)]
                         if escape_j:  # c1: waiting-period
-                            m.c8.add(
-                                sum(m.x[i2, j] for i2 in escape_j)
-                                <= len(escape) * (1 - m.z[i, j, d, c])
-                            )
+                            if strong_conflicts:
+                                for i2 in escape_j:
+                                    m.c8.add(m.z[i, j, d, c] + m.x[i2, j] <= 1)
+                            else:
+                                m.c8.add(
+                                    sum(m.x[i2, j] for i2 in escape_j)
+                                    <= len(escape) * (1 - m.z[i, j, d, c])
+                                )
                         check_day_departures = self.c8_check_day_departures_feasible[(i, d, j)]
                         if check_day_departures:  # c2: check day
-                            m.c8.add(
-                                sum(m.x[i2, j] for i2 in check_day_departures)
-                                <= len(check_day_departures) * (1 - m.z[i, j, d, c])
-                            )
+                            if strong_conflicts:
+                                for i2 in check_day_departures:
+                                    m.c8.add(m.z[i, j, d, c] + m.x[i2, j] <= 1)
+                            else:
+                                m.c8.add(
+                                    sum(m.x[i2, j] for i2 in check_day_departures)
+                                    <= len(check_day_departures) * (1 - m.z[i, j, d, c])
+                                )
 
     # ------------------------------------------------------------------
     # Constraint C9 – z[i,j,d,c] can only be 1 if x[i,j]=1
@@ -1281,13 +1352,16 @@ class MILP_Sheduler:
                 flights_a = self.F_m(a, d)  # flights arriving at a on or before day d
                 if flights_a:
                     # Sum across ALL check types: capacity is airport-wide, not per check
-                    m.c10.add(
-                        sum(m.z[i, j, d, c]
-                            for c in self.CHECK_LIST
-                            for i in self._z_trigger_flights(d, c)
-                            if i in flights_a
-                            for j in m.P) <= cap[a]
-                    )
+                    terms = [
+                        m.z[i, j, d, c]
+                        for c in self.CHECK_LIST
+                        for i in self._z_trigger_flights(d, c)
+                        if i in flights_a
+                        for j in m.P
+                        if (i, j, d, c) in m.Z
+                    ]
+                    if terms:
+                        m.c10.add(sum(terms) <= cap[a])
 
     # ------------------------------------------------------------------
     # Constraint C11 – link z to y:
@@ -1299,10 +1373,12 @@ class MILP_Sheduler:
         for c in self.CHECK_LIST:
             for d in m.D:
                 for j in m.P:
-                    m.c11.add(
-                        sum(m.z[i, j, d, c] for i in self._z_trigger_flights(d, c))
-                        == m.y[j, d, c]
-                    )
+                    terms = [
+                        m.z[i, j, d, c]
+                        for i in self._z_trigger_flights(d, c)
+                        if (i, j, d, c) in m.Z
+                    ]
+                    m.c11.add(sum(terms) == m.y[j, d, c])
 
     # ------------------------------------------------------------------
     # Check hierarchy: mega[j,d,c] = 1 if a check at level ≥c occurs on d
@@ -1449,12 +1525,15 @@ class MILP_Sheduler:
                         
             for j in m.P:
                 for i in m.FM:  # only maintenance-eligible flights (have z variables)
+                        if not self._x_has_arc(i, j):
+                            continue
                         z_days = self._z_days_for(i, c)
                         if not z_days:
                             continue
                         start_day = z_days[0]
                         for d in z_days[1:]:
-                            m.c12days.add(m.z[i, j, d, c] == m.z[i, j, start_day, c])
+                            if (i, j, d, c) in m.Z and (i, j, start_day, c) in m.Z:
+                                m.c12days.add(m.z[i, j, d, c] == m.z[i, j, start_day, c])
                                
 
     
@@ -1466,7 +1545,18 @@ class MILP_Sheduler:
     # unless a check occurs in between (uses big-M relaxation).
     # ------------------------------------------------------------------
 
-    def _add_c13_hr_accumulation(self, m, use_paper_c13=False):
+    def _c13_big_m(self, c, aircraft, start_day, end_day):
+        """Return a valid interval-specific C13 relaxation bound in minutes."""
+        upper_bound = sum(
+            self.flight_data[flight]['duration']
+            for flight in self._f_dep_between_days(start_day, end_day)
+            if self._x_has_arc(flight, aircraft)
+        )
+        threshold = self.check_hrs[c] * 60.0
+        return max(0.0, upper_bound - threshold)
+
+    def _add_c13_hr_accumulation(self, m, use_paper_c13=False,
+                                 use_tight_m=False):
         m.c13 = ConstraintList()
         days  = sorted(self.days)
         n     = len(days)
@@ -1489,6 +1579,10 @@ class MILP_Sheduler:
                         )
                         y_mid  = sum(m.mega[j, days[r], c]
                                      for r in range(si + 1, ei))
+                        big_m = (
+                            self._c13_big_m(c, j, d, d_)
+                            if use_tight_m else self.M_BIG
+                        )
                         if use_paper_c13:
                             # Original Khaled et al. (2018) Eq. (13): a single
                             # constraint keyed on (2 - mega[d] - mega[d_]), which
@@ -1496,8 +1590,8 @@ class MILP_Sheduler:
                             # indicator is 0 (docs/model_math.tex, Lemma).
                             m.c13.add(
                                 t_sum <= hr_limit * 60
-                                         + self.M_BIG * (2 - m.mega[j, d, c] - m.mega[j, d_, c])
-                                         + self.M_BIG * y_mid
+                                         + big_m * (2 - m.mega[j, d, c] - m.mega[j, d_, c])
+                                         + big_m * y_mid
                             )
                             continue
                         # Two separate constraints: each relaxed by one boundary
@@ -1509,13 +1603,13 @@ class MILP_Sheduler:
                         #   t_sum <= hr_limit*60  → correctly enforced.
                         m.c13.add(
                             t_sum <= hr_limit * 60
-                                     + self.M_BIG * y_mid
-                                     + self.M_BIG * m.mega[j, d, c]
+                                     + big_m * y_mid
+                                     + big_m * m.mega[j, d, c]
                         )
                         m.c13.add(
                             t_sum <= hr_limit * 60
-                                     + self.M_BIG * y_mid
-                                     + self.M_BIG * m.mega[j, d_, c]
+                                     + big_m * y_mid
+                                     + big_m * m.mega[j, d_, c]
                         )
          
 

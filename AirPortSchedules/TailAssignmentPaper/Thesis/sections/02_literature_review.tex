@@ -131,6 +131,50 @@ solvable baseline that is simple to implement and benchmark, while the
 alternatives above trade model size, decomposition complexity, and robustness
 for stronger scalability or richer operational realism.
 
+\subsection{Formulation strengthening and maintenance-aware cuts}
+
+The scalability of a compact aircraft-routing MILP depends not only on the
+number of variables, but also on the strength of its linear relaxation. A
+promising direction is therefore to remove infeasible flight, ground, and
+maintenance transitions before model construction by means of forward and
+backward reachability analysis. Such graph reduction decreases the number of
+candidate arcs and prevents the MILP from assigning variables to transitions
+that cannot participate in any complete aircraft route. For the remaining
+network, maintenance-window and interval-cover inequalities can enforce that a
+qualifying check is reachable before a usage threshold is exceeded. Trigger,
+maintenance-start, and maintenance-arc variables should likewise be linked
+through disaggregated equalities or strong upper bounds, rather than through a
+single weak big-$M$ implication. These measures complement the correction of
+Constraint~(13) developed in this thesis: the correction repairs the endpoint
+logic of the cumulative-hour bound, whereas reachability and linking cuts
+strengthen the surrounding routing--maintenance relaxation.
+
+Related operational maintenance-routing research provides evidence for this
+direction. Al-Thani et al.~\citep{althani2016oamrp} combine graph reduction,
+valid inequalities, and an optimisation-based heuristic for the operational
+aircraft maintenance routing problem. Their results support the use of
+problem-specific preprocessing and inequalities in place of relying solely on
+generic solver cuts. The daily tail-assignment model of Maher et
+al.~\citep{maher2018daily} provides a complementary perspective: look-ahead
+maintenance constraints anticipate future maintenance misalignment instead of
+checking only the current day. This principle is particularly relevant for
+long planning horizons, where rolling-window or look-ahead inequalities can
+limit choices that appear feasible locally but make later maintenance coverage
+impossible. Reinforcement-learning research on aircraft maintenance routing
+also illustrates the value of representing future route feasibility in the
+decision state rather than evaluating only immediate assignment cost
+\citep{ruan2021reinforcement}.
+
+For the present thesis, these studies motivate a conservative strengthening
+agenda: first apply reachability preprocessing and explicit no-flight-during-
+maintenance conflicts; then add tail- and check-specific cumulative-utilisation
+cuts, maintenance-window cover inequalities, station--day capacity cuts, and
+strong trigger--start--arc linking. More elaborate rolling-window cuts,
+symmetry breaking for identical tails, and lazy combinatorial Benders cuts are
+promising extensions for longer horizons, but they require additional
+implementation and validation beyond the corrected compact formulation studied
+here.
+
 
 \subsection{Integrated airline planning}
 

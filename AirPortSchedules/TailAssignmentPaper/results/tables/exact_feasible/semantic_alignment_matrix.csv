@@ -1,0 +1,10 @@
+label,family,solver_status,alignment_status,route_valid,assigned,flights,coverage_pct,mismatch_count
+feas_A_p4h7_d05,A-only,optimal,validated,True,28,28,100.0,0
+feas_AB_p4h7_d05,AB,optimal,validated,True,16,16,100.0,0
+feas_ABCD_p4h7_d05,ABCD,optimal,validated,True,8,8,100.0,0
+feas_A_p4h7_d08,A-only,optimal,semantic_mismatch,False,30,30,100.0,1
+feas_A_p6h10_d05,A-only,optimal,validated,True,54,54,100.0,0
+ABCD_cap_botl,capacity,optimal,semantic_mismatch,False,8,8,100.0,3
+ABCD_hier,hierarchy,optimal,semantic_mismatch,False,13,13,100.0,3
+ABCD_near_thr,threshold,optimal,validated,True,20,20,100.0,0
+ABCD_no_maint,baseline,optimal,validated,True,14,14,100.0,0

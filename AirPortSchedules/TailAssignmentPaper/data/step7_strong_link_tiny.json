@@ -1,0 +1,18 @@
+{
+  "Flights": [
+    [1, "H", "M", 60, 120],
+    [2, "M", "H", 300, 360]
+  ],
+  "Aircrafts": [1],
+  "AIRCRAFT_INIT_POS": {"1": "H"},
+  "Initial_Checks": {
+    "A": {"1": 0},
+    "B": {"1": 0},
+    "C_Days": {"1": 0},
+    "D_Days": {"1": 0}
+  },
+  "Maintenance_Thresholds": {"A": 10000, "B": 10000, "C": 30, "D": 60},
+  "Maintenance_Durations": {"A": 60, "B": 60, "C": 2880, "D": 60},
+  "Station_Capacity": {"H": 0, "M": 1},
+  "Cost_Matrix": [[10], [10]]
+}

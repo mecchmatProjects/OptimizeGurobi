@@ -1,13 +1,13 @@
 # Updated execution roadmap
 
 ## Completed or in progress
-1. Finalize and classify the 25 benchmark instances into easy, medium, and hard categories, with
+1. Finalize and classify the benchmark instances into easy, medium, and hard categories, with
    documented reasoning and a structured Phase-1 matrix.
 2. Extend the benchmark workflow so the MILP and heuristic methods are evaluated on the same
    instance family and report a consistent set of outcomes.
 3. Add and validate a new bounded local-search refinement for the heuristic pipeline, then wire it
    into the batch benchmark flow.
-4. Run the full Phase-2 comparison over the 25-instance suite and capture the resulting benchmark
+4. Run the full Phase-2 comparison over the instance suite and capture the resulting benchmark
    evidence for the paper.
 5. Polish the manuscript narrative in the paper draft so the computational results are presented as
    a coherent report with the relevant tables and figures embedded in the analysis.
@@ -28,17 +28,25 @@
    even when MILP hits time limit; (d) Greedy on capacity-bottleneck instance is 362% above LP bound,
    while trivial instances achieve LP bound. LP bounds serve as rigorous lower bounds for heuristic
    quality assessment on larger Phase-1/2 instances.
+10. Complete corrected multi-instance sensitivity analysis (Phase-4, subsec:phase4_sensitivity,
+   tab:sensitivity) on 4 curated exact-feasible instances (60 solves). Dominant effects: thresholds
+   are most influential (feasibility flips on 2/4 instances and cost effects on 3/4), durations are
+   instance-dependent (high-side feasibility cliff on 1/4), and capacity binds only on topologies with
+   removable slot slack. Runtime remains sub-second (0.17–1.04s) with a discrete feasibility cliff.
+11. Compare arc-based vs path-based MILP on all 7 existing ABCD test instances
+   (results/tables/step6_arc_vs_path.csv; subsec:phase5_arc_vs_path, tab:arc_vs_path).
+   Both formulations match objective values on all tests (7/7), but path-based is
+   faster on only 2/7 cases. Mean runtime: arc-based 0.0277s vs path-based 0.3413s
+   (mean speedup $t_{arc}/t_{path}=0.4822$), so no consistent performance gain is
+   observed for the current exhaustive path-generation approach.
 
 ## Next execution steps
 
-5. Conduct a sensitivity analysis on the MILP model to identify the dominant parameters that
-   affect runtime and feasibility.
-   
-6. Compare the arc-based formulation against a path-based MILP formulation to assess whether the
-   alternative structure delivers a meaningful performance gain.
 7. Investigate valid inequalities or reformulations that can tighten the MILP without changing the
    core modeling intent. For long horizons, the biggest gains are likely from reachability preprocessing + maintenance-window / interval cuts + strong trigger/start/arc linking, not from generic solver cuts alone; Al-Thani et al. explicitly propose graph reduction and valid inequalities for OAMRP solvability13, Maher et al. show that look-ahead maintenance constraints reduce future maintenance misalignment, and recent combinatorial Benders work reports that valid inequalities improve convergence and that ILP performance improves when these inequalities are embedded.
 
+   Al-Thani, Nayla & Ben Ahmed, Mohamed & Haouari, Mohamed. (2016). A model and optimization-based heuristic for the operational aircraft maintenance routing problem. Transportation Research Part C: Emerging Technologies. 72. 10.1016/j.trc.2016.09.004. 
+J.H. Ruan, Z.X. Wang, Felix T.S. Chan, S. Patnaik, M.K. Tiwari,A reinforcement learning-based algorithm for the aircraft maintenance routing problem, Expert Systems with Applications, Volume 169, 2021, 114399, ISSN 0957-4174,https://doi.org/10.1016/j.eswa.2020.114399.
 
 For the step 7 - check this table
 

@@ -5,6 +5,7 @@
 
 # Optimisation framework (model builder / solver interface)
 pyomo>=6.6.0
+highspy>=1.7.0       # HiGHS backend used by exact-feasible, LP, sensitivity, and arc/path runs
 
 # Scientific / data
 numpy>=1.24

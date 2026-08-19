@@ -20,7 +20,12 @@ METHODS = [
     ("classical_milp",  ["--mode", "milp", "--no-maintenance", "--solver", "highs", "--time-limit", "120"]),
     ("integrated_milp", ["--mode", "milp",                    "--solver", "highs", "--time-limit", "120"]),
     ("greedy",          ["--mode", "heuristic", "--heuristic", "greedy"]),
+    ("insertion",       ["--mode", "heuristic", "--heuristic", "insertion"]),
+    ("greedy_insertion", ["--mode", "heuristic", "--heuristic", "greedy+insertion"]),
+    ("repair",           ["--mode", "heuristic", "--heuristic", "repair"]),
     ("local_search",    ["--mode", "heuristic", "--heuristic", "local_search"]),
+    ("dijkstra",        ["--mode", "heuristic", "--heuristic", "dijkstra"]),
+    ("aco",             ["--mode", "heuristic", "--heuristic", "aco"]),
 ]
 
 
@@ -75,7 +80,12 @@ def main():
             rows.append({
                 "label": label, "family": family, "p": p, "flights": fl,
                 "method": method, "status": status,
-                "obj": obj, "assigned_str": asgn_str, "wall_s": round(wall, 2),
+                "obj": obj, "assigned_str": asgn_str,
+                "assigned": assigned, "coverage_pct":
+                    round(100.0 * assigned / total, 2)
+                    if assigned is not None and total else None,
+                "complete": bool(assigned == total and total),
+                "wall_s": round(wall, 2),
             })
 
     out_dir = ROOT / "results/tables/exact_feasible"

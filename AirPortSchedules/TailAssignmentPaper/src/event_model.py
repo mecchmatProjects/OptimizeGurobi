@@ -317,7 +317,9 @@ class EventMILPScheduler(MILP_Sheduler):
             for check in self.HOUR_CHECKS:
                 initial = self.init_check_hrs[check][aircraft] * 60.0
                 threshold = self.check_hrs[check] * 60.0
-                initial_big_m = initial + duration
+                # Must dominate every value u can take when first=0 (up to the
+                # C11 cap `threshold`), not just this flight's own duration.
+                initial_big_m = threshold + duration
                 model.c13_initial_hours.add(
                     model.u[flight, aircraft, check]
                     >= initial + duration
@@ -328,6 +330,18 @@ class EventMILPScheduler(MILP_Sheduler):
                     <= initial + duration
                     + initial_big_m * (1 - model.first[flight, aircraft])
                 )
+
+    def _reachable(self, flight, aircraft):
+        """Whether x[flight, aircraft] can possibly be 1 given routing: the
+        flight must be a source arc for this aircraft, or have at least one
+        predecessor arc into it for this aircraft (matches the domain
+        implicitly enforced by ``c2_predecessor``). Cost-based x-arc
+        eligibility alone (``self.z_arcs``) does not imply this -- a flight
+        can be "affordable" for an aircraft that can never actually reach it."""
+        return (
+            (flight, aircraft) in self.source_arcs
+            or bool(self.predecessors.get((flight, aircraft)))
+        )
 
     def _add_event_calendar_limits(self, model):
         model.c14_initial_calendar = ConstraintList()
@@ -345,18 +359,25 @@ class EventMILPScheduler(MILP_Sheduler):
                         and check in self._qualifying_checks(requirement)
                         and self.flight_data[flight]["arrivalTime"]
                         <= first_deadline
+                        and self._reachable(flight, aircraft)
                     ]
                     if candidates:
                         model.c14_initial_calendar.add(sum(candidates) >= 1)
                     else:
-                        model.c14_initial_calendar.add(
-                            sum(model.x[key] for key in model.X) <= -1
-                        )
+                        # No reachable check can meet this aircraft's deadline:
+                        # a genuine, aircraft-local infeasibility. Anchor on a
+                        # real binary Var forced out of its domain (>=2) so
+                        # Pyomo keeps this as a symbolic constraint instead of
+                        # collapsing a plain ``0 >= 1`` literal to Python's
+                        # ``False`` (which Pyomo's ConstraintList rejects).
+                        anchor_key = next(iter(self.z_arcs))
+                        model.c14_initial_calendar.add(model.z[anchor_key] >= 2)
 
                 for flight, candidate_aircraft, selected_check in self.z_arcs:
                     if (
                         candidate_aircraft != aircraft
                         or selected_check not in self._qualifying_checks(requirement)
+                        or not self._reachable(flight, aircraft)
                     ):
                         continue
                     start = self.flight_data[flight]["arrivalTime"]
@@ -370,6 +391,7 @@ class EventMILPScheduler(MILP_Sheduler):
                         and start
                         < self.flight_data[next_flight]["arrivalTime"]
                         <= start + limit
+                        and self._reachable(next_flight, aircraft)
                     ]
                     model.c14_calendar_chain.add(
                         sum(following) >= model.z[flight, aircraft, selected_check]

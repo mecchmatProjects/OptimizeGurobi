@@ -4,7 +4,7 @@
 %%==========================================================================
 
 This paper revisited the compact Tail Assignment Problem model of
-\citet{khaled2018compact}, making three concrete contributions.
+\citet{khaled2018compact}, making four concrete contributions.
 
 \paragraph{C2--C4 feasibility correction.}
 We showed that the basic balance constraints can admit a simultaneous-
@@ -16,12 +16,16 @@ evaluated.
 
 \paragraph{Constraint~(13) correction.}
 We proved that the original cumulative-flight-time constraint can leave the
-opening maintenance interval unbounded. We then showed that the natural
-two-row endpoint split is also insufficient: it can miss flying time between
-consecutive check nights. The exact replacement uses a continuous daily
-cumulative state with maintenance-triggered resets and explicit initial
-conditions. The legacy computational runs use the endpoint split and therefore
-do not certify the exact between-check bound.
+opening maintenance interval unbounded, and that the natural two-row endpoint
+split is also insufficient in the complementary case where both window
+endpoints carry a check. Both lemmas are confirmed numerically against the
+real built constraint objects (\Cref{subsec:comp_c13}): each formulation
+accepts a schedule the other correctly rejects, on the same 1\,200-minute
+violation against a 600-minute limit. The exact replacement uses a
+continuous cumulative state with maintenance-triggered resets and explicit
+initial conditions, given first in day-indexed form
+(\Cref{subsec:c13_state}) and then, completely independently of any day
+index, in the event-based reformulation of \Cref{sec:event_reformulation}.
 
 \paragraph{Effect on C8--C14.}
 The non-overlap correction changes the assignment domain on which C8--C14
@@ -34,9 +38,37 @@ maintenance-event constraints.
 We extended the single-type framework to an explicit four-level A/B/C/D
 hierarchy. Effective-check indicators encode heavier-check resets, separate
 start and occupancy variables represent multi-day C/D checks, and initial
-hour/day values carry maintenance history into the horizon. The extension adds
-$O(n_pn_d|\C|)$ state and event structure plus sparse flight-exclusion rows;
-its solve-time multiplier has not yet been established empirically.
+hour/day values carry maintenance history into the horizon. Each check type
+solved in isolation, and the full hierarchy together, is independently
+re-verified against the raw flight timetable (\Cref{subsec:hierarchy_results});
+the full-hierarchy run also reproduces the Constraint~(13) split flaw
+unprompted on an existing test instance, showing the issue is not confined to
+hand-built corner cases.
+
+\paragraph{Event-based reformulation.}
+We gave a complete, self-contained, day-free reformulation of the same
+C1--C14 requirements (\Cref{sec:event_reformulation}), in which maintenance
+is a virtual flight indexed on its triggering flight rather than on calendar
+day, and proved its correctness directly
+(\Cref{prop:event_correct}). Because its flight-hour counter propagates arc
+by arc along the aircraft's actual route rather than over a day-pair window,
+it cannot exhibit the split-form failure mode of Constraint~(13) by
+construction. Measuring this reformulation against the day-indexed model
+(\Cref{subsec:event_measurements}) surfaced and let us fix three genuine
+implementation defects using the same generic technique (LP relaxation plus
+single-constraint-block deactivation): a big-$M$ sizing defect in the
+flight-hour counter, a missing routing-reachability check in the
+calendar-check deadline constraint, and an insufficient day-rounding margin
+in the instance generator itself, after which both formulations agree
+exactly on every guaranteed-feasible test instance, including one exercising
+the full $\{A,B,C,D\}$ hierarchy. Measurement also revealed that the
+event-based model's variable-count advantage is real but not universal
+(it reverses at the largest horizon tested) and that its constraint count is
+consistently larger on dense timetables, and that its stricter,
+never-exceed-the-threshold semantics is a genuine modelling-convention
+change from the existing benchmark suite, not merely an implementation
+detail. We report these as honest, measured trade-offs rather than an
+unconditional improvement.
 
 \paragraph{Reproducibility.}
 The project contains the code, deterministic instance generator, experiment
@@ -48,10 +80,12 @@ without conflating their maintenance semantics.
 \paragraph{Threats to validity.}
 The reported computational comparisons are intentionally scoped to
 the synthetic benchmark family used in this study. The quick grids use few
-instances, several dense runs end in infeasible/error states, and no completed
-paper-versus-split-versus-exact C13 experiment is reported. Performance
-conclusions are therefore descriptive of these runs only. Decomposition-heavy
-and robust/scenario alternatives may exhibit different trade-offs under their
+instances, and several dense runs end in infeasible/error states. The
+paper-versus-split-versus-event-based C13 comparison is completed for a
+targeted counterexample and for the per-check-type hierarchy study, but not
+yet at full paper-scale grid sizes. Performance conclusions are therefore
+descriptive of the reported runs only. Decomposition-heavy and
+robust/scenario alternatives may exhibit different trade-offs under their
 native assumptions and tuning protocols.
 
 \subsection*{Future directions}
@@ -64,10 +98,12 @@ native assumptions and tuning protocols.
   \item \textbf{Robust and recoverable variants:} extending
     \citet{borndorfer2010robust, froyland2013recoverable} to the compact
     formulation with full maintenance hierarchy is an open problem.
-  \item \textbf{Controlled formulation benchmark:} implement separately
-    selectable paper-C13, endpoint-split, and exact-state builders, validate
-    every solution by replaying its maintenance counters, and compare model
-    size, relaxation bounds, runtime, and feasibility on identical instances.
+  \item \textbf{Controlled formulation benchmark at scale:} the paper-C13,
+    endpoint-split, and event-based builders are now separately selectable
+    and every solution is independently validated by replaying its
+    maintenance counters; extending this comparison of model size,
+    relaxation bounds, runtime, and feasibility to the full paper-scale
+    instance grid remains open.
   \item \textbf{Heuristic and metaheuristic methods:} constructive and
     learning-based heuristics for the corrected, full-hierarchy model are
     deliberately out of scope here and are left for a companion study.

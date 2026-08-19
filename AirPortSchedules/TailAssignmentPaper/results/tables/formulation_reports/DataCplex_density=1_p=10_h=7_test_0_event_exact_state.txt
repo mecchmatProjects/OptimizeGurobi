@@ -1,0 +1,79 @@
+
+=== Event MILP Aircraft Assignment Report ===
+  Status : optimal
+  Vars   : 6865   Constraints: 30360
+  Gap    : nan%   CPU: 0.78s
+  Obj    : 24935.0
+
+--- Assignment ---
+  Flight    1  -> Aircraft 0
+  Flight    2  -> Aircraft 7
+  Flight    3  -> Aircraft 0
+  Flight    4  -> Aircraft 7
+  Flight    5  -> Aircraft 8
+  Flight    6  -> Aircraft 1
+  Flight    7  -> Aircraft 8
+  Flight    8  -> Aircraft 1
+  Flight    9  -> Aircraft 0
+  Flight   10  -> Aircraft 9
+  Flight   11  -> Aircraft 2
+  Flight   12  -> Aircraft 7
+  Flight   13  -> Aircraft 0
+  Flight   14  -> Aircraft 9
+  Flight   15  -> Aircraft 2
+  Flight   16  -> Aircraft 7
+  Flight   17  -> Aircraft 0
+  Flight   18  -> Aircraft 8
+  Flight   19  -> Aircraft 1
+  Flight   20  -> Aircraft 3
+  Flight   21  -> Aircraft 7
+  Flight   22  -> Aircraft 0
+  Flight   23  -> Aircraft 8
+  Flight   24  -> Aircraft 1
+  Flight   25  -> Aircraft 3
+  Flight   26  -> Aircraft 7
+  Flight   27  -> Aircraft 4
+  Flight   28  -> Aircraft 8
+  Flight   29  -> Aircraft 1
+  Flight   30  -> Aircraft 9
+  Flight   31  -> Aircraft 2
+  Flight   32  -> Aircraft 4
+  Flight   33  -> Aircraft 8
+  Flight   34  -> Aircraft 1
+  Flight   35  -> Aircraft 9
+  Flight   36  -> Aircraft 2
+  Flight   37  -> Aircraft 5
+  Flight   38  -> Aircraft 9
+  Flight   39  -> Aircraft 2
+  Flight   40  -> Aircraft 3
+  Flight   41  -> Aircraft 5
+  Flight   42  -> Aircraft 9
+  Flight   43  -> Aircraft 2
+  Flight   44  -> Aircraft 3
+  Flight   45  -> Aircraft 4
+  Flight   46  -> Aircraft 6
+  Flight   47  -> Aircraft 3
+  Flight   48  -> Aircraft 4
+  Flight   49  -> Aircraft 6
+  Flight   50  -> Aircraft 3
+
+--- Maintenance ---
+  Aircraft 0 check A after flight 1 [450, 510]
+  Aircraft 7 check A after flight 2 [495, 555]
+  Aircraft 8 check A after flight 5 [1890, 1950]
+  Aircraft 1 check A after flight 6 [1905, 1965]
+  Aircraft 0 check A after flight 9 [3330, 3390]
+  Aircraft 9 check A after flight 10 [3345, 3405]
+  Aircraft 2 check A after flight 11 [3360, 3420]
+  Aircraft 7 check A after flight 12 [3375, 3435]
+  Aircraft 8 check A after flight 18 [4770, 4830]
+  Aircraft 1 check A after flight 19 [4785, 4845]
+  Aircraft 3 check A after flight 20 [4815, 4875]
+  Aircraft 4 check A after flight 27 [6210, 6270]
+  Aircraft 9 check A after flight 30 [6225, 6285]
+  Aircraft 2 check A after flight 31 [6240, 6300]
+  Aircraft 5 check A after flight 37 [7665, 7725]
+  Aircraft 3 check A after flight 40 [7695, 7755]
+  Aircraft 6 check A after flight 46 [9120, 9180]
+
+Total cost: 24935.00

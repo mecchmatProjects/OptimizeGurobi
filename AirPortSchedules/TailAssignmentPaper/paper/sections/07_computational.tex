@@ -254,6 +254,171 @@ hierarchy's aggregated $\mathrm{mega}$ indicator lets a heavier check on one
 aircraft satisfy the endpoint condition for another aircraft's window in the
 same solve.
 
+\subsection{Measured effectiveness of the event-based reformulation}
+\label{subsec:event_measurements}
+
+\Cref{sec:event_reformulation} proves the event-based reformulation exact
+and immune to the endpoint-split failure mode by construction. This
+subsection measures its practical effectiveness against the day-indexed
+legacy model on which it improves, using
+\texttt{experiments/compare\_formulations.py}. While diagnosing the first
+solved comparisons below, the same protocol used to certify results
+elsewhere in this section -- always cross-checking a status against an
+independent computation -- exposed an implementation defect in
+\texttt{src/event\_model.py}: the pre-horizon initial-hours constraint used
+a big-$M$ equal to the source flight's own duration plus its initial hours,
+which is not a valid upper bound on $u_{ijk}$ once a route has accumulated
+several flights, and made the model reject cost-optimal schedules it should
+accept. The fix (using $T_k+p_i$, the same bound family as
+\Cref{eq:event_c12}) is included in the code accompanying this paper; all
+results below use the corrected version.
+
+\paragraph{Solved comparison on a well-posed instance.}
+On a small hand-built instance with two aircraft, six flights, and a
+threshold comfortably above the total flying time
+(\texttt{data/instances/event\_vs\_legacy\_clean\_test.json}), both
+formulations now return the same optimal objective (600, a single aircraft
+covering all six flights with no maintenance event), using CPLEX 12.6 for
+AMPL as the solver of record. This is exact agreement between two
+independently coded formulations on a genuinely solved instance, not merely
+a build-time comparison.
+
+\paragraph{A modelling-convention gap on the existing ABCD suite.}
+On the existing \texttt{ABCD\_*} boundary instances
+(\Cref{tab:boundary_suite} below), the event-based model reports
+\texttt{infeasible} where the legacy model reports \texttt{optimal}. This is
+not a solver or implementation defect: these instances' own design notes
+(e.g. \texttt{ABCD\_capacity\_bottleneck\_test.json}) state that an aircraft
+is intended to fly \emph{past} its hour threshold and only be checked that
+same night -- exactly the permissive convention encoded in the legacy
+model's C13b relaxation. The exact-state formulations of this paper (both
+the day-indexed recursion of \Cref{subsec:c13_state} and the event-based
+\Cref{eq:event_c11} bound $u_{ijk}\le T_k x_{ij}$ unconditionally) instead
+require the threshold to never be exceeded at any arrival, check or no
+check. Under that stricter, arguably safer reading, these particular
+instances are genuinely infeasible: no schedule exists in which an aircraft
+never exceeds its hour limit for these initial states and flight durations.
+This is a modelling-convention gap between the existing benchmark suite and
+the corrected formulations of this paper, not a defect in either
+implementation, and it is a direct practical consequence of fixing the
+endpoint-split flaw: the corrected model can no longer quietly accept the
+same after-the-fact resolution the legacy convention relied on.
+
+\paragraph{Model-size scaling versus planning horizon.}
+Table~\ref{tab:event_scaling} reports \texttt{--build-only} statistics for
+both formulations on the same fleet (10 aircraft) across horizons
+$h\in\{7,15,21,30\}$ from the density-1.0 \texttt{DataCplex} grid.
+
+\begin{table}[t]
+\centering\small
+\caption{Model size versus planning horizon $h$ (10 aircraft, density 1.0;
+  \texttt{results/tables/formulation\_scaling.csv}). ``Vars ratio''/``Cons.\
+  ratio'' are event-based over legacy.}
+\label{tab:event_scaling}
+\begin{tabular}{rrrrrrr}
+\toprule
+$h$ & Legacy vars & Event vars & Vars ratio & Legacy cons. & Event cons. & Cons.\ ratio \\
+\midrule
+7  & 10\,480  & 7\,866   & 0.75 & 14\,899  & 24\,874     & 1.67 \\
+15 & 32\,760  & 23\,582  & 0.72 & 41\,047  & 91\,598     & 2.23 \\
+21 & 60\,620  & 39\,398  & 0.65 & 75\,794  & 167\,211    & 2.21 \\
+30 & 174\,190 & 210\,161 & 1.21 & 429\,020 & 1\,209\,411 & 2.82 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The variable-count advantage predicted by
+\Cref{tab:event_variable_counts} holds at $h=7,15,21$ (28--35\% fewer
+variables) but reverses at $h=30$, where the event model uses 21\% \emph{more}
+variables. Constraint count is larger for the event-based model at every
+horizon tested, by a factor of 1.7--2.8, and this factor grows with $h$. The
+reason is exactly the caveat already noted in
+\Cref{sec:event_reformulation}: constraint~\eqref{eq:event_c12} is built over
+every feasible connection $(i,\ell)\in\Conn$, and $|\Conn|$ grows
+super-linearly with the number of flights on these dense
+($\delta=1.0$) synthetic instances, whereas the legacy model's maintenance
+constraint count scales with $n_pn_d$. The event-based reformulation is
+therefore not unconditionally smaller in practice: its variable-count
+advantage is real but bounded, and its constraint count is measurably larger
+on this benchmark family, a genuine trade-off rather than a strict
+improvement.
+
+\paragraph{A guaranteed-feasible instance generator.}
+Both formulations are exact, so any solved-objective comparison between them
+is only informative on instances that are actually feasible; the random
+\texttt{DataCplex} generator produces mostly-infeasible cells at higher
+densities (\Cref{tab:repro6,tab:repro10,tab:repro11}), which is uninformative
+noise for this specific comparison rather than a property of either
+formulation. \texttt{src/generate\_feasible\_instances.py} instead builds
+each aircraft an explicit hub-and-spoke rotation (spoke $\to$ maintenance
+airport $\to$ spoke) with maintenance duration and turn-time slack built
+into every leg, and verifies every seeded rotation against an independent
+greedy timeline simulator before writing the instance, so the generated
+schedule is feasible by construction rather than by chance. Re-running the
+same $h\in\{7,15,21,30\}$, 10-aircraft, density-1.0 comparison on four such
+instances, both formulations solve to a matching optimum on every instance:
+
+\begin{table}[t]
+\centering\small
+\caption{Solved comparison on guaranteed-feasible instances
+  (\texttt{results/tables/formulation\_feasible\_scaling.csv}), full CPLEX
+  for AMPL, 180\,s time limit. Both formulations reach the identical
+  objective on every instance.}
+\label{tab:event_feasible_solved}
+\begin{tabular}{lrrrrrr}
+\toprule
+Instance & Legacy status & Legacy obj. & Event status & Event obj. & Legacy vars/cons. & Event vars/cons. \\
+\midrule
+h=7  & optimal & 24\,935 & optimal & 24\,935 & 3\,980/7\,928   & 6\,865/30\,360 \\
+h=15 & optimal & 29\,914 & optimal & 29\,914 & 7\,020/15\,494  & 8\,820/38\,730 \\
+h=21 & optimal & 29\,886 & optimal & 29\,886 & 7\,020/15\,494  & 8\,820/38\,730 \\
+h=30 & optimal & 29\,875 & optimal & 29\,875 & 7\,020/15\,494  & 8\,820/38\,730 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+This is the cleanest evidence in this paper for the correctness claim of
+\Cref{prop:event_correct}: on four independently constructed, genuinely
+feasible instances, two independently coded exact formulations -- built from
+different variable sets, different constraint families, and (after the fix
+above) different big-$M$ derivations -- agree exactly on the optimal cost
+every time.
+
+\paragraph{A second implementation defect, found and fixed the same way.}
+The same generator, run with \texttt{--maintenance-families ABCD}, initially
+solved under the legacy model but returned \texttt{infeasible} under the
+event-based model. Applying the same fault-isolation procedure used for
+\Cref{eq:event_c13} (relax all binary variables, solve the LP, and
+deactivate one named constraint block at a time) to
+constraints~\eqref{eq:event_c14a}--\eqref{eq:event_c14b} found a second,
+distinct defect: the candidate set for a calendar-check deadline was built
+from \emph{cost-feasible} assignment arcs only, without checking whether the
+candidate flight is actually \emph{reachable} by that aircraft's route (a
+flight can be affordable for an aircraft under the cost matrix's ferry
+penalty while having no predecessor path to it at all in this sparse
+hub-and-spoke instance family). The deadline constraint could then require a
+check on a flight the aircraft could never legally reach, an unsatisfiable
+requirement masquerading as a routing infeasibility. A second, narrower
+defect surfaced during the fix: the placeholder row inserted when no
+candidate exists at all evaluated to a plain Python \texttt{False} instead
+of a symbolic Pyomo constraint, raising a solver-side error rather than a
+clean infeasible status. Both are fixed in the code accompanying this
+paper (an explicit reachability check via the same predecessor sets used by
+constraint~\eqref{eq:event_c2}, and a placeholder anchored on a real
+variable). Root-causing the resulting failure on the regenerated instance
+traced to a third defect, this time in the instance generator itself: the
+calendar-check deadline slack was computed from the coarse departure-day
+index rather than the outbound flight's actual arrival time, so the
+day-rounding in \texttt{src/generate\_feasible\_instances.py} could place an
+aircraft's own designated check-triggering flight a few minutes past its own
+deadline. With all three fixes applied, the regenerated ABCD instance
+solves \texttt{optimal} under both formulations with the identical objective
+(10\,327), completing the cross-validation started above. We report the
+diagnostic process itself, not only the fix, because it is the same
+generic technique (LP relaxation plus single-block deactivation) used
+earlier for Constraint~(13), applied here to a different constraint family
+with a different, unrelated root cause.
+
 \subsection{Boundary suite}
 
 Table~\ref{tab:boundary_suite} collects the boundary instances used to

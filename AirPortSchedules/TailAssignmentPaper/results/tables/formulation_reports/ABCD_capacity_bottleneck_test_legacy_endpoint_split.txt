@@ -2,7 +2,7 @@
 === Legacy Endpoint-Split MILP Aircraft Assignment Report ===
   Status : optimal
   Vars   : 648   Constraints: 1234
-  Gap    : 0.0000%   CPU: -
+  Gap    : nan%   CPU: 0.34s
   Obj    : 8300.0
 
 --- Assignment ---

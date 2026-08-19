@@ -1,0 +1,18 @@
+
+=== Event MILP Aircraft Assignment Report ===
+  Status : optimal
+  Vars   : 138   Constraints: 376
+  Gap    : nan%   CPU: 0.28s
+  Obj    : 600.0
+
+--- Assignment ---
+  Flight    1  -> Aircraft 1
+  Flight    2  -> Aircraft 1
+  Flight    3  -> Aircraft 1
+  Flight    4  -> Aircraft 1
+  Flight    5  -> Aircraft 1
+  Flight    6  -> Aircraft 1
+
+--- Maintenance ---
+
+Total cost: 600.00

@@ -1,8 +1,8 @@
 
 === Event MILP Aircraft Assignment Report ===
-  Status : unknown
+  Status : infeasible
   Vars   : 1182   Constraints: 4741
-  Gap    : nan%   CPU: 0.04s
+  Gap    : nan%   CPU: 0.28s
   Obj    : None
 
 --- Assignment ---

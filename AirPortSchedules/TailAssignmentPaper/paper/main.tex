@@ -44,6 +44,9 @@
 \newcommand{\D}{\mathcal{D}}          % day set
 \newcommand{\C}{\mathcal{C}}          % check type set {A,B,C,D}
 \newcommand{\MA}{\mathcal{M}}         % maintenance airport set
+\newcommand{\CH}{\C_H}                % hour-triggered check subset {A,B}
+\newcommand{\CT}{\C_T}                % calendar-triggered check subset {C,D}
+\newcommand{\Conn}{\mathcal{E}}       % feasible flight-connection set (event model)
 \newcommand{\Fl}[2]{F^{\downarrow}_{#1}(#2)}
 \newcommand{\Fd}[2]{F^{\uparrow}_{#1}(#2)}
 \newcommand{\aI}[1]{a^{\downarrow}_{#1}}
@@ -86,15 +89,21 @@ that a two-row endpoint split is also insufficient and give an exact
 cumulative-state formulation. Third, we
 extend the maintenance model beyond the type-A single-check framework to a
 full four-level $\{A, B, C, D\}$ maintenance hierarchy with correct counter
-resets and pre-horizon accumulated-hours accounting. We give a numeric
-counterexample in which the original and endpoint-split formulations both
-certify a schedule that violates the flight-hour limit, while an exact-state
-event formulation correctly rejects it, and we independently verify every
-reported solution by replaying its maintenance counters outside the model.
-We then report exact CPLEX solves across targeted instances that isolate
-each check type (A, B, C, D) and their combination, demonstrating that the
-corrected hierarchy model enforces every check type without relaxation. All
-code, instances, and result tables accompany the project.
+resets and pre-horizon accumulated-hours accounting. Fourth, we give a
+complete, day-free event-based reformulation of the same maintenance
+requirements, in which each flight's own timestamp supplies all calendar
+information and the flight-hour counter is propagated exactly along each
+aircraft's actual route with no day-pair window, and we prove its
+correctness directly. We give a numeric counterexample, evaluated against
+the real built constraint objects at two adversarial check patterns, in
+which the original and endpoint-split formulations each fail on a different
+pattern while the event-based formulation rejects both, and we independently
+verify every reported solution by replaying its maintenance counters outside
+the model. We then report exact solves, cross-validated with two independent
+solvers, across targeted instances that isolate each check type (A, B, C, D)
+and their combination, demonstrating that the corrected hierarchy model
+enforces every check type without relaxation. All code, instances, and
+result tables accompany the project.
 \end{abstract}
 
 \begin{keyword}
@@ -110,6 +119,7 @@ Integer programming \sep Mixed-integer programming corrections
 \input{sections/03_basic_model}
 \input{sections/04_maintenance_model}
 \input{sections/05_hierarchy_extension}
+\input{sections/06_event_reformulation}
 \input{sections/07_computational}
 \input{sections/08_conclusion}
 %% ==========================================================================

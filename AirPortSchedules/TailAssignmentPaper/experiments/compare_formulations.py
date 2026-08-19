@@ -124,6 +124,7 @@ def benchmark_one(
     time_limit,
     build_only,
     tee,
+    executable=None,
 ):
     """Build and optionally solve one formulation, returning one CSV row."""
     row = instance_metadata(instance_path)
@@ -162,6 +163,7 @@ def benchmark_one(
             out_path=str(report_path),
             time_limit=time_limit,
             warm_start=False,
+            executable=executable,
         )
         if summary.get("formulation") != formulation:
             raise RuntimeError(
@@ -261,6 +263,8 @@ def main():
     parser.add_argument("--input-dir", default="data/instances")
     parser.add_argument("--pattern", default="DataCplex_*.json")
     parser.add_argument("--solver", default="cplex")
+    parser.add_argument("--executable", default=None,
+                        help="Explicit solver binary path (bypasses PATH lookup).")
     parser.add_argument("--time-limit", type=int, default=300)
     parser.add_argument(
         "--output",
@@ -296,6 +300,7 @@ def main():
                 args.time_limit,
                 args.build_only,
                 args.tee,
+                args.executable,
             )
         )
 

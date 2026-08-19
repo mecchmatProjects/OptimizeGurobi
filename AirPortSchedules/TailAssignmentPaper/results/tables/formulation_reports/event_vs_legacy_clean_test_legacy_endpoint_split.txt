@@ -1,0 +1,18 @@
+
+=== Legacy Endpoint-Split MILP Aircraft Assignment Report ===
+  Status : optimal
+  Vars   : 332   Constraints: 518
+  Gap    : nan%   CPU: 0.30s
+  Obj    : 600.0
+
+--- Assignment ---
+  Flight    1  -> Aircraft 0
+  Flight    2  -> Aircraft 0
+  Flight    3  -> Aircraft 0
+  Flight    4  -> Aircraft 0
+  Flight    5  -> Aircraft 0
+  Flight    6  -> Aircraft 0
+
+--- Maintenance ---
+
+Total cost: 600.00

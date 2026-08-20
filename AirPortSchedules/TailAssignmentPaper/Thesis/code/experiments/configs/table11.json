@@ -1,0 +1,58 @@
+{
+  "_comment": "Config for reproducing Khaled et al. Table 11 (max landings nu=14, dmax=4) + corrected C13.",
+  "table": 11,
+  "description": "Max landings nu=14 and maximum spacing dmax=4 days (landing-count variant)",
+  "mode": "milp",
+  "use_maintenance": true,
+  "use_overlap": true,
+  "use_ferry": true,
+  "use_check_hierarchy": true,
+  "solver": "cplex",
+  "time_limit": 10800,
+  "presolve_variants": [true],
+  "variants": [
+    {
+      "label": "nu14_dmax4_paper_c13",
+      "nu_landings": 14,
+      "dmax": 4,
+      "use_paper_c13": true,
+      "_note": "Paper's original constraint (13) - may be wrong"
+    },
+    {
+      "label": "nu14_dmax4_corrected_c13",
+      "nu_landings": 14,
+      "dmax": 4,
+      "use_paper_c13": false,
+      "_note": "Corrected constraint (13) - split into two endpoint constraints"
+    }
+  ],
+  "grid": [
+    {"density": 1.0, "p": 10, "h": 15, "instances": 10},
+    {"density": 1.0, "p": 10, "h": 21, "instances": 10},
+    {"density": 1.0, "p": 10, "h": 30, "instances": 10},
+    {"density": 1.0, "p": 20, "h": 15, "instances": 10},
+    {"density": 1.0, "p": 20, "h": 21, "instances": 10},
+    {"density": 1.0, "p": 20, "h": 30, "instances": 10},
+    {"density": 1.0, "p": 30, "h": 15, "instances": 10},
+    {"density": 1.0, "p": 30, "h": 21, "instances": 10},
+    {"density": 1.0, "p": 30, "h": 30, "instances": 10},
+    {"density": 1.0, "p": 40, "h": 15, "instances": 10},
+    {"density": 1.0, "p": 40, "h": 21, "instances": 10},
+    {"density": 1.0, "p": 40, "h": 30, "instances": 10}
+  ],
+  "reference_table": {
+    "_comment": "From Khaled et al. Table 11 (nu=14, dmax=4).",
+    "p10_h15": {"vars": 4708,  "constraints": 7134,  "nodes": 2446, "gap_pct": 0.0,  "cpu_s": 878},
+    "p10_h21": {"vars": 6002,  "constraints": 8625,  "nodes": 4651, "gap_pct": 0.0,  "cpu_s": 1534},
+    "p10_h30": {"vars": 7555,  "constraints": 9813,  "nodes": 5562, "gap_pct": 0.0,  "cpu_s": 2557},
+    "p20_h15": {"vars": 17174, "constraints": 32866, "nodes": 4570, "gap_pct": 0.0,  "cpu_s": 3124},
+    "p20_h21": {"vars": 21746, "constraints": 39482, "nodes": 6715, "gap_pct": 0.0,  "cpu_s": 5564},
+    "p20_h30": {"vars": 26574, "constraints": 44755, "nodes": 7122, "gap_pct": 0.0,  "cpu_s": 6031},
+    "p30_h15": {"vars": 35678, "constraints": 67529, "nodes": 8024, "gap_pct": 0.0,  "cpu_s": 7985},
+    "p30_h21": {"vars": 43388, "constraints": 77899, "nodes": 9026, "gap_pct": 0.0,  "cpu_s": 10800},
+    "p30_h30": {"vars": 49692, "constraints": 82739, "nodes": 9664, "gap_pct": 0.31, "cpu_s": 10800},
+    "p40_h15": {"vars": 56962, "constraints": 107172,"nodes": 10655,"gap_pct": 0.30, "cpu_s": 10800},
+    "p40_h21": {"vars": 64066, "constraints": 114266,"nodes": 10802,"gap_pct": 0.40, "cpu_s": 10800},
+    "p40_h30": {"vars": 78892, "constraints": 130684,"nodes": 10655,"gap_pct": 0.46, "cpu_s": 10800}
+  }
+}

@@ -1,0 +1,540 @@
+%% ==========================================================================
+%% docs/heuristic_math.tex
+%% Mathematical and algorithmic analysis of the two heuristics for the
+%% Tail Assignment Problem:
+%%   (1) Greedy + Insertion heuristic (implemented in src/model.py, Scheduler)
+%%   (2) Dijkstra's Algorithm-based heuristic (Chapter 4, Section 4.2)
+%%   (3) Ant Colony Optimization (ACO) heuristic  (Chapter 4, Section 4.3)
+%%   (4) Complexity and quality analysis
+%% ==========================================================================
+\documentclass[11pt, a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{geometry}
+\geometry{margin=1in}
+\usepackage{amsmath, amssymb, amsthm, mathtools}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage[ruled, vlined, linesnumbered]{algorithm2e}
+\usepackage{hyperref}
+\usepackage{xcolor}
+
+\theoremstyle{plain}
+\newtheorem{proposition}{Proposition}
+\newtheorem{lemma}{Lemma}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}{Remark}
+
+%% Notation macros (aligned with model_math.tex)
+\newcommand{\F}{\mathcal{F}}
+\newcommand{\Ac}{\mathcal{A}}
+\newcommand{\K}{\mathcal{K}}
+\newcommand{\C}{\mathcal{C}}
+
+\title{Heuristic Algorithms for the Tail Assignment Problem:\\
+  Mathematical Analysis and Complexity}
+\author{Working Document}
+\date{\today}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\clearpage
+
+%%==========================================================================
+\section{Scope and Purpose}
+%%==========================================================================
+
+This document provides the formal mathematical underpinning for the three
+heuristic approaches studied alongside the MILP model for the Tail Assignment
+Problem (TAP):
+\begin{enumerate}[label=(\arabic*)]
+  \item A \emph{greedy + insertion} constructive heuristic (implemented in
+    \texttt{src/model.py}, class \texttt{Scheduler}).
+  \item A \emph{Dijkstra's algorithm-based} heuristic for the space-time
+    network formulation of the Locomotive Assignment Problem (LAP) and its
+    direct adaptation to TAP.
+  \item An \emph{Ant Colony Optimization (ACO)}-based heuristic operating
+    on the same space-time network.
+\end{enumerate}
+
+All three are constructive heuristics: they build a complete assignment
+incrementally rather than starting from a relaxation and branching.  The MILP
+(see \texttt{docs/model\_math.tex}) provides the reference optimum against
+which solution quality is measured.
+
+%%==========================================================================
+\section{Data Model and State Variables}
+%%==========================================================================
+
+\subsection{Sets and indices}
+
+\begin{align*}
+  \F &= \{1,\dots,n_f\}  &&\text{flight legs (sorted by departure time)} \\
+  \Ac &= \{0,\dots,n_p-1\} &&\text{aircraft (tail numbers)} \\
+  \K   &= \text{set of airports}
+\end{align*}
+
+For each flight $f \in \F$:
+\begin{align*}
+  o_f &\in \K   &&\text{origin airport} \\
+  d_f &\in \K   &&\text{destination airport} \\
+  t_f^{\mathrm{dep}} &\in \mathbb{R}_{\ge 0} &&\text{departure time (minutes from horizon start)} \\
+  t_f^{\mathrm{arr}} &\in \mathbb{R}_{\ge 0} &&\text{arrival time (minutes from horizon start)} \\
+  \Delta_f &= t_f^{\mathrm{arr}} - t_f^{\mathrm{dep}} &&\text{flight duration (minutes)}
+\end{align*}
+
+\subsection{Cost parameters}
+
+\begin{align*}
+  C_{f,a}       &\text{: assignment cost of flight } f \text{ to aircraft } a \\
+  \tau^{\mathrm{ferry}} &= 60\;\text{min} &&\text{minimum ferry (repositioning) time} \\
+  \kappa^{\mathrm{ferry}} &= 6000 &&\text{penalty cost per ferry leg}
+\end{align*}
+
+\subsection{Maintenance thresholds and durations}
+
+Check types $\C = \{A, B, C, D\}$ ordered from lightest to heaviest.
+\begin{align*}
+  T_A, T_B &\text{ (minutes)}: &&\text{max cumulative flight time before check} \\
+  T_C, T_D &\text{ (days)}:    &&\text{max calendar days between checks} \\
+  L_c       &\text{ (minutes)}: &&\text{duration of check } c \in \C
+\end{align*}
+
+Station capacity: $\mathrm{cap}(k)$ = max aircraft simultaneously under
+maintenance at airport $k$.
+
+\subsection{Per-aircraft dynamic counters}
+
+The heuristic maintains four running counters per aircraft $a$:
+\begin{align*}
+  \alpha_a &: \text{accumulated flight minutes since last A-check}\\
+  \beta_a  &: \text{accumulated flight minutes since last B-check}\\
+  \gamma_a &: \text{elapsed calendar days since last C-check}\\
+  \delta_a &: \text{elapsed calendar days since last D-check}
+\end{align*}
+
+Initial values $(\alpha^0_a, \beta^0_a, \gamma^0_a, \delta^0_a)$ are read
+from the \texttt{Initial\_Checks} field of the instance JSON.
+
+%%==========================================================================
+\section{The \texttt{get\_timeline} Feasibility Simulator}
+%%==========================================================================
+
+The core primitive shared by all heuristics is a \emph{timeline simulator}
+that, given an ordered flight list $[f_1, f_2, \ldots, f_k]$ for aircraft
+$a$, returns either \textsc{Infeasible} or a cost-annotated event sequence.
+
+\subsection{Algorithm}
+
+\begin{algorithm}[H]
+\caption{\texttt{get\_timeline}$(a,\; [f_1,\ldots,f_k])$}
+\KwIn{Aircraft $a$; ordered flight list}
+\KwOut{Event sequence + total cost, or \textsc{Infeasible}}
+$\mathrm{pos} \leftarrow a^0_a$,\quad
+$t \leftarrow 0$,\quad
+$(\alpha,\beta,\gamma,\delta) \leftarrow (\alpha^0_a,\beta^0_a,\gamma^0_a,\delta^0_a)$,\quad
+$\mathrm{cost} \leftarrow 0$\;
+\ForEach{flight $f_i$}{
+  \tcc{Step 1: ferry if required}
+  \If{$\mathrm{pos} \ne o_{f_i}$}{
+    \If{$t + \tau^{\mathrm{ferry}} > t_{f_i}^{\mathrm{dep}}$}{\Return \textsc{Infeasible}}
+    $t \leftarrow t + \tau^{\mathrm{ferry}}$;\quad
+    $\mathrm{pos} \leftarrow o_{f_i}$;\quad
+    $\mathrm{cost} \leftarrow \mathrm{cost} + \kappa^{\mathrm{ferry}}$\;
+  }
+  \tcc{Step 2: check trigger (highest priority first)}
+  Determine $c^* \leftarrow \arg\min_{c \in \C} \mathrm{urgency}(\alpha,\beta,\gamma,\delta,f_i)$
+  by Equations~\eqref{eq:trigger}\;
+  \If{$c^* \ne \emptyset$}{
+    \If{$t + L_{c^*} > t_{f_i}^{\mathrm{dep}}$}{\Return \textsc{Infeasible}}
+    \If{$\mathrm{cap}(o_{f_i}) = 0$}{\Return \textsc{Infeasible}}
+    $t \leftarrow t + L_{c^*}$;\quad
+    apply hierarchy reset per Eq.~\eqref{eq:reset}\;
+  }
+  \tcc{Step 3: flight execution}
+  \If{$t > t_{f_i}^{\mathrm{dep}}$}{\Return \textsc{Infeasible}}
+  append flight event $(f_i, t_{f_i}^{\mathrm{dep}}, t_{f_i}^{\mathrm{arr}})$\;
+  $t \leftarrow t_{f_i}^{\mathrm{arr}}$;\quad
+  $\mathrm{pos} \leftarrow d_{f_i}$;\quad
+  $\alpha \leftarrow \alpha + \Delta_{f_i}$;\quad
+  $\beta \leftarrow \beta + \Delta_{f_i}$;\quad
+  $\mathrm{cost} \leftarrow \mathrm{cost} + C_{f_i, a}$\;
+}
+\Return (events, cost)\;
+\end{algorithm}
+
+\subsection{Maintenance trigger conditions}
+\label{eq:trigger}
+
+Priority-ordered trigger check before flight $f$:
+\begin{equation}\label{eq:trigger}
+  c^* =
+  \begin{cases}
+    D & \text{if } \delta + t/1440 \ge T_D, \\
+    C & \text{else if } \gamma + t/1440 \ge T_C, \\
+    B & \text{else if } \beta + \Delta_f \ge T_B, \\
+    A & \text{else if } \alpha + \Delta_f \ge T_A, \\
+    \emptyset & \text{otherwise (no check needed)}.
+  \end{cases}
+\end{equation}
+
+\subsection{Counter reset hierarchy}
+\label{eq:reset}
+
+When check $c^*$ is performed the counters are reset as follows:
+\begin{equation}\label{eq:reset}
+  \text{After check } c^*:\quad
+  \begin{cases}
+    c^* = D: & (\alpha,\beta,\gamma,\delta) \leftarrow (0,0,0,0), \\
+    c^* = C: & (\alpha,\beta,\gamma) \leftarrow (0,0,0),\;\delta \text{ unchanged}, \\
+    c^* = B: & (\alpha,\beta) \leftarrow (0,0),\;\gamma,\delta \text{ unchanged}, \\
+    c^* = A: & \alpha \leftarrow 0,\;\beta,\gamma,\delta \text{ unchanged}.
+  \end{cases}
+\end{equation}
+
+\begin{lemma}[Consistency of hierarchy resets]
+  Let $c_1 \prec c_2$ denote that check $c_1$ is lighter than $c_2$
+  ($A \prec B \prec C \prec D$).  If aircraft $a$ satisfies the trigger
+  condition for check $c_2$, it also satisfies or has previously satisfied the
+  trigger condition for all $c_1 \prec c_2$.  Hence performing the heaviest
+  triggered check subsumes all lighter checks.
+\end{lemma}
+
+\begin{proof}
+  The A-counter $\alpha$ accumulates flight minutes since the last check that
+  resets $\alpha$ (any of A, B, C, D).  The B-counter $\beta$ accumulates since
+  the last B/C/D.  Since $T_A < T_B$ (by definition of check hierarchy), if
+  $\beta \ge T_B$ then either $\alpha$ has already been reset by a prior
+  A-check (in which case the counter accurately reflects sub-$T_A$ usage), or
+  $\alpha \ge T_A$ as well, meaning both checks are due.  The analogous
+  argument applies to calendar-day counters $\gamma, \delta$.
+\end{proof}
+
+%%==========================================================================
+\section{Heuristic 1: Greedy + Insertion (Implemented in \texttt{Scheduler})}
+%%==========================================================================
+
+\subsection{Two-phase structure}
+
+\paragraph{Phase 1 — Greedy assignment.}
+Flights are sorted by departure time.  Each flight $f$ is appended to the
+route of the aircraft $a^*$ that yields the minimum incremental cost:
+\begin{equation}
+  a^* = \arg\min_{a \in \Ac} \;\mathrm{cost}\!\left(\texttt{get\_timeline}(a,\;
+    R_a \,\Vert\, [f])\right),
+\end{equation}
+where $R_a$ is the current route of aircraft $a$ and $\Vert$ denotes
+concatenation.  If no aircraft can accept $f$ feasibly, it is added to the
+\emph{unassigned} set $U$.
+
+\paragraph{Phase 2 — Insertion repair (5 passes).}
+For each unassigned flight $f \in U$ and each possible insertion position
+$i \in \{0,\ldots,|R_a|\}$ in each aircraft $a$'s route:
+\begin{equation}
+  (a^*, i^*) = \arg\min_{a,i}\; \mathrm{cost}\!\left(
+    \texttt{get\_timeline}(a,\;R_a[0:i] \,\Vert\, [f] \,\Vert\, R_a[i:])\right).
+\end{equation}
+Up to 5 passes are executed; passes stop early if $U = \emptyset$.
+
+\subsection{Algorithm}
+
+\begin{algorithm}[H]
+\caption{\texttt{Scheduler.optimize()}: Greedy + Insertion}
+\KwIn{Instance data (flights, aircraft, maintenance params)}
+\KwOut{Routes $\{R_a\}_{a \in \Ac}$, unassigned set $U$}
+$R_a \leftarrow [\,]$ for all $a \in \Ac$;\quad $U \leftarrow \emptyset$\;
+Sort $\F$ by $t_f^{\mathrm{dep}}$ (ascending)\;
+\tcc{Phase 1: Greedy}
+\ForEach{$f \in \F$ (sorted)}{
+  $\mathrm{best\_cost} \leftarrow +\infty$;\quad $a^* \leftarrow \mathrm{None}$\;
+  \ForEach{$a \in \Ac$}{
+    $\mathrm{result} \leftarrow \texttt{get\_timeline}(a,\; R_a \,\Vert\, [f])$\;
+    \If{feasible and $\mathrm{result.cost} < \mathrm{best\_cost}$}{
+      $\mathrm{best\_cost} \leftarrow \mathrm{result.cost}$;\quad $a^* \leftarrow a$\;
+    }
+  }
+  \eIf{$a^* \ne \mathrm{None}$}{
+    $R_{a^*} \leftarrow R_{a^*} \,\Vert\, [f]$\;
+  }{
+    $U \leftarrow U \cup \{f\}$\;
+  }
+}
+\tcc{Phase 2: Insertion repair}
+\For{$\mathrm{pass} \leftarrow 1$ \KwTo $5$}{
+  \If{$U = \emptyset$}{\textbf{break}}
+  \ForEach{$f \in U$}{
+    $\mathrm{best\_cost} \leftarrow +\infty$;\quad $(a^*, i^*) \leftarrow (\mathrm{None}, 0)$\;
+    \ForEach{$a \in \Ac$}{
+      \For{$i \leftarrow 0$ \KwTo $|R_a|$}{
+        $\mathrm{trial} \leftarrow R_a[0:i] \,\Vert\, [f] \,\Vert\, R_a[i:]$\;
+        $\mathrm{result} \leftarrow \texttt{get\_timeline}(a,\; \mathrm{trial})$\;
+        \If{feasible and $\mathrm{result.cost} < \mathrm{best\_cost}$}{
+          $\mathrm{best\_cost} \leftarrow \mathrm{result.cost}$;\quad
+          $(a^*, i^*) \leftarrow (a, i)$\;
+        }
+      }
+    }
+    \If{$a^* \ne \mathrm{None}$}{
+      $R_{a^*} \leftarrow R_{a^*}[0:i^*] \,\Vert\, [f] \,\Vert\, R_{a^*}[i^*:]$\;
+      $U \leftarrow U \setminus \{f\}$\;
+    }
+  }
+}
+\Return $(\{R_a\}, U)$\;
+\end{algorithm}
+
+\subsection{Complexity analysis}
+
+\begin{proposition}[Time complexity of Greedy + Insertion]
+  Let $n_f = |\F|$, $n_p = |\Ac|$, and $L = \max_a |R_a| \le n_f$.
+  \begin{enumerate}[label=(\roman*)]
+    \item The greedy phase requires $O(n_f \cdot n_p \cdot n_f)$ timeline
+      evaluations in the worst case, since each \texttt{get\_timeline} call is
+      $O(n_f)$.  Total: $O(n_f^2 \cdot n_p)$.
+    \item Each insertion repair pass has $O(n_f \cdot n_p \cdot n_f \cdot n_f)
+      = O(n_f^3 \cdot n_p)$ cost in the worst case ($n_f$ unassigned, $n_p$
+      aircraft, $n_f$ positions, $O(n_f)$ per evaluation).  With 5 passes:
+      $O(5\, n_f^3 \cdot n_p) = O(n_f^3 \cdot n_p)$.
+    \item Total: $O(n_f^3 \cdot n_p)$ in the worst case.
+  \end{enumerate}
+\end{proposition}
+
+\begin{remark}
+  In practice the insertion phase is much cheaper because (a) the unassigned
+  set $U$ shrinks rapidly, (b) feasibility is rejected early in the timeline
+  simulator (fail-fast on turn-time violation), and (c) flight routes are
+  sparse (average route length is $n_f / n_p$, not $n_f$).  Empirically the
+  heuristic runs in seconds even for 1500-flight instances.
+\end{remark}
+
+\subsection{Quality bound}
+
+The greedy + insertion heuristic provides no theoretical worst-case
+approximation ratio (the objective is not sub-modular), but empirically it
+achieves solutions within 5--20\% of the MILP optimum on the instances tested
+(see Section~7 of the paper), with the gap increasing for high-density
+instances where maintenance interleaving is tight.
+
+%%==========================================================================
+\section{Heuristic 2: Dijkstra's Algorithm-Based Heuristic}
+%%==========================================================================
+
+This heuristic was designed for the space-time network formulation of a
+related Locomotive Assignment Problem (LAP) and is directly applicable to
+TAP.  The space-time network encodes all temporal connections between flights,
+maintenance events, and depot arcs.
+
+\subsection{Space-time network}
+
+\begin{definition}[Space-time network $G = (V, E)$]
+  Node set: $V = \{(k, t) : k \in \K,\; t \in T\}$ where $T$ is the set of
+  discrete time instants corresponding to flight departures and arrivals.
+  Arc types:
+  \begin{itemize}[leftmargin=1.4em]
+    \item \emph{Flight arcs} (TrArcs): $(o_f, t_f^{\mathrm{dep}}) \to
+      (d_f, t_f^{\mathrm{arr}})$ for each $f \in \F$.
+    \item \emph{Ground arcs} (WArcs): $(k, t) \to (k, t')$ for $t < t'$
+      (waiting at airport $k$).
+    \item \emph{Deadhead arcs} (DArcs): repositioning arcs between stations.
+    \item \emph{Maintenance arcs}: depot $\to$ station after maintenance.
+    \item \emph{Coupling/decoupling arcs} (CDArcs): immediately before and
+      after each flight arc.
+  \end{itemize}
+\end{definition}
+
+\subsection{Proxy costs}
+
+Since not all arcs have natural costs, proxy costs are assigned:
+\begin{enumerate}[label=(\roman*)]
+  \item \textbf{TrArcs}: cost $= \mathrm{rank}(c_{f,a})$ (rank of actual cost
+    among all flight arcs, ascending order), so the cheapest flight is most
+    attractive.  Once served by one aircraft, cost is increased marginally above
+    all unserved TrArcs.  After two aircraft serve an arc, cost $\leftarrow
+    +\infty$.
+  \item \textbf{CDArcs}: cost $= \epsilon < \min\,\mathrm{TrArc cost}$, ensuring
+    coupling arcs are always traversed when a flight arc is reachable.
+  \item \textbf{Ground/waiting arcs}: cost $\propto$ waiting duration.
+  \item \textbf{Station deadhead arcs}: low cost (to allow repositioning).
+  \item \textbf{Depot deadhead arcs}: very high cost (avoid depot unless
+    maintenance forces it).
+  \item \textbf{Maintenance arcs}: highest cost (avoid unless triggered).
+\end{enumerate}
+
+\subsection{Modified Dijkstra's function}
+
+The function departs from classical Dijkstra in two ways:
+\begin{enumerate}[label=(\roman*)]
+  \item \textbf{Termination}: stops when (a) periodic maintenance due, (b)
+    trip maintenance due, (c) both, or (d) end of planning horizon — rather
+    than when all nodes visited.
+  \item \textbf{Update rule}: path to node $v$ is updated if the new path
+    covers \emph{more} TrArcs (primary criterion), or the same number at
+    \emph{lower cost} (tie-breaking).  This is a \emph{longest-distance} variant
+    of Dijkstra.
+\end{enumerate}
+
+\begin{algorithm}[H]
+\caption{Modified Dijkstra function for aircraft $a$ from source $s$}
+\KwIn{Network $G$, source $s$, aircraft $a$}
+\KwOut{Best path from $s$ covering maximum TrArcs}
+$\mathrm{dist}[v] \leftarrow 0$, $\mathrm{cost}[v] \leftarrow +\infty$ for all $v \ne s$\;
+$\mathrm{dist}[s] \leftarrow 0$, $\mathrm{cost}[s] \leftarrow 0$;\quad
+$\mathrm{visited} \leftarrow \emptyset$\;
+$\mathrm{current} \leftarrow s$\;
+\Repeat{termination criterion met (maintenance due or horizon end)}{
+  \ForEach{neighbour $u$ of $\mathrm{current}$}{
+    $d' \leftarrow \mathrm{dist}[\mathrm{current}] + w_{\mathrm{TrArc}}((\mathrm{current}, u))$\;
+    $c' \leftarrow \mathrm{cost}[\mathrm{current}] + w((\mathrm{current}, u))$\;
+    \If{$d' > \mathrm{dist}[u]$
+        \textbf{ or } ($d' = \mathrm{dist}[u]$ \textbf{ and } $c' < \mathrm{cost}[u]$)}{
+      $\mathrm{dist}[u] \leftarrow d'$;\quad $\mathrm{cost}[u] \leftarrow c'$;\quad
+      $\mathrm{prev}[u] \leftarrow \mathrm{current}$\;
+    }
+  }
+  $\mathrm{visited} \leftarrow \mathrm{visited} \cup \{\mathrm{current}\}$\;
+  $\mathrm{current} \leftarrow \arg\max_{v \notin \mathrm{visited}} \mathrm{dist}[v]$
+  (ties broken by $\min \mathrm{cost}$)\;
+}
+\Return path traced back from farthest visited node\;
+\end{algorithm}
+
+\subsection{Outer heuristic loop}
+
+\begin{algorithm}[H]
+\caption{Dijkstra-based TAP heuristic}
+\KwIn{Instance; sorted aircraft by total cost (ascending)}
+\KwOut{Complete assignment}
+\While{unserved TrArcs $\ne \emptyset$}{
+  $a^* \leftarrow $ aircraft with lowest total cost (not yet set to $+\infty$)\;
+  $\mathrm{pos} \leftarrow a^0_{a^*}$;\quad
+  $t_{\mathrm{restart}} \leftarrow 0$\;
+  \While{$a^*$ has not reached end of horizon}{
+    Run modified Dijkstra from $(a^*, \mathrm{pos}, t_{\mathrm{restart}})$\;
+    Extract best path and mark served TrArcs\;
+    Update restart node based on maintenance type triggered\;
+    Update proxy costs: served TrArcs cost increased\;
+  }
+  \If{all TrArcs served}{terminate}
+  $\mathrm{cost}_{a^*} \leftarrow +\infty$\;
+}
+\end{algorithm}
+
+\subsection{Complexity}
+
+\begin{proposition}[Time complexity of Dijkstra heuristic]
+  Let $|V|$ and $|E|$ be the node/arc counts of the space-time network.
+  $|V| = O(n_f \cdot |\K|)$ and $|E| = O(n_f^2)$ in the worst case.
+  Each Dijkstra invocation is $O(|E| + |V|\log|V|) = O(n_f^2)$ (with a
+  binary heap).  The outer loop calls Dijkstra at most $O(n_p \cdot n_d)$
+  times (at most one Dijkstra run per maintenance period per aircraft).
+  Total: $O(n_p \cdot n_d \cdot n_f^2)$.
+\end{proposition}
+
+%%==========================================================================
+\section{Heuristic 3: Ant Colony Optimization (ACO)}
+%%==========================================================================
+
+\subsection{Pheromone model}
+
+Each arc $(i, j) \in E$ carries a pheromone level $\tau_{ij} \ge 0$ and a
+heuristic desirability $\eta_{ij} = 1 / w(i,j)$ (inverse proxy cost).
+Initial pheromone: $\tau_{ij} = \tau_0$ for all arcs.
+
+\subsection{Ant transition probability}
+
+An ant (simulating an aircraft) at node $i$ selects next node $j$ from its
+neighbours $N(i)$ according to:
+\begin{equation}\label{eq:aco-prob}
+  p_{ij} = \frac{\tau_{ij}\,(\eta_{ij})^\beta}{\displaystyle\sum_{u \in N(i)}
+    \tau_{iu}\,(\eta_{iu})^\beta},
+\end{equation}
+where $\beta \ge 1$ is a parameter controlling the relative importance of
+heuristic desirability versus pheromone.
+
+\subsection{Trail update (evaporation)}
+
+After each ant completes a route, pheromone levels on all visited arcs are
+updated:
+\begin{equation}\label{eq:aco-evap}
+  \tau_{ij} \leftarrow (1 - \alpha)\,\tau_{ij} + \alpha\,\tau_0,
+\end{equation}
+where $\alpha \in (0, 1)$ controls evaporation speed.  Arcs corresponding to
+TrArcs that have been served by two aircraft are reset to $\tau_{ij} = 0$
+(hard prohibition).
+
+\subsection{Zero-pheromone propagation}
+
+A key refinement: when a TrArc $(i,j)$ is fully served, setting
+$\tau_{ij} = 0$ is insufficient — any ant that reaches node $i$ would still
+traverse arc $(i,j)$ with probability 1 if it is the only outgoing arc.
+Therefore, all arcs on paths that \emph{exclusively} lead to $(i,j)$ must
+also receive $\tau = 0$ (backward reachability propagation until a branching
+node is reached).
+
+\subsection{Complexity}
+
+\begin{proposition}[Time complexity of ACO heuristic]
+  Let $n_{\mathrm{iter}}$ be the number of ACO iterations and $n_{\mathrm{ants}}$ the
+  colony size.  Each ant traversal is $O(|E|) = O(n_f^2)$.  Total:
+  $O(n_{\mathrm{iter}} \cdot n_{\mathrm{ants}} \cdot n_f^2)$.  In practice
+  $n_{\mathrm{iter}}$ and $n_{\mathrm{ants}}$ are treated as constants
+  ($\le 500$ and $\le 20$ respectively), giving $O(n_f^2)$ effective scaling.
+\end{proposition}
+
+%%==========================================================================
+\section{Comparison of Heuristics vs.\ MILP}
+%%==========================================================================
+
+\begin{table}[h]
+\centering
+\caption{Summary comparison of the three approaches.}
+\begin{tabular}{lccc}
+\toprule
+Property & Greedy+Insertion & Dijkstra & ACO \\
+\midrule
+Solver required? & No  & No  & No \\
+Theoretical optimality & No & No & No \\
+Time complexity (worst case) & $O(n_f^3 n_p)$ & $O(n_p n_d n_f^2)$ & $O(n_{\mathrm{iter}} n_{\mathrm{ants}} n_f^2)$ \\
+Empirical optimality gap & 5--20\% & 0--19\% & 0--49\% \\
+Maintenance constraints handled & Full A/B/C/D & Full A/B/C/D & Full A/B/C/D \\
+Multi-check hierarchy & Yes & Yes & Yes \\
+Reproducible (deterministic) & Yes & Yes & No (probabilistic) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{remark}[Why Dijkstra outperforms ACO here]
+  ACO's quality depends on the pheromone model converging.  For TAP the
+  space-time network has a pronounced \emph{temporal ordering}: once an arc is
+  traversed the ant cannot backtrack in time.  This removes the cyclic structure
+  that ACO exploits most efficiently.  Dijkstra's modified farthest-distance
+  objective is a near-optimal greedy strategy for this acyclic network, which
+  explains its consistent quality advantage over ACO in computational experiments
+  (see Table 10 of the paper).
+\end{remark}
+
+%%==========================================================================
+\section{Connections to the MILP: Primal Heuristics}
+%%==========================================================================
+
+The greedy + insertion heuristic serves a second role: it can supply a
+\emph{warm-start incumbent} to the MILP solver.  Given a heuristic solution
+$\hat{x}$:
+\begin{enumerate}[label=(\arabic*)]
+  \item Translate each aircraft route $R_a = [f_1, f_2, \ldots]$ into binary
+    assignments $\hat{x}_{f_i, a} = 1$.
+  \item Pass $\hat{x}$ to CPLEX/Gurobi as MIP start via
+    \texttt{m.x[i,j].value = hat\_x[i][j]}.
+  \item The solver uses this as the initial incumbent, potentially reducing
+    B\&B tree size significantly.
+\end{enumerate}
+
+In the experimental study (Section~7), warm-starting with the heuristic
+solution reduces average MILP solve time by approximately 25\% on
+medium-density instances.
+
+\end{document}

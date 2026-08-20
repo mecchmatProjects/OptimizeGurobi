@@ -358,7 +358,7 @@ and event formulations on three independently generated feasible heavy
 instances with $h\in\{7,15,21\}$, ten aircraft, and density $0.5$. Every run
 reported here was optimal, and the objective values matched exactly. The
 figures use wall-clock time, active Pyomo variable count, and active constraint
-count from \texttt{results/tables/formulation\_heavy\_scaling\_corrected.csv}.
+count from \texttt{results/tables/formulation\_heavy\_scaling\_optimized.csv}.
 They therefore compare execution and model size only on a common, solved
 feasible domain.
 
@@ -399,11 +399,13 @@ feasible domain.
 \end{figure}
 
 The event formulation is therefore not claimed to be faster on this sample:
-its solve wall time is approximately 4.66, 1.65, and 1.70 times the legacy
-wall time at $h=7,15,21$, respectively. A limited decrease does appear in
-model-construction time at the two longer horizons: the event/legacy build-time
-ratios are 1.15, 0.86, and 0.65. Thus the event formulation reduces build time
-after $h=7$ in this sample, but does not reduce total solved execution time.
+its solve wall time is approximately 6.74, 1.68, and 1.43 times the legacy
+wall time at $h=7,15,21$, respectively, in this benchmark run. A decrease does
+appear in model-construction time at the two longer horizons: the event/legacy
+build-time ratios are 1.13, 0.84, and 0.69. Thus the event formulation reduces
+build time after $h=7$ in this sample, but does not reduce total solved
+execution time. These are single-run measurements and should be interpreted
+as indicative rather than universal performance constants.
 Its advantage is structural correctness and a smaller variable set on these
 instances, while the additional connection constraints create a real
 computational trade-off. This distinction is important: the event formulation

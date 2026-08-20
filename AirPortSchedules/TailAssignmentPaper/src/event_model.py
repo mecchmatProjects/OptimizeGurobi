@@ -6,6 +6,7 @@ maintenance events ``z[i,j,c]``. Absolute flight timestamps provide all
 calendar information.
 """
 
+import bisect
 import math
 import os
 
@@ -70,23 +71,49 @@ class EventMILPScheduler(MILP_Sheduler):
         self.maintenance_pairs = sorted(
             {(flight, aircraft) for flight, aircraft, _ in self.z_arcs}
         )
+        self.calendar_events = {}
+        for aircraft in self.aircraft_ids:
+            for check in self.CALENDAR_CHECKS:
+                events = [
+                    (self.flight_data[flight]["arrivalTime"], flight, check)
+                    for flight, candidate_aircraft, candidate_check in self.z_arcs
+                    if candidate_aircraft == aircraft
+                    and candidate_check == check
+                    and self._reachable(flight, aircraft)
+                ]
+                self.calendar_events[aircraft, check] = sorted(events)
 
     def _build_route_arcs(self):
         arcs = []
         for aircraft in self.aircraft_ids:
             flights = self._x_flights_for_aircraft(aircraft)
+            departures_by_origin = {}
+            for flight in flights:
+                origin = self.flight_data[flight]["origin"]
+                departures_by_origin.setdefault(origin, []).append(flight)
+            departure_index = {}
+            for origin, candidates in departures_by_origin.items():
+                candidates.sort(
+                    key=lambda flight: self.flight_data[flight]["departureTime"]
+                )
+                departure_index[origin] = (
+                    [self.flight_data[flight]["departureTime"] for flight in candidates],
+                    candidates,
+                )
             for first in flights:
                 first_data = self.flight_data[first]
-                for second in flights:
-                    if first == second:
-                        continue
-                    second_data = self.flight_data[second]
-                    if (
-                        first_data["destination"] == second_data["origin"]
-                        and second_data["departureTime"]
-                        >= first_data["arrivalTime"] + self.MIN_TURN
-                    ):
-                        arcs.append((first, second, aircraft))
+                departure_times, candidates = departure_index.get(
+                    first_data["destination"], ([], [])
+                )
+                start = bisect.bisect_left(
+                    departure_times,
+                    first_data["arrivalTime"] + self.MIN_TURN,
+                )
+                arcs.extend(
+                    (first, second, aircraft)
+                    for second in candidates[start:]
+                    if second != first
+                )
         return tuple(arcs)
 
     def _maintenance_end(self, flight, check):
@@ -354,12 +381,9 @@ class EventMILPScheduler(MILP_Sheduler):
                 if first_deadline <= self.horizon_end:
                     candidates = [
                         model.z[flight, aircraft, check]
-                        for flight, candidate_aircraft, check in self.z_arcs
-                        if candidate_aircraft == aircraft
-                        and check in self._qualifying_checks(requirement)
-                        and self.flight_data[flight]["arrivalTime"]
-                        <= first_deadline
-                        and self._reachable(flight, aircraft)
+                        for check in self._qualifying_checks(requirement)
+                        for arrival, flight, _ in self.calendar_events[aircraft, check]
+                        if arrival <= first_deadline
                     ]
                     if candidates:
                         model.c14_initial_calendar.add(sum(candidates) >= 1)
@@ -373,29 +397,24 @@ class EventMILPScheduler(MILP_Sheduler):
                         anchor_key = next(iter(self.z_arcs))
                         model.c14_initial_calendar.add(model.z[anchor_key] >= 2)
 
-                for flight, candidate_aircraft, selected_check in self.z_arcs:
-                    if (
-                        candidate_aircraft != aircraft
-                        or selected_check not in self._qualifying_checks(requirement)
-                        or not self._reachable(flight, aircraft)
-                    ):
-                        continue
-                    start = self.flight_data[flight]["arrivalTime"]
-                    if start + limit > self.horizon_end:
-                        continue
-                    following = [
-                        model.z[next_flight, aircraft, next_check]
-                        for next_flight, next_aircraft, next_check in self.z_arcs
-                        if next_aircraft == aircraft
-                        and next_check in self._qualifying_checks(requirement)
-                        and start
-                        < self.flight_data[next_flight]["arrivalTime"]
-                        <= start + limit
-                        and self._reachable(next_flight, aircraft)
-                    ]
-                    model.c14_calendar_chain.add(
-                        sum(following) >= model.z[flight, aircraft, selected_check]
-                    )
+                for selected_check in self._qualifying_checks(requirement):
+                    events = self.calendar_events[aircraft, selected_check]
+                    for start, flight, _ in events:
+                        if start + limit > self.horizon_end:
+                            continue
+                        following = []
+                        for next_check in self._qualifying_checks(requirement):
+                            next_events = self.calendar_events[aircraft, next_check]
+                            next_starts = [event[0] for event in next_events]
+                            first = bisect.bisect_right(next_starts, start)
+                            last = bisect.bisect_right(next_starts, start + limit)
+                            following.extend(
+                                model.z[next_flight, aircraft, next_check]
+                                for _, next_flight, _ in next_events[first:last]
+                            )
+                        model.c14_calendar_chain.add(
+                            sum(following) >= model.z[flight, aircraft, selected_check]
+                        )
 
     def print_report(self, out_path=None, summary=None):
         """Print a report with the same summary fields as the legacy model."""

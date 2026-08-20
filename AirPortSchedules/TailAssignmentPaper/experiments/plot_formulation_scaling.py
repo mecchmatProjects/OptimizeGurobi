@@ -6,10 +6,9 @@ an optimal objective; status is therefore shown in the legend and in the
 output summary rather than silently discarded.
 """
 
-from __future__ import annotations
-
 import argparse
 import csv
+import re
 from collections import defaultdict
 from pathlib import Path
 
@@ -31,10 +30,12 @@ def read_rows(path: Path) -> list[dict[str, object]]:
     with path.open(newline="", encoding="utf-8") as handle:
         rows = []
         for row in csv.DictReader(handle):
+            horizon_match = re.search(r"_h=(\d+)_", row["stem"])
+            horizon = int(horizon_match.group(1)) if horizon_match else int(row["H"])
             rows.append(
                 {
                     **row,
-                    "H": int(row["H"]),
+                    "H": horizon,
                     "vars": int(row["vars"]),
                     "constraints": int(row["constraints"]),
                     "wall_s": float(row["wall_s"]) if row["wall_s"] else None,
@@ -120,7 +121,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--input",
-        default="results/tables/formulation_horizon_scaling.csv",
+        default="results/tables/formulation_correctness_after_optimization.csv",
         help="Comparison CSV produced by compare_formulations.py.",
     )
     parser.add_argument(

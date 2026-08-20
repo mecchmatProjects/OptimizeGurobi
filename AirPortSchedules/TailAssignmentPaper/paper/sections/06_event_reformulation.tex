@@ -30,6 +30,14 @@ type $k$ after flight $i$ for aircraft $j$; there is no longer one variable
 per (flight, aircraft, \emph{day}, check) tuple, and no separate variable is
 needed for a multi-day check's later occupancy days.
 
+The implementation uses sparse indexes for these event domains. Successor
+flights are grouped by origin airport and sorted by departure time, so each
+connection search begins at the first timestamp satisfying the turn-time
+bound. Calendar-check events are likewise indexed by aircraft, check type,
+and arrival timestamp before C14 rows are generated. These indexes change
+construction time only; they preserve the same connection and deadline sets
+and therefore do not alter the formulation or its correctness argument.
+
 \subsection{Additional sets and parameters}
 
 Let $\CH=\{A,B\}$ (flight-hour triggered) and $\CT=\{C,D\}$ (calendar-time
@@ -312,6 +320,12 @@ accumulation constraint~\eqref{eq:c13_new_a}--\eqref{eq:c13_new_b}. Route
 information is now explicit through the sparse successor arcs $w_{i\ell j}$,
 which is what lets C12 propagate the flight-hour counter exactly along the
 aircraft's actual selected sequence.
+
+The implementation generates these arcs from pre-indexed airport, aircraft,
+and timestamp lists rather than repeated scans of all flight pairs. The same
+pre-indexing is used for reachable calendar-check events in C14. The indexes
+change construction time only: they preserve the connection and deadline sets,
+so the $w$ variables remain explicit and the correctness argument is unchanged.
 
 \subsection{Complexity and memory reduction}
 

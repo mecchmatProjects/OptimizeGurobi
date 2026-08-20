@@ -82,6 +82,10 @@ class EventMILPScheduler(MILP_Sheduler):
                     and self._reachable(flight, aircraft)
                 ]
                 self.calendar_events[aircraft, check] = sorted(events)
+        self.calendar_event_times = {
+            key: [event[0] for event in events]
+            for key, events in self.calendar_events.items()
+        }
 
     def _build_route_arcs(self):
         arcs = []
@@ -118,6 +122,18 @@ class EventMILPScheduler(MILP_Sheduler):
 
     def _maintenance_end(self, flight, check):
         return self.flight_data[flight]["arrivalTime"] + self.check_dur[check]
+
+    @staticmethod
+    def _initial_hours_big_m(initial, threshold, duration):
+        """Return a valid M for an inactive first-flight state link."""
+        return max(initial, threshold) + duration
+
+    @staticmethod
+    def _route_hours_big_m(threshold, duration):
+        """Return valid lower/upper M values for an inactive route arc."""
+        lower = threshold + duration
+        upper = max(0.0, threshold - duration)
+        return lower, upper
 
     def _qualifying_checks(self, requirement):
         return self.CHECK_HIERARCHY[requirement]
@@ -314,7 +330,9 @@ class EventMILPScheduler(MILP_Sheduler):
             second_duration = self.flight_data[second]["duration"]
             for check in self.HOUR_CHECKS:
                 threshold = self.check_hrs[check] * 60.0
-                route_big_m = threshold + second_duration
+                lower_big_m, upper_big_m = self._route_hours_big_m(
+                    threshold, second_duration
+                )
                 reset = (
                     model.q[first, aircraft, check]
                     if (first, aircraft) in self.maintenance_pairs
@@ -323,13 +341,13 @@ class EventMILPScheduler(MILP_Sheduler):
                 model.c12_hour_flow.add(
                     model.u[second, aircraft, check]
                     >= model.u[first, aircraft, check] + second_duration
-                    - route_big_m * (1 - model.y[first, second, aircraft])
+                    - lower_big_m * (1 - model.y[first, second, aircraft])
                     - threshold * reset
                 )
                 model.c12_hour_flow.add(
                     model.u[second, aircraft, check]
                     <= model.u[first, aircraft, check] + second_duration
-                    + route_big_m * (1 - model.y[first, second, aircraft])
+                    + upper_big_m * (1 - model.y[first, second, aircraft])
                     + threshold * reset
                 )
                 model.c12_hour_flow.add(
@@ -344,9 +362,11 @@ class EventMILPScheduler(MILP_Sheduler):
             for check in self.HOUR_CHECKS:
                 initial = self.init_check_hrs[check][aircraft] * 60.0
                 threshold = self.check_hrs[check] * 60.0
-                # Must dominate every value u can take when first=0 (up to the
-                # C11 cap `threshold`), not just this flight's own duration.
-                initial_big_m = threshold + duration
+                # Must relax the lower row even when the input history is
+                # already overdue; use the larger of history and threshold.
+                initial_big_m = self._initial_hours_big_m(
+                    initial, threshold, duration
+                )
                 model.c13_initial_hours.add(
                     model.u[flight, aircraft, check]
                     >= initial + duration
@@ -405,7 +425,7 @@ class EventMILPScheduler(MILP_Sheduler):
                         following = []
                         for next_check in self._qualifying_checks(requirement):
                             next_events = self.calendar_events[aircraft, next_check]
-                            next_starts = [event[0] for event in next_events]
+                            next_starts = self.calendar_event_times[aircraft, next_check]
                             first = bisect.bisect_right(next_starts, start)
                             last = bisect.bisect_right(next_starts, start + limit)
                             following.extend(

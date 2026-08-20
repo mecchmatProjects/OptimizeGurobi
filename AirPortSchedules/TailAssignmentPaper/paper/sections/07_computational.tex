@@ -358,9 +358,16 @@ and event formulations on three independently generated feasible heavy
 instances with $h\in\{7,15,21\}$, ten aircraft, and density $0.5$. Every run
 reported here was optimal, and the objective values matched exactly. The
 figures use wall-clock time, active Pyomo variable count, and active constraint
-count from \texttt{results/tables/formulation\_heavy\_scaling\_optimized.csv}.
+count from \texttt{results/tables/formulation\_heavy\_scaling\_after\_c14\_index\_cache.csv}.
 They therefore compare execution and model size only on a common, solved
 feasible domain.
+
+To reduce sensitivity to CPLEX and operating-system scheduling noise, the
+three heavy instances were also run three times per formulation. Raw repeats
+are stored as \texttt{results/tables/formulation\_heavy\_repeat\_1.csv} through
+\texttt{formulation\_heavy\_repeat\_3.csv}. The figures show one
+representative solved run; the timing interpretation below uses medians across
+the three repeats.
 
 \begin{figure}[t]
 \centering
@@ -398,11 +405,21 @@ feasible domain.
 \label{fig:event_relative_time}
 \end{figure}
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.86\linewidth]{figures/formulation_peak_rss_build.png}
+\caption{Peak resident set size of the Python process during model
+  construction on the heavy instances. Measurements use \texttt{psutil};
+  this is a build-memory measurement, not peak memory of the external MILP
+  solver process.}
+\label{fig:event_peak_rss}
+\end{figure}
+
 The event formulation is therefore not claimed to be faster on this sample:
-its solve wall time is approximately 6.74, 1.68, and 1.43 times the legacy
-wall time at $h=7,15,21$, respectively, in this benchmark run. A decrease does
+its median solve wall time is approximately 4.18, 1.68, and 1.46 times the
+legacy wall time at $h=7,15,21$, respectively. A decrease does
 appear in model-construction time at the two longer horizons: the event/legacy
-build-time ratios are 1.13, 0.84, and 0.69. Thus the event formulation reduces
+build-time ratios are 1.11, 0.85, and 0.66. Thus the event formulation reduces
 build time after $h=7$ in this sample, but does not reduce total solved
 execution time. These are single-run measurements and should be interpreted
 as indicative rather than universal performance constants.
@@ -411,6 +428,10 @@ instances, while the additional connection constraints create a real
 computational trade-off. This distinction is important: the event formulation
 improves the invalid maintenance-state logic, but it is not a universal
 runtime replacement for the day-indexed model.
+The build-only RSS measurements show the same pattern as build time: the event
+process uses more memory at $h=7$, is approximately equal at $h=15$, and uses
+less memory at $h=21$. Because solver-process memory is not measured here, no
+claim about total peak optimization memory is made.
 
 \paragraph{A second implementation defect, found and fixed the same way.}
 The same generator, run with \texttt{--maintenance-families ABCD}, initially

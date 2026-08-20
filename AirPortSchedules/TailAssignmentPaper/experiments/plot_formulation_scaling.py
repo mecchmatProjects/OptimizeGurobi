@@ -39,6 +39,11 @@ def read_rows(path: Path) -> list[dict[str, object]]:
                     "vars": int(row["vars"]),
                     "constraints": int(row["constraints"]),
                     "wall_s": float(row["wall_s"]) if row["wall_s"] else None,
+                    "peak_rss_mb": (
+                        float(row.get("peak_rss_mb", ""))
+                        if row.get("peak_rss_mb", "") not in {"", "unavailable"}
+                        else None
+                    ),
                     "status": row["status"],
                 }
             )
@@ -48,7 +53,8 @@ def read_rows(path: Path) -> list[dict[str, object]]:
 def plot_metric(rows, metric: str, ylabel: str, output: Path, title: str) -> None:
     grouped = defaultdict(list)
     for row in rows:
-        grouped[row["formulation"]].append(row)
+        if row.get(metric) is not None:
+            grouped[row["formulation"]].append(row)
 
     figure, axis = plt.subplots(figsize=(7.0, 4.4), constrained_layout=True)
     for formulation, label in FORMULATION_LABELS.items():
@@ -80,7 +86,9 @@ def plot_metric(rows, metric: str, ylabel: str, output: Path, title: str) -> Non
     axis.set_ylabel(ylabel)
     axis.set_title(title)
     axis.grid(True, which="both", alpha=0.25)
-    axis.legend(frameon=False)
+    handles, labels = axis.get_legend_handles_labels()
+    if handles:
+        axis.legend(frameon=False)
     if metric in {"vars", "constraints", "wall_s"}:
         axis.set_yscale("log")
     figure.savefig(output, dpi=220)
@@ -100,17 +108,64 @@ def plot_relative_factors(rows, output: Path) -> None:
         legacy = grouped[horizon]["legacy_endpoint_split"]
         event = grouped[horizon]["event_exact_state"]
         build_ratios.append(float(event["build_s"]) / float(legacy["build_s"]))
-        wall_ratios.append(float(event["wall_s"]) / float(legacy["wall_s"]))
+        if event["wall_s"] and legacy["wall_s"]:
+            wall_ratios.append(float(event["wall_s"]) / float(legacy["wall_s"]))
+        else:
+            wall_ratios.append(None)
 
     figure, axis = plt.subplots(figsize=(7.0, 4.4), constrained_layout=True)
     axis.axhline(1.0, color="#444444", linewidth=1, linestyle="--")
     axis.plot(horizons, build_ratios, marker="o", linewidth=2,
               color="#155e75", label="Build-time ratio")
-    axis.plot(horizons, wall_ratios, marker="s", linewidth=2,
-              color="#b45309", label="Solve wall-time ratio")
+    solve_points = [
+        (horizon, ratio)
+        for horizon, ratio in zip(horizons, wall_ratios)
+        if ratio is not None
+    ]
+    if solve_points:
+        axis.plot(
+            [point[0] for point in solve_points],
+            [point[1] for point in solve_points],
+            marker="s",
+            linewidth=2,
+            color="#b45309",
+            label="Solve wall-time ratio",
+        )
     axis.set_xlabel("Planning horizon $h$ (days)")
     axis.set_ylabel("Event-based / legacy time")
     axis.set_title("Relative event-based time (ratio 1 = equal)")
+    axis.grid(True, alpha=0.25)
+    axis.legend(frameon=False)
+    figure.savefig(output, dpi=220)
+    plt.close(figure)
+
+
+def plot_peak_rss(rows, output: Path) -> None:
+    """Plot build-process peak RSS when measurements are available."""
+    grouped = defaultdict(list)
+    for row in rows:
+        if row["peak_rss_mb"] is not None:
+            grouped[row["formulation"]].append(row)
+    if not grouped:
+        return
+
+    figure, axis = plt.subplots(figsize=(7.0, 4.4), constrained_layout=True)
+    for formulation, label in FORMULATION_LABELS.items():
+        series = sorted(grouped[formulation], key=lambda row: row["H"])
+        if not series:
+            continue
+        style = FORMULATION_STYLES[formulation]
+        axis.plot(
+            [row["H"] for row in series],
+            [row["peak_rss_mb"] for row in series],
+            linewidth=2,
+            label=label,
+            color=style["color"],
+            marker=style["marker"],
+        )
+    axis.set_xlabel("Planning horizon $h$ (days)")
+    axis.set_ylabel("Peak process RSS during build (MB)")
+    axis.set_title("Build-process peak memory")
     axis.grid(True, alpha=0.25)
     axis.legend(frameon=False)
     figure.savefig(output, dpi=220)
@@ -121,13 +176,18 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--input",
-        default="results/tables/formulation_correctness_after_optimization.csv",
+        default="results/tables/formulation_heavy_scaling_after_c14_index_cache.csv",
         help="Comparison CSV produced by compare_formulations.py.",
     )
     parser.add_argument(
         "--output-dir",
         default="paper/figures",
         help="Directory for generated PNG figures.",
+    )
+    parser.add_argument(
+        "--memory-input",
+        default=None,
+        help="Optional build-only CSV used only for the peak-RSS figure.",
     )
     args = parser.parse_args()
 
@@ -158,6 +218,10 @@ def main() -> None:
     plot_relative_factors(
         rows,
         output_dir / "formulation_relative_time_ratio.png",
+    )
+    plot_peak_rss(
+        read_rows(Path(args.memory_input)) if args.memory_input else rows,
+        output_dir / "formulation_peak_rss_build.png",
     )
     print(f"Wrote plots to {output_dir.resolve()}")
 

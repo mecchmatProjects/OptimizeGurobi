@@ -245,15 +245,17 @@ exceeds the threshold:
 \end{equation}
 
 \paragraph{C12 -- Flight-hour accumulation and reset.}
-For each route connection, let $R_{\ell k}=T_k+p_\ell$ deactivate
-propagation when the successor arc is not selected; the reset term needs
-only the state bound $T_k$:
+For each route connection, the implementation uses separate valid inactive-arc
+bounds. The lower propagation row uses
+$M^-_{\ell k}=T_k+p_\ell$, while the upper propagation row uses the tighter
+$M^+_{\ell k}=\max\{0,T_k-p_\ell\}$ because C11 already bounds the successor
+state by $T_k$. The reset term needs only the state bound $T_k$:
 \begin{align}
   u_{\ell jk}
-  &\geq u_{ijk}+p_\ell-R_{\ell k}(1-w_{i\ell j})-T_k\rho_{ijk},
+  &\geq u_{ijk}+p_\ell-M^-_{\ell k}(1-w_{i\ell j})-T_k\rho_{ijk},
   \notag\\
   u_{\ell jk}
-  &\leq u_{ijk}+p_\ell+R_{\ell k}(1-w_{i\ell j})+T_k\rho_{ijk},
+  &\leq u_{ijk}+p_\ell+M^+_{\ell k}(1-w_{i\ell j})+T_k\rho_{ijk},
   \notag\\
   u_{\ell jk}
   &\leq p_\ell+T_k\bigl(2-w_{i\ell j}-\rho_{ijk}\bigr),
@@ -284,6 +286,14 @@ history, generalising \eqref{eq:c13b}:
   \qquad \forall i\in\F,\ j\in\Pc,\ k\in\CH.
   \tag{C13}\label{eq:event_c13}
 \end{align}
+The inactive-source relaxation must remain valid even when the supplied
+pre-horizon history is already overdue. Accordingly, the implementation uses
+$M^{0}_{ijk}=\max\{\Phi_{jk},T_k\}+p_i$ rather than $T_k+p_i$ alone. This
+bound is unchanged for admissible histories ($\Phi_{jk}\leq T_k$), but avoids
+an artificial restriction when an instance explicitly records overdue initial
+state; such a state is reported as a data precondition issue by the
+independent validator.
+
 C11--C13 jointly replace the cumulative-flight-hour family
 \eqref{eq:c13_paper}--\eqref{eq:c13b} in full, not only its corrected form.
 
@@ -323,7 +333,7 @@ aircraft's actual selected sequence.
 
 The implementation generates these arcs from pre-indexed airport, aircraft,
 and timestamp lists rather than repeated scans of all flight pairs. The same
-pre-indexing is used for reachable calendar-check events in C14. The indexes
+ pre-indexing is used for reachable calendar-check events in C14. Timestamp arrays used by the C14 deadline windows are cached and reused. The indexes
 change construction time only: they preserve the connection and deadline sets,
 so the $w$ variables remain explicit and the correctness argument is unchanged.
 

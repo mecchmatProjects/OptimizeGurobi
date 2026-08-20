@@ -16,6 +16,7 @@ matplotlib>=3.7
 
 # Utilities
 tqdm>=4.65           # progress bars for batch runs
+psutil>=5.9          # optional peak-RSS instrumentation for benchmarks
 
 # ---- Optional: install the solver separately ----
 # CPLEX (IBM): download from IBM site, then:

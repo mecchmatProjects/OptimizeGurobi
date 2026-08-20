@@ -19,6 +19,7 @@ Run all matching instances::
 
 import argparse
 import csv
+import importlib
 import math
 import re
 import sys
@@ -53,6 +54,7 @@ EXTRA_COLUMNS = [
     "wall_s",
     "solver",
     "time_limit_s",
+    "peak_rss_mb",
     "error",
 ]
 
@@ -96,6 +98,17 @@ def model_size(model):
     return variables, constraints
 
 
+def peak_rss_mb(enabled):
+    """Return current process RSS in MB when optional psutil is available."""
+    if not enabled:
+        return ""
+    try:
+        psutil = importlib.import_module("psutil")
+    except ImportError:
+        return "unavailable"
+    return round(psutil.Process().memory_info().rss / (1024 * 1024), 3)
+
+
 def build_scheduler(formulation, instance_path, strict_legacy_state=False):
     """Construct one formulation and return its scheduler and build time."""
     from src.event_model import EventMILPScheduler
@@ -126,6 +139,7 @@ def benchmark_one(
     tee,
     executable=None,
     strict_legacy_state=False,
+    measure_memory=False,
 ):
     """Build and optionally solve one formulation, returning one CSV row."""
     row = instance_metadata(instance_path)
@@ -134,6 +148,7 @@ def benchmark_one(
         "routing_scope": ROUTING_SCOPES[formulation],
         "solver": solver_name,
         "time_limit_s": time_limit,
+        "peak_rss_mb": peak_rss_mb(measure_memory),
         "nodes_max": "",
         "gap_pct": "",
         "cpu_s": "",
@@ -152,6 +167,7 @@ def benchmark_one(
             "build_s": round(build_seconds, 6),
             "vars": variables,
             "constraints": constraints,
+            "peak_rss_mb": peak_rss_mb(measure_memory),
         })
         if build_only:
             return row
@@ -284,6 +300,11 @@ def main():
         action="store_true",
         help="Use exact-state-compatible C13/C13b rows for the legacy model.",
     )
+    parser.add_argument(
+        "--measure-memory",
+        action="store_true",
+        help="Record process RSS when optional psutil is installed.",
+    )
     args = parser.parse_args()
 
     instances = select_instances(args)
@@ -310,6 +331,7 @@ def main():
                 args.tee,
                 args.executable,
                 args.strict_legacy_state,
+                args.measure_memory,
             )
         )
 

@@ -53,6 +53,21 @@ class C13FormulationTests(unittest.TestCase):
         # Split builds two rows per window; paper builds one.
         self.assertEqual(len(list(paper.c13)) * 2, len(list(split.c13)))
 
+    def test_strict_hour_state_removes_endpoint_relaxation(self):
+        scheduler = MILP_Sheduler(str(SOURCE), enabled_checks=["A"])
+        strict = scheduler.build_model(
+            allow_ferry=False,
+            use_overlap=False,
+            use_strict_hour_state=True,
+        )
+
+        c13_text = "\n".join(str(row.expr) for row in strict.c13.values())
+        c13b_text = "\n".join(str(row.expr) for row in strict.c13b.values())
+        self.assertIn("mega", c13_text)
+        self.assertIn("mega", c13b_text)
+        self.assertTrue(list(strict.c13))
+        self.assertTrue(list(strict.c13b))
+
 
 if __name__ == "__main__":
     unittest.main()

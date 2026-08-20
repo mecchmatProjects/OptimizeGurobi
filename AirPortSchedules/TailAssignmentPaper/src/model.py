@@ -636,7 +636,8 @@ class MILP_Sheduler:
                     allow_ferry=True,
                     use_maintenance=True,
                     use_paper_c13=False,
-                    use_tight_c13_m=False):
+                    use_tight_c13_m=False,
+                    use_strict_hour_state=False):
         """Construct the ConcreteModel.  Call before solve().
 
         Parameters
@@ -667,10 +668,16 @@ class MILP_Sheduler:
             flyable time between the two boundary days, minus the
             threshold). Tightens the LP relaxation without changing the
             integer-feasible region or either C13 correctness lemma.
+        use_strict_hour_state : bool
+            When *True*, use the exact-state-compatible C13/C13b relaxation:
+            endpoint checks do not erase flights that occur before the check.
+            The default remains the historical endpoint-split formulation for
+            reproducibility of the legacy results.
         """
         m = ConcreteModel()
         self.model = m
         self._add_sets_and_variables(m)
+        self._add_maintenance_start_links(m)
         self._add_objective(m)
         self._add_c1_coverage(m)
         if allow_ferry:
@@ -692,9 +699,12 @@ class MILP_Sheduler:
             self._add_c12b_initial_days(m)   # enforce first C/D check within remaining-days window
             self._add_c12_day_spacing_days(m)
             if use_existing_hrs:
-                self._add_c13b_existing_hrs(m)
+                self._add_c13b_existing_hrs(
+                    m, use_strict_state=use_strict_hour_state
+                )
             self._add_c13_hr_accumulation(m, use_paper_c13=use_paper_c13,
-                                          use_tight_m=use_tight_c13_m)
+                                          use_tight_m=use_tight_c13_m,
+                                          use_strict_state=use_strict_hour_state)
             self._add_c15_no_flight_during_maint(m)
         if use_sanity:
             self._add_sanity(m)
@@ -739,16 +749,46 @@ class MILP_Sheduler:
         m.y = Var(m.P, m.D, m.C, domain=Binary, initialize=0)
         # mega_check[j,d,c] = 1 if aircraft j has a check of type ≥c on day d (hierarchy)
         m.mega = Var(m.P, m.D, m.C, domain=Binary, initialize=0)
+        m.maintenance_start = Var(m.P, m.D, m.C, domain=Binary, initialize=0)
+
+    def _add_maintenance_start_links(self, m):
+        """Identify the first occupied day of each maintenance run."""
+        m.c_maintenance_start = ConstraintList()
+        days = sorted(m.D)
+        for j in m.P:
+            for c in m.C:
+                for index, day in enumerate(days):
+                    previous = m.y[j, days[index - 1], c] if index else 0
+                    start = m.maintenance_start[j, day, c]
+                    current = m.y[j, day, c]
+                    m.c_maintenance_start.add(start >= current - previous)
+                    m.c_maintenance_start.add(start <= current)
+                    if index:
+                        m.c_maintenance_start.add(start <= 1 - previous)
 
     def _add_objective(self, m):
-        """Minimize flight assignment cost + premature maintenance penalty."""
-        maint_cost = 100   # flat penalty per maintenance event (can be extended)
+        """Minimize flight assignment cost plus maintenance-event cost.
+
+        A multi-day check is represented by consecutive ``y`` occupancy
+        variables in the day-indexed model. Charge only the first occupied day
+        of each run, using the same duration-based event cost as the event
+        formulation; otherwise a horizon-truncated check would be
+        under-priced.
+        """
+        maint_cost = 100
+        maintenance_cost = sum(
+            maint_cost
+            * max(1, math.ceil(self.check_dur[c] / self.DAY_SHIFT))
+            * m.maintenance_start[j, d, c]
+            for j in m.P
+            for d in m.D
+            for c in m.C
+        )
         m.obj = Objective(
             expr=(
                 sum(self._flight_cost(i, j) * m.x[i, j]
                     for i, j in m.X)
-                + sum(maint_cost * m.y[j, d, c]
-                      for j in m.P for d in m.D for c in m.C)
+                + maintenance_cost
             ),
             sense=minimize,
         )
@@ -1169,7 +1209,13 @@ class MILP_Sheduler:
         threshold = self.check_hrs[c] * 60.0
         return max(0.0, upper_bound - threshold)
 
-    def _add_c13_hr_accumulation(self, m, use_paper_c13=False, use_tight_m=False):
+    def _add_c13_hr_accumulation(
+        self,
+        m,
+        use_paper_c13=False,
+        use_tight_m=False,
+        use_strict_state=False,
+    ):
         m.c13 = ConstraintList()
         days  = sorted(self.days)
         n     = len(days)
@@ -1226,12 +1272,20 @@ class MILP_Sheduler:
                         )
          
 
+                        if use_strict_state:
+                            # A check at d or d_ occurs after the flights
+                            # counted in (d, d_]. Only an intermediate check
+                            # can reset this window before its end.
+                            m.c13.add(
+                                t_sum <= hr_limit * 60 + big_m * y_mid
+                            )
+                            continue
     # ------------------------------------------------------------------
     # Constraint C13b – existing flight hours at start of horizon
     # The aircraft's accumulated hours since last check must be respected.
     # ------------------------------------------------------------------
 
-    def _add_c13b_existing_hrs(self, m):
+    def _add_c13b_existing_hrs(self, m, use_strict_state=False):
         """C13b: account for hours accumulated since last check BEFORE the
         planning horizon starts.  Only applies to A/B (flight-hour types);
         C/D are calendar-day types handled by C12."""
@@ -1256,11 +1310,10 @@ class MILP_Sheduler:
                     y_mid = sum(m.mega[j, days[r], c] for r in range(ei))
                     # Relax when any check occurs in [day_1 .. d_] (y_mid covers
                     # days[0]..days[ei-1]; mega[d_] covers the boundary itself).
-                    m.c13b.add(
-                        t_sum <= (hr_limit - prior_hrs) * 60
-                                 + self.M_BIG * y_mid
-                                 + self.M_BIG * m.mega[j, d_, c]
-                    )
+                    rhs = (hr_limit - prior_hrs) * 60 + self.M_BIG * y_mid
+                    if not use_strict_state:
+                        rhs += self.M_BIG * m.mega[j, d_, c]
+                    m.c13b.add(t_sum <= rhs)
 
     # ------------------------------------------------------------------
     # Constraint C15 – no flight during an active maintenance check

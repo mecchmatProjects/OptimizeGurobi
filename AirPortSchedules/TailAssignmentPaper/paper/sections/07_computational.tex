@@ -6,8 +6,8 @@
 \subsection{Implementation and environment}
 
 All models are implemented in Python~3.10+ using the Pyomo optimisation
-framework~\citep{pyomo2023}. Earlier snapshot runs (Tables~\ref{tab:repro5}--\ref{tab:repro11},
-\ref{tab:boundary_suite}--\ref{tab:dense_heavy_suite}) were solved with IBM ILOG
+framework~\citep{pyomo2023}. The compact benchmark in Table~\ref{tab:repro5}
+and the matched diagnostic in Table~\ref{tab:matched_stress} were solved with IBM ILOG
 CPLEX~\citep{cplex2023} through Pyomo's \texttt{cplex} shell backend. For the
 new Constraint~(13) verification and per-check-type hierarchy study
 (\Cref{subsec:comp_c13,subsec:hierarchy_results}) results are cross-validated
@@ -26,15 +26,11 @@ The code, instance generator, and experiment runner are publicly available at
 the companion repository.
 
 \paragraph{Comparison protocol.}
-The reported legacy-MILP snapshot tables (Tables~\ref{tab:repro5}--\ref{tab:dense_heavy_suite})
-use the same JSON instances and assignment-cost data and only compare
-solutions with equal flight coverage; they were produced before the
-endpoint-split flaw was isolated and do not by themselves certify
-cumulative-hour correctness. \Cref{subsec:comp_c13,subsec:hierarchy_results}
-supersede these snapshots for the Constraint~(13) question: they evaluate the
-real built constraints and independently replay every solved schedule's
-maintenance counters, rather than trusting the solver's own feasibility
-report.
+The compact benchmark and the matched diagnostic use the same JSON instances
+and assignment-cost data for both formulations where a comparison is claimed.
+They do not by themselves certify cumulative-hour correctness;
+\Cref{subsec:comp_c13,subsec:hierarchy_results} evaluates the real built
+constraints and independently replays maintenance counters.
 
 \subsection{Instance generation}
 
@@ -46,17 +42,14 @@ flight-count scaling parameter in this repository, not the fleet-to-minimum-
 fleet ratio used by \citet{khaled2018compact}. Unless a table states otherwise,
 the quick snapshots contain one generated instance per parameter cell.
 
-\subsection{Validation snapshots for Tables~5 and~6 configurations}
+\subsection{Reference benchmark}
 
-Tables~\ref{tab:repro5} and~\ref{tab:repro6} record current solver snapshots
-for configurations named after Tables~5 and~6 of \citet{khaled2018compact}.
-Because the generator and sample size differ, these are implementation checks,
-not numerical reproductions of the published tables.
-
-For a compact numerical anchor, Table~\ref{tab:repro5} reports one actual
-exact solve on the small \texttt{ABCD\_capacity\_bottleneck\_test} instance;
-the remaining reproduction tables are left in place for the full paper-style
-comparison.
+For a compact numerical anchor, Table~\ref{tab:repro5} reports one exact solve
+on the small \texttt{ABCD\_capacity\_bottleneck\_test} instance. The former
+random snapshots that reproduced the configurations of Tables~6, 10, and~11
+of \citet{khaled2018compact} are omitted: their
+infeasible cells were neither matched across formulations nor informative for
+the correctness claim.
 
 \begin{table}[t]
 \centering\small
@@ -68,66 +61,6 @@ comparison.
 $\text{Status}$ & CPU (s) & Wall (s) & Obj \\
 \midrule
 optimal & 0.09 & 0.20 & 8\,300 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{table}[t]
-\centering\small
-\caption{Quick reproduction snapshot for Table~6 settings ($\delta=1.0$, one instance per cell).
-  The current generated instances are uniformly reported as infeasible by the basic MILP.}
-\label{tab:repro6}
-\begin{tabular}{r r l r}
-\toprule
-$|P|$ & $|H|$ & Status & Wall (s) \\
-\midrule
-10 & 7  & infeasible & 1.81 \\
-10 & 15 & infeasible & 2.32 \\
-20 & 7  & infeasible & 2.64 \\
-20 & 15 & infeasible & 5.21 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\subsection{Validation snapshots for Tables~10 and~11 configurations}
-
-Tables~\ref{tab:repro10} and~\ref{tab:repro11} record the corresponding
-maintenance-grid attempts. The implementation used for these rows is the
-legacy endpoint-split model described in \Cref{subsec:c13_corrected}; it is not
-the exact cumulative-state formulation of \Cref{subsec:c13_state}.
-
-\begin{table}[t]
-\centering\small
-\caption{Quick reproduction snapshot for Table~10 settings (one instance per cell).
-  Both maintenance variants are currently infeasible on all reported quick-run cells.}
-\label{tab:repro10}
-\begin{tabular}{r r l l}
-\toprule
-$|P|$ & $|H|$ & $d_{\max}=4, T_{\max}=64$ & $d_{\max}=5, T_{\max}=72$ \\
-\midrule
-10 & 15 & infeasible & infeasible \\
-10 & 21 & infeasible & infeasible \\
-20 & 15 & infeasible & infeasible \\
-20 & 21 & infeasible & infeasible \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{table}[t]
-\centering\small
-\caption{Quick reproduction snapshot for Table~11 settings ($\nu=14$, $d_{\max}=4$).
-  The experiment labels are retained from the run configuration, but the
-  legacy executable does not expose distinct paper-C13 and endpoint-split
-  builders; the identical rows therefore do not compare formulations.}
-\label{tab:repro11}
-\begin{tabular}{r r l l}
-\toprule
-$|P|$ & $|H|$ & paper-C13 label & split-C13 label \\
-\midrule
-10 & 15 & infeasible & infeasible \\
-10 & 21 & infeasible & infeasible \\
-20 & 15 & infeasible & infeasible \\
-20 & 21 & infeasible & infeasible \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -181,7 +114,7 @@ evaluating the actual Pyomo constraint objects built by
 \texttt{src/model.py}, with its real $M_{\text{BIG}}=9\,999\,999$ constant,
 rather than a hand re-derivation of the inequalities.
 
-\subsection{Full hierarchy results and per-check-type effectiveness}
+\subsection{Legacy hierarchy diagnostics and per-check-type effectiveness}
 \label{subsec:hierarchy_results}
 
 \Cref{tab:hierarchy} reports \texttt{experiments/hierarchy\_effectiveness.py}:
@@ -203,9 +136,17 @@ checks (C, D) are checked with the analogous day-gap recursion, both
 implemented from scratch in the validator, not reused from the solver's own
 constraints.
 
+This table evaluates the legacy hierarchy implementation only. The event-based
+model is not included because this experiment does not solve and replay a
+matched event-based counterpart on the same hierarchy instances. Adding an
+event column without that matched evidence would create a misleading
+comparison; cross-formulation evidence is reported separately in
+Table~\ref{tab:event_feasible_solved}.
+
 \begin{table}[t]
 \centering\small
-\caption{Per-check-type effectiveness on \texttt{ABCD\_near\_threshold\_test}
+\caption{Legacy-model per-check-type effectiveness on
+  \texttt{ABCD\_near\_threshold\_test}
   (single check active) and the full hierarchy on
   \texttt{ABCD\_check\_hierarchy\_test}
   (\texttt{results/tables/hierarchy\_effectiveness.csv}). ``Genuine
@@ -285,8 +226,9 @@ a build-time comparison.
 
 \paragraph{A modelling-convention gap on the existing ABCD suite.}
 On the existing \texttt{ABCD\_*} boundary instances
-(\Cref{tab:boundary_suite} below), the event-based model reports
-\texttt{infeasible} where the legacy model reports \texttt{optimal}. This is
+(for example \texttt{ABCD\_capacity\_bottleneck\_test}), the event-based
+model reports \texttt{infeasible} where the legacy model reports
+\texttt{optimal}. This is
 not a solver or implementation defect: these instances' own design notes
 (e.g. \texttt{ABCD\_capacity\_bottleneck\_test.json}) state that an aircraft
 is intended to fly \emph{past} its hour threshold and only be checked that
@@ -319,19 +261,20 @@ $h\in\{7,15,21,30\}$ from the density-1.0 \texttt{DataCplex} grid.
 \toprule
 $h$ & Legacy vars & Event vars & Vars ratio & Legacy cons. & Event cons. & Cons.\ ratio \\
 \midrule
-7  & 10\,480  & 7\,866   & 0.75 & 14\,899  & 24\,874     & 1.67 \\
-15 & 32\,760  & 23\,582  & 0.72 & 41\,047  & 91\,598     & 2.23 \\
-21 & 60\,620  & 39\,398  & 0.65 & 75\,794  & 167\,211    & 2.21 \\
-30 & 174\,190 & 210\,161 & 1.21 & 429\,020 & 1\,209\,411 & 2.82 \\
+7  & 10\,800  & 7\,866   & 0.73 & 15\,819  & 24\,874     & 1.57 \\
+15 & 33\,400  & 23\,582  & 0.71 & 42\,927  & 91\,598     & 2.13 \\
+21 & 61\,500  & 39\,398  & 0.64 & 78\,394  & 167\,211    & 2.13 \\
+30 & 175\,430 & 210\,161 & 1.20 & 432\,700 & 1\,209\,411 & 2.80 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 The variable-count advantage predicted by
-\Cref{tab:event_variable_counts} holds at $h=7,15,21$ (28--35\% fewer
-variables) but reverses at $h=30$, where the event model uses 21\% \emph{more}
+\Cref{tab:event_variable_counts} holds at $h=7,15,21$ (27--36\% fewer
+variables) but reverses at $h=30$, where the event model uses 20\% \emph{more}
 variables. Constraint count is larger for the event-based model at every
-horizon tested, by a factor of 1.7--2.8, and this factor grows with $h$. The
+horizon tested, by a factor of 1.6--2.8, and this factor broadly increases
+with $h$. The
 reason is exactly the caveat already noted in
 \Cref{sec:event_reformulation}: constraint~\eqref{eq:event_c12} is built over
 every feasible connection $(i,\ell)\in\Conn$, and $|\Conn|$ grows
@@ -343,27 +286,52 @@ advantage is real but bounded, and its constraint count is measurably larger
 on this benchmark family, a genuine trade-off rather than a strict
 improvement.
 
+An exploratory density-0.5 horizon stress run is retained in the companion
+repository as \texttt{results/tables/formulation\_horizon\_scaling.csv}, but
+is excluded from runtime claims because its infeasible and time-limited rows
+mix different feasible domains. The corrected independent replay also showed
+that the legacy endpoint-split optimum on the h=10 exploratory instance can
+violate the A/B flight-hour state limits. The controlled runtime comparison
+below therefore uses only feasible heavy instances for which both formulations
+are optimal and objective-matched.
+
+The matched stress comparison also uncovered and corrected an objective-model
+defect in the legacy implementation. The day-indexed model represents a
+multi-day check by consecutive occupancy variables and previously charged a
+flat penalty per occupied day. When a check extended beyond the planning
+horizon, this underpriced the event relative to the event formulation, which
+charges once per check using its full duration. The legacy model now includes
+an explicit binary maintenance-start variable and charges the same
+duration-based event cost as the event formulation. After this correction, the
+$h=21$ heavy case has objective $881\,263$ in both formulations; the corrected
+matched result is recorded in
+\texttt{results/tables/formulation\_h21\_objective\_aligned\_v2.csv}.
+
 \paragraph{A guaranteed-feasible instance generator.}
 Both formulations are exact, so any solved-objective comparison between them
 is only informative on instances that are actually feasible; the random
-\texttt{DataCplex} generator produces mostly-infeasible cells at higher
-densities (\Cref{tab:repro6,tab:repro10,tab:repro11}), which is uninformative
-noise for this specific comparison rather than a property of either
-formulation. \texttt{src/generate\_feasible\_instances.py} instead builds
+\texttt{DataCplex} generator can produce infeasible cells at higher densities,
+which is uninformative noise for this specific comparison rather than a
+property of either formulation. \texttt{src/generate\_feasible\_instances.py} instead builds
 each aircraft an explicit hub-and-spoke rotation (spoke $\to$ maintenance
 airport $\to$ spoke) with maintenance duration and turn-time slack built
 into every leg, and verifies every seeded rotation against an independent
 greedy timeline simulator before writing the instance, so the generated
 schedule is feasible by construction rather than by chance. Re-running the
 same $h\in\{7,15,21,30\}$, 10-aircraft, density-1.0 comparison on four such
-instances, both formulations solve to a matching optimum on every instance:
+instances, both formulations solve to a matching optimum on every instance.
+The generator caps flights per rotation, so the $h\in\{15,21,30\}$ instances
+coincide in flight count (and hence in model size) and differ only by random
+seed; they test feasibility at equal size rather than a growing horizon:
 
 \begin{table}[t]
 \centering\small
 \caption{Solved comparison on guaranteed-feasible instances
   (\texttt{results/tables/formulation\_feasible\_scaling.csv}), full CPLEX
   for AMPL, 180\,s time limit. Both formulations reach the identical
-  objective on every instance.}
+  objective on every instance. The $h\in\{15,21,30\}$ rows share model size
+  because the feasible generator caps flights per rotation; they differ only
+  by random seed.}
 \label{tab:event_feasible_solved}
 \begin{tabular}{lrrrrrr}
 \toprule
@@ -383,6 +351,64 @@ feasible instances, two independently coded exact formulations -- built from
 different variable sets, different constraint families, and (after the fix
 above) different big-$M$ derivations -- agree exactly on the optimal cost
 every time.
+
+\paragraph{Runtime and model-size scaling.}
+To complement the objective-parity tables, we measured the corrected legacy
+and event formulations on three independently generated feasible heavy
+instances with $h\in\{7,15,21\}$, ten aircraft, and density $0.5$. Every run
+reported here was optimal, and the objective values matched exactly. The
+figures use wall-clock time, active Pyomo variable count, and active constraint
+count from \texttt{results/tables/formulation\_heavy\_scaling\_corrected.csv}.
+They therefore compare execution and model size only on a common, solved
+feasible domain.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.86\linewidth]{figures/formulation_runtime_vs_horizon.png}
+\caption{Wall-clock solve time versus horizon on objective-matched feasible
+  heavy instances. The event formulation is slower on this sample, although
+  both formulations return the same optimum.}
+\label{fig:event_runtime_scaling}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.86\linewidth]{figures/formulation_variables_vs_horizon.png}
+\caption{Active variable count versus horizon on the same feasible heavy
+  instances. The event formulation uses fewer variables in these three cases.}
+\label{fig:event_variables_scaling}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.86\linewidth]{figures/formulation_constraints_vs_horizon.png}
+\caption{Active constraint count versus horizon on the same feasible heavy
+  instances. The event formulation uses more constraints because its flow
+  equations are generated over feasible event connections.}
+\label{fig:event_constraints_scaling}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.86\linewidth]{figures/formulation_relative_time_ratio.png}
+\caption{Relative event-based time on the objective-matched heavy instances.
+  A ratio below one means the event formulation is faster; a ratio above one
+  means it is slower. Build time can decrease at longer horizons, but solved
+  wall time remains above the legacy value in every tested case.}
+\label{fig:event_relative_time}
+\end{figure}
+
+The event formulation is therefore not claimed to be faster on this sample:
+its solve wall time is approximately 4.66, 1.65, and 1.70 times the legacy
+wall time at $h=7,15,21$, respectively. A limited decrease does appear in
+model-construction time at the two longer horizons: the event/legacy build-time
+ratios are 1.15, 0.86, and 0.65. Thus the event formulation reduces build time
+after $h=7$ in this sample, but does not reduce total solved execution time.
+Its advantage is structural correctness and a smaller variable set on these
+instances, while the additional connection constraints create a real
+computational trade-off. This distinction is important: the event formulation
+improves the invalid maintenance-state logic, but it is not a universal
+runtime replacement for the day-indexed model.
 
 \paragraph{A second implementation defect, found and fixed the same way.}
 The same generator, run with \texttt{--maintenance-families ABCD}, initially
@@ -419,96 +445,56 @@ generic technique (LP relaxation plus single-block deactivation) used
 earlier for Constraint~(13), applied here to a different constraint family
 with a different, unrelated root cause.
 
-\subsection{Boundary suite}
+\subsection{Correctness comparison of the maintenance formulations}
 
-Table~\ref{tab:boundary_suite} collects the boundary instances used to
-exercise the corrected model at its key structural edges: the assignment
-bottleneck, the check hierarchy, near-threshold maintenance, and mixed
-check-type interaction. The legacy endpoint-split MILP is optimal for the
-first three cases and infeasible for the mixed
-\texttt{ABCD\_two\_b\_one\_c\_test} instance under CPLEX; this predates the
-HiGHS-based independent validation of \Cref{subsec:hierarchy_results} above,
-which instead uses \texttt{ABCD\_check\_hierarchy\_test} and
-\texttt{ABCD\_near\_threshold\_test} to isolate each check type.
-
-\begin{table}[t]
-\centering\small
-\caption{Boundary suite used to validate that the legacy endpoint-split MILP
-  runs on the key model edges.}
-\label{tab:boundary_suite}
-\begin{tabular}{l l l}
-\toprule
-Instance & Boundary & MILP (legacy split) \\
-\midrule
-\texttt{ABCD\_capacity\_bottleneck\_test} & assignment bottleneck & optimal \\
-\texttt{ABCD\_check\_hierarchy\_test} & hierarchy & optimal \\
-\texttt{ABCD\_near\_threshold\_test} & hour threshold & optimal \\
-\texttt{ABCD\_two\_b\_one\_c\_test} & mixed maintenance & infeasible \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\subsection{Heavy-instance stress test}
-
-The generated instances in \texttt{data/instances/} also include heavier cases
-with more flights and a longer planning horizon.  These runs are useful for
-stress-testing the implementation under a realistic exact-solver backend.
+The central advantage of the event-based formulation is correctness of the
+maintenance state, not feasibility on historical instances designed around a
+more permissive convention. Table~\ref{tab:matched_stress} therefore compares
+the formulations on two adversarial Constraint~(13) scenarios and on three
+independently generated feasible heavy instances. The first two rows evaluate
+the actual production constraints and the exact-state replay on the same
+1\,200-minute violation; the last three rows test whether the stricter event
+state changes the optimal assignment when a feasible schedule exists.
 
 \begin{table}[t]
-\centering\small
-\caption{Heavy-instance stress test on generated \texttt{DataCplex} cases
-  with density $\delta=0.5$ and $|P|=10$. With the full CPLEX Studio
-  executable, the legacy MILP solves all three reported instances to
-  formulation-level optimality.}
-\label{tab:heavy_suite}
-\begin{tabular}{l r}
+\centering\scriptsize
+\caption{Correctness and objective-parity comparison of the maintenance
+  formulations. The first two rows are the adversarial C13 scenarios from
+  Table~\ref{tab:c13_loophole}; ``accepts'' means the built model constraints
+  admit the violating point, and ``rejects'' means they do not. The final
+  rows are feasible heavy instances solved with unrestricted CPLEX~12.6 for
+  AMPL and a 60-second limit.}
+\label{tab:matched_stress}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{l l l l l}
 \toprule
-Instance & MILP (legacy split) \\
+Test & Legacy paper C13 & Legacy split C13 & Event exact-state & Objective parity \\
 \midrule
-\texttt{h=7}  & optimal \\
-\texttt{h=15} & optimal \\
-\texttt{h=21} & optimal \\
+C13: both endpoints checked & rejects & accepts (wrong) & rejects & correct rejection \\
+C13: only end checked & accepts (wrong) & rejects & rejects & correct rejection \\
+Feasible heavy, $h=7$ & -- & optimal & optimal & 827\,858 = 827\,858 \\
+Feasible heavy, $h=15$ & -- & optimal & optimal & 1\,132\,028 = 1\,132\,028 \\
+Feasible heavy, $h=21$ & -- & optimal & optimal & 881\,263 = 881\,263 \\
 \bottomrule
 \end{tabular}
+}%
 \end{table}
 
-\subsection{Dense heavy instances}
-
-The densest generated cases push the MILP further than the lighter stress
-suite.  They are useful for showing where the current solver environment stops
-being able to certify a solution of the legacy formulation.
-
-\begin{table}[t]
-\centering\small
-\caption{Dense heavy instances with density $\delta=1.0$ and $|P|=10$.
-  These cases are substantially harder: the legacy MILP reports
-  infeasibility on the smallest dense case and stops without a certificate on
-  the larger horizons within the reported run budget.}
-\label{tab:dense_heavy_suite}
-\begin{tabular}{l r}
-\toprule
-Instance & MILP (legacy split) \\
-\midrule
-\texttt{h=7}  & infeasible \\
-\texttt{h=15} & error (no certificate) \\
-\texttt{h=21} & error (no certificate) \\
-\texttt{h=30} & error (no certificate) \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-This dense suite shows that even with the full Studio backend, the legacy
-MILP reaches the practical limit of the current environment on the denser
-instances: the smallest dense case is reported infeasible, whereas the larger
-horizons terminate without a certificate inside the current run budget. These
-scale limits apply to the legacy exact formulation and are independent of the
-correctness questions addressed in \Cref{subsec:comp_c13,subsec:hierarchy_results}.
+The table shows the intended result directly. The original paper C13 and the
+endpoint-split strengthening each fail on one complementary adversarial
+pattern, whereas the event formulation rejects both violations. On feasible
+heavy instances, this stronger state logic does not sacrifice the optimum:
+the event and corrected legacy implementations return identical objective
+values at all three horizons. Historical boundary cases that rely on
+after-threshold checking are excluded from this correctness table because
+they test a different maintenance convention rather than the quality of the
+event reformulation.
 
 \subsection{Summary of findings}
 
 \begin{enumerate}
-  \item The current runs validate execution on synthetic configurations named
-    after Tables~5, 6, 10, and~11; they do not reproduce the published data or
+  \item The current runs validate the corrected formulations on deterministic
+    synthetic instances; they do not reproduce the published data or
     averages.
   \item The Constraint~(13) endpoint-split flaw of \Cref{lem:c13_split_limit}
     is confirmed computationally: all 42 real constraint rows built by
@@ -524,16 +510,15 @@ correctness questions addressed in \Cref{subsec:comp_c13,subsec:hierarchy_result
     \texttt{ABCD\_check\_hierarchy\_test} exceeds its A-check threshold by
     200 minutes with no violated constraint reported), showing the issue is
     not confined to hand-built corner cases.
-  \item The boundary suite confirms that the legacy endpoint-split MILP
-    executes on all key edge cases and is infeasible on the mixed-maintenance
-    case under CPLEX; this is a separate, solver/formulation-scale question
-    from the correctness results above.
-  \item The heavy-instance stress test shows that, with the full CPLEX Studio
-    executable, the legacy MILP solves the density-$0.5$ instances to
-    formulation-level optimality.
-  \item On dense cases, the legacy MILP does not return a certified solution
-    for the reported horizons within the current run budget; this is a scale
-    limitation of the exact solver environment, not a correctness question.
+  \item The correctness comparison shows that the event formulation rejects
+    both adversarial C13 violations, while the original paper row and the
+    endpoint-split legacy formulation each fail on one complementary pattern.
+  \item After correcting legacy multi-day maintenance-event pricing, the
+    legacy and event formulations reach identical objectives on all three
+    feasible heavy instances reported in Table~\ref{tab:matched_stress}.
+  \item Historical boundary cases that depend on after-threshold checking are
+    excluded from the correctness comparison because they use a different
+    maintenance convention; dense exploratory cases remain solver diagnostics.
   \item The CPLEX installation available in this environment is a
     size-restricted Community/Preview edition and cannot solve any instance
     with maintenance constraints active (\texttt{CPLEX Error 1016}); the

@@ -96,7 +96,7 @@ def model_size(model):
     return variables, constraints
 
 
-def build_scheduler(formulation, instance_path):
+def build_scheduler(formulation, instance_path, strict_legacy_state=False):
     """Construct one formulation and return its scheduler and build time."""
     from src.event_model import EventMILPScheduler
     from src.model import LegacyEndpointSplitMILPScheduler
@@ -104,7 +104,7 @@ def build_scheduler(formulation, instance_path):
     started = time.perf_counter()
     if formulation == "legacy_endpoint_split":
         scheduler = LegacyEndpointSplitMILPScheduler(str(instance_path))
-        scheduler.build_model()
+        scheduler.build_model(use_strict_hour_state=strict_legacy_state)
     elif formulation == "event_exact_state":
         scheduler = EventMILPScheduler(str(instance_path))
         scheduler.build_model()
@@ -125,6 +125,7 @@ def benchmark_one(
     build_only,
     tee,
     executable=None,
+    strict_legacy_state=False,
 ):
     """Build and optionally solve one formulation, returning one CSV row."""
     row = instance_metadata(instance_path)
@@ -143,7 +144,9 @@ def benchmark_one(
     })
 
     try:
-        scheduler, build_seconds = build_scheduler(formulation, instance_path)
+        scheduler, build_seconds = build_scheduler(
+            formulation, instance_path, strict_legacy_state=strict_legacy_state
+        )
         variables, constraints = model_size(scheduler.model)
         row.update({
             "build_s": round(build_seconds, 6),
@@ -276,6 +279,11 @@ def main():
         help="Compare construction time and model size without invoking a solver.",
     )
     parser.add_argument("--tee", action="store_true")
+    parser.add_argument(
+        "--strict-legacy-state",
+        action="store_true",
+        help="Use exact-state-compatible C13/C13b rows for the legacy model.",
+    )
     args = parser.parse_args()
 
     instances = select_instances(args)
@@ -301,6 +309,7 @@ def main():
                 args.build_only,
                 args.tee,
                 args.executable,
+                args.strict_legacy_state,
             )
         )
 

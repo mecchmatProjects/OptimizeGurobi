@@ -4,8 +4,9 @@ Ported and adapted from the ``thesis_version`` branch (stripped of the
 ``use_paper_c13`` toggle, which no longer exists: ``src/model.py`` now builds
 only the endpoint-split C13). Recomputes cumulative flight-hour accumulation
 directly from a SOLVED ``MILP_Sheduler``'s raw ``x``/``y`` decision variables
-via a plain sequential walk over each aircraft's assigned flights -- NOT via
-the ``mega`` hierarchy variable and NOT by re-checking any of the model's own
+via a timestamp-ordered walk over each aircraft's assigned flights and the
+selected trigger-flight variables -- NOT via the ``mega`` hierarchy variable
+and NOT by re-checking any of the model's own
 big-M constraint expressions (C13/C13b). This makes it independent of bugs in
 those constraints (see the endpoint-split flaw proved in
 ``paper/sections/04_maintenance_model.tex``, Lemma ``lem:c13_split_limit``,
@@ -48,7 +49,7 @@ from src.model import run_milp
 
 
 def _solved_flight_sequence(opt):
-    """Return {aircraft_id: [(day_departure, duration_minutes), ...]}.
+    """Return {aircraft_id: [(departure_time, flight_id, duration), ...]}.
 
     Only includes flights whose x[i, j] == 1 in the current (solved) model.
     """
@@ -58,7 +59,9 @@ def _solved_flight_sequence(opt):
         for j in opt._x_aircrafts_for_flight(i):
             if pyo_value(m.x[i, j]) > 0.5:
                 fd = opt.flight_data[i]
-                seq[j].append((fd['day_departure'], fd['duration']))
+                seq[j].append((fd['departureTime'], i, fd['duration']))
+    for flights in seq.values():
+        flights.sort()
     return seq
 
 
@@ -95,26 +98,27 @@ def validate_solved_model(opt, tol=1e-6):
             if opt.check_days[c] is not None:
                 continue  # C/D calendar-day type: out of scope here
             threshold_min = opt.check_hrs[c] * 60.0
-            prior_min = opt.init_check_hrs[c].get(j, 0.0) * 60.0
-            event_days = _check_event_days(opt, j, c)
-            boundaries = [None] + event_days + [None]
-            for k in range(len(boundaries) - 1):
-                lo, hi = boundaries[k], boundaries[k + 1]
-                window_min = sum(
-                    dur for (dep_day, dur) in flights
-                    if (lo is None or dep_day > lo) and (hi is None or dep_day <= hi)
-                )
-                cap = threshold_min - (prior_min if lo is None else 0.0)
-                if window_min > cap + tol:
+            accumulated = opt.init_check_hrs[c].get(j, 0.0) * 60.0
+            trigger_flights = {
+                i
+                for i in opt.maint_flight_ids
+                for d in opt._z_days_for(i, c)
+                if (i, j, d, c) in m.Z and pyo_value(m.z[i, j, d, c]) > 0.5
+            }
+            for _, flight, duration in flights:
+                accumulated += duration
+                if accumulated > threshold_min + tol:
                     violations.append({
                         'aircraft': j,
                         'check': c,
-                        'window_start_day': lo,
-                        'window_end_day': hi,
-                        'accumulated_min': window_min,
-                        'threshold_min': cap,
-                        'excess_min': window_min - cap,
+                        'window_start_day': None,
+                        'window_end_day': opt.flight_data[flight]['day_arrival'],
+                        'accumulated_min': accumulated,
+                        'threshold_min': threshold_min,
+                        'excess_min': accumulated - threshold_min,
                     })
+                if flight in trigger_flights:
+                    accumulated = 0.0
     return violations
 
 

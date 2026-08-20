@@ -94,6 +94,14 @@ $\gamma_{jdc}$& $\{0,1\}$ & 1 iff aircraft $j$ has a check of level $\geq c$ on 
 \end{tabular}
 \end{table}
 
+\paragraph{Synchronization note (event-based update target).}
+This document still presents the day-indexed maintenance extension for
+historical continuity. The active improvement direction is the event-based
+reformulation documented in \texttt{docs/update\_improve.tex}, where
+maintenance is modeled as fixed-duration self-loop events with variable
+$z_{ijk}$ (check $k$ after flight $i$ for aircraft $j$), and day-indexed
+maintenance variables are removed.
+
 %%==========================================================================
 \section{Basic Model (Constraints C1--C4)}
 %%==========================================================================

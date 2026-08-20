@@ -635,6 +635,9 @@ class MILP_Sheduler:
                     use_overlap=True,
                     allow_ferry=True,
                     use_maintenance=True,
+                    use_event_maintenance=False,
+                    use_event_bridge_strict=False,
+                    use_event_only_block_capacity=False,
                     use_paper_c13=False,
                     use_tight_c13_m=False,
                     use_strict_hour_state=False):
@@ -653,6 +656,21 @@ class MILP_Sheduler:
             added.  Set to *False* to solve a pure flight-assignment model
             (no check scheduling) — dramatically fewer constraints, much
             faster to solve, useful as an upper-bound / relaxation benchmark.
+        use_event_maintenance : bool
+            When *True*, add the Phase-2 event-maintenance scaffold
+            (event-indexed maintenance variables and core linking constraints)
+            in parallel to the legacy day-indexed maintenance model.
+            Default *False* keeps legacy behavior unchanged.
+        use_event_bridge_strict : bool
+            When *True* with ``use_event_maintenance=True``, enforce stricter
+            equality links between event-maintenance decisions and selected
+            legacy day-indexed variables. Default *False* keeps one-way bridge
+            constraints only.
+        use_event_only_block_capacity : bool
+            When *True* with ``use_event_maintenance=True``, use event-based
+            maintenance blocking/capacity scaffold in place of legacy C8/C10
+            for controlled transition experiments. Other legacy maintenance
+            blocks remain active.
         use_paper_c13 : bool
             When *True*, build the original Khaled et al. (2018) Eq. (13)
             single-constraint form (vacuous whenever either endpoint
@@ -677,8 +695,12 @@ class MILP_Sheduler:
         m = ConcreteModel()
         self.model = m
         self._add_sets_and_variables(m)
+        if use_maintenance and use_event_maintenance:
+            self._add_event_maintenance_scaffold(
+                m, use_event_bridge_strict=use_event_bridge_strict
+            )
         self._add_maintenance_start_links(m)
-        self._add_objective(m)
+        self._add_objective(m, use_event_maintenance=use_event_maintenance)
         self._add_c1_coverage(m)
         if allow_ferry:
             # C2-C3: equipment-flow balance (prevents implicit teleportation)
@@ -687,9 +709,11 @@ class MILP_Sheduler:
             
             self._add_overlap(m)
         if use_maintenance:
-            self._add_c8_maint_blocks_flights(m)
+            if not (use_event_maintenance and use_event_only_block_capacity):
+                self._add_c8_maint_blocks_flights(m)
             self._add_c9_maint_assignment(m)
-            self._add_c10_capacity(m)
+            if not (use_event_maintenance and use_event_only_block_capacity):
+                self._add_c10_capacity(m)
             self._add_c11_maint_link(m)
             self._add_hierarchy(m, use_check_hierarchy)
             self._add_c14_one_check_per_day(m)
@@ -711,6 +735,228 @@ class MILP_Sheduler:
         
         #input("Model built. Press Enter to continue...")  # Debug pause to inspect model before solving
         return m
+
+    def _add_event_maintenance_scaffold(self, m, use_event_bridge_strict=False):
+        """Phase-2 scaffold: add event-based maintenance structures.
+
+        This is intentionally additive and opt-in. It does NOT disable the
+        legacy day-indexed maintenance model yet. The goal is to stage the
+        transition safely and keep existing results reproducible.
+        """
+        # Connection arcs E: airport and turn-time feasible flight succession.
+        m.E = Set(
+            dimen=2,
+            initialize=(
+                (i, ell)
+                for i in self.flight_ids
+                for ell in self.flight_ids
+                if i != ell
+                and self.flight_data[i]['destination'] == self.flight_data[ell]['origin']
+                and self.flight_data[ell]['departureTime'] >= self.flight_data[i]['arrivalTime'] + self.MIN_TURN
+            ),
+        )
+
+        # Event sequencing arc variables y_event[i,ell,j]: aircraft j flies
+        # ell immediately after i along a feasible connection arc.
+        m.YE = Set(
+            dimen=3,
+            initialize=(
+                (i, ell, j)
+                for i, ell in m.E
+                for j in set(self._x_aircrafts_for_flight(i))
+                         & set(self._x_aircrafts_for_flight(ell))
+            ),
+        )
+        m.y_event = Var(m.YE, domain=Binary, initialize=0)
+
+        # Optional source arcs for first flights in event flow.
+        m.Y0E = Set(
+            dimen=2,
+            initialize=(
+                (ell, j)
+                for ell in self.flight_ids
+                for j in self._x_aircrafts_for_flight(ell)
+                if self.flight_data[ell]['origin'] == self.aircraft_init[j]
+            ),
+        )
+        m.y0_event = Var(m.Y0E, domain=Binary, initialize=0)
+
+        # Optional sink arcs for last flights in event flow.
+        m.YWE = Set(
+            dimen=2,
+            initialize=(
+                (i, j)
+                for i in self.flight_ids
+                for j in self._x_aircrafts_for_flight(i)
+            ),
+        )
+        m.yomega_event = Var(m.YWE, domain=Binary, initialize=0)
+
+        # Scaffold flow links (non-strict for transition safety):
+        # each event arc implies assignment of both endpoint flights.
+        m.c2e_arc_link = ConstraintList()
+        for i, ell, j in m.YE:
+            m.c2e_arc_link.add(m.y_event[i, ell, j] <= m.x[i, j])
+            m.c2e_arc_link.add(m.y_event[i, ell, j] <= m.x[ell, j])
+
+        # Incoming flow per (ell,j): exactly one predecessor or source if assigned.
+        m.c2e_pred_unique = ConstraintList()
+        for ell in self.flight_ids:
+            for j in self._x_aircrafts_for_flight(ell):
+                incoming = [(i0, ell, j) for i0 in self.flight_ids if (i0, ell, j) in m.YE]
+                rhs_terms = [m.y_event[idx] for idx in incoming]
+                if (ell, j) in m.Y0E:
+                    rhs_terms.append(m.y0_event[ell, j])
+                if rhs_terms:
+                    m.c2e_pred_unique.add(sum(rhs_terms) == m.x[ell, j])
+
+        # Outgoing flow per (i,j): exactly one successor or sink if assigned.
+        m.c3e_succ_unique = ConstraintList()
+        for i in self.flight_ids:
+            for j in self._x_aircrafts_for_flight(i):
+                outgoing = [(i, ell0, j) for ell0 in self.flight_ids if (i, ell0, j) in m.YE]
+                rhs_terms = [m.y_event[idx] for idx in outgoing]
+                if (i, j) in m.YWE:
+                    rhs_terms.append(m.yomega_event[i, j])
+                if rhs_terms:
+                    m.c3e_succ_unique.add(
+                        sum(rhs_terms) == m.x[i, j]
+                    )
+
+        # One route per aircraft in scaffold flow.
+        m.c4e_route_count = ConstraintList()
+        for j in m.P:
+            starts = [m.y0_event[ell, j] for ell in self.flight_ids if (ell, j) in m.Y0E]
+            ends = [m.yomega_event[i, j] for i in self.flight_ids if (i, j) in m.YWE]
+            if starts:
+                m.c4e_route_count.add(sum(starts) <= 1)
+            if starts and ends:
+                m.c4e_route_count.add(sum(ends) == sum(starts))
+
+        # Event-maintenance decision z_event[i,j,c]: check c after flight i by aircraft j.
+        m.ZE = Set(
+            dimen=3,
+            initialize=(
+                (i, j, c)
+                for i in self.maint_flight_ids
+                for j in self._x_aircrafts_for_flight(i)
+                for c in self.CHECK_LIST
+            ),
+        )
+        m.z_event = Var(m.ZE, domain=Binary, initialize=0)
+
+        # C5(event): maintenance event requires assignment of trigger flight.
+        m.c5_event = ConstraintList()
+        for i, j, c in m.ZE:
+            m.c5_event.add(m.z_event[i, j, c] <= m.x[i, j])
+
+        # C6(event): at most one physical maintenance event after a flight.
+        m.c6_event = ConstraintList()
+        for i in self.maint_flight_ids:
+            for j in self._x_aircrafts_for_flight(i):
+                event_checks = [c for c in self.CHECK_LIST if (i, j, c) in m.ZE]
+                if event_checks:
+                    m.c6_event.add(sum(m.z_event[i, j, c] for c in event_checks) <= m.x[i, j])
+
+        # C8(event scaffold): if maintenance c is selected after i, then an
+        # immediate successor arc (i,ell,j) is forbidden when ell departs
+        # before maintenance completion plus turn-time.
+        m.c8e_block = ConstraintList()
+        for i, ell, j in m.YE:
+            dep_ell = self.flight_data[ell]['departureTime']
+            arr_i = self.flight_data[i]['arrivalTime']
+            for c in self.CHECK_LIST:
+                if (i, j, c) not in m.ZE:
+                    continue
+                ready_after_maint = arr_i + self.check_dur[c] + self.MIN_TURN
+                if dep_ell < ready_after_maint:
+                    m.c8e_block.add(m.y_event[i, ell, j] + m.z_event[i, j, c] <= 1)
+
+        # C9(event scaffold): continuous-time maintenance station capacity.
+        # We only evaluate at event boundaries (start/end checkpoints), where
+        # overlap counts can change.
+        m.c9e_capacity = ConstraintList()
+        for a in self.maint_airports:
+            cap_a = self.station_cap.get(a, 0)
+            if cap_a <= 0:
+                continue
+            checkpoints = sorted({
+                self.flight_data[i]['arrivalTime']
+                for i in self.maint_flight_ids
+                if self.flight_data[i]['destination'] == a
+            } | {
+                self.flight_data[i]['arrivalTime'] + self.check_dur[c]
+                for i in self.maint_flight_ids
+                if self.flight_data[i]['destination'] == a
+                for c in self.CHECK_LIST
+            })
+            for theta in checkpoints:
+                active_terms = []
+                for i in self.maint_flight_ids:
+                    if self.flight_data[i]['destination'] != a:
+                        continue
+                    start_i = self.flight_data[i]['arrivalTime']
+                    for j in self._x_aircrafts_for_flight(i):
+                        for c in self.CHECK_LIST:
+                            if (i, j, c) not in m.ZE:
+                                continue
+                            end_i = start_i + self.check_dur[c]
+                            if start_i <= theta < end_i:
+                                active_terms.append(m.z_event[i, j, c])
+                if active_terms:
+                    m.c9e_capacity.add(sum(active_terms) <= cap_a)
+
+        # Bridge (safe, one-way): tie event decisions to legacy day-indexed
+        # trigger/occupancy variables so both representations remain coherent
+        # during migration without forcing full semantic identity yet.
+        m.c_event_bridge = ConstraintList()
+        for i, j, c in m.ZE:
+            start_day = self.flight_data[i]['day_arrival']
+            if (i, j, start_day, c) in m.Z:
+                # If event check is selected, corresponding legacy trigger on
+                # the arrival day must be active.
+                m.c_event_bridge.add(m.z_event[i, j, c] <= m.z[i, j, start_day, c])
+                # Event check implies day-level occupancy start marker.
+                m.c_event_bridge.add(m.z_event[i, j, c] <= m.maintenance_start[j, start_day, c])
+
+        # Aggregate bridge: day/check occupancy start cannot be lower than the
+        # number of event starts placed on that day/check for a given aircraft.
+        days = sorted(self.days)
+        for j in m.P:
+            for c in self.CHECK_LIST:
+                for d in days:
+                    event_triggers = [
+                        m.z_event[i, j, c]
+                        for i in self.maint_flight_ids
+                        if self.flight_data[i]['day_arrival'] == d and (i, j, c) in m.ZE
+                    ]
+                    if event_triggers:
+                        m.c_event_bridge.add(sum(event_triggers) <= m.maintenance_start[j, d, c])
+
+        if use_event_bridge_strict:
+            m.c_event_bridge_strict = ConstraintList()
+            for i, j, c in m.ZE:
+                start_day = self.flight_data[i]['day_arrival']
+                if (i, j, start_day, c) in m.Z:
+                    # Strict mode: event trigger equals legacy same-day trigger.
+                    m.c_event_bridge_strict.add(
+                        m.z_event[i, j, c] == m.z[i, j, start_day, c]
+                    )
+
+            for j in m.P:
+                for c in self.CHECK_LIST:
+                    for d in days:
+                        event_triggers = [
+                            m.z_event[i, j, c]
+                            for i in self.maint_flight_ids
+                            if self.flight_data[i]['day_arrival'] == d and (i, j, c) in m.ZE
+                        ]
+                        if event_triggers:
+                            # Strict mode: day-start occupancy marker matches
+                            # count of event starts anchored on that day.
+                            m.c_event_bridge_strict.add(
+                                m.maintenance_start[j, d, c] == sum(event_triggers)
+                            )
 
     def _add_sets_and_variables(self, m):
         """Define Pyomo Sets and Var declarations on model m."""
@@ -766,7 +1012,7 @@ class MILP_Sheduler:
                     if index:
                         m.c_maintenance_start.add(start <= 1 - previous)
 
-    def _add_objective(self, m):
+    def _add_objective(self, m, use_event_maintenance=False):
         """Minimize flight assignment cost plus maintenance-event cost.
 
         A multi-day check is represented by consecutive ``y`` occupancy
@@ -776,6 +1022,9 @@ class MILP_Sheduler:
         under-priced.
         """
         maint_cost = 100
+        # Keep legacy maintenance objective semantics during Phase-2 migration.
+        # Event-maintenance cost expression is tracked separately for parity
+        # checks but not activated in the objective until full linkage is in place.
         maintenance_cost = sum(
             maint_cost
             * max(1, math.ceil(self.check_dur[c] / self.DAY_SHIFT))
@@ -784,6 +1033,13 @@ class MILP_Sheduler:
             for d in m.D
             for c in m.C
         )
+        if use_event_maintenance and hasattr(m, 'z_event'):
+            m.event_maintenance_cost_expr = sum(
+                maint_cost
+                * max(1, math.ceil(self.check_dur[c] / self.DAY_SHIFT))
+                * m.z_event[i, j, c]
+                for i, j, c in m.ZE
+            )
         m.obj = Objective(
             expr=(
                 sum(self._flight_cost(i, j) * m.x[i, j]
@@ -1510,6 +1766,14 @@ class MILP_Sheduler:
             _p(f"  Gap    : {g}   CPU: {t}")
             _p(f"  Obj    : {summary['obj']}")
 
+        if hasattr(m, 'YE') and hasattr(m, 'ZE'):
+            _p("  Event scaffold diagnostics:")
+            _p(f"    |YE|={len(m.YE)}  |ZE|={len(m.ZE)}")
+            _p(f"    c8e_block={len(list(m.c8e_block)) if hasattr(m, 'c8e_block') else 0}  "
+               f"c9e_capacity={len(list(m.c9e_capacity)) if hasattr(m, 'c9e_capacity') else 0}")
+            _p(f"    bridge_loose={len(list(m.c_event_bridge)) if hasattr(m, 'c_event_bridge') else 0}  "
+               f"bridge_strict={len(list(m.c_event_bridge_strict)) if hasattr(m, 'c_event_bridge_strict') else 0}")
+
         _p("\n--- Assignment ---")
         for i in m.F:
             for j in self._x_aircrafts_for_flight(i):
@@ -1882,7 +2146,9 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
              use_check_hierarchy=True, use_sanity=False, use_overlap=True,
              allow_ferry=True, use_maintenance=True, warm_start=True,
              max_hour_check_deferral_days=None, enabled_checks=None,
-             executable=None, use_paper_c13=False, use_tight_c13_m=False):
+             executable=None, use_paper_c13=False, use_tight_c13_m=False,
+             use_event_maintenance=False, use_event_bridge_strict=False,
+             use_event_only_block_capacity=False):
     """Build and solve the MILP model, then display results.
 
     Parameters
@@ -1909,6 +2175,9 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
                     use_overlap=use_overlap,
                     allow_ferry=allow_ferry,
                     use_maintenance=use_maintenance,
+                    use_event_maintenance=use_event_maintenance,
+                    use_event_bridge_strict=use_event_bridge_strict,
+                    use_event_only_block_capacity=use_event_only_block_capacity,
                     use_paper_c13=use_paper_c13,
                     use_tight_c13_m=use_tight_c13_m)
     summary = opt.solve(solver_name=solver, tee=tee, out_path=out_txt,
@@ -1976,7 +2245,9 @@ def _run_one_milp(fp, out_dir, stem, solver, tee, show_gantt, time_limit,
                   allow_ferry=True, use_maintenance=True,
                   use_overlap=True, use_sanity=False, warm_start=True,
                   use_check_hierarchy=True, max_hour_check_deferral_days=None,
-                  enabled_checks=None):
+                  enabled_checks=None, use_event_maintenance=False,
+                  use_event_bridge_strict=False,
+                  use_event_only_block_capacity=False):
     """Run MILP on a single file; return metrics dict."""
     import time, os
     gantt_out = os.path.join(out_dir, f'{stem}_milp_gantt.png')
@@ -1994,6 +2265,9 @@ def _run_one_milp(fp, out_dir, stem, solver, tee, show_gantt, time_limit,
         use_check_hierarchy=use_check_hierarchy,
         max_hour_check_deferral_days=max_hour_check_deferral_days,
         enabled_checks=enabled_checks,
+        use_event_maintenance=use_event_maintenance,
+        use_event_bridge_strict=use_event_bridge_strict,
+        use_event_only_block_capacity=use_event_only_block_capacity,
     )
     cpu = time.time() - t0
 
@@ -2076,7 +2350,9 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
               use_maintenance=True,
               use_overlap=True, use_sanity=False, warm_start=True,
               use_check_hierarchy=True, max_hour_check_deferral_days=None,
-              enabled_checks=None):
+              enabled_checks=None, use_event_maintenance=False,
+              use_event_bridge_strict=False,
+              use_event_only_block_capacity=False):
     """Process every JSON file in *input_dir* and write results to *output_dir*.
 
     For each dataset the following files are created in output_dir::
@@ -2122,9 +2398,12 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
     over_label  = "ON" if use_overlap else "OFF"
     san_label   = "ON" if use_sanity  else "OFF"
     check_label = "ON" if use_check_hierarchy else "OFF"
+    event_label = "ON" if use_event_maintenance else "OFF"
+    strict_bridge_label = "ON" if use_event_bridge_strict else "OFF"
+    event_only_bc_label = "ON" if use_event_only_block_capacity else "OFF"
     print(f"[batch] {len(json_files)} file(s) in '{input_dir}'")
     print(f"[batch] mode={mode}  solver={solver}  time_limit={time_limit}s")
-    print(f"[batch] ferry={ferry_label}  maintenance={maint_label}  overlap={over_label}  sanity={san_label}  check_hierarchy={check_label}")
+    print(f"[batch] ferry={ferry_label}  maintenance={maint_label}  overlap={over_label}  sanity={san_label}  check_hierarchy={check_label}  event_maint_scaffold={event_label}  event_bridge_strict={strict_bridge_label}  event_only_block_capacity={event_only_bc_label}")
     if max_hour_check_deferral_days is not None:
         print(f"[batch] max_hour_check_deferral_days={max_hour_check_deferral_days}")
     if enabled_checks is not None:
@@ -2160,6 +2439,9 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
                                     use_check_hierarchy=use_check_hierarchy,
                                     max_hour_check_deferral_days=max_hour_check_deferral_days,
                                     enabled_checks=enabled_checks,
+                                    use_event_maintenance=use_event_maintenance,
+                                    use_event_bridge_strict=use_event_bridge_strict,
+                                    use_event_only_block_capacity=use_event_only_block_capacity,
                                     )
                 all_rows.append(row)
             except Exception as exc:
@@ -2302,8 +2584,16 @@ def main():
                         metavar='CHECK',
                         help='Disable selected maintenance check types (A B C D). '
                              'Comma-separated values are also accepted.')
+    parser.add_argument('--use-event-maintenance', dest='use_event_maintenance', action='store_true',
+                        help='Enable Phase-2 event-maintenance scaffold (adds event-indexed maintenance variables/constraints; legacy model remains active).')
+    parser.add_argument('--event-bridge-strict', dest='use_event_bridge_strict', action='store_true',
+                        help='With --use-event-maintenance, enforce stricter equality links between event and legacy maintenance variables.')
+    parser.add_argument('--event-only-block-capacity', dest='use_event_only_block_capacity', action='store_true',
+                        help='With --use-event-maintenance, use event scaffold for blocking/capacity in place of legacy C8/C10 for controlled comparisons.')
     parser.set_defaults(show=True, allow_ferry=True, use_maintenance=True,
-                        use_overlap=True, use_sanity=False, warm_start=True, use_check_hierarchy=True)
+                        use_overlap=True, use_sanity=False, warm_start=True, use_check_hierarchy=True,
+                        use_event_maintenance=False, use_event_bridge_strict=False,
+                        use_event_only_block_capacity=False)
     args = parser.parse_args()
     enabled_checks = _resolve_enabled_checks(args.only_checks, args.disable_checks)
 
@@ -2327,6 +2617,9 @@ def main():
                  use_check_hierarchy=args.use_check_hierarchy,
                  max_hour_check_deferral_days=args.max_hour_check_deferral_days,
                  enabled_checks=enabled_checks,
+                 use_event_maintenance=args.use_event_maintenance,
+                 use_event_bridge_strict=args.use_event_bridge_strict,
+                 use_event_only_block_capacity=args.use_event_only_block_capacity,
                  )
     else:  # batch
         run_batch(input_dir=args.input_dir,
@@ -2344,6 +2637,9 @@ def main():
                   use_check_hierarchy=args.use_check_hierarchy,
                   max_hour_check_deferral_days=args.max_hour_check_deferral_days,
                   enabled_checks=enabled_checks,
+                  use_event_maintenance=args.use_event_maintenance,
+                  use_event_bridge_strict=args.use_event_bridge_strict,
+                  use_event_only_block_capacity=args.use_event_only_block_capacity,
                   )
         
 

@@ -41,6 +41,39 @@ variable $z_{ijk}$ selects maintenance type $k$ after flight $i$ for aircraft
 $j$. This removes the day dimension from the maintenance variables while
 preserving all calendar information in the timestamps.
 
+\section{Update Summary for C1--C14}
+
+The C1--C14 update is based on one modeling decision:
+\emph{do not use planning days as decision indices when absolute flight times
+already carry the same calendar information.}
+
+The resulting formulation is:
+
+\begin{enumerate}
+  \item Keep flight assignment and route sequencing in event time.
+  \item Represent each maintenance action as a virtual self-loop leg
+  $a\rightarrow a$ with fixed duration $\delta_k$.
+  \item Use the maintenance variable
+  \[
+    z_{ijk}=1
+    \iff
+    \text{aircraft }j\text{ performs maintenance type }k\text{ after flight }i.
+  \]
+\end{enumerate}
+
+Thus, maintenance is attached directly to flight events, not to day buckets.
+This removes day-indexed binaries while keeping timing, capacity, and
+maintenance-feasibility logic fully time-consistent.
+
+\paragraph{Index choice for maintenance variables.}
+The robust event-linked variable is $z_{ijk}$: check type $k$ after flight $i$
+for aircraft $j$. A reduced variable such as $z_{jk}$ is not sufficient in the
+integrated routing model, because the model must know \emph{after which flight}
+the check occurs to enforce turn-time blocking, station capacity over time, and
+hour/calendar reset logic. If one wants to remove flight index $i$, an explicit
+event-position index (for example, route position $r$) is still required,
+which reintroduces sequencing complexity elsewhere.
+
 \section{Sets and Parameters}
 
 Let $\F$ be the scheduled flights, $\Pset$ the aircraft, $\Aset$ the airports,
@@ -384,6 +417,108 @@ The day dimension is removed, but calendar information is not. All timestamps
 must use one absolute, horizon-wide time scale; otherwise overnight gaps and
 C/D elapsed-time requirements cannot be recovered correctly.
 \end{remark}
+
+\section{Model Class: LP, QP, or Convex?}
+
+With binary assignment/connection/maintenance variables
+($x_{ij},y_{i\ell j},z_{ijk}\in\{0,1\}$), C1--C14 is a
+\textbf{Mixed-Integer Linear Program (MILP)}.
+
+\paragraph{LP.}
+The exact integrated model is not a pure LP because of integrality. However,
+its LP relaxation (replace $\{0,1\}$ by $[0,1]$) is linear and convex, and is
+useful for bounds and diagnostics.
+
+\paragraph{QP.}
+A quadratic objective is not required for this reformulation. If quadratic
+terms are added (for example, smoothness penalties), the model becomes MIQP,
+not simpler than MILP for the core TAP structure.
+
+\paragraph{Convexity.}
+The continuous relaxation is convex (polyhedral). The original integer model is
+combinatorial and therefore non-convex in decision space.
+
+\paragraph{When can it be pure LP?}
+Only under strong simplifications, such as fixed aircraft routes/flight
+assignment known in advance, after which maintenance timing may reduce to a
+continuous feasibility LP. For integrated assignment plus maintenance timing,
+MILP is the correct class.
+
+\section{Implementation Plan for Code and Paper Updates}
+
+This plan updates the codebase and thesis artifacts to the event-based
+maintenance reformulation (no day-indexed maintenance variables).
+
+\subsection*{Phase 1: Freeze baseline and define acceptance tests}
+\begin{enumerate}
+  \item Freeze a baseline commit and keep current regression tests green.
+  \item Add acceptance criteria:
+  \begin{itemize}
+    \item C1--C4 route feasibility unchanged,
+    \item maintenance duration blocking via virtual self-loop events,
+    \item C/D calendar windows validated by absolute timestamps,
+    \item A/B hour reset validated on route replay,
+    \item objective decomposition (flight vs maintenance) preserved.
+  \end{itemize}
+\end{enumerate}
+
+\subsection*{Phase 2: Core model refactor in code}
+\begin{enumerate}
+  \item Replace day-indexed maintenance tensors by event-linked variables
+  $z_{ijk}$ in the new implementation path.
+  \item Build sparse connection sets $\Eset$ and $\Eset_k$ from timestamps.
+  \item Encode maintenance as fixed-duration virtual self-loop event after
+  flight $i$ at airport $a_i$.
+  \item Implement C5--C10 in event form (assignment link, single physical
+  check, maintenance-station eligibility, duration blocking, hierarchy).
+\end{enumerate}
+
+\subsection*{Phase 3: Time-state constraints migration}
+\begin{enumerate}
+  \item Implement C11--C13 with route-propagated hour-state variable $u$.
+  \item Implement C14a/C14b with absolute-time windows for C/D checks.
+  \item Remove legacy day-pair C13 logic from the active path after parity
+  checks pass.
+\end{enumerate}
+
+\subsection*{Phase 4: Validation and parity protocol}
+\begin{enumerate}
+  \item Unit tests: new tests for maintenance-event placement, C8 blocking,
+  C14 deadline enforcement, and hierarchy reset semantics.
+  \item Small-instance parity: compare legacy and event models on matched
+  feasible instances; verify same optimal objective where semantics overlap.
+  \item Independent replay validator: reconstruct route timeline and verify
+  all maintenance limits from generated schedules.
+  \item Stress runs: scalability checks on h=7/15/21 classes with fixed
+  solver/time limits.
+\end{enumerate}
+
+\subsection*{Phase 5: Thesis and paper updates}
+\begin{enumerate}
+  \item Update formal model chapter with C1--C14 event-based equations and
+  variable table ($x,y,z,u,q$).
+  \item Add a short subsection explaining why $z_{jk}$ is insufficient and
+  why event anchor $i$ is required.
+  \item Regenerate computational tables/figures and refresh captions to state
+  solver settings, instance scope, and parity criteria.
+  \item Add reproducibility appendix: exact commands, package versions,
+  solver/license notes, and expected outputs.
+\end{enumerate}
+
+\subsection*{Phase 6: Packaging and transferability}
+\begin{enumerate}
+  \item Keep the portable package in \texttt{Thesis/code} as the handoff
+  artifact for other devices.
+  \item Ensure README runbook includes setup, tests, experiment commands,
+  and LaTeX build pipeline.
+  \item Add one smoke script per platform (Windows/Linux) for quick
+  installation validation.
+\end{enumerate}
+
+\paragraph{Exit criteria.}
+Migration is complete when: (i) tests pass, (ii) parity/validation reports are
+clean, (iii) thesis builds without unresolved references, and (iv) all
+reproducibility commands in the package README run on a fresh machine.
 
 \begin{proposition}
 Assume that $\Eset$ contains exactly the feasible ordinary connections and C8

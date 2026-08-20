@@ -527,3 +527,86 @@ event reformulation.
     new Constraint~(13) and hierarchy results therefore use the open-source
     HiGHS solver, which is exact and unrestricted.
 \end{enumerate}
+
+\subsection{Phase 2: Structural trial of event-based maintenance bridge modes}
+\label{subsec:phase2_bridge_modes}
+
+\Cref{sec:event_reformulation} presents the full event-based reformulation as
+the target model. The migration from the day-indexed legacy model to the
+event-based formulation is implemented incrementally via flag-gated feature
+toggles: new event-based variables and constraints coexist with legacy logic,
+and bridge constraints control their interaction during the transition phase.
+This subsection measures the structural impact (variable and constraint count)
+of two event-based bridge modes on the existing test suite, without claiming
+equivalence to solved objectives (which remain ``unknown'' under the
+size-restricted solver in the current environment).
+
+The three model configurations compared are:
+\begin{itemize}
+  \item \texttt{legacy}: the baseline day-indexed model (C1--C14 in day-indexed form);
+  \item \texttt{event\_strict\_bridge}: event variables (set $E$ of \Cref{sec:event_reformulation}) with equality bridge constraints to day-indexed counterparts;
+  \item \texttt{event\_only\_block\_capacity}: event maintenance only, with C8 (incompatibility blocking) and C9 (capacity) modeled as event constraints, legacy C8/C10 deactivated.
+\end{itemize}
+
+\begin{table}[ht]
+\centering\small
+\caption{Phase 2 per-instance structural deltas on ABCD test suite
+  (\texttt{results/tables/phase2\_event\_trial\_compare\_full\_delta.csv}).
+  Columns report the change in variable count and constraint count for each
+  bridge mode relative to the legacy baseline.}
+\label{tab:phase2_structural_deltas}
+\begin{tabular}{lrrrr}
+\toprule
+Instance & $\Delta$Vars (strict) & $\Delta$Cons (strict) & $\Delta$Vars (event-only) & $\Delta$Cons (event-only) \\
+\midrule
+ABCD\_capacity\_bottleneck\_test.json & 144 & 572 & 144 & 249 \\
+ABCD\_check\_hierarchy\_test.json & 351 & 1355 & 351 & 403 \\
+ABCD\_near\_threshold\_test.json & 960 & 3640 & 960 & 1376 \\
+ABCD\_no\_maint\_test.json & 392 & 1453 & 392 & 1109 \\
+ABCD\_two\_b\_one\_c\_test.json & 480 & 1783 & 480 & 67 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Table~\ref{tab:phase2_structural_deltas} shows that both bridge modes add
+event-based variables (uniformly $+144$ to $+960$ depending on instance size),
+while the strict-bridge mode adds substantially more constraints (spanning
+$+572$ to $+3640$) due to the equality constraints linking event and legacy
+maintenance states. The event-only mode reduces constraint overhead to between
+$+67$ and $+1376$, accepting the trade-off of legacy constraint deactivation.
+
+Aggregate statistics over the five valid test cases (two instances excluded
+due to solver memory/time limits under the preview CPLEX build) are:
+
+\begin{table}[ht]
+\centering\small
+\caption{Phase 2 aggregate delta statistics
+  (\texttt{results/tables/phase2\_event\_trial\_compare\_full\_agg.csv}).
+  Mean and median are computed over the five non-error instances.}
+\label{tab:phase2_aggregate_stats}
+\begin{tabular}{lrrrrr}
+\toprule
+Metric & Count & Mean & Median & Min & Max \\
+\midrule
+$\Delta$ Vars (strict) & 5 & 465.4 & 392 & 144 & 960 \\
+$\Delta$ Cons (strict) & 5 & 1760.6 & 1453 & 572 & 3640 \\
+$\Delta$ Vars (event-only) & 5 & 465.4 & 392 & 144 & 960 \\
+$\Delta$ Cons (event-only) & 5 & 640.8 & 403 & 67 & 1376 \\
+CPU (legacy) & 5 & 0.025 & 0.025 & 0.023 & 0.028 \\
+CPU (strict) & 5 & 0.029 & 0.030 & 0.024 & 0.033 \\
+CPU (event-only) & 5 & 0.028 & 0.030 & 0.024 & 0.031 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+These measurements validate the implementation of both bridge modes on the
+test suite: event variables are introduced without catastrophic growth in
+model size, and model-building time increases modestly (mean $\approx 15\%$
+for strict, $\approx 10\%$ for event-only). The event-only configuration
+achieves a $2.7\times$ reduction in constraint overhead relative to strict
+mode (640.8 vs.\ 1760.6 mean delta), confirming the structural benefit of
+removing dual-state bridge constraints once the event model is ready for
+production use. The correctness of both formulations and the soundness of
+the migration strategy are not claimed on this subset of solver diagnostics
+alone; they require the full correctness evidence and solved equivalence
+tests from earlier subsections of this computational study.

@@ -1086,14 +1086,26 @@ class MILP_Sheduler:
         m.y = Var(m.P, m.D, m.C, domain=Binary, initialize=0)
         # mega_check[j,d,c] = 1 if aircraft j has a check of type ≥c on day d (hierarchy)
         m.mega = Var(m.P, m.D, m.C, domain=Binary, initialize=0)
+        # maintenance_start[j,d,c] = 1 iff check c starts on day d (transition 0→1 in y)
+        # Used to charge maintenance cost once per event, based on full duration,
+        # rather than per occupied day (which underprices horizon-truncated checks).
+        m.maintenance_start = Var(m.P, m.D, m.C, domain=Binary, initialize=0)
 
     def _add_objective(self, m):
-        """Minimize flight assignment cost + premature maintenance penalty."""
+        """Minimize flight assignment cost + premature maintenance penalty.
+        
+        Maintenance cost is charged per event start (maintenance_start[j,d,c]),
+        scaled by the full check duration in days. This avoids underpricing
+        checks truncated by the planning horizon.
+        """
         maint_cost = 100   # flat penalty per maintenance event (can be extended)
         assignment_cost = sum(self._flight_cost(i, j) * m.x[i, j]
                               for i, j in m.X)
-        maintenance_cost = sum(maint_cost * m.y[j, d, c]
-                               for j in m.P for d in m.D for c in m.C)
+        # Charge maintenance cost once per event start, scaled by check duration in days
+        maintenance_cost = sum(
+            maint_cost * self.check_dur_days[c] * m.maintenance_start[j, d, c]
+            for j in m.P for d in m.D for c in m.C
+        )
         if self.soft_coverage:
             m.obj = Objective(
                 expr=(
@@ -1103,13 +1115,49 @@ class MILP_Sheduler:
                 ),
                 sense=minimize,
             )
-            return
-        m.obj = Objective(
-            expr=(
-                assignment_cost + maintenance_cost
-            ),
-            sense=minimize,
-        )
+        else:
+            m.obj = Objective(
+                expr=(
+                    assignment_cost + maintenance_cost
+                ),
+                sense=minimize,
+            )
+        # Link maintenance_start to y transitions
+        self._add_maintenance_start_link(m)
+
+    def _add_maintenance_start_link(self, m):
+        """Constrain maintenance_start[j,d,c] to detect y[j,d,c] transitions.
+        
+        maintenance_start[j,d,c] = 1 exactly when y[j,d,c] transitions from
+        0 on day d-1 to 1 on day d (or is 1 on day 1 for d=1).
+        This ensures maintenance cost is charged exactly once per event.
+        
+        Constraints:
+        1. start can only be 1 if active today: start[j,d,c] <= y[j,d,c]
+        2. start is at least the increase from yesterday: start[j,d,c] >= y[j,d,c] - y[j,d-1,c]
+           (or start[j,d,c] >= y[j,d,c] on the first day)
+        """
+        m.maint_start_transitions = ConstraintList()
+        days = sorted(self.days)
+        day_min = min(days)
+        
+        for j in m.P:
+            for d in m.D:
+                for c in m.C:
+                    # Constraint 1: start can only be 1 if active today
+                    m.maint_start_transitions.add(
+                        m.maintenance_start[j, d, c] <= m.y[j, d, c]
+                    )
+                    # Constraint 2: start is at least the increase from yesterday
+                    if d > day_min:
+                        m.maint_start_transitions.add(
+                            m.maintenance_start[j, d, c] >= m.y[j, d, c] - m.y[j, d - 1, c]
+                        )
+                    else:
+                        # First day: start >= y (any activation is a "start" on day 1)
+                        m.maint_start_transitions.add(
+                            m.maintenance_start[j, d, c] >= m.y[j, d, c]
+                        )
 
     # ------------------------------------------------------------------
     # Helper index sets (computed lazily from flight_data)

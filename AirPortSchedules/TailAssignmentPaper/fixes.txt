@@ -1,0 +1,224 @@
+Tail Assignment Paper - Thesis_version Porting and Event-Model Fix Guide
+==========================================================================
+
+Purpose
+-------
+Port the validated fixes from branch paperEJOR into Thesis_version with the
+least effort and maximum correctness. Apply the mandatory correctness items
+first. Do not start performance tuning or paper-table updates until the
+validation gates below pass.
+
+Repository assumptions
+----------------------
+- Project root contains src/, experiments/, tests/, paper/, data/, results/.
+- Use src/model.py as the legacy reference implementation.
+- Use src/event_model.py as the event-based implementation.
+- Use the unrestricted CPLEX AMPL executable when available:
+  F:\Progs\IBM.ILOG.CPLEX.for.AMPL.v12.6-EAT\CPLEXamp.exe
+- Invoke it through Pyomo as solver_name='cplexamp' with executable=...
+  Do not confuse this with the size-restricted cplex executable on PATH.
+- Always pass an explicit time limit.
+- Preserve stable_seed() and canonical instance files.
+- Do not modify data/instances/ canonical files during debugging.
+
+Priority 0: establish a clean baseline
+---------------------------------------
+1. Check out or switch to Thesis_version and record the commit:
+     git branch --show-current
+     git status --short
+     git log -1 --oneline
+2. Run the existing tests before editing:
+     .\.venv\Scripts\python.exe -m pytest tests/ -q
+3. Confirm the selected interpreter is Python 3 and that Pyomo is installed.
+4. Keep all generated reports under results/tables/ or a temporary external
+   directory. Do not write debug scripts into src/.
+
+Priority 1: mandatory legacy-model fixes
+-----------------------------------------
+1. Correct Constraint (13) documentation and implementation.
+   - Keep the original paper form available only as an explicit opt-in flag:
+       use_paper_c13=True
+   - The endpoint-split form is not mathematically sufficient by itself.
+   - Do not describe endpoint-split C13 as an exact correction.
+   - The exact-state formulation must be used for correctness claims.
+
+2. Add the corrected interval-specific big-M option if it is absent:
+       use_tight_c13_m=True
+   - M must be computed per check, aircraft, and day interval.
+   - Never replace the validated formula with one global guessed constant.
+
+3. Fix multi-day maintenance objective pricing.
+   - A multi-day check is represented by consecutive y[j,d,c] occupancy values
+     in the day-indexed model.
+   - Add a binary maintenance_start[j,d,c] variable.
+   - Link it to occupancy so it is 1 exactly on the first day of a run:
+       start >= current - previous
+       start <= current
+       start <= 1 - previous   (when a previous day exists)
+   - Charge the event once using the full duration:
+       100 * ceil(check_duration[c] / DAY_SHIFT) * maintenance_start
+   - Do not charge 100 per occupied day. That underprices checks truncated by
+     the planning horizon and causes false objective mismatches with the event
+     formulation.
+
+4. Keep the strict legacy hour-state mode separate and opt-in.
+   - Do not silently replace historical endpoint-split behavior if old results
+     must remain reproducible.
+   - If implementing strict day-indexed C13/C13b, remove endpoint reset
+     relaxations carefully; simply deleting all M terms can make the model
+     infeasible because day-indexed timing is not event-level timing.
+   - Validate strict behavior against timestamp-ordered replay, not day buckets.
+
+Priority 2: event-based method integration
+-------------------------------------------
+1. Port src/event_model.py and preserve these sets and meanings:
+   - x[flight, aircraft]: assignment
+   - y[first, second, aircraft]: connected route arc
+   - first[flight, aircraft], last[flight, aircraft]: route endpoints
+   - z[flight, aircraft, check]: maintenance event after a flight
+   - u[flight, aircraft, check]: exact cumulative state at flight arrival
+   - q/rho: derived hierarchy indicator, not an independent decision variable
+
+2. Build route arcs only when all are true:
+   - first != second
+   - first destination == second origin
+   - second departure >= first arrival + MIN_TURN
+   - the aircraft is eligible for both assignment arcs
+
+3. Enforce source reachability.
+   - A flight must be either a valid source flight from the aircraft initial
+     airport or have a predecessor route arc.
+   - Do not treat cost-feasible assignment arcs as reachable route arcs.
+   - Calendar deadline candidate sets and following-event sets must use the
+     same reachability test.
+
+4. Fix event hour-state big-M sizing.
+   - In the initial-hours constraints, M must dominate every possible u value
+     when first=0. Use threshold + flight duration, not initial_hours + duration.
+   - In route flow, use threshold + successor-flight duration.
+   - Every u value must satisfy the unconditional bound:
+       u[flight, aircraft, check] <= threshold[check] * x[flight, aircraft]
+   - This is what prevents flying beyond the threshold before a check.
+
+5. Fix event calendar deadline constraints.
+   - Use absolute timestamps, not coarse departure-day indices.
+   - Filter candidates and following checks by actual route reachability.
+   - If no candidate can satisfy a deadline, add a symbolic infeasible Pyomo
+     constraint anchored on a real variable, for example z[key] >= 2.
+   - Never add a bare Python expression such as 0 >= 1; Python evaluates it to
+     False before Pyomo sees it and ConstraintList.add() will fail.
+
+6. Fix feasible-instance generation for C/D checks.
+   - Compute calendar slack from the outbound flight's actual arrival time:
+       arrival_days_elapsed = outbound_arr / DAY_SHIFT
+   - Do not use only the coarse departure-day index plus a fixed margin.
+   - Revalidate every seeded rotation with an independent timeline simulator.
+
+Priority 3: independent validation tools
+------------------------------------------
+1. Maintain an independent validator. It must:
+   - Sort assigned flights by departure timestamp.
+   - Accumulate A/B duration in timestamp order.
+   - Reset only at actual selected trigger-flight z events.
+   - Validate C/D using actual check event timestamps or equivalent calendar
+     event times, not merely y occupancy by day.
+   - Report initial-overdue violations separately from violations created by the
+     schedule.
+
+2. Never validate A/B checks by grouping flights only by departure day. That
+   falsely flags valid same-day outbound/check/return rotations.
+
+3. Use the diagnostic method for any unexplained infeasibility:
+   - Relax only Binary variables to Reals in [0,1]. Keep continuous state
+     variables as real bounded variables.
+   - Solve the LP relaxation.
+   - Deactivate one named constraint block at a time on a fresh model.
+   - Do not deactivate blocks cumulatively unless explicitly intended.
+
+Priority 4: comparison protocol
+--------------------------------
+1. Compare only on the same JSON instance, same assignment-cost matrix, same
+   routing domain, same maintenance semantics, same solver, and same limit.
+2. The legacy allow_ferry name is misleading in the MILP builder:
+   - allow_ferry=True activates C2-C3 equipment-flow constraints.
+   - allow_ferry=False removes those constraints and creates an assignment-only
+     relaxation with implicit teleportation.
+   - For a connected no-ferry MILP comparison, use allow_ferry=True and do not
+     claim that explicit ferry variables exist.
+3. Do not interpret an objective mismatch before decomposing objective terms.
+   Compare flight cost and maintenance-event cost separately.
+4. A valid runtime comparison requires both formulations to be optimal and
+   objective-matched, or a documented equivalent objective/feasible-set test.
+5. Do not use historical ABCD boundary instances as parity benchmarks when
+   their intended schedule flies beyond an hour threshold before checking.
+6. Use guaranteed-feasible heavy instances for the primary comparison.
+7. Record at least:
+   - status, objective, CPU time, wall time
+   - active variables and constraints
+   - build time
+   - solver and time limit
+   - independent validation result
+
+Recommended command sequence
+-----------------------------
+1. Run a small clean parity test:
+   .\.venv\Scripts\python.exe experiments/compare_formulations.py --instances data/instances/event_vs_legacy_clean_test.json --solver cplexamp --executable "F:\Progs\IBM.ILOG.CPLEX.for.AMPL.v12.6-EAT\CPLEXamp.exe" --time-limit 60 --output results/tables/formulation_clean_parity.csv
+2. Run C13 adversarial validation:
+     .\.venv\Scripts\python.exe experiments/c13_loophole_validation.py
+3. Generate or reuse guaranteed-feasible heavy cases.
+4. Run paired heavy comparisons at h=7,15,21 (and h=30 only if the instance
+   really grows in flights; do not call repeated-size rows horizon scaling).
+5. Run the independent validator on every optimal legacy schedule.
+6. Run all tests:
+     .\.venv\Scripts\python.exe -m pytest tests/ -q
+
+Paper integration checklist
+---------------------------
+1. Report the event formulation as a correctness/state-propagation method,
+   not as automatically faster.
+2. Show the C13 adversarial table with three columns:
+   paper C13, endpoint-split C13, event exact-state.
+   Expected result: each legacy variant fails one complementary case; event
+   rejects both.
+3. Show objective parity on feasible heavy instances.
+4. Include runtime, build-time, variable, and constraint plots only for runs
+   that are feasible, optimal, objective-matched, and semantically aligned.
+5. Label event/legacy wall-time ratios honestly. A ratio above 1 means the
+   event method is slower.
+6. Explain that fewer variables can coexist with more constraints and slower
+   solve time.
+7. Do not put unexplained infeasible snapshots in the main paper. Keep them in
+   results/ for diagnostics or an appendix with a clear semantic explanation.
+8. Keep every table value synchronized with its CSV source. After edits:
+     pdflatex -interaction=nonstopmode -halt-on-error main.tex
+     bibtex.exe main.aux
+     pdflatex -interaction=nonstopmode -halt-on-error main.tex
+     pdflatex -interaction=nonstopmode -halt-on-error main.tex
+   Then inspect main.log for Undefined, LaTeX Error, Emergency stop, and
+   Multiply defined.
+
+Acceptance criteria for Thesis_version
+---------------------------------------
+- Existing tests pass before and after the port.
+- C13 adversarial test reproduces both complementary legacy failures.
+- Event model rejects both adversarial violations.
+- Clean feasible parity instance solves with identical objective.
+- Heavy h=7,15,21 paired runs are optimal with identical objectives.
+- Independent replay reports zero schedule-created A/B violations on all
+  reported optimal schedules.
+- C/D validation is independently checked, not inferred only from solver status.
+- No table claims a formulation comparison when only one implementation ran.
+- No runtime claim is made from infeasible or time-limited rows.
+- Paper compiles with no missing references, figures, or citations.
+
+Do not do
+----------
+- Do not change stable_seed().
+- Do not modify canonical data/instances files.
+- Do not use Model_28Oct.py.
+- Do not replace Pyomo with PuLP or CVXPY.
+- Do not call the size-restricted PATH cplex executable the reference solver.
+- Do not present endpoint-split C13 as fully exact.
+- Do not claim event-based speedup unless measured on matched optimal runs.
+- Do not silently delete failed experiments; preserve them outside the main
+  evidence and explain why they are excluded.

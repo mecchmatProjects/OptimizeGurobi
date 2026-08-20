@@ -13,6 +13,7 @@ if str(ROOT) not in sys.path:
 from src.model import MILP_Sheduler
 
 SOURCE = ROOT / "data" / "instances" / "ABCD_capacity_bottleneck_test.json"
+SPARSE_SOURCE = ROOT / "data" / "instances" / "ABCD_all_checks_test.json"
 
 
 class EventMaintenanceScaffoldTests(unittest.TestCase):
@@ -152,6 +153,15 @@ class EventMaintenanceScaffoldTests(unittest.TestCase):
         self.assertFalse(hasattr(trial, "c10"))
         self.assertTrue(hasattr(trial, "c8e_block"))
         self.assertTrue(hasattr(trial, "c9e_capacity"))
+
+    def test_sparse_c15_domain_builds_without_invalid_x_access(self):
+        scheduler = MILP_Sheduler(str(SPARSE_SOURCE))
+        model = scheduler.build_model(
+            allow_ferry=True,
+            use_overlap=True,
+            use_event_maintenance=False,
+        )
+        self.assertTrue(hasattr(model, "c15"))
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@
 %% Main paper file for:
 %%   "Revisiting the Compact Tail Assignment Model:
 %%    Corrections, Extensions to Full Maintenance Hierarchies,
-%%    and a Heuristic Benchmark Study"
+%%    and an Event-Based Exact-State Reformulation"
 %%
 %% Compile with:  latexmk -pdf main.tex
 %% or:            pdflatex main && bibtex main && pdflatex main && pdflatex main
@@ -103,7 +103,11 @@ the model. We then report exact solves, cross-validated with two independent
 solvers, across targeted instances that isolate each check type (A, B, C, D)
 and their combination, demonstrating that the corrected hierarchy model
 enforces every check type without relaxation. All code, instances, and
-result tables accompany the project.
+result tables accompany the project. On matched feasible heavy instances, the
+event formulation reaches the same optimum as the corrected legacy model;
+it uses fewer variables at the tested horizons and reduces model-build time
+at the longer horizons, but its solve wall time remains higher because of the
+additional event-connection constraints.
 \end{abstract}
 
 \begin{keyword}

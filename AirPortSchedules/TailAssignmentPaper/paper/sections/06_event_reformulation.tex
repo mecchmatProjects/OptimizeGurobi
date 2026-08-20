@@ -15,6 +15,13 @@ exact-state formulation; here we give it a complete, self-contained
 derivation and prove its correctness directly, rather than only by analogy
 to the day-indexed recursion.
 
+The implementation described and validated in this section is the standalone
+\texttt{EventMILPScheduler} in \texttt{src/event\_model.py}. The separate
+flag-gated bridge scaffold in \texttt{src/model.py} is a migration aid that
+coexists with legacy day-indexed constraints; it is reported as a structural
+trial in Section~7 and is not used as evidence for the exact-state proof or
+objective-equivalence claims.
+
 \subsection{Modelling principle}
 \label{subsec:event_principle}
 

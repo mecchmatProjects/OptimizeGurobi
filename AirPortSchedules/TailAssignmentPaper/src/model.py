@@ -942,6 +942,10 @@ class MILP_Sheduler:
                     m.c_event_bridge_strict.add(
                         m.z_event[i, j, c] == m.z[i, j, start_day, c]
                     )
+                else:
+                    # An event with no representable legacy trigger index
+                    # cannot participate in a strict bridge comparison.
+                    m.c_event_bridge_strict.add(m.z_event[i, j, c] == 0)
 
             for j in m.P:
                 for c in self.CHECK_LIST:
@@ -1592,6 +1596,8 @@ class MILP_Sheduler:
                     for i2 in self._f_dep_window(apt, t_arr, t_arr + dur):
                         # Block i2 for aircraft j when:
                         #   x[i,j]=1  (j flew into apt via flight i)
+                        if not self._x_has_arc(i2, j):
+                            continue
                         d = self.flight_data[i2]['day_departure']
                         if d !=d_i:
                             m.c15.add(m.mega[j, d, c] + m.x[i2, j] <= 1)

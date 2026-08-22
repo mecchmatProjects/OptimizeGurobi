@@ -94,7 +94,11 @@ complete, day-free event-based reformulation of the same maintenance
 requirements, in which each flight's own timestamp supplies all calendar
 information and the flight-hour counter is propagated exactly along each
 aircraft's actual route with no day-pair window, and we prove its
-correctness directly. We give a numeric counterexample, evaluated against
+correctness directly. We additionally develop an ordered prefix-state
+implementation that removes explicit successor variables while retaining
+corrected route-feasibility constraints; on a feasible full-hierarchy fleet
+grid it achieves exact objective parity and uses substantially fewer variables
+than the day-indexed model. We give a numeric counterexample, evaluated against
 the real built constraint objects at two adversarial check patterns, in
 which the original and endpoint-split formulations each fail on a different
 pattern while the event-based formulation rejects both, and we independently

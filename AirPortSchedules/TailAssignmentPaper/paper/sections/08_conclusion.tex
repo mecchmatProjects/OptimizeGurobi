@@ -45,7 +45,7 @@ the full-hierarchy run also reproduces the Constraint~(13) split flaw
 unprompted on an existing test instance, showing the issue is not confined to
 hand-built corner cases.
 
-\paragraph{Event-based reformulation.}
+\paragraph{Event-based reformulation and ordered implementation.}
 We gave a complete, self-contained, day-free reformulation of the same
 C1--C14 requirements (\Cref{sec:event_reformulation}), in which maintenance
 is a virtual flight indexed on its triggering flight rather than on calendar
@@ -68,7 +68,14 @@ consistently larger on dense timetables, and that its stricter,
 never-exceed-the-threshold semantics is a genuine modelling-convention
 change from the existing benchmark suite, not merely an implementation
 detail. We report these as honest, measured trade-offs rather than an
-unconditional improvement.
+unconditional improvement. As a further implementation step, the ordered
+prefix-state variant removes explicit successor variables while retaining
+corrected route-feasibility constraints. On a feasible full A/B/C/D fleet-size
+grid, it matched the legacy and standalone event objectives at all four fleet
+sizes, used 47--72\% fewer variables than the legacy model, and had zero
+violations in an independent timestamp-based C/D replay. Its constraint and
+CPU behavior was mixed, so the result supports compactness and correctness on
+the tested grid, not universal speed superiority.
 
 \paragraph{Reproducibility.}
 The project contains the code, deterministic instance generator, experiment

@@ -8,6 +8,7 @@ import csv
 import glob
 import io
 import sys
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -42,14 +43,26 @@ def main() -> None:
     for path in paths:
         for label, formulation in FORMULATIONS:
             with contextlib.redirect_stdout(io.StringIO()):
+                build_started = time.perf_counter()
                 scheduler = formulation(path)
                 scheduler.build_model()
+                build_s = time.perf_counter() - build_started
+                solve_started = time.perf_counter()
                 summary = scheduler.solve(
                     solver_name=args.solver,
                     executable=args.executable,
                     time_limit=args.time_limit,
                     warm_start=False,
                 )
+                wall_s = time.perf_counter() - solve_started
+            try:
+                import importlib
+                psutil = importlib.import_module("psutil")
+                peak_rss_mb = round(
+                    psutil.Process().memory_info().rss / (1024 * 1024), 3
+                )
+            except ImportError:
+                peak_rss_mb = "unavailable"
             rows.append({
                 "instance": str(Path(path).relative_to(ROOT)),
                 "P": len(scheduler.aircraft_ids),
@@ -60,6 +73,9 @@ def main() -> None:
                 "vars": summary["n_vars"],
                 "constraints": summary["n_cons"],
                 "cpu_s": summary.get("cpu"),
+                "build_s": round(build_s, 6),
+                "wall_s": round(wall_s, 6),
+                "peak_rss_mb": peak_rss_mb,
             })
 
     output = ROOT / args.output

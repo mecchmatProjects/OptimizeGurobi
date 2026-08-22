@@ -39,7 +39,13 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
     CALENDAR_CHECKS = ()
     FORMULATION_ID = "ordered_hour_event"
 
-    def build_model(self, overlap_mode='clique', tight_state_big_m=True):
+    def build_model(
+        self,
+        overlap_mode='clique',
+        tight_state_big_m=True,
+        local_state_indexing=True,
+        calendar_candidate_pruning=True,
+    ):
         model = ConcreteModel(name=self.FORMULATION_ID)
         self.model = model
         model.F = Set(initialize=self.flight_ids, ordered=True)
@@ -64,15 +70,27 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
                 for check in self.CHECK_LIST
             ),
         )
-        aircraft_ordered_flights = {
-            aircraft: sorted(
-                self._x_flights_for_aircraft(aircraft),
-                key=lambda flight: (
-                    self.flight_data[flight]["departureTime"], flight
-                ),
-            )
-            for aircraft in self.aircraft_ids
-        }
+        global_ordered_flights = sorted(
+            self.flight_ids,
+            key=lambda flight: (
+                self.flight_data[flight]["departureTime"], flight
+            ),
+        )
+        if local_state_indexing:
+            aircraft_ordered_flights = {
+                aircraft: sorted(
+                    self._x_flights_for_aircraft(aircraft),
+                    key=lambda flight: (
+                        self.flight_data[flight]["departureTime"], flight
+                    ),
+                )
+                for aircraft in self.aircraft_ids
+            }
+        else:
+            aircraft_ordered_flights = {
+                aircraft: global_ordered_flights
+                for aircraft in self.aircraft_ids
+            }
         model.Q = Set(
             dimen=3,
             initialize=(
@@ -105,10 +123,19 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
             model,
             aircraft_ordered_flights,
             tight_state_big_m=tight_state_big_m,
+            local_state_indexing=local_state_indexing,
+            calendar_candidate_pruning=calendar_candidate_pruning,
         )
         return model
 
-    def _add_ordered_maintenance(self, model, aircraft_ordered_flights, tight_state_big_m=True):
+    def _add_ordered_maintenance(
+        self,
+        model,
+        aircraft_ordered_flights,
+        tight_state_big_m=True,
+        local_state_indexing=True,
+        calendar_candidate_pruning=True,
+    ):
         model.c5_event = ConstraintList()
         for flight, aircraft, check in model.Z:
             model.c5_event.add(model.z[flight, aircraft, check] <= model.x[flight, aircraft])
@@ -183,8 +210,19 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
             flights = aircraft_ordered_flights[aircraft]
             for position, flight in enumerate(flights):
                 duration = self.flight_data[flight]["duration"]
-                assigned = model.x[flight, aircraft]
+                has_arc = (flight, aircraft) in model.X
+                assigned = model.x[flight, aircraft] if has_arc else 0
                 for check in self.HOUR_CHECKS:
+                    if not has_arc:
+                        initial = self.init_check_hrs[check][aircraft] * 60.0
+                        previous = (
+                            initial
+                            if position == 0
+                            else model.q[position - 1, aircraft, check]
+                        )
+                        state = model.q[position, aircraft, check]
+                        model.c11_state.add(state == previous)
+                        continue
                     checked = sum(
                         model.z[flight, aircraft, reset_check]
                         for reset_check in self.CHECK_HIERARCHY[check]
@@ -231,9 +269,12 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
                     model.c11_state.add(state <= state_ub)
 
         if self.CALENDAR_CHECKS:
-            self._add_ordered_calendar_limits(model)
+            self._add_ordered_calendar_limits(
+                model,
+                candidate_pruning=calendar_candidate_pruning,
+            )
 
-    def _add_ordered_calendar_limits(self, model):
+    def _add_ordered_calendar_limits(self, model, candidate_pruning=True):
         """Enforce C/D check deadlines directly on timestamped z events."""
         model.c14_calendar = ConstraintList()
         horizon_end = max(
@@ -250,11 +291,25 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
                     if candidate_aircraft == aircraft
                     and check in self.CHECK_HIERARCHY[requirement]
                 ]
-                first_events = [
-                    model.z[flight, aircraft, check]
-                    for flight, check in qualifying
-                    if self.flight_data[flight]["arrivalTime"] <= first_deadline
-                ]
+
+                if candidate_pruning:
+                    by_flight = {}
+                    for flight, check in qualifying:
+                        by_flight.setdefault(flight, []).append(check)
+
+                    first_events = [
+                        sum(model.z[flight, aircraft, check] for check in checks)
+                        for flight, checks in by_flight.items()
+                        if self.flight_data[flight]["arrivalTime"] <= first_deadline
+                    ]
+                else:
+                    by_flight = None
+                    first_events = [
+                        model.z[flight, aircraft, check]
+                        for flight, check in qualifying
+                        if self.flight_data[flight]["arrivalTime"] <= first_deadline
+                    ]
+
                 if first_deadline <= horizon_end:
                     if not first_events:
                         raise ValueError(
@@ -263,20 +318,35 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
                         )
                     model.c14_calendar.add(sum(first_events) >= 1)
 
-                for flight, check in qualifying:
-                    start = self.flight_data[flight]["arrivalTime"]
-                    if start + limit > horizon_end:
-                        continue
-                    following = [
-                        model.z[next_flight, aircraft, next_check]
-                        for next_flight, next_check in qualifying
-                        if start
-                        < self.flight_data[next_flight]["arrivalTime"]
-                        <= start + limit
-                    ]
-                    model.c14_calendar.add(
-                        sum(following) >= model.z[flight, aircraft, check]
-                    )
+                if candidate_pruning:
+                    for flight, checks in by_flight.items():
+                        start = self.flight_data[flight]["arrivalTime"]
+                        if start + limit > horizon_end:
+                            continue
+                        rhs = sum(model.z[flight, aircraft, check] for check in checks)
+                        following = [
+                            sum(model.z[next_flight, aircraft, next_check] for next_check in next_checks)
+                            for next_flight, next_checks in by_flight.items()
+                            if start
+                            < self.flight_data[next_flight]["arrivalTime"]
+                            <= start + limit
+                        ]
+                        model.c14_calendar.add(sum(following) >= rhs)
+                else:
+                    for flight, check in qualifying:
+                        start = self.flight_data[flight]["arrivalTime"]
+                        if start + limit > horizon_end:
+                            continue
+                        following = [
+                            model.z[next_flight, aircraft, next_check]
+                            for next_flight, next_check in qualifying
+                            if start
+                            < self.flight_data[next_flight]["arrivalTime"]
+                            <= start + limit
+                        ]
+                        model.c14_calendar.add(
+                            sum(following) >= model.z[flight, aircraft, check]
+                        )
 
     def print_report(self, out_path=None, summary=None):
         """Print the compact model's solved assignment and A events."""

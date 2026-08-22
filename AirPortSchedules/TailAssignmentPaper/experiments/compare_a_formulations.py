@@ -7,6 +7,8 @@ import contextlib
 import csv
 import io
 import json
+import math
+import re
 import sys
 import time
 from pathlib import Path
@@ -33,10 +35,16 @@ FORMULATIONS = {
 
 def metadata(path: Path) -> dict[str, object]:
     data = json.loads(path.read_text(encoding="utf-8"))
+    match = re.search(r"_h=(\d+)_", path.name)
+    if match:
+        horizon = int(match.group(1))
+    else:
+        horizon = int(math.ceil(max(float(f[4]) for f in data["Flights"]) / 1440.0))
     return {
         "instance": path.name,
         "P": len(data["Aircrafts"]),
         "F": len(data["Flights"]),
+        "H": horizon,
     }
 
 
@@ -78,6 +86,7 @@ def run_one(path: Path, formulation: str, solver: str, executable: str, limit: i
                 "objective": summary.get("obj"),
                 "vars": variables,
                 "constraints": constraints,
+                "cpu_s": summary.get("cpu", ""),
                 "build_s": round(build_s, 6),
                 "wall_s": round(time.perf_counter() - solve_started, 6),
                 "error": "",
@@ -90,6 +99,7 @@ def run_one(path: Path, formulation: str, solver: str, executable: str, limit: i
                 "objective": "",
                 "vars": "",
                 "constraints": "",
+                "cpu_s": "",
                 "build_s": round(time.perf_counter() - started, 6),
                 "wall_s": "",
                 "error": f"{type(error).__name__}: {error}",
@@ -117,8 +127,8 @@ def main() -> None:
     output = ROOT / args.output
     output.parent.mkdir(parents=True, exist_ok=True)
     fields = [
-        "instance", "P", "F", "formulation", "status", "objective", "vars",
-        "constraints", "build_s", "wall_s", "error",
+        "instance", "H", "P", "F", "formulation", "status", "objective", "vars",
+        "constraints", "cpu_s", "build_s", "wall_s", "error",
     ]
     with output.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields)

@@ -85,6 +85,24 @@ class CompactAEventTests(unittest.TestCase):
             7 * len(model.Q),
         )
 
+    def test_ordered_model_global_state_indexing_restores_full_q_shape(self):
+        scheduler = OrderedAEventMILPScheduler(str(SOURCE))
+        model = scheduler.build_model(local_state_indexing=False)
+
+        expected = 0
+        for flight in scheduler.flight_ids:
+            for aircraft in scheduler.aircraft_ids:
+                expected += 7 if scheduler._x_has_arc(flight, aircraft) else 1
+
+        self.assertEqual(
+            len(model.Q),
+            len(scheduler.flight_ids) * len(scheduler.aircraft_ids),
+        )
+        self.assertEqual(
+            len(list(model.c11_state)),
+            expected,
+        )
+
     def test_ordered_ab_model_has_two_hour_states_and_hierarchy_events(self):
         scheduler = OrderedABEventMILPScheduler(str(SOURCE))
         model = scheduler.build_model()
@@ -107,6 +125,14 @@ class CompactAEventTests(unittest.TestCase):
     def test_ordered_full_model_builds_feasible_abcd_instance(self):
         scheduler = OrderedABCDEventMILPScheduler(str(ABCD_SOURCE))
         model = scheduler.build_model()
+
+        self.assertEqual(list(model.C), ["A", "B", "C", "D"])
+        self.assertGreater(len(model.Z), 0)
+        self.assertGreater(len(list(model.c14_calendar)), 0)
+
+    def test_ordered_full_model_builds_with_calendar_pruning_disabled(self):
+        scheduler = OrderedABCDEventMILPScheduler(str(ABCD_SOURCE))
+        model = scheduler.build_model(calendar_candidate_pruning=False)
 
         self.assertEqual(list(model.C), ["A", "B", "C", "D"])
         self.assertGreater(len(model.Z), 0)

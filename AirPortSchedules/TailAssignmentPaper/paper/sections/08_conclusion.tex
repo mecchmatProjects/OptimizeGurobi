@@ -76,12 +76,25 @@ sizes, used 47--72\% fewer variables than the legacy model, and had zero
 violations in an independent timestamp-based C/D replay. Its constraint and
 CPU behavior was mixed, so the result supports compactness and correctness on
 the tested grid, not universal speed superiority. A dedicated implementation
-ablation of the ordered variant's two latest speed knobs (overlap-row profile
-and state big-$M$ profile) further shows a solver interaction: on the tested
-horizon family, the stronger profile (interval-clique overlap + tightened
+ablation of ordered speed knobs (overlap-row profile and state big-$M$
+profile) shows a solver interaction: on the tested horizon family, the
+stronger profile (interval-clique overlap + tightened
 state big-$M$) improves unrestricted CPLEX on average (+5.26\% wall-time),
 but degrades HiGHS on average (-12.32\% wall-time). The practical conclusion is
 solver-specific configuration, not one globally "best" ordered profile.
+Using the final CPLEX-tuned ordered ABCD profile
+(interval-clique overlap, tightened state big-$M$, local state indexing, and
+calendar candidate pruning), calendar pruning adds a further small but
+consistent gain on the tested horizons (+0.12\% mean CPU and +0.22\% mean
+wall) with identical statuses and objectives. For the single-check (A-only)
+case, the latest ordered A-event implementation shows clear horizon-wise
+timing gains on the tested feasible family: mean wall-time gain
+of 18.70\% and mean solver CPU-time gain of 14.73\% versus the legacy A-only
+model, with the largest improvements at $h\in\{15,21,30\}$.
+At fixed $h=7$, the corresponding fleet-size experiment gives a mean CPU-time
+gain of +6.01\% for the ordered A-event model over the legacy A-only model
+across $|P|\in\{5,10,15,20\}$, although the gain is driven mainly by the
+largest fleet and is therefore reported as a descriptive grid result.
 
 \paragraph{Reproducibility.}
 The project contains the code, deterministic instance generator, experiment

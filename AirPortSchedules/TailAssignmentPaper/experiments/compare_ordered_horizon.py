@@ -8,6 +8,8 @@ import csv
 import glob
 import inspect
 import io
+import json
+import math
 import re
 import sys
 import time
@@ -33,9 +35,13 @@ FORMULATIONS = (
 def parse_horizon_days(path: str) -> int:
     """Extract planning horizon h from canonical instance filenames."""
     match = re.search(r"_h=(\d+)_", Path(path).name)
-    if not match:
-        raise ValueError(f"Could not parse horizon from filename: {path}")
-    return int(match.group(1))
+    if match:
+        return int(match.group(1))
+
+    with open(path, encoding="utf-8") as input_file:
+        data = json.load(input_file)
+    max_arrival = max(float(flight[4]) for flight in data["Flights"])
+    return int(math.ceil(max_arrival / 1440.0))
 
 
 def main() -> None:
@@ -76,6 +82,26 @@ def main() -> None:
         help="Force coarse state big-M rows in ordered_abcd formulation.",
     )
     parser.add_argument(
+        "--ordered-local-state-indexing",
+        action="store_true",
+        help="Use aircraft-local state indexing in ordered_abcd formulation.",
+    )
+    parser.add_argument(
+        "--ordered-global-state-indexing",
+        action="store_true",
+        help="Use global state indexing in ordered_abcd formulation.",
+    )
+    parser.add_argument(
+        "--ordered-calendar-pruning",
+        action="store_true",
+        help="Enable calendar candidate pruning for ordered_abcd c14 windows.",
+    )
+    parser.add_argument(
+        "--ordered-no-calendar-pruning",
+        action="store_true",
+        help="Disable calendar candidate pruning for ordered_abcd c14 windows.",
+    )
+    parser.add_argument(
         "--output",
         default="results/tables/formulation_abcd_horizon_scaling_latest.csv",
     )
@@ -83,12 +109,30 @@ def main() -> None:
 
     if args.ordered_tight_state_big_m and args.ordered_coarse_state_big_m:
         parser.error("Choose at most one of --ordered-tight-state-big-m or --ordered-coarse-state-big-m")
+    if args.ordered_local_state_indexing and args.ordered_global_state_indexing:
+        parser.error("Choose at most one of --ordered-local-state-indexing or --ordered-global-state-indexing")
+    if args.ordered_calendar_pruning and args.ordered_no_calendar_pruning:
+        parser.error("Choose at most one of --ordered-calendar-pruning or --ordered-no-calendar-pruning")
     if args.ordered_coarse_state_big_m:
         ordered_tight_state_big_m = False
     elif args.ordered_tight_state_big_m:
         ordered_tight_state_big_m = True
     else:
         ordered_tight_state_big_m = True
+
+    if args.ordered_global_state_indexing:
+        ordered_local_state_indexing = False
+    elif args.ordered_local_state_indexing:
+        ordered_local_state_indexing = True
+    else:
+        ordered_local_state_indexing = True
+
+    if args.ordered_no_calendar_pruning:
+        ordered_calendar_pruning = False
+    elif args.ordered_calendar_pruning:
+        ordered_calendar_pruning = True
+    else:
+        ordered_calendar_pruning = True
 
     if args.instances:
         paths = [str(ROOT / Path(path)) for path in args.instances]
@@ -129,6 +173,10 @@ def main() -> None:
                             build_kwargs["overlap_mode"] = args.ordered_overlap_mode
                         if "tight_state_big_m" in signature.parameters:
                             build_kwargs["tight_state_big_m"] = ordered_tight_state_big_m
+                        if "local_state_indexing" in signature.parameters:
+                            build_kwargs["local_state_indexing"] = ordered_local_state_indexing
+                        if "calendar_candidate_pruning" in signature.parameters:
+                            build_kwargs["calendar_candidate_pruning"] = ordered_calendar_pruning
                     scheduler.build_model(**build_kwargs)
                     build_s = time.perf_counter() - build_started
                     solve_started = time.perf_counter()
@@ -163,6 +211,8 @@ def main() -> None:
                         "peak_rss_mb": peak_rss_mb,
                         "overlap_mode": (args.ordered_overlap_mode if label == "ordered_abcd" else "default"),
                         "tight_state_big_m": (ordered_tight_state_big_m if label == "ordered_abcd" else "default"),
+                        "local_state_indexing": (ordered_local_state_indexing if label == "ordered_abcd" else "default"),
+                        "calendar_candidate_pruning": (ordered_calendar_pruning if label == "ordered_abcd" else "default"),
                     }
                 )
             except (ApplicationError, RuntimeError, ValueError, OSError, TypeError) as error:

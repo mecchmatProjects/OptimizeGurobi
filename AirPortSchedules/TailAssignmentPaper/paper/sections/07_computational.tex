@@ -76,6 +76,7 @@ optimal & 0.09 & 0.20 & 8\,300 \\
 \end{tabular}
 \end{table}
 
+
 \subsubsection{Direct C13 implementation check}
 \label{subsec:comp_c13}
 
@@ -541,10 +542,107 @@ universal claim over all instance distributions.
 \label{fig:ordered_abcd_wall_horizon}
 \end{figure}
 
+\paragraph{A-only timing improvement versus horizon (latest ordered A profile).}
+To isolate solve-time behavior for a single maintenance type, we compared the
+legacy A-only model and the ordered A-event model on the same four feasible
+instances with $|P|=10$ and $h\in\{7,15,21,30\}$ using unrestricted
+CPLEX~12.6. This is the latest and best-performing A-only implementation in
+this repository, and we report wall solve time, solver CPU time, and model
+size from \texttt{results/tables/formulation\_a\_comparison\_latest.csv}.
+
+\begin{table}[t]
+\centering\small
+\caption{A-only (single-check) solve-time comparison by horizon.
+  Positive gain means ordered A-event is faster than legacy A-only.}
+\label{tab:a_only_horizon_timing}
+\begin{tabular}{r r r r r r r r r}
+\toprule
+$h$ & Wall L (s) & Wall O (s) & Wall gain (\%) & CPU L (s) & CPU O (s) & CPU gain (\%) & Vars L/O & Cons. L/O \\
+\midrule
+7  & 0.809661 & 0.797610 & +1.49 & 0.437317 & 0.436940 & +0.09 & 1910/1250 & 3498/4793 \\
+15 & 1.075419 & 0.818485 & +23.89 & 0.537919 & 0.437708 & +18.63 & 3370/1500 & 7494/5747 \\
+21 & 1.055696 & 0.827527 & +21.61 & 0.538825 & 0.438074 & +18.70 & 3370/1500 & 7494/5747 \\
+30 & 1.074072 & 0.820306 & +23.63 & 0.537266 & 0.436448 & +18.77 & 3370/1500 & 7494/5747 \\
+\midrule
+Mean & -- & -- & +18.70 & -- & -- & +14.73 & -- & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The A-only case shows consistent horizon-wise speedup for the ordered method
+in both wall and CPU time on this tested family, with gains near 19\% in CPU
+and 19\% in wall time for $h\ge 15$. Together, Table~\ref{tab:a_only_horizon_timing}
+and Figures~\ref{fig:ordered_a_wall_horizon}--\ref{fig:ordered_a_cpu_horizon}
+provide the complete latest A-only timing evidence.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.86\linewidth]{figures/ordered_a_wall_vs_horizon.png}
+\caption{A-only solve wall time versus planning horizon for legacy and
+  ordered A-event formulations.}
+\label{fig:ordered_a_wall_horizon}
+\end{figure}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.86\linewidth]{figures/ordered_a_cpu_vs_horizon.png}
+\caption{A-only solve CPU time versus planning horizon for legacy and
+  ordered A-event formulations.}
+\label{fig:ordered_a_cpu_horizon}
+\end{figure}
+
+\paragraph{A-only CPU scaling versus fleet size.}
+We additionally fixed the planning horizon at $h=7$ and compared the legacy
+A-only, compact A-event, and latest ordered A-event formulations on the
+matched feasible fleet-size instances with $|P|\in\{5,10,15,20\}$. All twelve
+runs were optimal and objective-matched. The complete measurements are in
+\texttt{results/tables/formulation\_a\_fleet\_scaling\_latest.csv}; the latest
+ordered profile's CPU-time scaling is shown in
+Figure~\ref{fig:ordered_a_cpu_fleet}.
+
+\begin{table}[t]
+\centering\scriptsize
+\caption{A-only CPU-time scaling with fleet size at $h=7$. Positive gain means
+  ordered A-event is faster than legacy A-only. All runs are optimal and
+  objective-matched.}
+\label{tab:a_only_fleet_cpu}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{r r r r r r r r r}
+\toprule
+$|P|$ & CPU Legacy & CPU Compact & CPU Ordered & Gain (\%) & Vars L/O & Cons. L/O & Obj. Legacy & Obj. Ordered \\
+\midrule
+5  & 0.335890 & 0.335695 & 0.335151 & +0.22 & 320/125 & 748/465 & 4\,839 & 4\,839 \\
+10 & 0.336071 & 0.335695 & 0.336778 & -0.21 & 990/500 & 2\,128/1\,873 & 9\,627 & 9\,627 \\
+15 & 0.336498 & 0.336286 & 0.333956 & +0.76 & 1\,950/1\,125 & 3\,938/4\,283 & 14\,341 & 14\,341 \\
+20 & 0.437365 & 0.436705 & 0.335564 & +23.28 & 3\,300/2\,000 & 6\,248/7\,511 & 19\,092 & 19\,092 \\
+\midrule
+Mean gain & -- & -- & -- & +6.01 & -- & -- & -- & -- \\
+\bottomrule
+\end{tabular}
+}%
+\end{table}
+
+The ordered formulation is the fastest of the three at $|P|=15$ and
+$|P|=20$, with a mean CPU-time gain of +6.01\% over legacy on this four-point
+grid. Its variable count is consistently lower than legacy, whereas its
+constraint count is lower at $|P|=5,10$ and higher at $|P|=15,20$. The small
+negative gain at $|P|=10$ and the single-run nature of each cell reinforce that
+these are descriptive measurements rather than a universal scaling law.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.86\linewidth]{figures/ordered_a_cpu_vs_fleet.png}
+\caption{A-only solve CPU time versus fleet size at fixed horizon $h=7$ for
+  the legacy, compact event, and latest ordered event formulations.}
+\label{fig:ordered_a_cpu_fleet}
+\end{figure}
+
 \paragraph{Ordered-model profile ablation (latest implementation).}
-After adding two implementation-level performance controls in the ordered
-model -- overlap-row structure (pairwise vs.\/ interval-clique) and state
-propagation big-$M$ profile (coarse vs.\ tightened) -- we ran an ablation on
+After adding implementation-level performance controls in the ordered
+model -- overlap-row structure (pairwise vs.\/ interval-clique), state
+propagation big-$M$ profile (coarse vs.\ tightened), aircraft-local state
+indexing, and calendar candidate pruning -- we first ran a two-factor
+ablation (overlap + big-$M$) on
 the same four feasible horizon instances ($h\in\{7,15,21,30\}$, $|P|=10$):
 
 \begin{itemize}
@@ -606,6 +704,67 @@ a single global profile. \Cref{fig:ordered_profile_ablation_gains} visualizes
 the crossover directly: HiGHS remains below zero on wall-time gain for all
 tested horizons, while CPLEX is positive on three of the four horizons.
 
+\subsection{Calendar candidate pruning in the newest ordered profile}
+\label{subsec:ordered_calendar_pruning}
+
+The latest full-ABCD ordered profile used for final horizon measurements in
+this paper is:
+\begin{itemize}
+  \item interval-clique overlap rows,
+  \item tightened state big-$M$ constants,
+  \item aircraft-local state indexing, and
+  \item calendar candidate pruning in C14 windows.
+\end{itemize}
+
+Calendar candidate pruning removes dominated per-check candidates inside each
+calendar window by aggregating candidates at the flight level before building
+C14 rows. This is semantics-preserving under the model's
+one-maintenance-event-per-flight logic and is intended to reduce redundant
+literals in dense windows.
+
+We measured pruning \emph{on} versus \emph{off} on the same four feasible
+horizon instances ($|P|=10$, $h\in\{7,15,21,30\}$), with all other options
+fixed to the latest profile and unrestricted CPLEX~12.6 for AMPL as solver.
+Results are in
+\texttt{results/tables/ordered\_calendar\_pruning\_on\_cplex.csv} and
+\texttt{results/tables/ordered\_calendar\_pruning\_off\_cplex.csv}.
+
+\begin{table}[t]
+\centering\small
+\caption{Calendar-candidate pruning effect in the newest ordered ABCD profile.
+  Positive gain means pruning enabled is faster than pruning disabled. All runs
+  are optimal and objective-matched.}
+\label{tab:ordered_calendar_pruning}
+\begin{tabular}{r r r r r r r}
+\toprule
+$h$ & CPU off (s) & CPU on (s) & CPU gain (\%) & Wall off (s) & Wall on (s) & Wall gain (\%) \\
+\midrule
+7  & 0.537955 & 0.536415 & +0.29 & 1.042861 & 1.040630 & +0.21 \\
+15 & 0.538259 & 0.538097 & +0.03 & 1.069399 & 1.068243 & +0.11 \\
+21 & 0.639946 & 0.639482 & +0.07 & 1.163880 & 1.161167 & +0.23 \\
+30 & 0.538021 & 0.537535 & +0.09 & 1.071652 & 1.068397 & +0.30 \\
+\midrule
+Mean & -- & -- & +0.12 & -- & -- & +0.22 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.86\linewidth]{figures/ordered_calendar_pruning_gains.png}
+\caption{CPU-time and wall-time gains from calendar candidate pruning in the
+  newest ordered ABCD profile. Positive values indicate that pruning is faster
+  than the unpruned profile.}
+\label{fig:ordered_calendar_pruning_gains}
+\end{figure}
+
+All eight runs (four off, four on) are optimal and objective-matched. On this
+tested dense family, pruning yields small but consistent timing improvements,
+with mean gains of +0.12\% in solver CPU and +0.22\% in wall time. Model-size
+counts are unchanged in these four cases, indicating that this particular
+family has limited C14 candidate dominance to exploit; larger gains may appear
+on instances with heavier calendar-window overlap.
+
 \subsection{Summary of findings}
 
 \begin{enumerate}
@@ -640,11 +799,16 @@ tested horizons, while CPLEX is positive on three of the four horizons.
     average (+5.26\% wall-time gain on the tested horizon grid) but degrade
     HiGHS on average (-12.32\%), so solver-specific profile defaults are
     required for fair runtime reporting.
-  \item The CPLEX installation available in this environment is a
-    size-restricted Community/Preview edition and cannot solve any instance
-    with maintenance constraints active (\texttt{CPLEX Error 1016}); the
-    new Constraint~(13) and hierarchy results therefore use the open-source
-    HiGHS solver, which is exact and unrestricted.
+  \item In the latest A-only benchmark, the ordered A-event implementation is
+    consistently faster than the legacy A-only model across all tested
+    horizons, with mean gains of +18.70\% wall time and +14.73\% CPU time.
+  \item Adding calendar candidate pruning to the newest ordered ABCD profile
+    gives a small but consistent additional gain on the tested horizon family
+    (+0.12\% mean CPU, +0.22\% mean wall) while preserving optimal status and
+    objective parity in every run.
+  \item This environment contains both a PATH-restricted CPLEX build and an
+    unrestricted CPLEX~12.6-for-AMPL executable; all reported CPLEX runtime
+    results in this section use the unrestricted solver path.
 \end{enumerate}
 
 \subsection{Phase 2: Structural trial of event-based maintenance bridge modes}

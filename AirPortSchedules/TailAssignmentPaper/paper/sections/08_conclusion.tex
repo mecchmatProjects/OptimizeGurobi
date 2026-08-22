@@ -75,7 +75,13 @@ grid, it matched the legacy and standalone event objectives at all four fleet
 sizes, used 47--72\% fewer variables than the legacy model, and had zero
 violations in an independent timestamp-based C/D replay. Its constraint and
 CPU behavior was mixed, so the result supports compactness and correctness on
-the tested grid, not universal speed superiority.
+the tested grid, not universal speed superiority. A dedicated implementation
+ablation of the ordered variant's two latest speed knobs (overlap-row profile
+and state big-$M$ profile) further shows a solver interaction: on the tested
+horizon family, the stronger profile (interval-clique overlap + tightened
+state big-$M$) improves unrestricted CPLEX on average (+5.26\% wall-time),
+but degrades HiGHS on average (-12.32\% wall-time). The practical conclusion is
+solver-specific configuration, not one globally "best" ordered profile.
 
 \paragraph{Reproducibility.}
 The project contains the code, deterministic instance generator, experiment

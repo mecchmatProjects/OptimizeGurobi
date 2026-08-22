@@ -6,6 +6,7 @@ import argparse
 import contextlib
 import csv
 import glob
+import inspect
 import io
 import re
 import sys
@@ -59,10 +60,35 @@ def main() -> None:
     )
     parser.add_argument("--time-limit", type=int, default=120)
     parser.add_argument(
+        "--ordered-overlap-mode",
+        choices=["clique", "pairwise"],
+        default="clique",
+        help="Overlap constraint mode for ordered_abcd formulation.",
+    )
+    parser.add_argument(
+        "--ordered-tight-state-big-m",
+        action="store_true",
+        help="Use tightened state big-M rows in ordered_abcd formulation.",
+    )
+    parser.add_argument(
+        "--ordered-coarse-state-big-m",
+        action="store_true",
+        help="Force coarse state big-M rows in ordered_abcd formulation.",
+    )
+    parser.add_argument(
         "--output",
         default="results/tables/formulation_abcd_horizon_scaling_latest.csv",
     )
     args = parser.parse_args()
+
+    if args.ordered_tight_state_big_m and args.ordered_coarse_state_big_m:
+        parser.error("Choose at most one of --ordered-tight-state-big-m or --ordered-coarse-state-big-m")
+    if args.ordered_coarse_state_big_m:
+        ordered_tight_state_big_m = False
+    elif args.ordered_tight_state_big_m:
+        ordered_tight_state_big_m = True
+    else:
+        ordered_tight_state_big_m = True
 
     if args.instances:
         paths = [str(ROOT / Path(path)) for path in args.instances]
@@ -96,7 +122,14 @@ def main() -> None:
                 with contextlib.redirect_stdout(io.StringIO()):
                     build_started = time.perf_counter()
                     scheduler = formulation(path)
-                    scheduler.build_model()
+                    build_kwargs = {}
+                    if label == "ordered_abcd":
+                        signature = inspect.signature(scheduler.build_model)
+                        if "overlap_mode" in signature.parameters:
+                            build_kwargs["overlap_mode"] = args.ordered_overlap_mode
+                        if "tight_state_big_m" in signature.parameters:
+                            build_kwargs["tight_state_big_m"] = ordered_tight_state_big_m
+                    scheduler.build_model(**build_kwargs)
                     build_s = time.perf_counter() - build_started
                     solve_started = time.perf_counter()
                     summary = scheduler.solve(
@@ -128,6 +161,8 @@ def main() -> None:
                         "build_s": round(build_s, 6),
                         "wall_s": round(wall_s, 6),
                         "peak_rss_mb": peak_rss_mb,
+                        "overlap_mode": (args.ordered_overlap_mode if label == "ordered_abcd" else "default"),
+                        "tight_state_big_m": (ordered_tight_state_big_m if label == "ordered_abcd" else "default"),
                     }
                 )
             except (ApplicationError, RuntimeError, ValueError, OSError, TypeError) as error:

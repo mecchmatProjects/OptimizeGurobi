@@ -541,6 +541,71 @@ universal claim over all instance distributions.
 \label{fig:ordered_abcd_wall_horizon}
 \end{figure}
 
+\paragraph{Ordered-model profile ablation (latest implementation).}
+After adding two implementation-level performance controls in the ordered
+model -- overlap-row structure (pairwise vs.\/ interval-clique) and state
+propagation big-$M$ profile (coarse vs.\ tightened) -- we ran an ablation on
+the same four feasible horizon instances ($h\in\{7,15,21,30\}$, $|P|=10$):
+
+\begin{itemize}
+  \item \textbf{clique+tight}: maximal-interval clique overlap rows with
+  tightened state big-$M$ constants;
+  \item \textbf{pairwise+coarse}: legacy pairwise overlap rows with coarse
+  state big-$M$ constants.
+\end{itemize}
+
+The runs were repeated under both exact solvers used in this paper
+(HiGHS via \texttt{appsi\_highs} and unrestricted CPLEX~12.6 via
+\texttt{cplexamp}). Results are in
+\texttt{results/tables/ordered\_ablation\_clique\_tight.csv},
+\texttt{results/tables/ordered\_ablation\_pairwise\_coarse.csv},
+\texttt{results/tables/ordered\_ablation\_clique\_tight\_cplex.csv}, and
+\texttt{results/tables/ordered\_ablation\_pairwise\_coarse\_cplex.csv}.
+
+\begin{table}[t]
+\centering\small
+\caption{Ordered-model ablation by solver and horizon. Positive gain means
+  \textbf{clique+tight} is faster than \textbf{pairwise+coarse}; negative gain
+  means slower. All rows are optimal in both profiles.}
+\label{tab:ordered_profile_ablation}
+\begin{tabular}{l r r r r}
+\toprule
+Solver & $h$ & Build gain (\%) & Wall gain (\%) & Better wall profile \\
+\midrule
+HiGHS & 7  & +2.06  & -2.46  & pairwise+coarse \\
+HiGHS & 15 & -0.99  & -17.93 & pairwise+coarse \\
+HiGHS & 21 & -18.67 & -14.06 & pairwise+coarse \\
+HiGHS & 30 & +10.42 & -14.82 & pairwise+coarse \\
+CPLEX & 7  & +3.54  & +3.02  & clique+tight \\
+CPLEX & 15 & -0.83  & -1.00  & pairwise+coarse (marginal) \\
+CPLEX & 21 & +15.06 & +10.59 & clique+tight \\
+CPLEX & 30 & +9.99  & +8.44  & clique+tight \\
+\midrule
+HiGHS mean & -- & -1.80 & -12.32 & pairwise+coarse \\
+CPLEX mean & -- & +6.94 & +5.26 & clique+tight \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.98\linewidth]{figures/ordered_profile_ablation_gains.png}
+\caption{Solver-specific gains of the \textbf{clique+tight} ordered profile
+  relative to \textbf{pairwise+coarse} across horizon lengths. Positive values
+  mean faster performance for clique+tight. Left: build-time gain. Right:
+  solve wall-time gain.}
+\label{fig:ordered_profile_ablation_gains}
+\end{figure}
+
+This is a clear solver interaction effect. On this benchmark family,
+the strengthened profile (clique+tight) improves CPLEX on average, but hurts
+HiGHS on average; the ranking is therefore not formulation-only, it is
+formulation-plus-solver. Practically, the ordered implementation should expose
+both profiles and choose defaults by solver backend rather than hard-coding
+a single global profile. \Cref{fig:ordered_profile_ablation_gains} visualizes
+the crossover directly: HiGHS remains below zero on wall-time gain for all
+tested horizons, while CPLEX is positive on three of the four horizons.
+
 \subsection{Summary of findings}
 
 \begin{enumerate}
@@ -570,6 +635,11 @@ universal claim over all instance distributions.
   \item Historical boundary cases that depend on after-threshold checking are
     excluded from the correctness comparison because they use a different
     maintenance convention; dense exploratory cases remain solver diagnostics.
+  \item The latest ordered-model speed optimizations (clique overlap +
+    tightened state big-$M$) are solver-dependent: they improve CPLEX on
+    average (+5.26\% wall-time gain on the tested horizon grid) but degrade
+    HiGHS on average (-12.32\%), so solver-specific profile defaults are
+    required for fair runtime reporting.
   \item The CPLEX installation available in this environment is a
     size-restricted Community/Preview edition and cannot solve any instance
     with maintenance constraints active (\texttt{CPLEX Error 1016}); the

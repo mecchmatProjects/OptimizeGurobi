@@ -72,7 +72,7 @@ class CompactAEventTests(unittest.TestCase):
 
         self.assertEqual(list(model.C), ["A"])
         self.assertEqual(len(model.Z), len(model.X))
-        self.assertEqual(len(model.Q), len(scheduler.flight_ids) * len(scheduler.aircraft_ids))
+        self.assertEqual(len(model.Q), len(model.X))
         self.assertFalse(hasattr(model, "y"))
         self.assertFalse(hasattr(model, "w"))
 
@@ -82,7 +82,7 @@ class CompactAEventTests(unittest.TestCase):
 
         self.assertEqual(
             len(list(model.c11_state)),
-            7 * len(scheduler.flight_ids) * len(scheduler.aircraft_ids),
+            7 * len(model.Q),
         )
 
     def test_ordered_ab_model_has_two_hour_states_and_hierarchy_events(self):
@@ -92,7 +92,7 @@ class CompactAEventTests(unittest.TestCase):
         self.assertEqual(list(model.C), ["A", "B"])
         self.assertTrue(all(check in {"A", "B"} for _, _, check in model.Z))
         self.assertTrue(all(check in {"A", "B"} for _, _, check in model.Q))
-        self.assertEqual(len(model.Q), len(scheduler.flight_ids) * len(scheduler.aircraft_ids) * 2)
+        self.assertEqual(len(model.Q), len(model.X) * 2)
         self.assertTrue(hasattr(model, "c6_event"))
 
     def test_ordered_full_model_adds_calendar_event_domain(self):
@@ -100,7 +100,7 @@ class CompactAEventTests(unittest.TestCase):
         model = scheduler.build_model()
 
         self.assertEqual(list(model.C), ["A", "B", "C", "D"])
-        self.assertEqual(len(model.Q), len(scheduler.flight_ids) * len(scheduler.aircraft_ids) * 2)
+        self.assertEqual(len(model.Q), len(model.X) * 2)
         self.assertTrue(all(check in {"A", "B", "C", "D"} for _, _, check in model.Z))
         self.assertTrue(hasattr(model, "c14_calendar"))
 

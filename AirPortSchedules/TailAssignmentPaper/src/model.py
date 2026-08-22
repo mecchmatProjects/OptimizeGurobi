@@ -1150,21 +1150,66 @@ class MILP_Sheduler:
     # the same aircraft (fills the gap left by C2–C3 for short windows)
     # ------------------------------------------------------------------
 
-    def _add_overlap(self, m):
+    def _add_overlap(self, m, mode='clique'):
         m.c_overlap = ConstraintList()
         tau = self.MIN_TURN
-        fids = list(m.F)
-        for idx, i in enumerate(fids):
-            fd_i = self.flight_data[i]
-            for i1 in fids[idx + 1:]:
-                fd_i1 = self.flight_data[i1]
-                # They don't overlap if one departs after the other arrives + turn
-                if fd_i['departureTime'] >= fd_i1['arrivalTime'] + tau:
+
+        if mode == 'pairwise':
+            fids = list(m.F)
+            for idx, i in enumerate(fids):
+                fd_i = self.flight_data[i]
+                for i1 in fids[idx + 1:]:
+                    fd_i1 = self.flight_data[i1]
+                    # They don't overlap if one departs after the other arrives + turn
+                    if fd_i['departureTime'] >= fd_i1['arrivalTime'] + tau:
+                        continue
+                    if fd_i1['departureTime'] >= fd_i['arrivalTime'] + tau:
+                        continue
+                    shared = set(self._x_aircrafts_for_flight(i)) & set(self._x_aircrafts_for_flight(i1))
+                    for j in shared:
+                        m.c_overlap.add(m.x[i, j] + m.x[i1, j] <= 1)
+            return
+
+        if mode != 'clique':
+            raise ValueError(f"Unknown overlap mode: {mode}")
+
+        # Build interval-graph cliques per aircraft. For interval graphs, clique
+        # constraints dominate pairwise overlap rows and are typically fewer.
+        for j in m.P:
+            intervals = []
+            for i in m.F:
+                if not self._x_has_arc(i, j):
                     continue
-                if fd_i1['departureTime'] >= fd_i['arrivalTime'] + tau:
+                fd = self.flight_data[i]
+                start = fd['departureTime']
+                end = fd['arrivalTime'] + tau
+                intervals.append((i, start, end))
+
+            if len(intervals) < 2:
+                continue
+
+            # Active-set cliques at each departure instant; then keep only maximal
+            # cliques to avoid redundant constraints.
+            candidate_cliques = set()
+            for _, t_dep, _ in intervals:
+                active = frozenset(
+                    i for i, start, end in intervals if start <= t_dep < end
+                )
+                if len(active) >= 2:
+                    candidate_cliques.add(active)
+
+            if not candidate_cliques:
+                continue
+
+            maximal = []
+            sorted_candidates = sorted(candidate_cliques, key=len, reverse=True)
+            for clique in sorted_candidates:
+                if any(clique < kept for kept in maximal):
                     continue
-                for j in (set(self._x_aircrafts_for_flight(i)) & set(self._x_aircrafts_for_flight(i1))):
-                    m.c_overlap.add(m.x[i, j] + m.x[i1, j] <= 1)
+                maximal.append(clique)
+
+            for clique in maximal:
+                m.c_overlap.add(sum(m.x[i, j] for i in clique) <= 1)
 
     # ------------------------------------------------------------------
     # Constraint C8 – maintenance check blocks subsequent same-day flights

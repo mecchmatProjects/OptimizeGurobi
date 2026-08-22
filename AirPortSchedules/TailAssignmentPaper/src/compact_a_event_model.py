@@ -39,7 +39,7 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
     CALENDAR_CHECKS = ()
     FORMULATION_ID = "ordered_hour_event"
 
-    def build_model(self):
+    def build_model(self, overlap_mode='clique', tight_state_big_m=True):
         model = ConcreteModel(name=self.FORMULATION_ID)
         self.model = model
         model.F = Set(initialize=self.flight_ids, ordered=True)
@@ -64,18 +64,21 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
                 for check in self.CHECK_LIST
             ),
         )
-        ordered_flights = sorted(
-            self.flight_ids,
-            key=lambda flight: (
-                self.flight_data[flight]["departureTime"], flight
-            ),
-        )
+        aircraft_ordered_flights = {
+            aircraft: sorted(
+                self._x_flights_for_aircraft(aircraft),
+                key=lambda flight: (
+                    self.flight_data[flight]["departureTime"], flight
+                ),
+            )
+            for aircraft in self.aircraft_ids
+        }
         model.Q = Set(
             dimen=3,
             initialize=(
                 (position, aircraft, check)
-                for position in range(len(ordered_flights))
                 for aircraft in self.aircraft_ids
+                for position in range(len(aircraft_ordered_flights[aircraft]))
                 for check in self.HOUR_CHECKS
             ),
         )
@@ -97,11 +100,15 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
         )
         self._add_c1_coverage(model)
         self._add_c23_turn(model)
-        self._add_overlap(model)
-        self._add_ordered_maintenance(model, ordered_flights)
+        self._add_overlap(model, mode=overlap_mode)
+        self._add_ordered_maintenance(
+            model,
+            aircraft_ordered_flights,
+            tight_state_big_m=tight_state_big_m,
+        )
         return model
 
-    def _add_ordered_maintenance(self, model, ordered_flights):
+    def _add_ordered_maintenance(self, model, aircraft_ordered_flights, tight_state_big_m=True):
         model.c5_event = ConstraintList()
         for flight, aircraft, check in model.Z:
             model.c5_event.add(model.z[flight, aircraft, check] <= model.x[flight, aircraft])
@@ -172,10 +179,11 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
         state_limit = {
             check: self.check_hrs[check] * 60.0 for check in self.HOUR_CHECKS
         }
-        for position, flight in enumerate(ordered_flights):
-            duration = self.flight_data[flight]["duration"]
-            for aircraft in self.aircraft_ids:
-                assigned = model.x[flight, aircraft] if (flight, aircraft) in model.X else 0
+        for aircraft in self.aircraft_ids:
+            flights = aircraft_ordered_flights[aircraft]
+            for position, flight in enumerate(flights):
+                duration = self.flight_data[flight]["duration"]
+                assigned = model.x[flight, aircraft]
                 for check in self.HOUR_CHECKS:
                     checked = sum(
                         model.z[flight, aircraft, reset_check]
@@ -191,24 +199,36 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
                     state = model.q[position, aircraft, check]
                     threshold = state_limit[check]
                     initial = self.init_check_hrs[check][aircraft] * 60.0
-                    big_m = max(threshold, initial) + duration
-                    model.c11_state.add(state >= previous - big_m * assigned)
-                    model.c11_state.add(state <= previous + big_m * assigned)
+                    state_ub = max(threshold, initial)
+                    if tight_state_big_m:
+                        m_eq = state_ub
+                        m_flow = state_ub + duration
+                        m_unassigned = state_ub
+                        m_threshold = max(0.0, state_ub + duration - threshold)
+                    else:
+                        coarse = state_ub + duration
+                        m_eq = coarse
+                        m_flow = coarse
+                        m_unassigned = coarse
+                        m_threshold = coarse
+
+                    model.c11_state.add(state >= previous - m_eq * assigned)
+                    model.c11_state.add(state <= previous + m_eq * assigned)
                     model.c11_state.add(
-                        state >= previous + duration - big_m * (1 - assigned) - big_m * checked
+                        state >= previous + duration - m_flow * (1 - assigned) - m_flow * checked
                     )
                     model.c11_state.add(
-                        state <= previous + duration + big_m * (1 - assigned) + big_m * checked
+                        state <= previous + duration + m_flow * (1 - assigned) + m_flow * checked
                     )
                     model.c11_state.add(
                         state <= duration * checked + threshold * (assigned - checked)
-                        + big_m * (1 - assigned)
+                        + m_unassigned * (1 - assigned)
                     )
                     model.c11_state.add(
                         previous + duration
-                        <= threshold + big_m * (1 - assigned)
+                        <= threshold + m_threshold * (1 - assigned)
                     )
-                    model.c11_state.add(state <= max(threshold, initial))
+                    model.c11_state.add(state <= state_ub)
 
         if self.CALENDAR_CHECKS:
             self._add_ordered_calendar_limits(model)

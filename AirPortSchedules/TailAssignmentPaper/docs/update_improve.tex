@@ -65,6 +65,73 @@ Thus, maintenance is attached directly to flight events, not to day buckets.
 This removes day-indexed binaries while keeping timing, capacity, and
 maintenance-feasibility logic fully time-consistent.
 
+\section{A-only ordered-state prototype}
+
+As a compactness experiment, an A-only prototype orders all flights globally
+by departure time and replaces the explicit successor variable $w_{i\ell j}$
+with one prefix state $q_{rj}$ for each ordered flight position $r$ and
+aircraft $j$. This construction is valid only because the A-only state can be
+updated while scanning the total time order; route continuity remains enforced
+by the corrected basic routing constraints. If flight $i_r$ is not assigned to
+$j$, the state is carried forward. If it is assigned without an A check, its
+duration is added. If $z_{i_rjA}=1$, the state is reset after that flight.
+
+Let $x_{i_rj}$ be the assignment variable, $z_{i_rjA}$ the A-check event, and
+$p_{i_r}$ the flight duration. With $q_{-1,j}=\Phi_{jA}$, a linear
+big-$M$ implementation uses:
+\begin{align}
+q_{rj}&\ge q_{r-1,j}-M_{rj}x_{i_rj},\\
+q_{rj}&\le q_{r-1,j}+M_{rj}x_{i_rj},\\
+q_{rj}&\ge q_{r-1,j}+p_{i_r}-M_{rj}(1-x_{i_rj})-M_{rj}z_{i_rjA},\\
+q_{rj}&\le q_{r-1,j}+p_{i_r}+M_{rj}(1-x_{i_rj})+M_{rj}z_{i_rjA},\\
+q_{rj}&\le p_{i_r}z_{i_rjA}+T_A(x_{i_rj}-z_{i_rjA})
+  +M_{rj}(1-x_{i_rj}),
+\end{align}
+where $M_{rj}=\max\{T_A,\Phi_{jA}\}+p_{i_r}$. The state is bounded by
+$0\le q_{rj}\le\max\{T_A,\Phi_{jA}\}$, and every assigned flight is
+required to satisfy $q_{rj}\le T_A$. In addition, every assigned flight must satisfy
+$q_{r-1,j}+p_{i_r}\le T_A$ before a post-flight check can reset the state; a
+check after an overdue flight cannot repair the violation. The first two rows carry the state when
+the flight is not assigned; the next two rows impose accumulation or relax
+the transition at a reset; the final row gives $q_{rj}=p_{i_r}$ at a selected
+reset and $q_{rj}\le T_A$ for an assigned non-reset flight.
+
+This ordered-state construction removes $w_{i\ell j}$ only for the A-only
+prototype. It must not be generalized to the full hierarchy without adding
+separate timestamped C/D event state and proving that route continuity and
+maintenance timing remain equivalent. In the current implementation it is
+provided as `OrderedAEventMILPScheduler` for controlled parity experiments;
+the full validated formulation remains `EventMILPScheduler`.
+
+The same ordered prefix-state construction has been extended to the
+hour-based A/B subset as `OrderedABEventMILPScheduler`. It maintains one
+$q_{rjA}$ and one $q_{rjB}$ state for each ordered flight position and aircraft.
+An A check resets only the A state, while a B check resets both states through
+the hierarchy relation. On the clean and near-threshold A/B test instances,
+the prototype returns the same optimal objective as the legacy A/B model while
+using fewer variables. This is an A/B validation milestone, not yet a claim
+for the C/D calendar hierarchy.
+
+The full ordered A/B/C/D prototype has also been tested on the available
+feasible ABCD family. On the h=7 instance, the legacy, ordered, and standalone
+event models all return the optimal objective 10\,327. The h=15, h=21, and
+h=30 files in that family have the same small flight set and all three models
+report infeasibility, so they are not treated as horizon-scaling evidence.
+The ordered model is therefore ready for broader ABCD testing, but its full
+performance claim remains provisional until larger feasible calendar-check
+instances are generated.
+
+As a separate fleet-size experiment, one-rotation feasible ABCD instances
+were generated for $|\Pc|\in\{5,10,15,20\}$, producing 10, 20, 30, and 40
+flights. The reproducible comparison is implemented in
+`experiments/compare_ordered_hierarchy.py` and writes
+`results/tables/formulation_abcd_fleet_scaling_repro.csv`. Legacy, ordered,
+and standalone event models are optimal with identical objectives at all four
+fleet sizes. The ordered model uses 47--72\% fewer variables than legacy; its
+constraint count is lower for $|\Pc|=5,10$, approximately comparable at 15,
+and higher at 20. CPU times are close on this small grid, so these results
+support model-size reduction and objective parity, not a universal speedup.
+
 \paragraph{Index choice for maintenance variables.}
 The robust event-linked variable is $z_{ijk}$: check type $k$ after flight $i$
 for aircraft $j$. A reduced variable such as $z_{jk}$ is not sufficient in the

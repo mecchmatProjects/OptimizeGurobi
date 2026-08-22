@@ -391,6 +391,8 @@ class EventMILPScheduler(MILP_Sheduler):
         )
 
     def _add_event_calendar_limits(self, model):
+        if not self.CALENDAR_CHECKS:
+            return
         model.c14_initial_calendar = ConstraintList()
         model.c14_calendar_chain = ConstraintList()
         for aircraft in self.aircraft_ids:

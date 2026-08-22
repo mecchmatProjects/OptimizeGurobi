@@ -1,0 +1,24 @@
+Current Event-based implementation is too big and expensive, and I think there is a way to improve it:
+1) We sort flights by departure time
+2) We use boolean variables $x_{i,j}$, $z_{ijk}$, and $u_{ij}$ to measure flight time, $q_{a,j}$ to measure current plane maintenance 
+3) We retain corrected basic tail constraints C1-C5
+4) We use also: 
+ Maintenance request assingment x_ij <= z_ijk
+ We do economical Maintenance block assignment - since we know for every maintence type its time, we block flights
+  x_{i,j1} + z_{i,k} <=1 for j1 in required time-interval
+ We keep calculating $q_{a,j}$ as q_{a,j2} + sum_{k,i} z_{ijk} for arrival flights j2, and
+  q_{a,j3} - x_{i,j} for departures
+ Capacity constraint:
+  $q_{a,j} <=mcap$
+ Calculating $u_{ij}$ by next constriant:
+ $u_ij = (u_{i,j_prev} + T_j)*(1-z_{ijk})$ (could be rewritten as linear by M-notation)
+
+ and for the Maintence of A type - $u_{ij}<TM_k$ 
+
+The C/D day types are constructed as direct checks on z_{ijk} sums in required time intervals by knowing departue/arrival times.
+
+Also it make sence to check this solution at first only A maintence to compare with baseline paper
+
+Check if this make sence, can we make it, build a plan
+
+

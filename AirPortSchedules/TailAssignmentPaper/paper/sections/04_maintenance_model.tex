@@ -98,6 +98,12 @@ constraints:
   \forall j \in \Pc.
 \end{equation}
 
+For the type-A-only model studied in this paper, C12 is not an additional
+calendar-spacing requirement: type-A maintenance is governed by the exact
+flight-hour state in C13. The displayed row is retained as the generic
+day-indexed maintenance notation and becomes active only for a calendar-time
+maintenance type, which is outside the scope of this paper.
+
 \paragraph{C14 — At most one maintenance event per aircraft per day.}
 \begin{equation}\label{eq:c14}
   \sum_{m\in\MA}\sum_{i \in F_d^{\downarrow}(m)} z_{ijd} \le 1,
@@ -123,7 +129,7 @@ realizable trajectories only. This removes spurious cases where maintenance
 placement was evaluated on infeasible simultaneous departures.
 
 \paragraph{C9--C12 and C14.}
-Constraints~\eqref{eq:c9}--\eqref{eq:c12}, \eqref{eq:c14} remain structurally unchanged. Their
+Constraints~\eqref{eq:c9}--\eqref{eq:c11}, \eqref{eq:c14} remain structurally unchanged. C12 is inactive in the type-A-only model. Their
 feasible region is tightened indirectly because $z$ and $y$ are linked to a
 strictly smaller, physically valid $x$-space.
 
@@ -142,7 +148,7 @@ correction required for cumulative-hour propagation.
 
 We now state the corrected sufficiency result for the type-A maintenance model.
 Consider the constraint family
-\eqref{eq:c1}--\eqref{eq:c3}, \eqref{eq:c4_overlap}, \eqref{eq:c8}--\eqref{eq:c12},
+\eqref{eq:c1}--\eqref{eq:c3}, \eqref{eq:c4_overlap}, \eqref{eq:c8}--\eqref{eq:c11},
 \eqref{eq:c13_state_lower}--\eqref{eq:c13_state_bound}, \eqref{eq:c14}, and
 the stated variable domains.
 
@@ -186,7 +192,6 @@ the stated variable domains.
   executable.
 
   \textbf{(v) Hour/day maintenance admissibility.}
-  By~\eqref{eq:c12}, checks cannot be spaced farther than $d_{\max}$ days.
   By~\eqref{eq:c13_state_lower}--\eqref{eq:c13_state_bound}, the cumulative
   flight-time state increases by the flying time assigned each day, resets
   after a maintenance night, and never exceeds $T^A_{\max}$.
@@ -292,7 +297,7 @@ zero. Neither pattern alone gives an exact cumulative counter.
   opt-in \texttt{use\_paper\_c13} flag for controlled comparison, and an
   interval-specific tight big-$M$ (\texttt{use\_tight\_c13\_m}) is available
   as a formulation-preserving strengthening of either row family.
-  \Cref{subsec:comp_c13} numerically confirms both Lemma~\ref{lem:c13_flaw}
+  The computational study in \Cref{sec:computational} numerically confirms both Lemma~\ref{lem:c13_flaw}
   and Lemma~\ref{lem:c13_split_limit} against the real built constraint
   objects of both forms, at two adversarial check patterns on the same
   four-day test instance: with checks at both window endpoints, all 42 split

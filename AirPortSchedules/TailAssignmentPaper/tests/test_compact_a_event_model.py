@@ -75,6 +75,8 @@ class CompactAEventTests(unittest.TestCase):
         self.assertEqual(len(model.Q), len(model.X))
         self.assertFalse(hasattr(model, "y"))
         self.assertFalse(hasattr(model, "w"))
+        self.assertTrue(hasattr(model, "c14_one_day"))
+        self.assertGreater(len(list(model.c14_one_day)), 0)
 
     def test_ordered_model_has_one_transition_block_per_flight_aircraft(self):
         scheduler = OrderedAEventMILPScheduler(str(SOURCE))
@@ -82,7 +84,7 @@ class CompactAEventTests(unittest.TestCase):
 
         self.assertEqual(
             len(list(model.c11_state)),
-            7 * len(model.Q),
+            8 * len(model.Q),
         )
 
     def test_ordered_model_global_state_indexing_restores_full_q_shape(self):
@@ -92,7 +94,7 @@ class CompactAEventTests(unittest.TestCase):
         expected = 0
         for flight in scheduler.flight_ids:
             for aircraft in scheduler.aircraft_ids:
-                expected += 7 if scheduler._x_has_arc(flight, aircraft) else 1
+                expected += 8 if scheduler._x_has_arc(flight, aircraft) else 1
 
         self.assertEqual(
             len(model.Q),

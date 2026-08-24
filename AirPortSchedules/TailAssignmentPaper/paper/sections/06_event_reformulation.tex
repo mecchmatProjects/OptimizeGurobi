@@ -7,16 +7,18 @@ The final formulation used in this paper is an ordered event-based model for
 type-A maintenance. It removes the day index and does not introduce the
 standalone successor-arc event formulation. Flights are processed in
 nondecreasing departure-time order, and maintenance is represented by a binary
-event attached to the flight that triggers it.
+event attached to the flight that triggers it. Thus the design-note variables
+$x_{ij}$, $z_{ijk}$, and the flight-hour state correspond to the ordered
+variables $x_{irj}$, $z_{irj}$, and $q_{rj}$ used below.
 
 \subsection{Ordered event representation}
 
 For flight $i$, let $o_i$ and $a_i$ be its departure and arrival airports,
 $p_i$ its flying time, and $\tI{i}$ and $\tD{i}$ its departure and arrival
 timestamps. For aircraft $j$, let $a^0_j$ and $r_j$ be its initial airport and
-availability time. A type-A event after flight $i$ is assignment-linked and
-occupies the aircraft for duration $\delta_A$ at a maintenance-capable arrival
-airport.
+availability time. A type-A event after flight $i$ is assignment-linked,
+starts at the flight's arrival time $\tD{i}$, and occupies the aircraft for
+duration $\delta_A$ at a maintenance-capable arrival airport.
 
 Let $(i_1,\ldots,i_{n_f})$ be the flights sorted by
 $(\tI{i},i)$. The variables are $x_{irj}$ for flight assignment,
@@ -44,18 +46,20 @@ adds its duration, and an event resets the state after its triggering flight.
 Using valid position-specific big-$M$ values $M_{rj}$, the transition is
 represented by
 \begin{align}
-q_{rj}&\geq q_{r-1,j}-M_{rj}x_{irj},\
-q_{rj}&\leq q_{r-1,j}+M_{rj}x_{irj},\
-q_{rj}&\geq q_{r-1,j}+p_{i_r}-M_{rj}(1-x_{irj})-M_{rj}z_{irj},\
-q_{rj}&\leq q_{r-1,j}+p_{i_r}+M_{rj}(1-x_{irj})+M_{rj}z_{irj},\
-q_{rj}&\leq p_{i_r}z_{irj}+T_A(x_{irj}-z_{irj})+M_{rj}(1-x_{irj}),\
+q_{rj}&\geq q_{r-1,j}-M_{rj}x_{irj},\\
+q_{rj}&\leq q_{r-1,j}+M_{rj}x_{irj},\\
+q_{rj}&\geq q_{r-1,j}+p_{i_r}-M_{rj}(1-x_{irj})-M_{rj}z_{irj},\\
+q_{rj}&\leq q_{r-1,j}+p_{i_r}+M_{rj}(1-x_{irj})+M_{rj}z_{irj},\\
+q_{rj}&\geq p_{i_r}z_{irj},\\
+q_{rj}&\leq p_{i_r}z_{irj}+T_A(x_{irj}-z_{irj})+M_{rj}(1-x_{irj}),\\
 q_{r-1,j}+p_{i_r}&\leq T_A+M_{rj}(1-x_{irj}).
 \label{eq:ordered_hour_transition}
 \end{align}
 The first two rows carry the state at an unassigned position. The next two
 rows impose accumulation for an assigned flight unless an event is selected.
-The fifth row gives the exact post-event state, and the final row prevents a
-maintenance event from repairing an arrival that already exceeds $T_A$.
+The fifth and sixth rows together give the exact post-event state:
+$q_{rj}=p_{i_r}$ when $z_{irj}=1$. The final row prevents a maintenance event
+from repairing an arrival that already exceeds $T_A$.
 The initial state is $q_{0j}=\Phi_j$.
 
 Events satisfy
@@ -67,7 +71,51 @@ z_{irj}\leq x_{irj},
 and timestamp-based incompatibility rows prevent an event from being
 followed by a departure that occurs before the maintenance duration and turn
 time have elapsed. These rows preserve physical route feasibility while
-avoiding a separate successor-variable family.
+avoiding a separate successor-variable family. Capacity is enforced directly
+by event-overlap inequalities at each airport and timestamp breakpoint. This
+is equivalent to maintaining an airport occupancy state $q_{a,\theta}$ and
+imposing $q_{a,\theta}\leq\mathrm{mcap}_{a,\theta}$, but it requires no
+additional occupancy variable.
+
+The ordered event rows correspond to the day-indexed maintenance constraints:
+event assignment is C9, duration blocking is C8, and timestamp-overlap
+capacity is C10. The at-most-one-event-per-aircraft-per-day rule is retained
+explicitly as
+\begin{equation}
+\sum_{r:\,\lfloor\tD{i_r}/1440\rfloor=d}z_{irj}\leq1,
+\qquad \forall j\in\Pc,\ d\in\D,
+\label{eq:ordered_event_one_day}
+\end{equation}
+which is the event-indexed counterpart of C14.
+
+Table~\ref{tab:ordered_c1_c14} records the correspondence with the numbered
+day-indexed requirements. Some legacy rows disappear because their variables
+are eliminated; this is a formulation change, not an omitted feasibility
+condition.
+
+\begin{table}[t]
+\centering\scriptsize
+\caption{Coverage of the numbered C1--C14 requirements in the ordered A-only
+	formulation.}
+\label{tab:ordered_c1_c14}
+\begin{tabular}{p{0.10\linewidth} p{0.30\linewidth} p{0.48\linewidth}}
+\toprule
+Requirement & Day-indexed role & Ordered A-only counterpart \\
+\midrule
+C1 & Flight coverage & Coverage equation on $x_{irj}$. \\
+C2--C3 & Airport continuity and turn time & Corrected equipment-flow balance on assignment variables. \\
+C4 & Physical non-overlap & Explicit overlap inequalities on $x$. \\
+C5--C7 & Domains and maintenance eligibility & Binary domains; $z_{irj}$ is created only for eligible trigger flights and satisfies $z_{irj}\leq x_{irj}$. \\
+C8 & Maintenance blocks later flights & Timestamp blocking using $\delta_A+\dt$. \\
+C9 & Maintenance requires assignment & The event-assignment inequality above. \\
+C10 & Maintenance capacity & Direct timestamp-overlap capacity rows, equivalent to an airport occupancy state. \\
+C11 & Link event triggers to a daily indicator & Daily indicator is eliminated; it is recoverable from the events on each day. \\
+C12 & Calendar-time spacing & Inactive for type-A-only maintenance; C13 enforces the applicable hour limit. \\
+C13 & Cumulative flight hours & Exact prefix-state transitions, reset bounds, and pre-check bound. \\
+C14 & At most one event per aircraft per day & Explicit daily event inequality~\eqref{eq:ordered_event_one_day}. \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \begin{proposition}[Ordered prefix-state validity]
 \label{prop:ordered_event_correct}
@@ -80,9 +128,9 @@ ordered prefix-state formulation satisfies the type-A flight-hour limit.
 \begin{proof}
 Induct on the ordered flight positions. An unassigned position carries the
 state unchanged. An assigned position adds its flying time unless an event is
-selected, in which case the reset row sets the state to the current flight's
-duration. The final transition row and the upper state bound prevent the
-threshold from being exceeded before a reset. The induction starts from
+selected, in which case the two reset rows set the state to the current
+flight's duration. The final transition row and the upper state bound prevent
+the threshold from being exceeded before a reset. The induction starts from
 $\Phi_j$, so every assigned route satisfies the type-A limit.
 \end{proof}
 
@@ -90,8 +138,10 @@ $\Phi_j$, so every assigned route satisfies the type-A limit.
 
 The ordered formulation combines event-triggered maintenance with a global
 flight order and aircraft-local prefix states. It removes the day-pair
-accumulation ambiguity of Constraint~(13), avoids the old compact-event
-successor-variable formulation, and keeps the physical route constraints
-needed for valid tail assignments. The computational study in
+accumulation ambiguity of Constraint~(13), avoids successor-variable
+expansion, and keeps the physical route constraints needed for valid tail
+assignments. For type-A maintenance, C12's calendar-spacing role is inactive:
+the flight-hour limit is enforced by the exact prefix state in C13. The
+computational study in
 \Cref{sec:computational} evaluates this formulation against the legacy A-only
 model on matched horizon and fleet-size grids.

@@ -202,6 +202,23 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
                 if active:
                     model.c9_event.add(sum(active) <= capacity)
 
+        model.c14_one_day = ConstraintList()
+        for aircraft in self.aircraft_ids:
+            for day in sorted(
+                {
+                    int(self.flight_data[flight]["arrivalTime"] // self.DAY_SHIFT)
+                    for flight in self.maint_flight_ids
+                }
+            ):
+                events = [
+                    model.z[flight, aircraft, check]
+                    for flight, candidate_aircraft, check in model.Z
+                    if candidate_aircraft == aircraft
+                    and int(self.flight_data[flight]["arrivalTime"] // self.DAY_SHIFT) == day
+                ]
+                if events:
+                    model.c14_one_day.add(sum(events) <= 1)
+
         model.c11_state = ConstraintList()
         state_limit = {
             check: self.check_hrs[check] * 60.0 for check in self.HOUR_CHECKS
@@ -262,6 +279,7 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
                         state <= duration * checked + threshold * (assigned - checked)
                         + m_unassigned * (1 - assigned)
                     )
+                    model.c11_state.add(state >= duration * checked)
                     model.c11_state.add(
                         previous + duration
                         <= threshold + m_threshold * (1 - assigned)

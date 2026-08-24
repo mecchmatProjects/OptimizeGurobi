@@ -88,17 +88,13 @@ reference paradigms rather than strict one-to-one benchmarks.
 \subsection{Maintenance constraints}
 
 Maintenance scheduling within aircraft routing has been studied since the
-early work of \citet{clarke1997aircraft}. Aircraft maintenance programs have
-traditionally grouped tasks into A, B, C, and D check packages with different
-scopes and frequencies, although operators may use task-based programs rather
-than these historical labels. The column-generation framework
+early work of \citet{clarke1997aircraft}. The column-generation framework
 of \citet{barnhart1998flight} can embed type-A constraints through constrained
 shortest-path pricing.  \citet{cordeau2001benders} apply Benders decomposition
 to simultaneous routing and crew scheduling with non-linear maintenance
 resources.  \citet{lacasse2010aircraft} consider maintenance under different
-business-process models. \Cref{sec:hierarchy} develops one explicit
-four-level counter-reset formulation; we do not claim that hierarchical
-maintenance has not appeared in other routing frameworks.
+business-process models. We focus on the type-A flight-hour case and its exact
+event-based reformulation.
 
 \subsection{Heuristic approaches}
 

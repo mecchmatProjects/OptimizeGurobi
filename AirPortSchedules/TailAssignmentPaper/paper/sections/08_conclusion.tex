@@ -3,134 +3,54 @@
 \label{sec:conclusion}
 %%==========================================================================
 
-This paper revisited the compact Tail Assignment Problem model of
-\citet{khaled2018compact}, making four concrete contributions.
+This paper revisited the compact Tail Assignment Problem formulation of
+\citet{khaled2018compact} and made three focused contributions. First, we
+showed that the basic continuity and turn-time inequalities admit a
+simultaneous-departure corner case and closed it with explicit non-overlap
+constraints. Second, we proved that the paper's cumulative-flight-time
+Constraint~(13) can relax a maintenance interval incorrectly and that the
+natural endpoint split is also insufficient. We provided an exact
+cumulative-state correction and verified the failure against the production
+constraint objects. Third, we developed a day-free event-based reformulation
+for type-A maintenance and an ordered prefix-state implementation.
 
-\paragraph{C2--C4 feasibility correction.}
-We showed that the basic balance constraints can admit a simultaneous-
-departure corner case that is mathematically feasible but operationally
-impossible.  Adding explicit pairwise non-overlap constraints restores
-physical executability without altering the variable set of the compact model.
-This correction also clarifies the domain on which maintenance constraints are
-evaluated.
+The event formulation attaches maintenance to its triggering flight and
+propagates the flight-hour counter along the aircraft's selected route. The
+ordered implementation removes explicit successor variables while preserving
+route feasibility and the pre-check condition. On the feasible A-only
+instances studied here, the ordered method matched the legacy optimum in every
+run, used fewer variables at every fleet size, and gave a mean wall-time gain
+of 18.70\% and mean solver CPU-time gain of 14.73\% across the tested horizon
+family. At fixed $h=7$, the fleet-size experiment gave a mean CPU-time gain of
+6.01\% over legacy across $|P|\in\{5,10,15,20\}$, although the gain was
+non-monotone and concentrated at the largest fleet.
 
-\paragraph{Constraint~(13) correction.}
-We proved that the original cumulative-flight-time constraint can leave the
-opening maintenance interval unbounded, and that the natural two-row endpoint
-split is also insufficient in the complementary case where both window
-endpoints carry a check. Both lemmas are confirmed numerically against the
-real built constraint objects (\Cref{subsec:comp_c13}): each formulation
-accepts a schedule the other correctly rejects, on the same 1\,200-minute
-violation against a 600-minute limit. The exact replacement uses a
-continuous cumulative state with maintenance-triggered resets and explicit
-initial conditions, given first in day-indexed form
-(\Cref{subsec:c13_state}) and then, completely independently of any day
-index, in the event-based reformulation of \Cref{sec:event_reformulation}.
-
-\paragraph{Effect on C8--C14.}
-The non-overlap correction changes the assignment domain on which C8--C14
-operate but does not repair cumulative-hour propagation by itself.
-\Cref{thm:physical_feasibility_c1_c14} therefore relies specifically on the
-exact state constraints, together with the corrected basic feasibility and
-maintenance-event constraints.
-
-\paragraph{Full $\{A,B,C,D\}$ hierarchy.}
-We extended the single-type framework to an explicit four-level A/B/C/D
-hierarchy. Effective-check indicators encode heavier-check resets, separate
-start and occupancy variables represent multi-day C/D checks, and initial
-hour/day values carry maintenance history into the horizon. Each check type
-solved in isolation, and the full hierarchy together, is independently
-re-verified against the raw flight timetable (\Cref{subsec:hierarchy_results});
-the full-hierarchy run also reproduces the Constraint~(13) split flaw
-unprompted on an existing test instance, showing the issue is not confined to
-hand-built corner cases.
-
-\paragraph{Event-based reformulation and ordered implementation.}
-We gave a complete, self-contained, day-free reformulation of the same
-C1--C14 requirements (\Cref{sec:event_reformulation}), in which maintenance
-is a virtual flight indexed on its triggering flight rather than on calendar
-day, and proved its correctness directly
-(\Cref{prop:event_correct}). Because its flight-hour counter propagates arc
-by arc along the aircraft's actual route rather than over a day-pair window,
-it cannot exhibit the split-form failure mode of Constraint~(13) by
-construction. Measuring this reformulation against the day-indexed model
-(\Cref{subsec:event_measurements}) surfaced and let us fix three genuine
-implementation defects using the same generic technique (LP relaxation plus
-single-constraint-block deactivation): a big-$M$ sizing defect in the
-flight-hour counter, a missing routing-reachability check in the
-calendar-check deadline constraint, and an insufficient day-rounding margin
-in the instance generator itself, after which both formulations agree
-exactly on every guaranteed-feasible test instance, including one exercising
-the full $\{A,B,C,D\}$ hierarchy. Measurement also revealed that the
-event-based model's variable-count advantage is real but not universal
-(it reverses at the largest horizon tested) and that its constraint count is
-consistently larger on dense timetables, and that its stricter,
-never-exceed-the-threshold semantics is a genuine modelling-convention
-change from the existing benchmark suite, not merely an implementation
-detail. We report these as honest, measured trade-offs rather than an
-unconditional improvement. As a further implementation step, the ordered
-prefix-state variant removes explicit successor variables while retaining
-corrected route-feasibility constraints. On a feasible full A/B/C/D fleet-size
-grid, it matched the legacy and standalone event objectives at all four fleet
-sizes, used 47--72\% fewer variables than the legacy model, and had zero
-violations in an independent timestamp-based C/D replay. Its constraint and
-CPU behavior was mixed, so the result supports compactness and correctness on
-the tested grid, not universal speed superiority. A dedicated implementation
-ablation of ordered speed knobs (overlap-row profile and state big-$M$
-profile) shows a solver interaction: on the tested horizon family, the
-stronger profile (interval-clique overlap + tightened
-state big-$M$) improves unrestricted CPLEX on average (+5.26\% wall-time),
-but degrades HiGHS on average (-12.32\% wall-time). The practical conclusion is
-solver-specific configuration, not one globally "best" ordered profile.
-Using the final CPLEX-tuned ordered ABCD profile
-(interval-clique overlap, tightened state big-$M$, local state indexing, and
-calendar candidate pruning), calendar pruning adds a further small but
-consistent gain on the tested horizons (+0.12\% mean CPU and +0.22\% mean
-wall) with identical statuses and objectives. For the single-check (A-only)
-case, the latest ordered A-event implementation shows clear horizon-wise
-timing gains on the tested feasible family: mean wall-time gain
-of 18.70\% and mean solver CPU-time gain of 14.73\% versus the legacy A-only
-model, with the largest improvements at $h\in\{15,21,30\}$.
-At fixed $h=7$, the corresponding fleet-size experiment gives a mean CPU-time
-gain of +6.01\% for the ordered A-event model over the legacy A-only model
-across $|P|\in\{5,10,15,20\}$, although the gain is driven mainly by the
-largest fleet and is therefore reported as a descriptive grid result.
+These computational results are deliberately scoped. They use deterministic
+synthetic feasible instances, one instance per parameter cell, and a single
+unrestricted CPLEX configuration. The results establish objective parity and
+indicate useful compactness and timing behavior for the tested A-only family;
+they do not establish a universal speedup across solvers, instance
+ distributions, or larger benchmark sets.
 
 \paragraph{Reproducibility.}
-The project contains the code, deterministic instance generator, experiment
-configurations, and result tables needed to rerun the reported snapshots. The
-legacy split formulation and the separate event/state formulation are retained
-as distinct implementations so their future performance can be compared
-without conflating their maintenance semantics.
-
-\paragraph{Threats to validity.}
-The reported computational comparisons are intentionally scoped to
-the synthetic benchmark family used in this study. The quick grids use few
-instances, and several dense runs end in infeasible/error states. The
-paper-versus-split-versus-event-based C13 comparison is completed for a
-targeted counterexample and for the per-check-type hierarchy study, but not
-yet at full paper-scale grid sizes. Performance conclusions are therefore
-descriptive of the reported runs only. Decomposition-heavy and
-robust/scenario alternatives may exhibit different trade-offs under their
-native assumptions and tuning protocols.
+The project contains the model implementations, deterministic instance
+generator, benchmark scripts, result tables, and plotting scripts needed to
+reproduce the reported snapshots. The legacy, event, and ordered A-only
+builders remain separately selectable so future comparisons can distinguish
+model semantics from implementation choices.
 
 \subsection*{Future directions}
 
 \begin{itemize}
-  \item \textbf{Integrated fleet assignment and routing:} the compact model
-    is well-suited for integration with fleet-assignment decisions, as noted
-    by \citet{khaled2018compact}.  The absence of the cyclic constraint
-    facilitates this integration.
-  \item \textbf{Robust and recoverable variants:} extending
-    \citet{borndorfer2010robust, froyland2013recoverable} to the compact
-    formulation with full maintenance hierarchy is an open problem.
-  \item \textbf{Controlled formulation benchmark at scale:} the paper-C13,
-    endpoint-split, and event-based builders are now separately selectable
-    and every solution is independently validated by replaying its
-    maintenance counters; extending this comparison of model size,
-    relaxation bounds, runtime, and feasibility to the full paper-scale
-    instance grid remains open.
-  \item \textbf{Heuristic and metaheuristic methods:} constructive and
-    learning-based heuristics for the corrected, full-hierarchy model are
-    deliberately out of scope here and are left for a companion study.
+  \item \textbf{Larger A-only benchmark families:} repeat the horizon and
+    fleet-size experiments over multiple seeds and heterogeneous timetable
+    structures, reporting solver variability and confidence intervals.
+  \item \textbf{Integrated fleet assignment and routing:} extend the corrected
+    compact model while retaining physically executable route constraints.
+  \item \textbf{Robust and recoverable variants:} study uncertainty in flight
+    times, disruptions, and maintenance availability under the exact state
+    formulation.
+  \item \textbf{Heuristic methods:} develop constructive and local-search
+    methods for the corrected A-only model and compare them with the exact
+    formulations on larger instances.
 \end{itemize}

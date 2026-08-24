@@ -1,8 +1,7 @@
 %% paper/main.tex
 %% Main paper file for:
 %%   "Revisiting the Compact Tail Assignment Model:
-%%    Corrections, Extensions to Full Maintenance Hierarchies,
-%%    and an Event-Based Exact-State Reformulation"
+%%    Corrections and an Event-Based Exact-State Reformulation"
 %%
 %% Compile with:  latexmk -pdf main.tex
 %% or:            pdflatex main && bibtex main && pdflatex main && pdflatex main
@@ -42,10 +41,10 @@
 \newcommand{\Pc}{\mathcal{P}}         % aircraft set
 \newcommand{\A}{\mathcal{A}}          % airport set
 \newcommand{\D}{\mathcal{D}}          % day set
-\newcommand{\C}{\mathcal{C}}          % check type set {A,B,C,D}
+\newcommand{\C}{\mathcal{C}}          % maintenance check types
 \newcommand{\MA}{\mathcal{M}}         % maintenance airport set
-\newcommand{\CH}{\C_H}                % hour-triggered check subset {A,B}
-\newcommand{\CT}{\C_T}                % calendar-triggered check subset {C,D}
+\newcommand{\CH}{\C_H}                % hour-triggered check types
+\newcommand{\CT}{\C_T}                % calendar-triggered check types
 \newcommand{\Conn}{\mathcal{E}}       % feasible flight-connection set (event model)
 \newcommand{\Fl}[2]{F^{\downarrow}_{#1}(#2)}
 \newcommand{\Fd}[2]{F^{\uparrow}_{#1}(#2)}
@@ -67,7 +66,7 @@
 \begin{frontmatter}
 
 \title{Revisiting the Compact Tail Assignment Model: Corrections and an
-  Exact Full Maintenance Hierarchy Extension}
+  Exact Event-Based Maintenance Reformulation}
 
 \author[lgi]{Viktor Borodin}
 \author[lip6]{Arun Kumar Pappala}
@@ -78,7 +77,7 @@
 \begin{abstract}
 This paper revisits the compact mixed-integer linear programming model for
 the Tail Assignment Problem (TAP) introduced by Khaled et al.\ (2018).  We
-make four contributions.  First, we show that the basic continuity/turn-time
+make three contributions.  First, we show that the basic continuity/turn-time
 criteria (C2--C4; model constraints~(3)--(6) in Khaled et al.) admit a
 simultaneous-departure corner case that is mathematically feasible but
 physically infeasible, and we close this gap with explicit non-overlap
@@ -86,32 +85,19 @@ constraints.  Second, we identify and formally correct a flaw in
 the paper's cumulative-flight-time constraint (Constraint~13): the original
 formulation allows maintenance intervals to be incorrectly relaxed. We show
 that a two-row endpoint split is also insufficient and give an exact
-cumulative-state formulation. Third, we
-extend the maintenance model beyond the type-A single-check framework to a
-full four-level $\{A, B, C, D\}$ maintenance hierarchy with correct counter
-resets and pre-horizon accumulated-hours accounting. Fourth, we give a
-complete, day-free event-based reformulation of the same maintenance
-requirements, in which each flight's own timestamp supplies all calendar
-information and the flight-hour counter is propagated exactly along each
-aircraft's actual route with no day-pair window, and we prove its
-correctness directly. We additionally develop an ordered prefix-state
-implementation that removes explicit successor variables while retaining
-corrected route-feasibility constraints; on a feasible full-hierarchy fleet
-grid it achieves exact objective parity and uses substantially fewer variables
-than the day-indexed model. We give a numeric counterexample, evaluated against
+cumulative-state formulation. Third, we give an ordered, day-free event-based
+formulation for type-A maintenance. Each flight's timestamp supplies the
+calendar information and an aircraft-local prefix state propagates the
+flight-hour counter without a day-pair window. We prove the formulation
+correct and evaluate it on feasible A-only fleet and horizon grids, where it
+achieves exact objective parity and uses substantially fewer variables than
+the day-indexed model. We give a numeric counterexample, evaluated against
 the real built constraint objects at two adversarial check patterns, in
 which the original and endpoint-split formulations each fail on a different
-pattern while the event-based formulation rejects both, and we independently
+pattern while the ordered formulation rejects both, and we independently
 verify every reported solution by replaying its maintenance counters outside
-the model. We then report exact solves, cross-validated with two independent
-solvers, across targeted instances that isolate each check type (A, B, C, D)
-and their combination, demonstrating that the corrected hierarchy model
-enforces every check type without relaxation. All code, instances, and
-result tables accompany the project. On matched feasible heavy instances, the
-event formulation reaches the same optimum as the corrected legacy model;
-it uses fewer variables at the tested horizons and reduces model-build time
-at the longer horizons, but its solve wall time remains higher because of the
-additional event-connection constraints.
+the model. All code, instances, and
+result tables accompany the project.
 \end{abstract}
 
 \begin{keyword}
@@ -126,7 +112,6 @@ Integer programming \sep Mixed-integer programming corrections
 \input{sections/02_literature}
 \input{sections/03_basic_model}
 \input{sections/04_maintenance_model}
-\input{sections/05_hierarchy_extension}
 \input{sections/06_event_reformulation}
 \input{sections/07_computational}
 \input{sections/08_conclusion}

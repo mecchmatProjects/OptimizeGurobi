@@ -30,7 +30,7 @@ $\mathcal O$ defined in \Cref{sec:basic}.
 
 \subsection*{Our contributions}
 
-The present paper makes four contributions that check, correct, and extend
+The present paper makes three contributions that check and correct
 those results:
 
 \begin{enumerate}
@@ -49,21 +49,9 @@ those results:
   the model. We therefore formulate an exact cumulative-state recursion that
   propagates and resets the flight-hour counter without day-pair ambiguity.
 
-\item \textbf{Full $\{A, B, C, D\}$ maintenance hierarchy.}  The model of
-  \citet{khaled2018compact} handles type-A checks (cumulative flight hours).
-  We extend the formulation to a four-level A/B/C/D hierarchy representing a
-  traditional packaged maintenance program: in our model, type-A and~B checks
-  are flight-hour triggered and type-C and~D checks are calendar-day triggered.
-  A heavier check subsumes all lighter checks (hierarchical counter resets).
-  We further account for pre-horizon accumulated maintenance hours/days per
-  aircraft, and we validate the extension with a dedicated computational
-  study that isolates each check type (A, B, C, D) and their combination,
-  independently re-verifying every reported solution against the raw flight
-  timetable.
-
-\item \textbf{Event-based reformulation.}  The day-indexed hierarchy model
+\item \textbf{Event-based reformulation.}  The day-indexed type-A model
   above still repeats a calendar-day index across every maintenance
-  variable. We give a complete, day-free reformulation of the same
+  variable. We give a complete, day-free reformulation of the same type-A
   C1--C14 requirements, in which each flight's own timestamp supplies all
   calendar information and maintenance is represented as a virtual flight
   triggered by, and indexed on, the preceding real flight rather than by
@@ -80,9 +68,7 @@ those results:
 basic TAP model and proves a C2--C4 corner-case correction.  \Cref{sec:maintenance}
 presents the maintenance-extended model, the Constraint~(13) correction, and
 the induced interpretation updates for C8--C14 under the corrected basic model.
-\Cref{sec:hierarchy} describes the
-full $\{A,B,C,D\}$ extension.  \Cref{sec:event_reformulation} gives the
-day-free event-based reformulation of the same requirements and proves its
-correctness directly.  \Cref{sec:computational} reports the
-numeric Constraint~(13) counterexample and the per-check-type computational
-study.  \Cref{sec:conclusion} concludes.
+\Cref{sec:event_reformulation} gives the day-free event-based reformulation
+of the type-A requirements and proves its correctness directly.
+\Cref{sec:computational} reports the numeric Constraint~(13) counterexample
+and the A-only computational study. \Cref{sec:conclusion} concludes.

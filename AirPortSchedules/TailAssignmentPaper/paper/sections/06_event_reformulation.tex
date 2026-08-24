@@ -1,526 +1,97 @@
 %%==========================================================================
-\section{Event-Based Reformulation: Removing the Day Index}
+\section{Ordered Event-Based Reformulation for Type-A Maintenance}
 \label{sec:event_reformulation}
 %%==========================================================================
 
-\Cref{sec:maintenance,sec:hierarchy} keep the day-indexed structure of
-\citet{khaled2018compact}: maintenance state is tracked per calendar day
-$d\in\D$, and both the flight-hour recursion~\eqref{eq:c13_state_lower}--%
-\eqref{eq:c13_state_bound} and the hierarchy extension repeat this index
-for every check type. This section presents an updated, day-free
-reformulation of the same C1--C14 requirements. It is the model actually
-implemented as \texttt{event\_exact\_state} in \texttt{src/event\_model.py}
-and referenced throughout \Cref{sec:maintenance,sec:computational} as the
-exact-state formulation; here we give it a complete, self-contained
-derivation and prove its correctness directly, rather than only by analogy
-to the day-indexed recursion.
+The final formulation used in this paper is an ordered event-based model for
+type-A maintenance. It removes the day index and does not introduce the
+standalone successor-arc event formulation. Flights are processed in
+nondecreasing departure-time order, and maintenance is represented by a binary
+event attached to the flight that triggers it.
 
-The implementation described and validated in this section is the standalone
-\texttt{EventMILPScheduler} in \texttt{src/event\_model.py}. The separate
-flag-gated bridge scaffold in \texttt{src/model.py} is a migration aid that
-coexists with legacy day-indexed constraints; it is reported as a structural
-trial in Section~7 and is not used as evidence for the exact-state proof or
-objective-equivalence claims.
+\subsection{Ordered event representation}
 
-\subsection{Modelling principle}
-\label{subsec:event_principle}
+For flight $i$, let $o_i$ and $a_i$ be its departure and arrival airports,
+$p_i$ its flying time, and $\tI{i}$ and $\tD{i}$ its departure and arrival
+timestamps. For aircraft $j$, let $a^0_j$ and $r_j$ be its initial airport and
+availability time. A type-A event after flight $i$ is assignment-linked and
+occupies the aircraft for duration $\delta_A$ at a maintenance-capable arrival
+airport.
 
-Every flight already carries an absolute departure and arrival timestamp
-measured from the start of the planning horizon, so its calendar day is
-derived data, $d_i=\lfloor \tD{i}/1440\rfloor$, not a decision index. Once
-this is recognised, the day set $\D$ can be dropped from every maintenance
-variable without losing any information: maintenance is represented as a
-virtual flight from an airport to itself, starting immediately after a real
-flight, occupying the aircraft for a fixed duration, and consuming station
-capacity for that duration. A single binary variable $z_{ijk}$ selects check
-type $k$ after flight $i$ for aircraft $j$; there is no longer one variable
-per (flight, aircraft, \emph{day}, check) tuple, and no separate variable is
-needed for a multi-day check's later occupancy days.
+Let $(i_1,\ldots,i_{n_f})$ be the flights sorted by
+$(\tI{i},i)$. The variables are $x_{irj}$ for flight assignment,
+$z_{irj}$ for a type-A event after position $r$, and $q_{rj}\geq0$ for the
+cumulative flying time of aircraft $j$ after processing position $r$.
+The corrected airport-continuity, turn-time, and overlap constraints remain
+active on the assignment variables. In particular, an assignment is allowed
+only when it can be connected to the aircraft's preceding assigned flight and
+when the required maintenance duration leaves enough time before the next
+assigned departure.
 
-The implementation uses sparse indexes for these event domains. Successor
-flights are grouped by origin airport and sorted by departure time, so each
-connection search begins at the first timestamp satisfying the turn-time
-bound. Calendar-check events are likewise indexed by aircraft, check type,
-and arrival timestamp before C14 rows are generated. These indexes change
-construction time only; they preserve the same connection and deadline sets
-and therefore do not alter the formulation or its correctness argument.
-
-\subsection{Additional sets and parameters}
-
-Let $\CH=\{A,B\}$ (flight-hour triggered) and $\CT=\{C,D\}$ (calendar-time
-triggered) partition $\C$, matching the split already used in
-\Cref{sec:maintenance,sec:hierarchy}. For flight $i$, write $o_i=\aI{i}$,
-$a_i=\aD{i}$, and let $p_i=\tI{i}-\tD{i}$ be its flying time (previously
-written $\tilde t_i$ in \Cref{sec:maintenance}). For aircraft $j$, let
-$a^0_j$ be its initial airport and $r_j$ its initial availability time. Let
-$\dt$ be the minimum turn time (as in \Cref{sec:basic}) and $\delta_k$ the
-fixed duration of check $k$. Maintenance attached to flight $i$ starts at
-$\sigma_i=\tI{i}$ and is the virtual leg
+The objective is
 \begin{equation}
-  m(i,j,k)=\bigl(a_i,a_i,\sigma_i,\sigma_i+\delta_k\bigr).
-  \label{eq:virtual_leg}
+\min\ \sum_{i\in\F,j\in\Pc}c_{ij}x_{ij}
+ +\sum_{i\in\F^M,j\in\Pc}g_{ij}z_{ij}.
+\label{eq:ordered_event_objective}
 \end{equation}
-Only flights in $\F^M=\{i\in\F:a_i\in\MA\}$ may be followed by maintenance.
-The sparse connection set generalises the arcs implicit in
-\eqref{eq:c2}--\eqref{eq:c3}:
-\begin{equation}
-  \Conn=\bigl\{(i,\ell)\in\F\times\F:
-  a_i=o_\ell,\ \tD{\ell}\geq\tI{i}+\dt\bigr\}.
-  \label{eq:connection_set}
-\end{equation}
-For each check type, the connections that leave enough time for that
-maintenance event are
-\begin{equation}
-  \Conn_k=\bigl\{(i,\ell)\in\Conn:
-  \tD{\ell}\geq\sigma_i+\delta_k+\dt\bigr\}.
-  \label{eq:maintenance_connection_set}
-\end{equation}
-The aircraft-specific set of feasible first flights is
-\begin{equation}
-  \F^0_j=\bigl\{i\in\F:o_i=a^0_j,\ \tD{i}\geq r_j\bigr\}.
-  \label{eq:first_flight_set}
-\end{equation}
-Let $T_k$ be the maximum flying time between qualifying checks for
-$k\in\CH$ (equal to $T^c_{\max}$ of \Cref{sec:maintenance}), and let $L_k$ be
-the maximum elapsed time between qualifying checks for $k\in\CT$, so a limit
-of $d_k$ calendar days is stored as $L_k=1440\,d_k$ minutes. Parameters
-$\Phi_{jk}$ and $\Psi_{jk}$ are, respectively, the pre-horizon accumulated
-flying time and elapsed calendar time (the event-based counterparts of
-$\Phi^c_j$ and $\Psi^c_j$ from \Cref{subsec:c13b}). The relation
-$k'\succeq k$ means check $k'$ is at least as heavy as $k$, exactly as the
-hierarchy order of \Cref{sec:hierarchy}.
 
-\subsection{Decision variables and objective}
+\subsection{Prefix-state propagation}
 
+Let $T_A$ be the maximum flying time between type-A events and let $\Phi_j$
+be the pre-horizon accumulated flying time of aircraft $j$. At every ordered
+position, an unassigned flight carries the state forward, an assigned flight
+adds its duration, and an event resets the state after its triggering flight.
+Using valid position-specific big-$M$ values $M_{rj}$, the transition is
+represented by
 \begin{align}
-  x_{ij}&\in\{0,1\},
-  &&\text{flight $i$ is assigned to aircraft $j$ (as in \Cref{sec:basic})},
-  \label{eq:event_x}\\
-  w_{i\ell j}&\in\{0,1\},
-  &&\text{aircraft $j$ operates $\ell$ immediately after $i$},
-  \label{eq:event_w}\\
-  z_{ijk}&\in\{0,1\},
-  &&\text{aircraft $j$ receives check $k$ immediately after $i$},
-  \label{eq:event_z}\\
-  u_{ijk}&\geq0,
-  &&\text{flying time accumulated after $i$, before its check, } k\in\CH.
-  \label{eq:event_u}
-\end{align}
-Variable $z_{ijk}$ generalises the day-indexed trigger $z_{ijd}$ of
-\Cref{sec:maintenance} by replacing the day index $d$ with the triggering
-flight $i$ itself -- the day is recoverable as $\lfloor\sigma_i/1440\rfloor$
-whenever it is needed for reporting. Likewise $u_{ijk}$ generalises the
-per-day state $h^c_{jd}$ of \eqref{eq:c13_state_ab_lower}, indexed by the
-flight after which the state is measured instead of by calendar day.
-Boundary variables $w_{0ij}$ and $w_{i\omega j}$ indicate, respectively, the
-first and last flight of aircraft $j$'s route. The hierarchy-reset indicator
-is not stored as a variable; it is the derived expression
-\begin{equation}
-  \rho_{ijk}=\sum_{k'\in\C:\,k'\succeq k}z_{ijk'},
-  \label{eq:event_rho}
-\end{equation}
-the event-indexed analogue of the hierarchy indicator $\eta_{jdc}$ of
-\Cref{sec:hierarchy}.
-
-With assignment costs $c_{ij}$ (as in \eqref{eq:obj}) and maintenance costs
-$g_{ijk}$, the objective is
-\begin{equation}
-  \min\;
-  \sum_{i\in\F}\sum_{j\in\Pc}c_{ij}x_{ij}
-  +\sum_{i\in\F^M}\sum_{j\in\Pc}\sum_{k\in\C}g_{ijk}z_{ijk}.
-  \label{eq:event_objective}
-\end{equation}
-
-\subsection{Event-based constraints C1--C14}
-
-\paragraph{C1 -- Flight coverage.}
-Identical to \eqref{eq:c1}:
-\begin{equation}
-  \sum_{j\in\Pc}x_{ij}=1,
-  \qquad \forall i\in\F.
-  \tag{C1}\label{eq:event_c1}
-\end{equation}
-
-\paragraph{C2 -- Unique predecessor.}
-Every assigned flight has one predecessor or is the first route flight:
-\begin{equation}
-  \mathbb 1_{\{\ell\in\F^0_j\}}w_{0\ell j}
-  +\sum_{i:(i,\ell)\in\Conn}w_{i\ell j}=x_{\ell j},
-  \qquad \forall \ell\in\F,\ j\in\Pc.
-  \tag{C2}\label{eq:event_c2}
-\end{equation}
-Source variables $w_{0\ell j}$ are instantiated only for $\ell\in\F^0_j$;
-the indicator is notation for this sparse domain, not an extra variable.
-
-\paragraph{C3 -- Unique successor.}
-Every assigned flight has one successor or is the last route flight:
-\begin{equation}
-  w_{i\omega j}+\sum_{\ell:(i,\ell)\in\Conn}w_{i\ell j}=x_{ij},
-  \qquad \forall i\in\F,\ j\in\Pc.
-  \tag{C3}\label{eq:event_c3}
-\end{equation}
-
-\paragraph{C4 -- One time-ordered route per aircraft.}
-\begin{align}
-  \sum_{i\in\F}w_{0ij}&\leq1,
-  &&\forall j\in\Pc,
-  \notag\\
-  \sum_{i\in\F}w_{i\omega j}&=\sum_{i\in\F}w_{0ij},
-  &&\forall j\in\Pc.
-  \tag{C4}\label{eq:event_c4}
-\end{align}
-Airport continuity, turn time, and the non-overlap correction of
-\Cref{sec:basic} are all embedded in $\Conn$: an arc $(i,\ell)$ exists only
-if $\ell$ departs from $i$'s arrival airport no earlier than $\tI{i}+\dt$,
-which already excludes the simultaneous-departure counterexample of
-\Cref{ex:simultaneous_departure_counterexample}. Since every arc moves
-forward in time, C2--C4 cannot produce a subtour, so the cyclic-rotation
-constraint of the classical time-space formulations is unnecessary here, as
-in the base model of \Cref{sec:basic}.
-
-\paragraph{C5 -- Maintenance requires assignment.}
-\begin{equation}
-  z_{ijk}\leq x_{ij},
-  \qquad \forall i\in\F^M,\ j\in\Pc,\ k\in\C.
-  \tag{C5}\label{eq:event_c5}
-\end{equation}
-
-\paragraph{C6 -- At most one physical check after a flight.}
-\begin{equation}
-  \sum_{k\in\C}z_{ijk}\leq1,
-  \qquad \forall i\in\F^M,\ j\in\Pc.
-  \tag{C6}\label{eq:event_c6}
-\end{equation}
-A heavy check satisfies lighter requirements through $\rho_{ijk}$
-(\Cref{eq:event_rho}), so simultaneous A, B, C, and D checks after the same
-flight are unnecessary, matching H1--H3 of \Cref{sec:hierarchy}.
-
-\paragraph{C7 -- Maintenance-airport eligibility.}
-Variables $z_{ijk}$ are instantiated only for $i\in\F^M$; a dense equivalent
-is
-\begin{equation}
-  z_{ijk}=0,
-  \qquad \forall i\in\F\setminus\F^M,\ j\in\Pc,\ k\in\C.
-  \tag{C7}\label{eq:event_c7}
-\end{equation}
-
-\paragraph{C8 -- Maintenance duration blocks the next flight.}
-An insufficient connection and a maintenance action cannot both be selected:
-\begin{equation}
-  w_{i\ell j}+z_{ijk}\leq1,
-  \qquad \forall(i,\ell)\in\Conn\setminus\Conn_k,\ j\in\Pc,\ k\in\C.
-  \tag{C8}\label{eq:event_c8}
-\end{equation}
-For a terminal flight, $z_{ijk}$ is instantiated only if $\sigma_i+\delta_k$
-falls inside the planning horizon. A multi-day check is therefore one
-fixed-duration virtual leg, not one binary variable per occupied day as in
-the start/occupancy pair $(s_{jmdc},q_{jmrc})$ of \eqref{eq:c14b}.
-
-\paragraph{C9 -- Continuous-time station capacity.}
-Let $b_a(\theta)$ be the number of available maintenance positions at
-airport $a$ and time $\theta$, and let $\Theta$ collect all maintenance
-start times together with every breakpoint at which $b_a(\theta)$ changes --
-the only times at which the left- or right-hand side below can change value:
-\begin{equation}
-  \sum_{\substack{i\in\F^M:a_i=a\\ k\in\C:\,\sigma_i\leq\theta<\sigma_i+\delta_k}}
-  \sum_{j\in\Pc}z_{ijk}
-  \leq b_a(\theta),
-  \qquad \forall a\in\MA,\ \theta\in\Theta.
-  \tag{C9}\label{eq:event_c9}
-\end{equation}
-This replaces the day-granular capacity constraint~\eqref{eq:c10} with an
-exact continuous-time version; setting $b_a(\theta)=\text{mcap}_{a,d}$ for
-$\theta$ inside day $d$ recovers~\eqref{eq:c10} as a special case.
-
-\paragraph{C10 -- Maintenance hierarchy.}
-\begin{equation}
-  \rho_{ijk}=\sum_{k'\succeq k}z_{ijk'},
-  \qquad \forall i\in\F^M,\ j\in\Pc,\ k\in\C.
-  \tag{C10}\label{eq:event_c10}
-\end{equation}
-This is the event-indexed restatement of H2~\eqref{eq:hier2}; it is a
-derived expression, not an extra decision variable, and replaces the
-day-indexed hierarchy indicator $\eta_{jdc}$.
-
-\paragraph{C11 -- Flight-hour counter bounds.}
-For $k\in\CH$, the counter is active only for an assigned flight and never
-exceeds the threshold:
-\begin{equation}
-  p_i\,x_{ij}\leq u_{ijk}\leq T_k\,x_{ij},
-  \qquad \forall i\in\F,\ j\in\Pc,\ k\in\CH.
-  \tag{C11}\label{eq:event_c11}
-\end{equation}
-
-\paragraph{C12 -- Flight-hour accumulation and reset.}
-For each route connection, the implementation uses separate valid inactive-arc
-bounds. The lower propagation row uses
-$M^-_{\ell k}=T_k+p_\ell$, while the upper propagation row uses the tighter
-$M^+_{\ell k}=\max\{0,T_k-p_\ell\}$ because C11 already bounds the successor
-state by $T_k$. The reset term needs only the state bound $T_k$:
-\begin{align}
-  u_{\ell jk}
-  &\geq u_{ijk}+p_\ell-M^-_{\ell k}(1-w_{i\ell j})-T_k\rho_{ijk},
-  \notag\\
-  u_{\ell jk}
-  &\leq u_{ijk}+p_\ell+M^+_{\ell k}(1-w_{i\ell j})+T_k\rho_{ijk},
-  \notag\\
-  u_{\ell jk}
-  &\leq p_\ell+T_k\bigl(2-w_{i\ell j}-\rho_{ijk}\bigr),
-  \qquad \forall(i,\ell)\in\Conn,\ j\in\Pc,\ k\in\CH.
-  \tag{C12}\label{eq:event_c12}
-\end{align}
-If $w_{i\ell j}=1$ and no qualifying check follows $i$ ($\rho_{ijk}=0$), the
-first two rows give $u_{\ell jk}=u_{ijk}+p_\ell$: pure accumulation. If a
-qualifying check follows $i$ ($\rho_{ijk}=1$), the third row together with
-C11 gives $u_{\ell jk}=p_\ell$: an exact reset. C12 is therefore the
-event-indexed form of the exact recursion
-\eqref{eq:c13_state_lower}--\eqref{eq:c13_state_bound} of
-\Cref{subsec:c13_state}, propagated along the aircraft's actual selected
-route instead of along a fixed calendar-day grid, with no day-pair windows
-and no endpoint ambiguity -- it therefore cannot exhibit the split-form
-failure mode proved in \Cref{lem:c13_split_limit} and confirmed numerically
-in \Cref{subsec:comp_c13}, since there C12 has no "window" that both
-endpoints can simultaneously relax: every successor arc is checked
-individually.
-
-\paragraph{C13 -- Pre-horizon accumulated flying time.}
-For a first-flight arc, the counter is initialised from known aircraft
-history, generalising \eqref{eq:c13b}:
-\begin{align}
-  u_{ijk}&\geq\Phi_{jk}+p_i-(\Phi_{jk}+p_i)(1-w_{0ij}),
-  \notag\\
-  u_{ijk}&\leq\Phi_{jk}+p_i+(\Phi_{jk}+p_i)(1-w_{0ij}),
-  \qquad \forall i\in\F,\ j\in\Pc,\ k\in\CH.
-  \tag{C13}\label{eq:event_c13}
-\end{align}
-The inactive-source relaxation must remain valid even when the supplied
-pre-horizon history is already overdue. Accordingly, the implementation uses
-$M^{0}_{ijk}=\max\{\Phi_{jk},T_k\}+p_i$ rather than $T_k+p_i$ alone. This
-bound is unchanged for admissible histories ($\Phi_{jk}\leq T_k$), but avoids
-an artificial restriction when an instance explicitly records overdue initial
-state; such a state is reported as a data precondition issue by the
-independent validator.
-
-C11--C13 jointly replace the cumulative-flight-hour family
-\eqref{eq:c13_paper}--\eqref{eq:c13b} in full, not only its corrected form.
-
-\paragraph{C14 -- Calendar-time spacing without a day set.}
-Let $H_0$ and $H_1$ be the horizon boundaries. For $k\in\CT$, the first
-deadline is $d^0_{jk}=H_0+L_k-\Psi_{jk}$; if $d^0_{jk}\leq H_1$, require
-\begin{equation}
-  \sum_{\substack{i\in\F^M:\,H_0\leq\sigma_i\leq d^0_{jk}}}\rho_{ijk}\geq1,
-  \qquad \forall j\in\Pc,\ k\in\CT.
-  \tag{C14a}\label{eq:event_c14a}
-\end{equation}
-Every selected check whose next deadline lies inside the horizon must be
-followed by another qualifying check within $L_k$ time units:
-\begin{equation}
-  \sum_{\substack{\ell\in\F^M:\,\sigma_i<\sigma_\ell\leq\sigma_i+L_k}}
-  \rho_{\ell jk}\geq\rho_{ijk},
-  \qquad \forall i\in\F^M:\sigma_i+L_k\leq H_1,\ j\in\Pc,\ k\in\CT.
-  \tag{C14b}\label{eq:event_c14b}
-\end{equation}
-These timestamp windows are the continuous-time counterpart of the sliding
-day window~\eqref{eq:c12_cd}, and give the same due-by-deadline semantics
-while the virtual leg~\eqref{eq:virtual_leg} still blocks the aircraft for
-the check's full fixed duration.
-
-\subsection{Variables and constraints made obsolete}
-
-The reformulation removes the explicit day index $d$ and every
-day-indexed maintenance variable of \Cref{sec:maintenance,sec:hierarchy}:
-the trigger $z_{ijd}$ (now $z_{ijk}$), the daily indicator $y_{jdc}$, the
-hierarchy indicator $\eta_{jdc}$ (now the derived $\rho_{ijk}$), and the
-multi-day start/occupancy pair $s_{jmdc}$/$q_{jmrc}$. It also removes one
-binary per occupied day of a multi-day check and every day-pair
-accumulation constraint~\eqref{eq:c13_new_a}--\eqref{eq:c13_new_b}. Route
-information is now explicit through the sparse successor arcs $w_{i\ell j}$,
-which is what lets C12 propagate the flight-hour counter exactly along the
-aircraft's actual selected sequence.
-
-The implementation generates these arcs from pre-indexed airport, aircraft,
-and timestamp lists rather than repeated scans of all flight pairs. The same
- pre-indexing is used for reachable calendar-check events in C14. Timestamp arrays used by the C14 deadline windows are cached and reused. The indexes
-change construction time only: they preserve the connection and deadline sets,
-so the $w$ variables remain explicit and the correctness argument is unchanged.
-
-\subsection{Ordered prefix-state reduction used by the current method}
-\label{subsec:ordered_event_reduction}
-
-The implementation also contains a more compact ordered-state variant,
-\texttt{OrderedABCDEventMILPScheduler}, which is the current method used in
-the A-only, A/B, and exploratory full-hierarchy experiments. It exploits the
-fact that all flights have a known absolute order. Let
-$(i_1,\ldots,i_{n_f})$ be the flights sorted by
-$(t^{\mathrm{dep}}_i,i)$. Instead of selecting an explicit predecessor arc
-$w_{i\ell j}$, the model maintains a prefix state $q_{rjk}$ for each ordered
-position $r$, aircraft $j$, and hour-based check $k\in\CH$. The state is the
-accumulated flying time for aircraft $j$ after processing positions
-$1,\ldots,r$ since its most recent qualifying check. An unassigned flight
-position carries the state forward; an assigned flight adds its duration; and
-a selected maintenance event after that flight resets the qualifying states.
-
-For $i=i_r$, let $x_{irj}$ denote assignment, let $z_{irjk}$ denote a check
-event, and let
-$\rho_{rjk}=\sum_{k'\succeq k}z_{irjk'}$ be the hierarchy reset indicator.
-With $q_{0jk}=\Phi_{jk}$, the transition is represented by the following
-linear inequalities, where $M_{rjk}$ is a valid bound such as
-$\max\{T_k,\Phi_{jk}\}+p_{i_r}$:
-\begin{align}
-q_{rjk}&\geq q_{r-1,jk}-M_{rjk}x_{irj},\\
-q_{rjk}&\leq q_{r-1,jk}+M_{rjk}x_{irj},\\
-q_{rjk}&\geq q_{r-1,jk}+p_{i_r}
-  -M_{rjk}(1-x_{irj})-M_{rjk}\rho_{rjk},\\
-q_{rjk}&\leq q_{r-1,jk}+p_{i_r}
-  +M_{rjk}(1-x_{irj})+M_{rjk}\rho_{rjk},\\
-q_{rjk}&\leq p_{i_r}\rho_{rjk}+T_k(x_{irj}-\rho_{rjk})
-  +M_{rjk}(1-x_{irj}),\\
-q_{r-1,jk}+p_{i_r}&\leq T_k+M_{rjk}(1-x_{irj}).
+q_{rj}&\geq q_{r-1,j}-M_{rj}x_{irj},\
+q_{rj}&\leq q_{r-1,j}+M_{rj}x_{irj},\
+q_{rj}&\geq q_{r-1,j}+p_{i_r}-M_{rj}(1-x_{irj})-M_{rj}z_{irj},\
+q_{rj}&\leq q_{r-1,j}+p_{i_r}+M_{rj}(1-x_{irj})+M_{rj}z_{irj},\
+q_{rj}&\leq p_{i_r}z_{irj}+T_A(x_{irj}-z_{irj})+M_{rj}(1-x_{irj}),\
+q_{r-1,j}+p_{i_r}&\leq T_A+M_{rj}(1-x_{irj}).
 \label{eq:ordered_hour_transition}
 \end{align}
-The first two rows carry the state when $x_{irj}=0$. The next two impose
-accumulation when the flight is assigned and relax the transition at a
-qualifying check. The fifth row imposes the reset value $p_{i_r}$, while the
-last row prevents a post-flight check from repairing an arrival that already
-exceeded its threshold. A check event remains assignment-linked,
-$z_{irjk}\leq x_{irj}$, and maintenance-incompatible departures are blocked
-directly from their timestamps. C/D checks use the same event variables in
-direct deadline-window inequalities; they do not require a day-indexed state.
+The first two rows carry the state at an unassigned position. The next two
+rows impose accumulation for an assigned flight unless an event is selected.
+The fifth row gives the exact post-event state, and the final row prevents a
+maintenance event from repairing an arrival that already exceeds $T_A$.
+The initial state is $q_{0j}=\Phi_j$.
 
-This reduction removes the $w$ variables and their three arc-flow state rows,
-but it does not remove route feasibility: the corrected C2--C5 assignment and
-turn-time constraints remain active. The reduction is exact for the A-only and
-A/B variants under the stated ordered-state assumptions, as verified by the
-parity experiments below. For the full A/B/C/D variant, the C/D deadline and
-route-reachability conditions require independent replay; until that replay is
-complete, the implementation is reported as an experimental compact variant
-rather than replacing Proposition~\ref{prop:event_correct}.
+Events satisfy
+\begin{equation}
+z_{irj}\leq x_{irj},
+\qquad i\in\F^M,\ j\in\Pc,
+\label{eq:ordered_event_assignment}
+\end{equation}
+and timestamp-based incompatibility rows prevent an event from being
+followed by a departure that occurs before the maintenance duration and turn
+time have elapsed. These rows preserve physical route feasibility while
+avoiding a separate successor-variable family.
 
 \begin{proposition}[Ordered prefix-state validity]
 \label{prop:ordered_event_correct}
-Assume that flights are processed in nondecreasing departure-time order,
-the corrected C2--C5 constraints enforce a physically feasible route for each
-aircraft, every selected $z_{ijk}$ event is attached to an assigned flight at
-a maintenance-capable airport, and the C/D deadline rows cover every required
-timestamp interval. Then every integral solution of the ordered formulation
-satisfies the A/B flight-hour limits and the C/D calendar limits.
+Assume the corrected route constraints define a physically feasible integral
+assignment, every event is attached to an assigned flight at a
+maintenance-capable airport, and the supplied initial state is valid. Then the
+ordered prefix-state formulation satisfies the type-A flight-hour limit.
 \end{proposition}
 
 \begin{proof}
-Fix an aircraft and an hour-check type $k$. Induct on the global flight order.
-If flight $i_r$ is not assigned to the aircraft, the first two transition rows
-carry $q_{rjk}=q_{r-1,jk}$. If it is assigned and no qualifying event follows
-it, the next two rows give $q_{rjk}=q_{r-1,jk}+p_{i_r}$; the state bound and the
-pre-check row prevent the threshold from being exceeded. If a qualifying
-event follows $i_r$, the reset row gives $q_{rjk}=p_{i_r}$, while the pre-check
-row still verifies the flight that triggered the event. The induction begins
-with the supplied pre-horizon state $\Phi_{jk}$. For C/D checks, the first
-deadline row requires a qualifying event before the initial deadline, and each
-selected event whose next deadline lies in the horizon is linked to a later
-qualifying event within the allowed timestamp interval. Hence every calendar
-gap is bounded. The route, duration, capacity, and hierarchy conditions follow
-from the corresponding assignment, blocking, capacity, and reset constraints.
+Induct on the ordered flight positions. An unassigned position carries the
+state unchanged. An assigned position adds its flying time unless an event is
+selected, in which case the reset row sets the state to the current flight's
+duration. The final transition row and the upper state bound prevent the
+threshold from being exceeded before a reset. The induction starts from
+$\Phi_j$, so every assigned route satisfies the type-A limit.
 \end{proof}
 
-\subsection{Complexity and memory reduction}
+\subsection{Why the ordered formulation is the final method}
 
-Let $n_f=|\F|$, $n_p=|\Pc|$, $n_c=|\C|$, $n_d$ be the day-indexed model's
-number of planning days, and $n_e=|\Conn|$. The day-indexed maintenance
-tensor of \Cref{sec:hierarchy} contains $O(n_pn_dn_c)$ check/hierarchy
-binaries plus $O(n_pn_mn_d|\CT|)$ location/occupancy binaries. The
-event-based tensor contains only $O(n_fn_pn_c)$ binaries, instantiated
-sparsely over $\F^M$:
-\begin{equation}
-  O\!\left(n_pn_dn_c+n_pn_mn_d|\CT|\right)
-  \;\longrightarrow\;
-  O\!\left(n_fn_pn_c\right).
-  \label{eq:maintenance_reduction}
-\end{equation}
-The complete event-based model contains
-\begin{equation}
-  O\!\left(n_fn_p+n_en_p+n_fn_pn_c\right)
-  \label{eq:event_complexity}
-\end{equation}
-binary variables, plus $O(n_fn_p|\CH|)$ continuous counters. The sparse
-successor variables add $O(n_en_p)$, but $n_e\ll n_f^2$ in practice because
-airport and time incompatibilities eliminate most arcs. Crucially, the
-maintenance model no longer scales multiplicatively with the number of
-planning days $n_d$, which is the main driver of model size in
-\Cref{sec:hierarchy} on long horizons. This variable-count advantage is
-confirmed empirically in \Cref{subsec:event_measurements}, but with an
-important caveat: constraint~\eqref{eq:event_c12} is itself built over every
-arc in $\Conn$, so on dense timetables where $|\Conn|$ grows quickly the
-event-based model's \emph{constraint} count can exceed the day-indexed
-model's, even while its variable count remains smaller -- a genuine
-practical trade-off, not a strict improvement in every dimension.
-
-\begin{table}[t]
-\centering\small
-\caption{Principal variable counts: day-indexed hierarchy model
-  (\Cref{sec:hierarchy}) versus the event-based reformulation of this
-  section.}
-\label{tab:event_variable_counts}
-\begin{tabular}{lll}
-\toprule
-Component & Day-indexed model & Event-based model \\
-\midrule
-Flight assignment    & $n_fn_p$        & $n_fn_p$ \\
-Maintenance choice    & $n_pn_dn_c$      & $n_fn_pn_c$ (sparse over $\F^M$) \\
-Multi-day occupancy   & $n_pn_mn_d|\CT|$ & removed (virtual-leg duration) \\
-Hierarchy indicator   & $n_pn_dn_c$      & derived, not stored \\
-Route sequence        & implicit         & $n_en_p$ sparse binaries \\
-Hour-check state      & day-pair rows    & $2n_fn_p$ continuous variables \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{remark}
-  Removing the day dimension does not remove calendar information: every
-  timestamp must remain on one absolute, horizon-wide time scale, or
-  overnight gaps and the C/D elapsed-time requirements of C14 cannot be
-  recovered. This is why the implementation, \texttt{EventMILPScheduler} in
-  \texttt{src/event\_model.py}, keeps the legacy JSON instance format
-  unchanged and derives $o_i,a_i,\tD i,\tI i$ directly from it.
-\end{remark}
-
-\subsection{Correctness}
-
-\begin{proposition}
-  \label{prop:event_correct}
-  Assume $\Conn$ contains exactly the physically feasible ordinary
-  connections~\eqref{eq:connection_set} and C8 is imposed for every
-  maintenance-incompatible connection. Every integral solution of
-  C1--C14 above then defines, for each aircraft, a time-feasible route whose
-  selected maintenance events satisfy duration, station capacity,
-  hierarchy, cumulative flight-hour limits, and calendar-time limits.
-\end{proposition}
-
-\begin{proof}
-  C1 assigns every flight exactly once. C2--C4 chain assigned flights into a
-  single time-ordered route per aircraft, with turn-time and non-overlap
-  feasibility guaranteed by the construction of $\Conn$
-  (\Cref{eq:connection_set}), so no separate non-overlap family analogous to
-  \eqref{eq:c4_overlap} is required here. C5--C8 attach each maintenance
-  event only to an assigned flight at an eligible station and reserve its
-  full duration by blocking every connection that does not leave enough
-  time. C9 enforces continuous-time station capacity. C10 applies the
-  hierarchy reset exactly as H1--H3 of \Cref{sec:hierarchy}. C11--C13
-  propagate and bound the flight-hour counter along the aircraft's actual
-  selected route, by the same case analysis as
-  \Cref{subsec:c13_state}: whenever $w_{i\ell j}=1$, exactly one of "pure
-  accumulation" or "exact reset" applies at every successor arc, so the
-  counter can never silently skip a window the way the day-indexed split
-  form of \Cref{lem:c13_split_limit} can. C14 links every qualifying
-  calendar-time check to its predecessor within the required elapsed time,
-  using the known pre-horizon state $\Psi_{jk}$. All stated operating and
-  maintenance requirements therefore hold for every aircraft, hence for the
-  whole solution.
-\end{proof}
-
-This completes, with a full independent derivation, the exact-state
-formulation that \Cref{subsec:c13_flaw,subsec:c13_corrected} showed was
-needed to repair Constraint~(13): \Cref{prop:event_correct} is the
-event-based counterpart of \Cref{thm:physical_feasibility_c1_c14}, extended
-from the single type-A check of \Cref{sec:maintenance} to the full
-$\{A,B,C,D\}$ hierarchy of \Cref{sec:hierarchy}, without a day index
-anywhere in the maintenance constraints.
+The ordered formulation combines event-triggered maintenance with a global
+flight order and aircraft-local prefix states. It removes the day-pair
+accumulation ambiguity of Constraint~(13), avoids the old compact-event
+successor-variable formulation, and keeps the physical route constraints
+needed for valid tail assignments. The computational study in
+\Cref{sec:computational} evaluates this formulation against the legacy A-only
+model on matched horizon and fleet-size grids.

@@ -5,89 +5,31 @@
 
 \subsection{Implementation and environment}
 
-All models are implemented in Python~3.10+ using the Pyomo optimisation
-framework~\citep{pyomo2023}. The compact benchmark in Table~\ref{tab:repro5}
-and the matched diagnostic in Table~\ref{tab:matched_stress} were solved with IBM ILOG
-CPLEX~\citep{cplex2023} through Pyomo's \texttt{cplex} shell backend. For the
-new Constraint~(13) verification and per-check-type hierarchy study
-(\Cref{subsec:comp_c13,subsec:hierarchy_results}) results are cross-validated
-with two independent exact MILP solvers: the open-source HiGHS
-solver~\citep{highs2023} through Pyomo's \texttt{appsi\_highs} interface, and
-the full, unrestricted IBM ILOG CPLEX~12.6 build distributed with AMPL
-through Pyomo's \texttt{cplexamp} ASL interface. The CPLEX copy already on
-this machine's PATH is a size-restricted Community/Preview edition (1\,000
-variable/constraint limit) that raises \texttt{CPLEX Error 1016} on every
-instance in this study once maintenance constraints are included; it is not
-used for any reported result. HiGHS and the unrestricted CPLEX build agree
-exactly (same status, same objective) on every instance reported in
-\Cref{subsec:hierarchy_results}, giving solver-independent confidence in the
-correctness claims.
-The code, instance generator, and experiment runner are publicly available at
-the companion repository.
+All models are implemented in Python using Pyomo. The reported exact solves
+use unrestricted IBM ILOG CPLEX~12.6 for AMPL through Pyomo's
+\texttt{cplexamp} interface. The deterministic instance generator and all
+benchmark scripts are included in the companion repository. Every reported
+solution is checked independently by replaying the aircraft route and its
+maintenance counter.
 
-\paragraph{Comparison protocol.}
-The compact benchmark and the matched diagnostic use the same JSON instances
-and assignment-cost data for both formulations where a comparison is claimed.
-They do not by themselves certify cumulative-hour correctness;
-\Cref{subsec:comp_c13,subsec:hierarchy_results} evaluates the real built
-constraints and independently replays maintenance counters.
+\subsection{Constraint (13) verification}
 
-\subsection{Instance generation}
-
-The current generator creates deterministic synthetic instances. For
-parameters $(\delta,n_p,n_d)$ it generates approximately
-$\delta n_p n_d$ flights, chooses airports and times from seeded pseudo-random
-distributions, and uses a stable seed for each test index. Thus $\delta$ is a
-flight-count scaling parameter in this repository, not the fleet-to-minimum-
-fleet ratio used by \citet{khaled2018compact}. Unless a table states otherwise,
-the quick snapshots contain one generated instance per parameter cell.
-
-\subsection{Reference benchmark}
-
-For a compact numerical anchor, Table~\ref{tab:repro5} reports one exact solve
-on the small \texttt{ABCD\_capacity\_bottleneck\_test} instance. The former
-random snapshots that reproduced the configurations of Tables~6, 10, and~11
-of \citet{khaled2018compact} are omitted: their
-infeasible cells were neither matched across formulations nor informative for
-the correctness claim.
-
-Lemmas~\ref{lem:c13_flaw} and~\ref{lem:c13_split_limit} are proved
-algebraically in \Cref{subsec:c13_flaw,subsec:c13_corrected}. We additionally
-verify both directly against the production implementation:
-\texttt{experiments/c13\_loophole\_validation.py} builds the real
-\texttt{LegacyEndpointSplitMILPScheduler} model -- with both the split
-formulation and, using the restored \texttt{use\_paper\_c13} toggle, the
-original Khaled et al. (2018) form -- on the four-day, single-aircraft
-instance \texttt{data/instances/c13\_loophole\_test.json}
-($T^A_{\max}=600$~min, $600$~min flown on each of days~2 and~4), and
-evaluates every real \texttt{m.c13} constraint row at two adversarial check
-patterns.
+The original cumulative-flight-time row and the natural endpoint-split
+replacement were evaluated on the hand-built C13 counterexample. The actual
+production constraint objects admit complementary violating patterns: the
+original row is relaxed when only one endpoint is checked, while the split
+replacement is relaxed when both endpoints carry checks. The exact cumulative
+state formulation rejects both patterns. This directly confirms the algebraic
+analysis in \Cref{subsec:c13_flaw,subsec:c13_corrected}.
 
 \begin{table}[t]
 \centering\small
-\caption{Measured MILP benchmark on \texttt{ABCD\_capacity\_bottleneck\_test}.}
-\label{tab:repro5}
-\begin{tabular}{l r r r}
-\toprule
-Status & CPU (s) & Wall (s) & Objective \\
-\midrule
-optimal & 0.09 & 0.20 & 8\,300 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-
-\subsubsection{Direct C13 implementation check}
-\label{subsec:comp_c13}
-
-\begin{table}[t]
-\centering\small
-\caption{Numeric verification of the C13 flaw and endpoint-split limitation
-  against the production constraints and exact-state replay.}
+\caption{Numeric verification of the C13 flaw against the production
+  constraints and exact-state replay.}
 \label{tab:c13_loophole}
 \begin{tabular}{lccc}
 \toprule
-Scenario & Paper C13 & Split C13 & Event state \\
+Scenario & Paper C13 & Endpoint split & Exact state \\
 \midrule
 Both endpoints checked & rejects & accepts (wrong) & rejects \\
 Only end checked & accepts (wrong) & rejects & rejects \\
@@ -95,469 +37,31 @@ Only end checked & accepts (wrong) & rejects & rejects \\
 \end{tabular}
 \end{table}
 
-\subsubsection{Per-check hierarchy replay}
-\label{subsec:hierarchy_results}
-
-\begin{table}[t]
-\centering\small
-\caption{Legacy-model hierarchy diagnostic with independent replay.}
-\label{tab:hierarchy}
-\begin{tabular}{lrrrrrr}
-\toprule
-Check(s) & Status & Obj & Vars & Cons. & Valid? & Genuine viol. \\
-\midrule
-A only & optimal & 20\,000 & 648 & 1\,318 & yes & 0 \\
-B only & optimal & 20\,000 & 648 & 1\,516 & yes & 0 \\
-C only & optimal & 20\,500 & 648 & 1\,679 & yes & 0 \\
-D only & optimal & 20\,500 & 648 & 1\,679 & yes & 0 \\
-Full A/B/C/D & optimal & 14\,700 & 1\,092 & 2\,445 & no & 1 of 4 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-The C13 rows confirm the two complementary failures of the paper and
-endpoint-split constraints, while the exact-state recursion rejects both.
-The isolated hierarchy runs are independently valid; the full mixed run
-contains one genuine endpoint-split violation in addition to initial-overdue
-data cases. These results motivate the exact event-state formulation below.
-
-\subsection{Measured effectiveness of the ordered event formulation}
+\subsection{Ordered type-A event formulation}
 \label{subsec:event_measurements}
 
-\Cref{sec:event_reformulation} proves the standalone event-based reformulation exact
-and immune to the endpoint-split failure mode by construction. This
-subsection measures the latest ordered implementation's practical behavior against the day-indexed
-legacy model on which it improves, using
-\texttt{experiments/compare\_formulations.py}. While diagnosing the first
-solved comparisons below, the same protocol used to certify results
-elsewhere in this section -- always cross-checking a status against an
-independent computation -- exposed an implementation defect in
-\texttt{src/event\_model.py}: the pre-horizon initial-hours constraint used
-a big-$M$ equal to the source flight's own duration plus its initial hours,
-which is not a valid upper bound on $u_{ijk}$ once a route has accumulated
-several flights, and made the model reject cost-optimal schedules it should
-accept. The fix (using $T_k+p_i$, the same bound family as
-\Cref{eq:event_c12}) is included in the code accompanying this paper; all
-results below use the corrected version.
+The ordered implementation removes explicit successor variables and propagates
+an aircraft-local prefix state through flights sorted by departure time. A
+maintenance event is attached to its triggering flight, and the pre-check row
+prevents an event from repairing an already overdue arrival. This is the
+latest A-only method evaluated below. The event and ordered formulations agree
+with the legacy A-only model on every feasible instance reported here.
 
-\paragraph{Solved comparison on a well-posed instance.}
-On a small hand-built instance with two aircraft, six flights, and a
-threshold comfortably above the total flying time
-(\texttt{data/instances/event\_vs\_legacy\_clean\_test.json}), both
-formulations now return the same optimal objective (600, a single aircraft
-covering all six flights with no maintenance event), using CPLEX 12.6 for
-AMPL as the solver of record. This is exact agreement between two
-independently coded formulations on a genuinely solved instance, not merely
-a build-time comparison.
+\subsubsection{A-only timing versus planning horizon}
 
-\paragraph{A modelling-convention gap on the existing ABCD suite.}
-On the existing \texttt{ABCD\_*} boundary instances
-(for example \texttt{ABCD\_capacity\_bottleneck\_test}), the event-based
-model reports \texttt{infeasible} where the legacy model reports
-\texttt{optimal}. This is
-not a solver or implementation defect: these instances' own design notes
-(e.g. \texttt{ABCD\_capacity\_bottleneck\_test.json}) state that an aircraft
-is intended to fly \emph{past} its hour threshold and only be checked that
-same night -- exactly the permissive convention encoded in the legacy
-model's C13b relaxation. The exact-state formulations of this paper (both
-the day-indexed recursion of \Cref{subsec:c13_state} and the event-based
-\Cref{eq:event_c11} bound $u_{ijk}\le T_k x_{ij}$ unconditionally) instead
-require the threshold to never be exceeded at any arrival, check or no
-check. Under that stricter, arguably safer reading, these particular
-instances are genuinely infeasible: no schedule exists in which an aircraft
-never exceeds its hour limit for these initial states and flight durations.
-This is a modelling-convention gap between the existing benchmark suite and
-the corrected formulations of this paper, not a defect in either
-implementation, and it is a direct practical consequence of fixing the
-endpoint-split flaw: the corrected model can no longer quietly accept the
-same after-the-fact resolution the legacy convention relied on.
-
-\paragraph{Model-size scaling versus planning horizon.}
-Table~\ref{tab:event_scaling} reports \texttt{--build-only} statistics for
-both formulations on the same fleet (10 aircraft) across horizons
-$h\in\{7,15,21,30\}$ from the density-1.0 \texttt{DataCplex} grid.
+We compared legacy A-only and ordered A-event models on the same feasible
+instances with $|P|=10$ and $h\in\{7,15,21,30\}$ using unrestricted CPLEX.
+The complete measurements are in
+\texttt{results/tables/formulation\_a\_comparison\_latest.csv}.
 
 \begin{table}[t]
 \centering\small
-\caption{Model size versus planning horizon $h$ (10 aircraft, density 1.0;
-  \texttt{results/tables/formulation\_scaling\_v2.csv}). ``Vars ratio''/``Cons.\
-  ratio'' are event-based over legacy.}
-\label{tab:event_scaling}
-\begin{tabular}{rrrrrrr}
-\toprule
-$h$ & Legacy vars & Event vars & Vars ratio & Legacy cons. & Event cons. & Cons.\ ratio \\
-\midrule
-7  & 10\,800  & 7\,866   & 0.73 & 15\,819  & 24\,874     & 1.57 \\
-15 & 33\,400  & 23\,582  & 0.71 & 42\,927  & 91\,598     & 2.13 \\
-21 & 61\,500  & 39\,398  & 0.64 & 78\,394  & 167\,211    & 2.13 \\
-30 & 175\,430 & 210\,161 & 1.20 & 432\,700 & 1\,209\,411 & 2.80 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-The variable-count advantage predicted by
-\Cref{tab:event_variable_counts} holds at $h=7,15,21$ (27--36\% fewer
-variables) but reverses at $h=30$, where the event model uses 20\% \emph{more}
-variables. Constraint count is larger for the event-based model at every
-horizon tested, by a factor of 1.6--2.8, and this factor broadly increases
-with $h$. The
-reason is exactly the caveat already noted in
-\Cref{sec:event_reformulation}: constraint~\eqref{eq:event_c12} is built over
-every feasible connection $(i,\ell)\in\Conn$, and $|\Conn|$ grows
-super-linearly with the number of flights on these dense
-($\delta=1.0$) synthetic instances, whereas the legacy model's maintenance
-constraint count scales with $n_pn_d$. The event-based reformulation is
-therefore not unconditionally smaller in practice: its variable-count
-advantage is real but bounded, and its constraint count is measurably larger
-on this benchmark family, a genuine trade-off rather than a strict
-improvement.
-
-An exploratory density-0.5 horizon stress run is retained in the companion
-repository as \texttt{results/tables/formulation\_horizon\_scaling.csv}, but
-is excluded from runtime claims because its infeasible and time-limited rows
-mix different feasible domains. The corrected independent replay also showed
-that the legacy endpoint-split optimum on the h=10 exploratory instance can
-violate the A/B flight-hour state limits. The controlled runtime comparison
-below therefore uses only feasible heavy instances for which both formulations
-are optimal and objective-matched.
-
-The matched stress comparison also uncovered and corrected an objective-model
-defect in the legacy implementation. The day-indexed model represents a
-multi-day check by consecutive occupancy variables and previously charged a
-flat penalty per occupied day. When a check extended beyond the planning
-horizon, this underpriced the event relative to the event formulation, which
-charges once per check using its full duration. The legacy model now includes
-an explicit binary maintenance-start variable and charges the same
-duration-based event cost as the event formulation. After this correction, the
-$h=21$ heavy case has objective $881\,263$ in both formulations; the corrected
-matched result is recorded in
-\texttt{results/tables/formulation\_h21\_objective\_aligned\_v2.csv}.
-
-\paragraph{A guaranteed-feasible instance generator.}
-Both formulations are exact, so any solved-objective comparison between them
-is only informative on instances that are actually feasible; the random
-\texttt{DataCplex} generator can produce infeasible cells at higher densities,
-which is uninformative noise for this specific comparison rather than a
-property of either formulation. \texttt{src/generate\_feasible\_instances.py} instead builds
-each aircraft an explicit hub-and-spoke rotation (spoke $\to$ maintenance
-airport $\to$ spoke) with maintenance duration and turn-time slack built
-into every leg, and verifies every seeded rotation against an independent
-greedy timeline simulator before writing the instance, so the generated
-schedule is feasible by construction rather than by chance. Re-running the
-same $h\in\{7,15,21,30\}$, 10-aircraft, density-1.0 comparison on four such
-instances, both formulations solve to a matching optimum on every instance.
-The generator caps flights per rotation, so the $h\in\{15,21,30\}$ instances
-coincide in flight count (and hence in model size) and differ only by random
-seed; they test feasibility at equal size rather than a growing horizon:
-
-\begin{table}[t]
-\centering\small
-\caption{Solved comparison on guaranteed-feasible instances
-  (\texttt{results/tables/formulation\_feasible\_scaling\_current.csv}), full CPLEX
-  for AMPL, 180\,s time limit. Both formulations reach the identical
-  objective on every instance. The $h\in\{15,21,30\}$ rows share model size
-  because the feasible generator caps flights per rotation; they differ only
-  by random seed.}
-\label{tab:event_feasible_solved}
-\begin{tabular}{lrrrrrr}
-\toprule
-Instance & Legacy status & Legacy obj. & Event status & Event obj. & Legacy vars/cons. & Event vars/cons. \\
-\midrule
-h=7  & optimal & 24\,935 & optimal & 24\,935 & 4\,300/8\,848   & 6\,865/30\,360 \\
-h=15 & optimal & 29\,914 & optimal & 29\,914 & 7\,580/17\,134  & 8\,820/38\,730 \\
-h=21 & optimal & 29\,886 & optimal & 29\,886 & 7\,580/17\,134  & 8\,820/38\,730 \\
-h=30 & optimal & 29\,875 & optimal & 29\,875 & 7\,580/17\,134  & 8\,820/38\,730 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-This is the cleanest evidence in this paper for the correctness claim of
-\Cref{prop:event_correct}: on four independently constructed, genuinely
-feasible instances, two independently coded exact formulations -- built from
-different variable sets, different constraint families, and (after the fix
-above) different big-$M$ derivations -- agree exactly on the optimal cost
-every time.
-
-\paragraph{Runtime and model-size scaling.}
-To complement the objective-parity tables, we measured the corrected legacy
-and standalone event formulations on four feasible full-hierarchy instances
-with $|P|\in\{5,10,15,20\}$ and $|F|\in\{10,20,30,40\}$. Every run
-reported here was optimal, and the objective values matched exactly. The
-figures use wall-clock time, active Pyomo variable count, and active constraint
-count from \texttt{results/tables/formulation\_abcd\_fleet\_scaling\_latest.csv}.
-They therefore compare execution and model size only on a common, solved
-feasible domain.
-
-The figures show the complete single-run measurement set from the latest
-benchmark; all rows are optimal and objective-matched.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.86\linewidth]{figures/ordered_abcd_variables_vs_fleet.png}
-\caption{Active variable count versus fleet size for the latest ordered
-  no-$w$ formulation, legacy model, and standalone event model.}
-\label{fig:ordered_abcd_variables}
-\end{figure}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.86\linewidth]{figures/ordered_abcd_constraints_vs_fleet.png}
-\caption{Active constraint count versus fleet size for the latest ordered
-  no-$w$ formulation, legacy model, and standalone event model.}
-\label{fig:ordered_abcd_constraints}
-\end{figure}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.86\linewidth]{figures/ordered_abcd_build_vs_fleet.png}
-\caption{Model-build wall time versus fleet size for the latest ordered
-  no-$w$ formulation, legacy model, and standalone event model.}
-\label{fig:ordered_abcd_build}
-\end{figure}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.86\linewidth]{figures/ordered_abcd_wall_vs_fleet.png}
-\caption{Solve wall time versus fleet size for the latest ordered no-$w$
-  formulation, legacy model, and standalone event model. All runs are optimal
-  and objective-matched.}
-\label{fig:ordered_abcd_wall}
-\end{figure}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.86\linewidth]{figures/ordered_abcd_cpu_vs_fleet.png}
-\caption{Solve CPU time versus fleet size for the latest ordered no-$w$
-  formulation, legacy model, and standalone event model. All runs are optimal
-  and objective-matched.}
-\label{fig:ordered_abcd_cpu}
-\end{figure}
-
-These Figures~1--5 now describe the latest ordered no-$w$ method. Across the
-four fleet sizes, it uses 47--72\% fewer variables than the legacy model and
-returns the same optimal objective. Its build and solve times remain close to
-the legacy values on this small grid; the constraint count is lower for the
-two smallest fleets and higher for the largest fleet. The results support a
-compactness and parity claim, not a universal runtime speedup.
-
-\paragraph{A second implementation defect, found and fixed the same way.}
-The same generator, run with \texttt{--maintenance-families ABCD}, initially
-solved under the legacy model but returned \texttt{infeasible} under the
-event-based model. Applying the same fault-isolation procedure used for
-\Cref{eq:event_c13} (relax all binary variables, solve the LP, and
-deactivate one named constraint block at a time) to
-constraints~\eqref{eq:event_c14a}--\eqref{eq:event_c14b} found a second,
-distinct defect: the candidate set for a calendar-check deadline was built
-from \emph{cost-feasible} assignment arcs only, without checking whether the
-candidate flight is actually \emph{reachable} by that aircraft's route (a
-flight can be affordable for an aircraft under the cost matrix's ferry
-penalty while having no predecessor path to it at all in this sparse
-hub-and-spoke instance family). The deadline constraint could then require a
-check on a flight the aircraft could never legally reach, an unsatisfiable
-requirement masquerading as a routing infeasibility. A second, narrower
-defect surfaced during the fix: the placeholder row inserted when no
-candidate exists at all evaluated to a plain Python \texttt{False} instead
-of a symbolic Pyomo constraint, raising a solver-side error rather than a
-clean infeasible status. Both are fixed in the code accompanying this
-paper (an explicit reachability check via the same predecessor sets used by
-constraint~\eqref{eq:event_c2}, and a placeholder anchored on a real
-variable). Root-causing the resulting failure on the regenerated instance
-traced to a third defect, this time in the instance generator itself: the
-calendar-check deadline slack was computed from the coarse departure-day
-index rather than the outbound flight's actual arrival time, so the
-day-rounding in \texttt{src/generate\_feasible\_instances.py} could place an
-aircraft's own designated check-triggering flight a few minutes past its own
-deadline. With all three fixes applied, the regenerated ABCD instance
-solves \texttt{optimal} under both formulations with the identical objective
-(10\,327), completing the cross-validation started above. We report the
-diagnostic process itself, not only the fix, because it is the same
-generic technique (LP relaxation plus single-block deactivation) used
-earlier for Constraint~(13), applied here to a different constraint family
-with a different, unrelated root cause.
-
-\subsection{Correctness comparison of the maintenance formulations}
-
-The central advantage of the event-based formulation is correctness of the
-maintenance state, not feasibility on historical instances designed around a
-more permissive convention. Table~\ref{tab:matched_stress} therefore compares
-the formulations on two adversarial Constraint~(13) scenarios and on three
-independently generated feasible heavy instances. The first two rows evaluate
-the actual production constraints and the exact-state replay on the same
-1\,200-minute violation; the last three rows test whether the stricter event
-state changes the optimal assignment when a feasible schedule exists.
-
-\begin{table}[t]
-\centering\scriptsize
-\caption{Correctness and objective-parity comparison of the maintenance
-  formulations. The first two rows are the adversarial C13 scenarios from
-  Table~\ref{tab:c13_loophole}; ``accepts'' means the built model constraints
-  admit the violating point, and ``rejects'' means they do not. The final
-  rows are feasible heavy instances solved with unrestricted CPLEX~12.6 for
-  AMPL and a 60-second limit.}
-\label{tab:matched_stress}
-\resizebox{\linewidth}{!}{%
-\begin{tabular}{l l l l l}
-\toprule
-Test & Legacy paper C13 & Legacy split C13 & Event exact-state & Objective parity \\
-\midrule
-C13: both endpoints checked & rejects & accepts (wrong) & rejects & correct rejection \\
-C13: only end checked & accepts (wrong) & rejects & rejects & correct rejection \\
-Feasible heavy, $h=7$ & -- & optimal & optimal & 827\,858 = 827\,858 \\
-Feasible heavy, $h=15$ & -- & optimal & optimal & 1\,132\,028 = 1\,132\,028 \\
-Feasible heavy, $h=21$ & -- & optimal & optimal & 881\,263 = 881\,263 \\
-\bottomrule
-\end{tabular}
-}%
-\end{table}
-
-The table shows the intended result directly. The original paper C13 and the
-endpoint-split strengthening each fail on one complementary adversarial
-pattern, whereas the event formulation rejects both violations. On feasible
-heavy instances, this stronger state logic does not sacrifice the optimum:
-the event and corrected legacy implementations return identical objective
-values at all three horizons. Historical boundary cases that rely on
-after-threshold checking are excluded from this correctness table because
-they test a different maintenance convention rather than the quality of the
-event reformulation.
-
-\subsection{Ordered prefix-state implementation}
-\label{subsec:ordered_event_results}
-
-The ordered prefix-state implementation described in
-\Cref{subsec:ordered_event_reduction} was tested on a feasible full-hierarchy
-fleet-size grid. For each instance, we solved the legacy day-indexed model,
-the ordered no-$w$ model, and the standalone event model with unrestricted
-CPLEX~12.6. The independent C/D replay in
-\texttt{results/tables/event\_calendar\_validation\_abcd\_fleet.csv}
-reported zero calendar violations for every optimal ordered and standalone
-event solution. Table~\ref{tab:ordered_fleet_scaling} reports the resulting
-objective and model-size comparison.
-
-\begin{table}[t]
-\centering\scriptsize
-\caption{Full A/B/C/D fleet-size comparison for the legacy, ordered no-$w$,
-  and standalone event formulations. All 12 runs are optimal and objective-
-  matched. Results are from
-  \texttt{results/tables/formulation\_abcd\_fleet\_scaling\_latest.csv}.
-  Build and solve times are single-run wall-clock measurements.}
-\label{tab:ordered_fleet_scaling}
-\resizebox{\linewidth}{!}{%
-\begin{tabular}{r r l r r r r r r}
-\toprule
-$|P|$ & $|F|$ & Formulation & Objective & Vars & Cons. & Build (s) & Wall (s) & CPU (s) \\
-\midrule
-5  & 10 & Legacy & 5\,139  & 880  & 1\,830 & 0.040 & 0.571 & 0.268 \\
-  &    & Ordered no-$w$ & 5\,139  & 250  & 907 & 0.019 & 0.548 & 0.279 \\
-  &    & Standalone event & 5\,139  & 380  & 922 & 0.031 & 0.547 & 0.264 \\
-10 & 20 & Legacy & 10\,327 & 2\,460 & 4\,932 & 0.112 & 0.723 & 0.296 \\
-  &    & Ordered no-$w$ & 10\,327 & 1\,000 & 3\,657 & 0.064 & 0.628 & 0.291 \\
-  &    & Standalone event & 10\,327 & 1\,800 & 5\,344 & 0.175 & 0.706 & 0.288 \\
-15 & 30 & Legacy & 15\,441 & 4\,620 & 8\,865 & 0.234 & 0.830 & 0.339 \\
-  &    & Ordered no-$w$ & 15\,441 & 2\,250 & 8\,340 & 0.188 & 0.817 & 0.371 \\
-  &    & Standalone event & 15\,441 & 4\,680 & 15\,787 & 0.570 & 1.257 & 0.369 \\
-20 & 40 & Legacy & 20\,592 & 7\,560 & 14\,298 & 0.454 & 1.036 & 0.381 \\
-  &    & Ordered no-$w$ & 20\,592 & 4\,000 & 15\,138 & 0.360 & 1.003 & 0.410 \\
-  &    & Standalone event & 20\,592 & 9\,480 & 35\,029 & 1.101 & 1.787 & 0.472 \\
-\bottomrule
-\end{tabular}
-}%
-\end{table}
-
-The ordered formulation uses 47--72\% fewer variables than the legacy model
-on this grid and returns the same optimum at every fleet size. Its constraint
-count is lower for five and ten aircraft, close to the legacy count at 15,
-and higher at 20. Figures~\ref{fig:ordered_abcd_variables} and
-\ref{fig:ordered_abcd_constraints} visualize the model-size differences,
-while Figures~\ref{fig:ordered_abcd_build}--\ref{fig:ordered_abcd_cpu} show
-the build, wall-clock, and CPU-time measurements. These results support the
-ordered formulation as a promising compact implementation, but not as a
-universal runtime improvement; larger and more diverse feasible instances are
-required for that claim.
-
-To measure dependence on planning-horizon length directly, we fixed the fleet
-size at $|P|=10$ and solved four feasible instances with
-$h\in\{7,15,21,30\}$ from
-\texttt{data/feasible\_instances/} using the same two formulations (legacy and
-ordered no-$w$). Table~\ref{tab:ordered_horizon_dependence} reports the
-measured model sizes and run times from
-\texttt{results/tables/formulation\_ordered\_horizon\_dependence.csv}.
-
-\begin{table}[t]
-\centering\small
-\caption{Horizon dependence for the ordered no-$w$ method at fixed fleet size
-  ($|P|=10$), compared with the legacy day-indexed model. All eight runs are
-  optimal and objective-matched.}
-\label{tab:ordered_horizon_dependence}
-\begin{tabular}{r r r r r r r r}
-\toprule
-$h$ & Legacy vars & Ordered vars & Legacy cons. & Ordered cons. & Legacy build (s) & Ordered build (s) & Ordered wall (s) / Legacy wall (s) \\
-\midrule
-7  & 4\,300 & 2\,500 & 8\,848  & 12\,513 & 0.294 & 0.249 & 1.892 / 2.381 \\
-15 & 7\,580 & 3\,000 & 17\,134 & 13\,437 & 0.641 & 0.408 & 1.922 / 4.934 \\
-21 & 7\,580 & 3\,000 & 17\,134 & 13\,437 & 0.621 & 0.382 & 1.913 / 5.154 \\
-30 & 7\,580 & 3\,000 & 17\,134 & 13\,437 & 0.640 & 0.420 & 1.996 / 5.078 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Across these feasible instances, the ordered method remains objective-exact
-for every horizon and keeps a substantial variable-count reduction (about
-42\% at $h=7$ and about 60\% for $h\ge 15$). Constraint behavior is
-non-monotone across formulations: at $h=7$, ordered has more active
-constraints than legacy, while for $h\in\{15,21,30\}$ it has fewer. Build and
-wall-clock times are lower for the ordered model on all four horizons in this
-family (roughly 15--38\% lower build time and 20--63\% lower wall time). This
-is a measured horizon-family result for the current feasible generator, not a
-universal claim over all instance distributions.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.86\linewidth]{figures/ordered_abcd_variables_vs_horizon.png}
-\caption{Active variable count versus planning horizon for legacy and ordered
-  no-$w$ formulations at fixed fleet size ($|P|=10$).}
-\label{fig:ordered_abcd_variables_horizon}
-\end{figure}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.86\linewidth]{figures/ordered_abcd_constraints_vs_horizon.png}
-\caption{Active constraint count versus planning horizon for legacy and ordered
-  no-$w$ formulations at fixed fleet size ($|P|=10$).}
-\label{fig:ordered_abcd_constraints_horizon}
-\end{figure}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.86\linewidth]{figures/ordered_abcd_build_vs_horizon.png}
-\caption{Model-build wall time versus planning horizon for legacy and ordered
-  no-$w$ formulations at fixed fleet size ($|P|=10$).}
-\label{fig:ordered_abcd_build_horizon}
-\end{figure}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.86\linewidth]{figures/ordered_abcd_wall_vs_horizon.png}
-\caption{Solve wall time versus planning horizon for legacy and ordered no-$w$
-  formulations at fixed fleet size ($|P|=10$).}
-\label{fig:ordered_abcd_wall_horizon}
-\end{figure}
-
-\paragraph{A-only timing improvement versus horizon (latest ordered A profile).}
-To isolate solve-time behavior for a single maintenance type, we compared the
-legacy A-only model and the ordered A-event model on the same four feasible
-instances with $|P|=10$ and $h\in\{7,15,21,30\}$ using unrestricted
-CPLEX~12.6. This is the latest and best-performing A-only implementation in
-this repository, and we report wall solve time, solver CPU time, and model
-size from \texttt{results/tables/formulation\_a\_comparison\_latest.csv}.
-
-\begin{table}[t]
-\centering\small
-\caption{A-only (single-check) solve-time comparison by horizon.
-  Positive gain means ordered A-event is faster than legacy A-only.}
+\caption{A-only solve-time comparison by planning horizon. Positive gain means
+  ordered A-event is faster than legacy A-only.}
 \label{tab:a_only_horizon_timing}
 \begin{tabular}{r r r r r r r r r}
 \toprule
-$h$ & Wall L (s) & Wall O (s) & Wall gain (\%) & CPU L (s) & CPU O (s) & CPU gain (\%) & Vars L/O & Cons. L/O \\
+$h$ & Wall L & Wall O & Wall gain (\%) & CPU L & CPU O & CPU gain (\%) & Vars L/O & Cons. L/O \\
 \midrule
 7  & 0.809661 & 0.797610 & +1.49 & 0.437317 & 0.436940 & +0.09 & 1910/1250 & 3498/4793 \\
 15 & 1.075419 & 0.818485 & +23.89 & 0.537919 & 0.437708 & +18.63 & 3370/1500 & 7494/5747 \\
@@ -569,52 +73,46 @@ Mean & -- & -- & +18.70 & -- & -- & +14.73 & -- & -- \\
 \end{tabular}
 \end{table}
 
-The A-only case shows consistent horizon-wise speedup for the ordered method
-in both wall and CPU time on this tested family, with gains near 19\% in CPU
-and 19\% in wall time for $h\ge 15$. Together, Table~\ref{tab:a_only_horizon_timing}
-and Figures~\ref{fig:ordered_a_wall_horizon}--\ref{fig:ordered_a_cpu_horizon}
-provide the complete latest A-only timing evidence.
+The ordered A-event method is faster on all four horizons. Its mean gain is
++18.70\% in wall time and +14.73\% in solver CPU time; for $h\geq15$, the
+CPU gain is approximately 19\% on this family.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.86\linewidth]{figures/ordered_a_wall_vs_horizon.png}
-\caption{A-only solve wall time versus planning horizon for legacy and
-  ordered A-event formulations.}
+\caption{A-only solve wall time versus planning horizon.}
 \label{fig:ordered_a_wall_horizon}
 \end{figure}
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.86\linewidth]{figures/ordered_a_cpu_vs_horizon.png}
-\caption{A-only solve CPU time versus planning horizon for legacy and
-  ordered A-event formulations.}
+\caption{A-only solve CPU time versus planning horizon.}
 \label{fig:ordered_a_cpu_horizon}
 \end{figure}
 
-\paragraph{A-only CPU scaling versus fleet size.}
-We additionally fixed the planning horizon at $h=7$ and compared the legacy
-A-only, compact A-event, and latest ordered A-event formulations on the
-matched feasible fleet-size instances with $|P|\in\{5,10,15,20\}$. All twelve
-runs were optimal and objective-matched. The complete measurements are in
-\texttt{results/tables/formulation\_a\_fleet\_scaling\_latest.csv}; the latest
-ordered profile's CPU-time scaling is shown in
-Figure~\ref{fig:ordered_a_cpu_fleet}.
+\subsubsection{A-only CPU scaling versus fleet size}
+
+We fixed $h=7$ and compared the legacy A-only and ordered A-event formulations
+on feasible instances with
+$|P|\in\{5,10,15,20\}$. All eight runs were optimal and objective-matched.
+Results are in
+\texttt{results/tables/formulation\_a\_fleet\_scaling\_latest.csv}.
 
 \begin{table}[t]
 \centering\scriptsize
 \caption{A-only CPU-time scaling with fleet size at $h=7$. Positive gain means
-  ordered A-event is faster than legacy A-only. All runs are optimal and
-  objective-matched.}
+  ordered A-event is faster than legacy A-only.}
 \label{tab:a_only_fleet_cpu}
 \resizebox{\linewidth}{!}{%
 \begin{tabular}{r r r r r r r r r}
 \toprule
-$|P|$ & CPU Legacy & CPU Compact & CPU Ordered & Gain (\%) & Vars L/O & Cons. L/O & Obj. Legacy & Obj. Ordered \\
+$|P|$ & CPU Legacy & CPU Ordered & Gain (\%) & Vars L/O & Cons. L/O & Obj. Legacy & Obj. Ordered \\
 \midrule
-5  & 0.335890 & 0.335695 & 0.335151 & +0.22 & 320/125 & 748/465 & 4\,839 & 4\,839 \\
-10 & 0.336071 & 0.335695 & 0.336778 & -0.21 & 990/500 & 2\,128/1\,873 & 9\,627 & 9\,627 \\
-15 & 0.336498 & 0.336286 & 0.333956 & +0.76 & 1\,950/1\,125 & 3\,938/4\,283 & 14\,341 & 14\,341 \\
-20 & 0.437365 & 0.436705 & 0.335564 & +23.28 & 3\,300/2\,000 & 6\,248/7\,511 & 19\,092 & 19\,092 \\
+5  & 0.335890 & 0.335151 & +0.22 & 320/125 & 748/465 & 4\,839 & 4\,839 \\
+10 & 0.336071 & 0.336778 & -0.21 & 990/500 & 2\,128/1\,873 & 9\,627 & 9\,627 \\
+15 & 0.336498 & 0.333956 & +0.76 & 1\,950/1\,125 & 3\,938/4\,283 & 14\,341 & 14\,341 \\
+20 & 0.437365 & 0.335564 & +23.28 & 3\,300/2\,000 & 6\,248/7\,511 & 19\,092 & 19\,092 \\
 \midrule
 Mean gain & -- & -- & -- & +6.01 & -- & -- & -- & -- \\
 \bottomrule
@@ -622,274 +120,25 @@ Mean gain & -- & -- & -- & +6.01 & -- & -- & -- & -- \\
 }%
 \end{table}
 
-The ordered formulation is the fastest of the three at $|P|=15$ and
-$|P|=20$, with a mean CPU-time gain of +6.01\% over legacy on this four-point
-grid. Its variable count is consistently lower than legacy, whereas its
-constraint count is lower at $|P|=5,10$ and higher at $|P|=15,20$. The small
-negative gain at $|P|=10$ and the single-run nature of each cell reinforce that
-these are descriptive measurements rather than a universal scaling law.
+The ordered formulation has a mean CPU-time gain of +6.01\% over legacy on
+this four-point grid and uses fewer variables at every fleet size. The gain is
+not monotone: it is slightly negative at $|P|=10$ and is largest at $|P|=20$.
+These are single-run measurements and should be interpreted as descriptive
+rather than as a universal scaling law.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.86\linewidth]{figures/ordered_a_cpu_vs_fleet.png}
-\caption{A-only solve CPU time versus fleet size at fixed horizon $h=7$ for
-  the legacy, compact event, and latest ordered event formulations.}
+\caption{A-only solve CPU time versus fleet size at fixed horizon $h=7$.}
 \label{fig:ordered_a_cpu_fleet}
 \end{figure}
 
-\paragraph{Ordered-model profile ablation (latest implementation).}
-After adding implementation-level performance controls in the ordered
-model -- overlap-row structure (pairwise vs.\/ interval-clique), state
-propagation big-$M$ profile (coarse vs.\ tightened), aircraft-local state
-indexing, and calendar candidate pruning -- we first ran a two-factor
-ablation (overlap + big-$M$) on
-the same four feasible horizon instances ($h\in\{7,15,21,30\}$, $|P|=10$):
+\subsection{Summary and limitations}
 
-\begin{itemize}
-  \item \textbf{clique+tight}: maximal-interval clique overlap rows with
-  tightened state big-$M$ constants;
-  \item \textbf{pairwise+coarse}: legacy pairwise overlap rows with coarse
-  state big-$M$ constants.
-\end{itemize}
-
-The runs were repeated under both exact solvers used in this paper
-(HiGHS via \texttt{appsi\_highs} and unrestricted CPLEX~12.6 via
-\texttt{cplexamp}). Results are in
-\texttt{results/tables/ordered\_ablation\_clique\_tight.csv},
-\texttt{results/tables/ordered\_ablation\_pairwise\_coarse.csv},
-\texttt{results/tables/ordered\_ablation\_clique\_tight\_cplex.csv}, and
-\texttt{results/tables/ordered\_ablation\_pairwise\_coarse\_cplex.csv}.
-
-\begin{table}[t]
-\centering\small
-\caption{Ordered-model ablation by solver and horizon. Positive gain means
-  \textbf{clique+tight} is faster than \textbf{pairwise+coarse}; negative gain
-  means slower. All rows are optimal in both profiles.}
-\label{tab:ordered_profile_ablation}
-\begin{tabular}{l r r r r}
-\toprule
-Solver & $h$ & Build gain (\%) & Wall gain (\%) & Better wall profile \\
-\midrule
-HiGHS & 7  & +2.06  & -2.46  & pairwise+coarse \\
-HiGHS & 15 & -0.99  & -17.93 & pairwise+coarse \\
-HiGHS & 21 & -18.67 & -14.06 & pairwise+coarse \\
-HiGHS & 30 & +10.42 & -14.82 & pairwise+coarse \\
-CPLEX & 7  & +3.54  & +3.02  & clique+tight \\
-CPLEX & 15 & -0.83  & -1.00  & pairwise+coarse (marginal) \\
-CPLEX & 21 & +15.06 & +10.59 & clique+tight \\
-CPLEX & 30 & +9.99  & +8.44  & clique+tight \\
-\midrule
-HiGHS mean & -- & -1.80 & -12.32 & pairwise+coarse \\
-CPLEX mean & -- & +6.94 & +5.26 & clique+tight \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.98\linewidth]{figures/ordered_profile_ablation_gains.png}
-\caption{Solver-specific gains of the \textbf{clique+tight} ordered profile
-  relative to \textbf{pairwise+coarse} across horizon lengths. Positive values
-  mean faster performance for clique+tight. Left: build-time gain. Right:
-  solve wall-time gain.}
-\label{fig:ordered_profile_ablation_gains}
-\end{figure}
-
-This is a clear solver interaction effect. On this benchmark family,
-the strengthened profile (clique+tight) improves CPLEX on average, but hurts
-HiGHS on average; the ranking is therefore not formulation-only, it is
-formulation-plus-solver. Practically, the ordered implementation should expose
-both profiles and choose defaults by solver backend rather than hard-coding
-a single global profile. \Cref{fig:ordered_profile_ablation_gains} visualizes
-the crossover directly: HiGHS remains below zero on wall-time gain for all
-tested horizons, while CPLEX is positive on three of the four horizons.
-
-\subsection{Calendar candidate pruning in the newest ordered profile}
-\label{subsec:ordered_calendar_pruning}
-
-The latest full-ABCD ordered profile used for final horizon measurements in
-this paper is:
-\begin{itemize}
-  \item interval-clique overlap rows,
-  \item tightened state big-$M$ constants,
-  \item aircraft-local state indexing, and
-  \item calendar candidate pruning in C14 windows.
-\end{itemize}
-
-Calendar candidate pruning removes dominated per-check candidates inside each
-calendar window by aggregating candidates at the flight level before building
-C14 rows. This is semantics-preserving under the model's
-one-maintenance-event-per-flight logic and is intended to reduce redundant
-literals in dense windows.
-
-We measured pruning \emph{on} versus \emph{off} on the same four feasible
-horizon instances ($|P|=10$, $h\in\{7,15,21,30\}$), with all other options
-fixed to the latest profile and unrestricted CPLEX~12.6 for AMPL as solver.
-Results are in
-\texttt{results/tables/ordered\_calendar\_pruning\_on\_cplex.csv} and
-\texttt{results/tables/ordered\_calendar\_pruning\_off\_cplex.csv}.
-
-\begin{table}[t]
-\centering\small
-\caption{Calendar-candidate pruning effect in the newest ordered ABCD profile.
-  Positive gain means pruning enabled is faster than pruning disabled. All runs
-  are optimal and objective-matched.}
-\label{tab:ordered_calendar_pruning}
-\begin{tabular}{r r r r r r r}
-\toprule
-$h$ & CPU off (s) & CPU on (s) & CPU gain (\%) & Wall off (s) & Wall on (s) & Wall gain (\%) \\
-\midrule
-7  & 0.537955 & 0.536415 & +0.29 & 1.042861 & 1.040630 & +0.21 \\
-15 & 0.538259 & 0.538097 & +0.03 & 1.069399 & 1.068243 & +0.11 \\
-21 & 0.639946 & 0.639482 & +0.07 & 1.163880 & 1.161167 & +0.23 \\
-30 & 0.538021 & 0.537535 & +0.09 & 1.071652 & 1.068397 & +0.30 \\
-\midrule
-Mean & -- & -- & +0.12 & -- & -- & +0.22 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.86\linewidth]{figures/ordered_calendar_pruning_gains.png}
-\caption{CPU-time and wall-time gains from calendar candidate pruning in the
-  newest ordered ABCD profile. Positive values indicate that pruning is faster
-  than the unpruned profile.}
-\label{fig:ordered_calendar_pruning_gains}
-\end{figure}
-
-All eight runs (four off, four on) are optimal and objective-matched. On this
-tested dense family, pruning yields small but consistent timing improvements,
-with mean gains of +0.12\% in solver CPU and +0.22\% in wall time. Model-size
-counts are unchanged in these four cases, indicating that this particular
-family has limited C14 candidate dominance to exploit; larger gains may appear
-on instances with heavier calendar-window overlap.
-
-\subsection{Summary of findings}
-
-\begin{enumerate}
-  \item The current runs validate the corrected formulations on deterministic
-    synthetic instances; they do not reproduce the published data or
-    averages.
-  \item The Constraint~(13) endpoint-split flaw of \Cref{lem:c13_split_limit}
-    is confirmed computationally: all 42 real constraint rows built by
-    \texttt{src/model.py} for the loophole instance are satisfied at an
-    adversarial point where 1\,200 minutes are actually flown against a
-    600-minute limit, while the exact-state recursion correctly rejects it.
-  \item Solved in isolation, each of the four check types (A, B, C, D) is
-    enforced correctly by the legacy hierarchy model on
-    \texttt{ABCD\_near\_threshold\_test}: optimal, fully covered, and
-    independently validated with zero violations.
-  \item Under the full mixed hierarchy, the same flaw reappears
-    unprompted on an existing test instance (aircraft~2 in
-    \texttt{ABCD\_check\_hierarchy\_test} exceeds its A-check threshold by
-    200 minutes with no violated constraint reported), showing the issue is
-    not confined to hand-built corner cases.
-  \item The correctness comparison shows that the event formulation rejects
-    both adversarial C13 violations, while the original paper row and the
-    endpoint-split legacy formulation each fail on one complementary pattern.
-  \item After correcting legacy multi-day maintenance-event pricing, the
-    legacy and event formulations reach identical objectives on all three
-    feasible heavy instances reported in Table~\ref{tab:matched_stress}.
-  \item Historical boundary cases that depend on after-threshold checking are
-    excluded from the correctness comparison because they use a different
-    maintenance convention; dense exploratory cases remain solver diagnostics.
-  \item The latest ordered-model speed optimizations (clique overlap +
-    tightened state big-$M$) are solver-dependent: they improve CPLEX on
-    average (+5.26\% wall-time gain on the tested horizon grid) but degrade
-    HiGHS on average (-12.32\%), so solver-specific profile defaults are
-    required for fair runtime reporting.
-  \item In the latest A-only benchmark, the ordered A-event implementation is
-    consistently faster than the legacy A-only model across all tested
-    horizons, with mean gains of +18.70\% wall time and +14.73\% CPU time.
-  \item Adding calendar candidate pruning to the newest ordered ABCD profile
-    gives a small but consistent additional gain on the tested horizon family
-    (+0.12\% mean CPU, +0.22\% mean wall) while preserving optimal status and
-    objective parity in every run.
-  \item This environment contains both a PATH-restricted CPLEX build and an
-    unrestricted CPLEX~12.6-for-AMPL executable; all reported CPLEX runtime
-    results in this section use the unrestricted solver path.
-\end{enumerate}
-
-\subsection{Phase 2: Structural trial of event-based maintenance bridge modes}
-\label{subsec:phase2_bridge_modes}
-
-\Cref{sec:event_reformulation} presents the full event-based reformulation as
-the target model. The migration from the day-indexed legacy model to the
-event-based formulation is implemented incrementally via flag-gated feature
-toggles: new event-based variables and constraints coexist with legacy logic,
-and bridge constraints control their interaction during the transition phase.
-This subsection measures the structural impact (variable and constraint count)
-of two event-based bridge modes on the existing test suite, without claiming
-full equivalence to the independently validated event formulation. The trial
-uses unrestricted CPLEX~12.6 for AMPL with a 60-second limit; all three modes
-return a valid status on all seven instances, with four optimal and three
-certified infeasible cases per mode.
-
-The three model configurations compared are:
-\begin{itemize}
-  \item \texttt{legacy}: the baseline day-indexed model (C1--C14 in day-indexed form);
-  \item \texttt{event\_strict\_bridge}: event variables (set $E$ of \Cref{sec:event_reformulation}) with equality bridge constraints to day-indexed counterparts;
-  \item \texttt{event\_only\_block\_capacity}: event maintenance only, with C8 (incompatibility blocking) and C9 (capacity) modeled as event constraints, legacy C8/C10 deactivated.
-\end{itemize}
-
-\begin{table}[ht]
-\centering\small
-\caption{Phase 2 per-instance structural deltas on ABCD test suite
-  (\texttt{results/tables/phase2\_validation\_delta\_v2.csv}).
-  Columns report the change in variable count and constraint count for each
-  bridge mode relative to the legacy baseline.}
-\label{tab:phase2_structural_deltas}
-\begin{tabular}{lrrrr}
-\toprule
-Instance & $\Delta$Vars (strict) & $\Delta$Cons (strict) & $\Delta$Vars (event-only) & $\Delta$Cons (event-only) \\
-\midrule
-ABCD\_all\_checks\_test.json & 34 & 156 & 34 & 34 \\
-ABCD\_capacity\_bottleneck\_test.json & 144 & 572 & 144 & 249 \\
-ABCD\_check\_hierarchy\_test.json & 351 & 1355 & 351 & 403 \\
-ABCD\_multi\_check\_test.json & 78 & 338 & 78 & 153 \\
-ABCD\_near\_threshold\_test.json & 960 & 3640 & 960 & 1376 \\
-ABCD\_no\_maint\_test.json & 392 & 1453 & 392 & 1109 \\
-ABCD\_two\_b\_one\_c\_test.json & 480 & 1783 & 480 & 67 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Table~\ref{tab:phase2_structural_deltas} shows that both bridge modes add
-event-based variables ($+34$ to $+960$ depending on instance size),
-while the strict-bridge mode adds substantially more constraints (spanning
-$+572$ to $+3640$) due to the equality constraints linking event and legacy
-maintenance states. The event-only mode reduces constraint overhead to between
-$+67$ and $+1376$, accepting the trade-off of legacy constraint deactivation.
-
-Aggregate statistics over all seven test cases are:
-
-\begin{table}[ht]
-\centering\small
-\caption{Phase 2 aggregate delta statistics
-  (\texttt{results/tables/phase2\_validation\_aggregate\_v2.csv}).
-  Mean and median are computed over all seven unrestricted-solver trials.}
-\label{tab:phase2_aggregate_stats}
-\begin{tabular}{lrrrrr}
-\toprule
-Metric & Count & Mean & Median & Min & Max \\
-\midrule
-$\Delta$ Vars (strict) & 7 & 348.4 & 351 & 34 & 960 \\
-$\Delta$ Cons (strict) & 7 & 1328.1 & 1355 & 156 & 3640 \\
-$\Delta$ Vars (event-only) & 7 & 348.4 & 351 & 34 & 960 \\
-$\Delta$ Cons (event-only) & 7 & 484.4 & 249 & 34 & 1376 \\
-CPU (legacy) & 7 & 0.330 & 0.325 & 0.267 & 0.396 \\
-CPU (strict) & 7 & 0.346 & 0.330 & 0.267 & 0.481 \\
-CPU (event-only) & 7 & 0.380 & 0.388 & 0.265 & 0.476 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-These measurements validate construction and solver execution of both bridge
-modes on this test suite, but not exact equivalence to the full event model.
-The event-only mode reduces mean constraint overhead relative to strict mode
-(484.4 versus 1328.1 additional rows), but its objective is not universally
-preserved: on \texttt{ABCD\_check\_hierarchy\_test.json} it returns 14,600 versus
-15,900 for legacy and strict bridge. The bridge modes therefore remain
-transition scaffolds; the correctness claims rely on the separate
-`EventMILPScheduler` formulation and its C13/parity validation.
+The corrected type-A model rejects the C13 counterexample, while the ordered
+A-event implementation preserves objective parity and reduces variable counts
+on the tested feasible grids. Its timing advantage is strong in the A-only
+horizon experiment and is positive on average in the fleet-size experiment,
+but the benchmark contains one instance per cell. The results therefore
+support the ordered formulation as a compact and promising A-only method, not
+as a solver-independent or distribution-independent runtime guarantee.

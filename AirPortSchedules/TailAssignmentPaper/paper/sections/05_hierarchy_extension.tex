@@ -64,18 +64,18 @@ $h^c_{j0}=\Phi^c_j$, and use the daily flying time $v_{jd}$ from
 \begin{align}
   h^c_{jd}
   &\ge h^c_{j,d-1}+v_{jd}-M^c\eta_{j,d-1,c},
-  \label{eq:c13_state_ab_lower}\\
+  \label{eq:c11_state_ab_lower}\\
   h^c_{jd}
   &\le h^c_{j,d-1}+v_{jd}+M^c\eta_{j,d-1,c},
-  \label{eq:c13_state_ab_upper}\\
+  \label{eq:c11_state_ab_upper}\\
   h^c_{jd}&\ge v_{jd},
-  \label{eq:c13_state_ab_reset_lower}\\
+  \label{eq:c11_state_ab_reset_lower}\\
   h^c_{jd}
   &\le v_{jd}+M^c(1-\eta_{j,d-1,c}),
-  \label{eq:c13_state_ab_reset_upper}\\
+  \label{eq:c11_state_ab_reset_upper}\\
   0\le h^c_{jd}&\le T^c_{\max},
   \qquad \forall j\in\Pc,\ d\in\D,\ c\in\{A,B\}.
-  \label{eq:c13_state_ab_bound}
+  \label{eq:c11_state_ab_bound}
 \end{align}
 A type-B, C, or D event resets the A counter because it activates
 $\eta_{jdA}$; type-C and D events similarly reset both A and B counters.
@@ -138,7 +138,7 @@ For aircraft $j$ and check $c$:
     start.
 \end{itemize}
 The values $\Phi^c_j$ are the initial conditions in
-\eqref{eq:c13_state_ab_lower}--\eqref{eq:c13_state_ab_bound}. For C/D, the
+\eqref{eq:c11_state_ab_lower}--\eqref{eq:c11_state_ab_bound}. For C/D, the
 opening sliding windows in \eqref{eq:c12_cd} are shortened according to
 $\Psi^c_j$ so that a check due near the horizon start cannot be deferred by a
 full new interval.

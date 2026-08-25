@@ -50,8 +50,8 @@ constraint count is therefore governed by the sparse conflict set
 $\mathcal O$ defined in \Cref{sec:basic}.
 
 
-\item \textbf{Constraint~(13) correction.}  We show that the cumulative-flight-
-  time maintenance constraint (Constraint~13 in \citet{khaled2018compact})
+\item \textbf{Constraint~(11) correction.}  We show that the cumulative-flight-
+  time maintenance constraint (constraint (13) in \citet{khaled2018compact})
   contains a logical flaw in opening and one-endpoint intervals, and in the handling of consecutive flights/maintences. 
   We also show  by counterexample that a natural two-row endpoint split does not fully repair
   the model. We therefore formulate an exact cumulative-state recursion that
@@ -67,16 +67,16 @@ $\mathcal O$ defined in \Cref{sec:basic}.
   size and lets the flight-hour counter propagate exactly along each
   aircraft's actual route, with no day-pair window and therefore no
   possibility of the split-form failure mode proved for
-  Constraint~(13).
+  C11.
 \end{enumerate}
 
 \subsection*{Paper organisation}
 
 \Cref{sec:literature} reviews related work.  \Cref{sec:basic} restates the
 basic TAP model and proves a C2--C4 corner-case correction.  \Cref{sec:maintenance}
-presents the maintenance-extended model, the Constraint~(13) correction, and
-the induced interpretation updates for C8--C14 under the corrected basic model.
+presents the maintenance-extended model, the Constraint~(11) correction, and
+the induced interpretation updates for C5--C11 under the corrected basic model.
 \Cref{sec:event_reformulation} gives the day-free event-based reformulation
 of the type-A requirements and proves its correctness directly.
-\Cref{sec:computational} reports the numeric Constraint~(13) counterexample
-and the A-only computational study. \Cref{sec:conclusion} concludes.
+\Cref{sec:computational} reports the numeric C11 counterexample and the benchmarking results of the legacy and ordered models, and
+\Cref{sec:conclusion} concludes.

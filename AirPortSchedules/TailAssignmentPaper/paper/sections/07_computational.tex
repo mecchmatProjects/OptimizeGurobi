@@ -12,19 +12,19 @@ benchmark scripts are included in the companion repository. Every reported
 solution is checked independently by replaying the aircraft route and its
 maintenance counter.
 
-\subsection{Constraint (13) verification}
+\subsection{Constraint (11) verification}
 
 The original cumulative-flight-time row and the natural endpoint-split
-replacement were evaluated on the hand-built C13 counterexample. The actual
+replacement were evaluated on the hand-built C11 counterexample. The actual
 production constraint objects admit complementary violating patterns: the
 original row is relaxed when only one endpoint is checked, while the split
 replacement is relaxed when both endpoints carry checks. The exact cumulative
 state formulation rejects both patterns. This directly confirms the algebraic
-analysis in \Cref{subsec:c13_flaw,subsec:c13_corrected}.
+analysis in \Cref{subsec:c11_flaw,subsec:c11_corrected}.
 
 \begin{table}[t]
 \centering\small
-\caption{Numeric verification of the C13 flaw against the production
+\caption{Numeric verification of the C11 flaw against the production
   constraints and exact-state replay.}
 \label{tab:c13_loophole}
 \begin{tabular}{lccc}
@@ -135,7 +135,7 @@ rather than as a universal scaling law.
 
 \subsection{Summary and limitations}
 
-The corrected type-A model rejects the C13 counterexample, while the ordered
+The corrected type-A model rejects the C11 counterexample, while the ordered
 A-event implementation preserves objective parity and reduces variable counts
 on the tested feasible grids. Its timing advantage is strong in the A-only
 horizon experiment and is positive on average in the fleet-size experiment,

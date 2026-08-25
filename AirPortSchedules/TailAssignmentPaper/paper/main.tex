@@ -81,7 +81,7 @@ make three contributions.  First, we show that the basic continuity and
 turn-time inequalities (C2--C3; constraints~(3)--(6) in Khaled et al.) admit a
 simultaneous-departure corner case that is mathematically feasible but
 physically infeasible, and we close this gap with explicit non-overlap
-constraints (C4).  Second, we identify and formally correct a flaw in
+constraints (C4--C5).  Second, we identify and formally correct a flaw in
 the paper's cumulative-flight-time row (constraint~(13) in Khaled et al.;
 not our aggregation constraint C11): the original
 formulation allows maintenance intervals to be incorrectly relaxed. We show
@@ -93,9 +93,11 @@ pattern while the ordered formulation rejects both, and we independently
 verify every reported solution by replaying its maintenance counters outside
 the model. Third, we propose an alternative to Khaled et al.'s set of constraints for the same TAP problem with type-A maintenance:
 an ordered, day-free event-based formulation that uses aircraft-local prefix state without a day-pair window.
-We prove the reformulation is correct, resolve the counterexamples mentioned, evaluate it and show that it uses substantially fewer variables than
-the day-indexed model and a speed-up on most tested cases.  All code, instances, and
-result tables accompany the project.
+We prove the reformulation is correct and evaluate it alongside the two legacy
+rows and the strict corrected legacy variant. On the corrected feasible family,
+all four formulations achieve objective parity, while the event-based model
+uses fewer variables. The observed timing advantage is instance- and
+solver-specific. All code, instances, and result tables accompany the project.
 \end{abstract}
 
 \begin{keyword}

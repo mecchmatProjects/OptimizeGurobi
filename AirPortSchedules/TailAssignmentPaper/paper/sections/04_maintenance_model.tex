@@ -60,7 +60,7 @@ The objective becomes:
     mc_{ijd}\, z_{ijd}.
 \end{equation}
 
-Constraints~\eqref{eq:c1}--\eqref{eq:c5} are retained.  Additional
+Constraints~\eqref{eq:c0}--\eqref{eq:c5} are retained.  Additional
 constraints:
 
 \paragraph{C8 — Maintenance blocks same-day subsequent flights.}
@@ -124,7 +124,7 @@ for all $j \in \Pc$, all pairs $(d, d')$ with $2 \le d'-d \le d_{\max}-1$,
 $d < n_d$, where $\tilde{t}_i$ is the flight duration of leg $i$.
 
 
-\subsection{Impact of corrected C1--C5 feasibility on C8--C13}
+\subsection{Impact of corrected C0--C5 feasibility on C8--C13}
 \label{subsec:c2c4_impact_maintenance}
 
 The correction introduced in \Cref{sec:basic} (non-overlap
@@ -149,7 +149,7 @@ $x$-space once~\eqref{eq:c4_overlap} is imposed. This correction is necessary,
 but it does not by itself establish that a particular cumulative-hour algebraic form
 correctly propagates the maintenance counter; that property is analysed below.
 
-In summary, the C1--C5 correction primarily changes the domain over which the
+In summary, the C0--C5 correction primarily changes the domain over which the
 maintenance constraints operate. It is independent of the separate algebraic
 correction required for cumulative-hour propagation.
 
@@ -158,7 +158,7 @@ correction required for cumulative-hour propagation.
 
 We now state the corrected sufficiency result for the type-A maintenance model.
 Consider the constraint family
-\eqref{eq:c1}--\eqref{eq:c5}, \eqref{eq:c8}--\eqref{eq:c11}, \eqref{eq:c13},
+\eqref{eq:c0}--\eqref{eq:c5}, \eqref{eq:c8}--\eqref{eq:c11}, \eqref{eq:c13},
 \eqref{eq:c11_state_lower}--\eqref{eq:c11_state_bound}, and the stated
 variable domains. Constraint C12 is inactive for the type-A-only model:
 hour spacing is enforced by the cumulative-state rows rather than by
@@ -466,7 +466,7 @@ separate opening-window big-$M$ inequality is needed.
 The variables $h_{jd}$ are continuous and satisfy
 $0\leq h_{jd}\leq T^A_{\max}$ as imposed in~\eqref{eq:c11_state_bound}.
 
-As we see, the fixes to the original paper's maintenance model are twofold: (i) the C1--C5 correction, which ensures that the flight assignment is physically feasible, and (ii) the cumulative-flight-time row correction.
+As we see, the fixes to the original paper's maintenance model are twofold: (i) the C0--C5 correction, which ensures that the flight assignment is physically feasible, and (ii) the cumulative-flight-time row correction.
 Also, the cumulative-flight-time correction is implemented in two ways: (i) the endpoint-split strengthening, which is a partial fix, and (ii) the exact cumulative-state formulation, which is a complete fix. The exact cumulative-state formulation correctly propagates the flight-hour state and enforces the maintenance intervals as intended.
 The complexity of the corrected model is higher than the original model, because we need to track the cumulative flight hours explicitly that require more $O(n_f D)$ variables, 
 but it is necessary to ensure that the solutions are physically feasible and respect the maintenance requirements.

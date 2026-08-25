@@ -14,23 +14,22 @@ cumulative-state correction and verified the failure against the production
 constraint objects. Third, we developed a day-free event-based reformulation
 for type-A maintenance and an ordered prefix-state implementation.
 
-The ordered event formulation attaches maintenance to its triggering flight and
-propagates the flight-hour counter along the aircraft's selected route. The
-ordered implementation removes explicit successor variables while preserving
-route feasibility and the pre-check condition. On the feasible A-only
-instances studied here, the ordered method matched the legacy optimum in every
-run, used fewer variables at every fleet size, and gave a mean wall-time gain
-of 18.70\% and mean solver CPU-time gain of 14.73\% across the tested horizon
-family. At fixed $h=7$, the fleet-size experiment gave a mean CPU-time gain of
-6.01\% over legacy across $|P|\in\{5,10,15,20\}$, although the gain was
-non-monotone and concentrated at the largest fleet.
+The event formulation attaches maintenance to its triggering flight and
+propagates the flight-hour counter along the aircraft's selected route. In the
+four-method horizon experiment on the corrected feasible family, all four
+models were optimal. The three legacy variants had identical objectives,
+and the event-based model used the same maintenance-cost accounting.
+The explicit-state corrected legacy model was faster than the endpoint split
+on every tested horizon. These results demonstrate the need to separate
+feasibility correction from objective accounting; they do not support a
+solver-independent speedup claim.
 
 These computational results are deliberately scoped. They use deterministic
 synthetic feasible instances, one instance per parameter cell, and a single
-unrestricted CPLEX configuration. The results establish objective parity and
-indicate useful compactness and timing behavior for the tested A-only family;
+unrestricted CPLEX configuration. The results expose model-size and timing
+differences among the four formulations on the tested A-only family;
 they do not establish a universal speedup across solvers, instance
- distributions, or larger benchmark sets.
+distributions, or larger benchmark sets.
 
 \paragraph{Reproducibility.}
 The project contains the model implementations, deterministic instance
@@ -44,7 +43,8 @@ model semantics from implementation choices.
 \begin{itemize}
   \item \textbf{Larger A-only benchmark families:} repeat the horizon and
     fleet-size experiments over multiple seeds and heterogeneous timetable
-    structures, reporting solver variability and confidence intervals.
+    structures, reporting solver variability and confidence intervals after
+    resolving the corrected legacy model's initial-state feasibility.
   \item \textbf{Integrated fleet assignment and routing:} extend the corrected
     compact model while retaining physically executable route constraints.
   \item \textbf{Robust and recoverable variants:} study uncertainty in flight

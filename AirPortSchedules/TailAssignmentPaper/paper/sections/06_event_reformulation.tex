@@ -38,9 +38,6 @@ Because $r\leftrightarrow i_r$ is one-to-one, the relation to the original
 notation is direct: $x_{rj}=x_{i_r j}$ and $z_{rj}=z_{i_r j}$.
 
 A maintenance event after flight $i_r$ is assignment-linked, starts at
-the arrival time $\tI{i_r}$, and occupies the aircraft for duration $\delta_F$ at a
-flight-hour-maintenance-capable arrival airport.
-
 The corrected airport-continuity, turn-time, and overlap constraints remain
 active on the assignment variables. In particular, an assignment is allowed
 only when it can be connected to the aircraft's preceding assigned flight and
@@ -49,7 +46,7 @@ assigned departure.
 
 The objective is
 \begin{equation}
-\min\ \sum_{r\in\mathcal{R}}\sum_{j\in\Pc}c_{i_r j}x_{rj}
+\min\ \sum_{r\in\mathcal{R}}\sum_{j\in\Pc}c_{i_rj}x_{rj}
  +\sum_{r\in\mathcal{R}^M}\sum_{j\in\Pc}mc_{i_r j}\,z_{rj}.
 \label{eq:ordered_event_objective}
 \end{equation}
@@ -62,21 +59,23 @@ position, an unassigned flight carries the state forward, an assigned flight
 adds its duration, and an event resets the state after its triggering flight.
 Using valid position-specific big-$M$ values $M_{rj}$, the transition is
 represented by
-\paragraph{E4-E7. Prefix-state propagation.}
+\paragraph{E4--E7. Prefix-state propagation.}
 \begin{align}
 h_{rj}&\ge h_{r-1,j}-M_{rj}x_{rj},\\
 h_{rj}&\le h_{r-1,j}+M_{rj}x_{rj},\\
 h_{rj}&\ge h_{r-1,j}+p_{i_r}-M_{rj}(1-x_{rj})-M_{rj}z_{rj},\\
 h_{rj}&\le h_{r-1,j}+p_{i_r}+M_{rj}(1-x_{rj})+M_{rj}z_{rj},\\
-h_{rj}&\ge p_{i_r}z_{rj},\\
-h_{rj}&\le p_{i_r}z_{rj}+T_F(x_{rj}-z_{rj})+M_{rj}(1-x_{rj}),\\
+h_{rj}&\ge 0,\\
+h_{rj}&\le T_F(x_{rj}-z_{rj})+M_{rj}(1-x_{rj}),\\
+h_{rj}&\le T_F,\\
 h_{r-1,j}+p_{i_r}&\le T_F+M_{rj}(1-x_{rj}),
 \label{eq:ordered_hour_transition}
 \end{align}
 The first two rows carry the state at an unassigned position. The next two
 rows impose accumulation for an assigned flight unless an event is selected.
 The fifth and sixth rows together give the exact post-event state:
-$h_{rj}=p_{i_r}$ when $z_{rj}=1$. The final row prevents a maintenance event
+$h_{rj}=0$ when $z_{rj}=1$, because the maintenance occurs after flight
+$i_r$. The seventh row bounds the state in all cases. The final row prevents a maintenance event
 from repairing an arrival that already exceeds $T_F$.
 The initial state is $h_{0j}=\Phi_j$.
 
@@ -109,6 +108,109 @@ explicitly as
 which is the event-indexed counterpart of C13. We keep it here in this way in order to keep constraint consistency with the legacy model,
 but now we can easily reformulate even by-day events to be consistent with any or every time-zone needed.
 
+\subsection{Complete constraint inventory of the implemented A-only model}
+
+The following list gives every constraint family constructed by the current
+ordered A-only builder. It distinguishes the numbered legacy requirements from
+the auxiliary rows introduced by the event reformulation.
+
+\begin{description}
+\item[C0--C1: assignment domain and coverage.] The variables $x_{rj}$ are
+binary, and each ordered flight is assigned exactly once:
+\begin{equation}
+\sum_{j\in\Pc}x_{rj}=1,\qquad r\in\mathcal{R}.
+\label{eq:ordered_c0_c1}
+\end{equation}
+
+\item[C2--C3: aircraft continuity and turn time.] The corrected equipment-flow
+balance is applied to $x_{rj}$, including the initial aircraft position and
+the minimum turn time. The implementation is
+\texttt{\_add\_c23\_turn}.
+
+\item[C4: pairwise non-overlap.] For every temporally conflicting flight pair
+and aircraft, the builder adds
+\begin{equation}
+x_{ij}+x_{\ell j}\leq1.
+\label{eq:ordered_c4_pairwise}
+\end{equation}
+These rows are constructed by \texttt{c4\_pairwise\_overlap}.
+
+\item[C5: clique-strengthened non-overlap.] For every maximal interval clique
+$K$ for aircraft $j$, the builder adds
+\begin{equation}
+\sum_{i\in K}x_{ij}\leq1.
+\label{eq:ordered_c5_clique}
+\end{equation}
+These rows are constructed by \texttt{c5\_clique\_overlap}. The default
+ordered A-only mode activates both C4 and C5; this is the literal corrected
+basic formulation, although C5 dominates many C4 rows.
+
+\item[C6--C7: event variables.] The maintenance event variables $z_{rj}$ are
+binary and are instantiated only for flights arriving at a maintenance-capable
+airport. There is no independent daily $y$ variable in this formulation.
+An auxiliary event-type exclusivity row limits each triggering flight and
+aircraft to at most one check type. Its practical meaning is that one arrival
+cannot simultaneously start two different maintenance types.
+
+\item[C8: maintenance blocking.] If $z_{rj}=1$, every selected flight whose
+departure falls before the event's completion plus turn time is blocked:
+\begin{equation}
+x_{\ell j}+z_{rj}\leq1.
+\label{eq:ordered_c8_block}
+\end{equation}
+Only economically relevant timestamp conflicts are generated.
+
+\item[C9: event assignment.] An event requires its triggering flight:
+\begin{equation}
+z_{rj}\leq x_{rj}.
+\label{eq:ordered_c9_assignment}
+\end{equation}
+The reverse inequality would force maintenance after every eligible flight and
+is not the intended maintenance-request semantics.
+
+\item[C10: maintenance capacity.] At every airport timestamp breakpoint, the
+active maintenance events satisfy
+\begin{equation}
+\sum_{(r,j)\in\mathcal{I}(a,\theta)}z_{rj}
+\leq \operatorname{mcap}_{a,\theta},
+\label{eq:ordered_c10_capacity}
+\end{equation}
+where $\mathcal{I}(a,\theta)$ contains events whose maintenance intervals
+cover $\theta$. This is implemented by the timestamp-overlap component
+\texttt{c10\_event\_capacity}; it is the maintenance-capacity constraint that was not
+explicitly displayed earlier.
+
+\item[C11: event-to-day aggregation.] The day indicator is eliminated, but it
+can be recovered as
+\begin{equation}
+y_{jd}=\sum_{r:\,\lfloor\tI{i_r}/1440\rfloor=d}z_{rj}.
+\label{eq:ordered_c11_recovery}
+\end{equation}
+
+\item[C12: calendar spacing.] C12 is inactive in the A-only model. It is
+implemented only by the C/D calendar extension, which is not enabled here.
+
+\item[C13: at most one event per aircraft per day.] The explicit daily cap is
+\begin{equation}
+\sum_{r:\,\lfloor\tI{i_r}/1440\rfloor=d}z_{rj}\leq1.
+\label{eq:ordered_c13_day_cap}
+\end{equation}
+
+\item[Hour-limit state rows.] The auxiliary prefix state $h_{rj}$ is
+nonnegative, carries forward at unassigned positions, accumulates an assigned
+flight when $z_{rj}=0$, resets to zero when $z_{rj}=1$, and is bounded by
+$T^A_{\max}$. These are the implemented exact A-hour rows in
+\texttt{event\_hour\_state}; they replace the legacy day-pair C13 row rather than
+adding another numbered C-constraint.
+\end{description}
+
+The event formulation therefore has no additional business rule hidden under
+an unnumbered C-constraint. The only auxiliary families are the event-type
+exclusivity rows just described and the linearization rows for the C13 hour
+state. The airport occupancy quantity $q_{a,j}$ proposed in the design note is
+not introduced as a variable: its role is represented directly by the C10
+timestamp-capacity sums, which is smaller and equivalent for the A-only case.
+
 Table~\ref{tab:ordered_c1_c13} records the correspondence with the numbered
 day-indexed requirements. Some legacy rows disappear because their variables
 are eliminated; this is a formulation change, not an omitted feasibility
@@ -116,17 +218,18 @@ condition.
 
 \begin{table}[t]
 \centering\scriptsize
-\caption{Coverage of the numbered C1--C13 requirements in the ordered A-only
+\caption{Coverage of the numbered C0--C13 requirements in the ordered A-only
 	formulation.}
 \label{tab:ordered_c1_c13}
 \begin{tabular}{p{0.10\linewidth} p{0.30\linewidth} p{0.48\linewidth}}
 \toprule
 Requirement & Day-indexed role & Ordered A-only counterpart \\
 \midrule
-C0 & Binary assignment integrality & Binary domain on $x_{rj}$. \\
+C0 & Binary assignment domain & Binary domain on $x_{rj}$. \\
 C1 & Flight coverage & Coverage equation on $x_{rj}$ (equivalently $x_{i_rj}$). \\
 C2--C3 & Airport continuity and turn time & Corrected equipment-flow balance on assignment variables. \\
-C4--C5 & Physical non-overlap & Explicit overlap inequalities on $x$. \\
+C4 & Pairwise non-overlap & Pairwise overlap inequalities on $x$. \\
+C5 & Clique-strengthened non-overlap & Maximal-clique inequalities on $x$. \\
 C6--C7 & Maintenance variables $z,y$ & Event indicator $z_{rj}$; the daily indicator $y$ is not a primitive variable. \\
 C8 & Maintenance blocks later flights & Timestamp blocking using $\delta_F+\dt$. \\
 C9 & Maintenance requires assignment & The event-assignment inequality above. \\

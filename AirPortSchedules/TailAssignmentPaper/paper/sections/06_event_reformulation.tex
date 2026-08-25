@@ -14,20 +14,21 @@ $r$ that maps to a flight index $i_r$.
 \subsection{Ordered event representation}
 
 For flight $i$, let $o_i$ and $a_i$ be its departure and arrival airports,
-$p_i$ its flying time, and $\tI{i}$ and $\tD{i}$ its departure and arrival
-timestamps. For aircraft $j$, let $a^0_j$ be its initial airport.
+$p_i$ its flying time, and $\tD{i}$ and $\tI{i}$ its departure and arrival
+timestamps (the same macros as in \Cref{sec:basic}). For aircraft $j$, let $a^0_j$ be its initial airport.
 
 Define the ordered-position index set
 \[
 \mathcal{R}=\{1,\ldots,n_f\},
 \]
-and let $(i_1,\ldots,i_{n_f})$ be flights sorted by $(\tI{i},i)$. Position
+and let $(i_1,\ldots,i_{n_f})$ be flights sorted by $(\tD{i},i)$. Position
 $r\in\mathcal{R}$ refers to flight $i_r$. This is the only role of $r$: it is
 an order index over flights. Define
 \[
 \mathcal{R}^M=\{r\in\mathcal{R}: i_r\in\F^M\},
 \]
 and use the following variables:
+\paragraph{E1-E3. Ordered event variables.}
 \begin{itemize}
 \item $x_{rj}\in\{0,1\}$: aircraft $j$ operates flight $i_r$;
 \item $z_{rj}\in\{0,1\}$: a flight-hour maintenance event is performed after flight $i_r$ on aircraft $j$;
@@ -37,7 +38,7 @@ Because $r\leftrightarrow i_r$ is one-to-one, the relation to the original
 notation is direct: $x_{rj}=x_{i_r j}$ and $z_{rj}=z_{i_r j}$.
 
 A maintenance event after flight $i_r$ is assignment-linked, starts at
-$\tD{i_r}$, and occupies the aircraft for duration $\delta_F$ at a
+the arrival time $\tI{i_r}$, and occupies the aircraft for duration $\delta_F$ at a
 flight-hour-maintenance-capable arrival airport.
 
 The corrected airport-continuity, turn-time, and overlap constraints remain
@@ -49,18 +50,19 @@ assigned departure.
 The objective is
 \begin{equation}
 \min\ \sum_{r\in\mathcal{R}}\sum_{j\in\Pc}c_{i_r j}x_{rj}
- +\sum_{r\in\mathcal{R}^M}\sum_{j\in\Pc}g_{i_r j}z_{rj}.
+ +\sum_{r\in\mathcal{R}^M}\sum_{j\in\Pc}mc_{i_r j}\,z_{rj}.
 \label{eq:ordered_event_objective}
 \end{equation}
 
 \subsection{Prefix-state propagation}
 
-Let $T_F$ be the maximum flying time between flight-hour maintenance events and let $\Phi_j$
+Let $T_F:=T^A_{\max}$ be the maximum flying time between flight-hour maintenance events and let $\Phi_j$
 be the pre-horizon accumulated flying time of aircraft $j$. At every ordered
 position, an unassigned flight carries the state forward, an assigned flight
 adds its duration, and an event resets the state after its triggering flight.
 Using valid position-specific big-$M$ values $M_{rj}$, the transition is
 represented by
+\paragraph{E4-E7. Prefix-state propagation.}
 \begin{align}
 h_{rj}&\ge h_{r-1,j}-M_{rj}x_{rj},\\
 h_{rj}&\le h_{r-1,j}+M_{rj}x_{rj},\\
@@ -78,6 +80,7 @@ $h_{rj}=p_{i_r}$ when $z_{rj}=1$. The final row prevents a maintenance event
 from repairing an arrival that already exceeds $T_F$.
 The initial state is $h_{0j}=\Phi_j$.
 
+ \paragraph{E8. Event assignment and compatibility.}
 Events satisfy
 \begin{equation}
 z_{rj}\le x_{rj},
@@ -93,43 +96,45 @@ is equivalent to maintaining an airport occupancy state $u_{a,\theta}$ and
 imposing $u_{a,\theta}\leq\mathrm{mcap}_{a,\theta}$, but it requires no
 additional occupancy variable.
 
+\paragraph{E9. Event capacity.}
 The ordered event rows correspond to the day-indexed maintenance constraints:
 event assignment is C9, duration blocking is C8, and timestamp-overlap
 capacity is C10. The at-most-one-event-per-aircraft-per-day rule is retained
 explicitly as
 \begin{equation}
-\sum_{r\in\mathcal{R}:\,\lfloor\tD{i_r}/1440\rfloor=d}z_{rj}\le1,
+\sum_{r\in\mathcal{R}:\,\lfloor\tI{i_r}/1440\rfloor=d}z_{rj}\le1,
 \qquad \forall j\in\Pc,\ d\in\D,
 \label{eq:ordered_event_one_day}
 \end{equation}
-which is the event-indexed counterpart of C14. We keep it here in this way in order to keep constraint consistency with legacy model,
+which is the event-indexed counterpart of C13. We keep it here in this way in order to keep constraint consistency with the legacy model,
 but now we can easily reformulate even by-day events to be consistent with any or every time-zone needed.
 
-Table~\ref{tab:ordered_c1_c14} records the correspondence with the numbered
+Table~\ref{tab:ordered_c1_c13} records the correspondence with the numbered
 day-indexed requirements. Some legacy rows disappear because their variables
 are eliminated; this is a formulation change, not an omitted feasibility
 condition.
 
 \begin{table}[t]
 \centering\scriptsize
-\caption{Coverage of the numbered C1--C14 requirements in the ordered A-only
+\caption{Coverage of the numbered C1--C13 requirements in the ordered A-only
 	formulation.}
-\label{tab:ordered_c1_c14}
+\label{tab:ordered_c1_c13}
 \begin{tabular}{p{0.10\linewidth} p{0.30\linewidth} p{0.48\linewidth}}
 \toprule
 Requirement & Day-indexed role & Ordered A-only counterpart \\
 \midrule
+C0 & Binary assignment integrality & Binary domain on $x_{rj}$. \\
 C1 & Flight coverage & Coverage equation on $x_{rj}$ (equivalently $x_{i_rj}$). \\
 C2--C3 & Airport continuity and turn time & Corrected equipment-flow balance on assignment variables. \\
-C4 & Physical non-overlap & Explicit overlap inequalities on $x$. \\
-C5--C7 & Domains and maintenance eligibility & Binary domains; $z_{rj}$ is created only for eligible trigger flights and satisfies $z_{rj}\leq x_{rj}$. \\
-C8 & Maintenance blocks later flights & Timestamp blocking using $\delta_A+\dt$. \\
+C4--C5 & Physical non-overlap & Explicit overlap inequalities on $x$. \\
+C6--C7 & Maintenance variables $z,y$ & Event indicator $z_{rj}$; the daily indicator $y$ is not a primitive variable. \\
+C8 & Maintenance blocks later flights & Timestamp blocking using $\delta_F+\dt$. \\
 C9 & Maintenance requires assignment & The event-assignment inequality above. \\
 C10 & Maintenance capacity & Direct timestamp-overlap capacity rows, equivalent to an airport occupancy state. \\
-C11 & Link event triggers to a daily indicator & Daily indicator is eliminated; it is recoverable from the events on each day. \\
-C12 & Calendar-time spacing & Inactive for type-A-only maintenance; C13 enforces the applicable hour limit. \\
-C13 & Cumulative flight hours & Exact prefix-state transitions, reset bounds, and pre-check bound. \\
-C14 & At most one event per aircraft per day & Explicit daily event inequality~\eqref{eq:ordered_event_one_day}. \\
+C11 & Link event triggers to a daily indicator & Daily indicator is eliminated; it is recoverable as $y_{jd}=\sum_{r:\,\lfloor\tI{i_r}/1440\rfloor=d}z_{rj}$. \\
+C12 & Calendar-time spacing & Inactive for type-A-only maintenance in this paper. \\
+C13 & At most one event per aircraft per day & Explicit daily event inequality~\eqref{eq:ordered_event_one_day}. \\
+-- & Cumulative flight-hour limit (Khaled~(13)) & Prefix-state recursion~\eqref{eq:ordered_hour_transition} with $h_{rj}\le T^A_{\max}$. \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -155,10 +160,10 @@ $\Phi_j$, so every assigned route satisfies the type-A limit.
 
 The ordered formulation combines event-triggered maintenance with a global
 flight order and aircraft-local prefix states. It removes the day-pair
-accumulation ambiguity of Constraint~(11), avoids successor-variable
+accumulation ambiguity of the legacy cumulative-flight-time row, avoids successor-variable
 expansion, and keeps the physical route constraints needed for valid tail
 assignments. For type-A maintenance, C12's calendar-spacing role is inactive:
-the flight-hour limit is enforced by the exact prefix state in C11. The
+the flight-hour limit is enforced by the exact prefix-state recursion. The
 computational study in
 \Cref{sec:computational} evaluates this formulation against the legacy 
 model on matched horizon and fleet-size grids.

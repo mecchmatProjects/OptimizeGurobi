@@ -12,10 +12,10 @@ benchmark scripts are included in the companion repository. Every reported
 solution is checked independently by replaying the aircraft route and its
 maintenance counter.
 
-\subsection{Constraint (11) verification}
+\subsection{Cumulative-flight-time row verification}
 
 The original cumulative-flight-time row and the natural endpoint-split
-replacement were evaluated on the hand-built C11 counterexample. The actual
+replacement were evaluated on the hand-built cumulative-flight-time counterexample. The actual
 production constraint objects admit complementary violating patterns: the
 original row is relaxed when only one endpoint is checked, while the split
 replacement is relaxed when both endpoints carry checks. The exact cumulative
@@ -24,12 +24,12 @@ analysis in \Cref{subsec:c11_flaw,subsec:c11_corrected}.
 
 \begin{table}[t]
 \centering\small
-\caption{Numeric verification of the C11 flaw against the production
+\caption{Numeric verification of the cumulative-flight-time flaw against the production
   constraints and exact-state replay.}
 \label{tab:c13_loophole}
 \begin{tabular}{lccc}
 \toprule
-Scenario & Paper C13 & Endpoint split & Exact state \\
+Scenario & Khaled~(13) & Endpoint split & Exact state \\
 \midrule
 Both endpoints checked & rejects & accepts (wrong) & rejects \\
 Only end checked & accepts (wrong) & rejects & rejects \\
@@ -76,6 +76,10 @@ Mean & -- & -- & +18.70 & -- & -- & +14.73 & -- & -- \\
 The ordered A-event method is faster on all four horizons. Its mean gain is
 +18.70\% in wall time and +14.73\% in solver CPU time; for $h\geq15$, the
 CPU gain is approximately 19\% on this family.
+On this particular instance family the reported model sizes for
+$h\in\{15,21,30\}$ coincide, so the horizon comparison should be read as
+timing on matched feasible instances rather than as a proof that size
+grows with $h$.
 
 \begin{figure}[t]
 \centering
@@ -105,7 +109,7 @@ Results are in
   ordered A-event is faster than legacy A-only.}
 \label{tab:a_only_fleet_cpu}
 \resizebox{\linewidth}{!}{%
-\begin{tabular}{r r r r r r r r r}
+\begin{tabular}{r r r r r r r r}
 \toprule
 $|P|$ & CPU Legacy & CPU Ordered & Gain (\%) & Vars L/O & Cons. L/O & Obj. Legacy & Obj. Ordered \\
 \midrule
@@ -114,7 +118,7 @@ $|P|$ & CPU Legacy & CPU Ordered & Gain (\%) & Vars L/O & Cons. L/O & Obj. Legac
 15 & 0.336498 & 0.333956 & +0.76 & 1\,950/1\,125 & 3\,938/4\,283 & 14\,341 & 14\,341 \\
 20 & 0.437365 & 0.335564 & +23.28 & 3\,300/2\,000 & 6\,248/7\,511 & 19\,092 & 19\,092 \\
 \midrule
-Mean gain & -- & -- & -- & +6.01 & -- & -- & -- & -- \\
+Mean & -- & -- & +6.01 & -- & -- & -- & -- \\
 \bottomrule
 \end{tabular}
 }%
@@ -135,7 +139,7 @@ rather than as a universal scaling law.
 
 \subsection{Summary and limitations}
 
-The corrected type-A model rejects the C11 counterexample, while the ordered
+The corrected type-A model rejects the cumulative-flight-time counterexample, while the ordered
 A-event implementation preserves objective parity and reduces variable counts
 on the tested feasible grids. Its timing advantage is strong in the A-only
 horizon experiment and is positive on average in the fleet-size experiment,

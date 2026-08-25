@@ -77,12 +77,13 @@
 \begin{abstract}
 This paper revisits the compact mixed-integer linear programming model for
 the Tail Assignment Problem (TAP) introduced by Khaled et al.\ (2018).  We
-make three contributions.  First, we show that the basic continuity/turn-time
-criteria (C2--C4; model constraints~(3)--(6) in Khaled et al.) admit a
+make three contributions.  First, we show that the basic continuity and
+turn-time inequalities (C2--C3; constraints~(3)--(6) in Khaled et al.) admit a
 simultaneous-departure corner case that is mathematically feasible but
 physically infeasible, and we close this gap with explicit non-overlap
-constraints.  Second, we identify and formally correct a flaw in
-the paper's cumulative-flight-time constraint C~11 (constraint (13) in Khaled et al.): the original
+constraints (C4).  Second, we identify and formally correct a flaw in
+the paper's cumulative-flight-time row (constraint~(13) in Khaled et al.;
+not our aggregation constraint C11): the original
 formulation allows maintenance intervals to be incorrectly relaxed. We show
 that a two-row endpoint split is also insufficient and give an exact
 cumulative-state formulation. We give a numeric counterexample, evaluated against
@@ -91,9 +92,9 @@ which the original and endpoint-split formulations each fail on a different
 pattern while the ordered formulation rejects both, and we independently
 verify every reported solution by replaying its maintenance counters outside
 the model. Third, we propose an alternative to Khaled et al.'s set of constraints for the same TAP problem with type-A maintenance:
-an ordered, day-free event-based formulation that uses aircraft-local prefix state without a day-pair window. 
+an ordered, day-free event-based formulation that uses aircraft-local prefix state without a day-pair window.
 We prove the reformulation is correct, resolve the counterexamples mentioned, evaluate it and show that it uses substantially fewer variables than
-the day-indexed model and have a speed-up on most cases.  All code, instances, and
+the day-indexed model and a speed-up on most tested cases.  All code, instances, and
 result tables accompany the project.
 \end{abstract}
 

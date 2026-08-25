@@ -33,7 +33,8 @@ $\Fd{k}{\theta}$             & $\{i \in \F : \aD{i} = k,\; \tD{i} < \theta\}$ \\
 \subsection{Decision variables and objective}
 
 Let
-\begin{equation}
+\paragraph{C0 — Integrity.}
+\begin{equation}\label{eq:c0}
   x_{ij} = \begin{cases} 1 & \text{if flight } i \text{ is operated by aircraft } j, \\ 0 & \text{otherwise,} \end{cases}
   \qquad i \in \F,\; j \in \Pc.
 \end{equation}
@@ -72,15 +73,11 @@ but at the home airport ($k = a^0_j$), one free unit is available at time zero
   i \in \F : \aD{i}=k.
 \end{equation}
 
-\paragraph{Integrality.}
-\begin{equation}\label{eq:int}
-  x_{ij} \in \{0, 1\}, \qquad \forall i \in \F,\; j \in \Pc.
-\end{equation}
-
 \subsection{Validity}
 
-Constraints~\eqref{eq:c2}--\eqref{eq:c3} are intended to encode both equipment
-continuity (C2 of \citet{khaled2018compact}) and turn-time feasibility (C4).
+Constraints~\eqref{eq:c0}--\eqref{eq:c3} are intended to encode both equipment
+continuity (C2 of \citet{khaled2018compact}) and turn-time feasibility
+(constraint~(6) of that paper).
 The set $\Fl{k}{\tD{i}}$ counts only arrivals at least $\dt$ minutes before
 the departure of flight $i$, so a prior arrival can supply flight $i$ only
 after the required turn time. This mechanism is valid when departures are
@@ -88,8 +85,10 @@ strictly ordered, but it does not prevent two equal-time departures from using
 the same available aircraft, as shown below.
 
 \begin{proposition}[Claimed in \citealt{khaled2018compact}, Proposition~1]
-  Any feasible solution to \eqref{eq:c1}--\eqref{eq:int} corresponds to a
-  feasible flight plan satisfying conditions C1--C4.
+  Any feasible solution to \eqref{eq:c1}--\eqref{eq:c3} with
+  $x_{ij}\in\{0,1\}$ corresponds to a
+  feasible flight plan satisfying the original continuity and turn-time
+  conditions.
 \end{proposition}
 
 The proposition is not valid as stated when distinct flights may have equal
@@ -101,10 +100,10 @@ The balance constraints~\eqref{eq:c2}--\eqref{eq:c3} use
 $\Fd{k}{\theta}=\{i\in\F:\aD{i}=k,\;\tD{i}<\theta\}$ with a strict
 inequality in departure time. If two flights leave the same airport at the
 same time, neither flight appears in the other's departure-balance term.
-This can make an assignment feasible in~\eqref{eq:c1}--\eqref{eq:int} while
+  being physically impossible as a flight plan.
 being physically impossible as a flight plan.
 
-\begin{example}[Feasible to \eqref{eq:c1}--\eqref{eq:int}, infeasible in practice]
+\begin{example}[Feasible to \eqref{eq:c0}--\eqref{eq:c3}, infeasible in practice]
   \label{ex:simultaneous_departure_counterexample}
   Consider one aircraft $j$ with initial airport $a^0_j=\text{B}$ and
   turn time $\dt=30$ minutes. Let the three flights be:
@@ -132,7 +131,7 @@ being physically impossible as a flight plan.
     \ge x_{i_1j}=1.
   \end{equation*}
   Symmetrically for $i_2$, $\tD{i_1}=600\not<600$, so the same calculation gives
-  $1\ge x_{i_2j}=1$. Therefore~\eqref{eq:c1}--\eqref{eq:int} are feasible.
+  $1\ge x_{i_2j}=1$. Therefore~\eqref{eq:c0}--\eqref{eq:c3} are feasible.
 
   However, the resulting plan is physically infeasible: one aircraft cannot
   operate both $i_1$ and $i_2$ simultaneously at time 600.
@@ -143,10 +142,11 @@ In implementations, this corner case is eliminated by adding pairwise
 non-overlap constraints for time-overlapping flights on the same aircraft,
 $x_{i_1j}+x_{i_2j}\le 1$.
 
-\paragraph{Corrected C1--C3 feasibility criterion.}
+\paragraph{Corrected C0--C3 feasibility criterion.}
 Define $\mathcal{O}$ as the set of flight pairs that cannot be operated by one
 aircraft because their operating intervals, including the turn-time buffer,
 overlap:
+\paragraph{C4 — Overlap set.}
 \begin{equation}
   \mathcal{O}=\left\{\{i_1,i_2\}\subseteq\F:
   [\tD{i_1},\tI{i_1}+\dt)\cap
@@ -154,13 +154,15 @@ overlap:
   \label{eq:overlap_set}
 \end{equation}
 For every pair in this conflict set, impose
-\paragraph{C4 — Overlap constraint.}
-\begin{equation}\label{eq:c4_overlap}
+\paragraph{C5 — Overlap constraint.}
+\begin{equation}\label{eq:c5_overlap}
   x_{i_1 j} + x_{i_2 j} \le 1,
   \qquad \forall \{i_1,i_2\}\in\mathcal{O},\; \forall j\in\Pc.
 \end{equation}
+
+
 The corrected core model is therefore
-\eqref{eq:c1}--\eqref{eq:c3}, \eqref{eq:c4_overlap}, and \eqref{eq:int}.
+\eqref{eq:c0}--\eqref{eq:c5_overlap}.
 This preserves the original $n_fn_p$ binary-variable space while restoring
 physical executability. It does not, in general, preserve the linear
 constraint count: the overlap family contains $|\mathcal{O}|n_p$ inequalities.
@@ -168,7 +170,7 @@ constraint count: the overlap family contains $|\mathcal{O}|n_p$ inequalities.
 \subsection{Model size}
 
 \begin{proposition}[\citealt{khaled2018compact}, Proposition~2]
-  The original model \eqref{eq:obj}--\eqref{eq:int} contains $n_f n_p$ binary
+  The original model \eqref{eq:obj}--\eqref{eq:c5} contains $n_f n_p$ binary
   decision variables and $O(n_fn_p)$ constraints.
 \end{proposition}
 

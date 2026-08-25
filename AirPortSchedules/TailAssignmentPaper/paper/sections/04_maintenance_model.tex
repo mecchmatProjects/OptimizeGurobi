@@ -1,5 +1,5 @@
 %%==========================================================================
-\section{The Maintenance-Extended Model and Correction of Constraint~(11)}
+\section{The Maintenance-Extended Model and Cumulative-Flight-Time Correction}
 \label{sec:maintenance}
 %%==========================================================================
 
@@ -60,7 +60,7 @@ The objective becomes:
     mc_{ijd}\, z_{ijd}.
 \end{equation}
 
-Constraints~\eqref{eq:c1}--\eqref{eq:c3} are retained.  Additional
+Constraints~\eqref{eq:c1}--\eqref{eq:c5} are retained.  Additional
 constraints:
 
 \paragraph{C8 — Maintenance blocks same-day subsequent flights.}
@@ -96,9 +96,9 @@ constraints:
   \forall j \in \Pc.
 \end{equation}
 
-For the type-A-only model studied in this paper, C9 is not an additional
+For the type-A-only model studied in this paper, C12 is not an additional
 calendar-spacing requirement: type-A maintenance is governed by the exact
-flight-hour state in C13. The displayed row is retained as the generic
+flight-hour state introduced in the cumulative-state formulation below. The displayed row is retained as the generic
 day-indexed maintenance notation and becomes active only for a calendar-time
 maintenance type, which is outside the scope of this paper.
 
@@ -108,7 +108,7 @@ maintenance type, which is outside the scope of this paper.
   \qquad \forall j \in \Pc,\; d \in \D.
 \end{equation}
 
-For binary $y$, C12 is implied by C10; it is retained because it makes the
+For binary $y$, C13 is implied by C11; it is retained because it makes the
 one-event-per-day rule explicit and remains useful in implementations that
 relax or disaggregate the aggregation equality.
 
@@ -124,7 +124,7 @@ for all $j \in \Pc$, all pairs $(d, d')$ with $2 \le d'-d \le d_{\max}-1$,
 $d < n_d$, where $\tilde{t}_i$ is the flight duration of leg $i$.
 
 
-\subsection{Impact of corrected C2--C4 feasibility on C5--C13}
+\subsection{Impact of corrected C1--C5 feasibility on C8--C13}
 \label{subsec:c2c4_impact_maintenance}
 
 The correction introduced in \Cref{sec:basic} (non-overlap
@@ -133,37 +133,39 @@ $x$, and therefore the interpretation of all maintenance constraints layered on
 top of $x$.
 
 \paragraph{C8.}
-\No algebraic change is required in~\eqref{eq:c8}; however, with
+No algebraic change is required in~\eqref{eq:c8}; however, with
 \eqref{eq:c4_overlap} active, the blocking relation now operates on physically
 realizable trajectories only. This removes spurious cases where maintenance
 placement was evaluated on infeasible simultaneous departures.
 
 \paragraph{C9--C12.}
-Constraints~\eqref{eq:c6}--\eqref{eq:c12} remain structurally unchanged. C7 is inactive in the type-A-only model. Their
+Constraints~\eqref{eq:c9}--\eqref{eq:c12} remain structurally unchanged. Their
 feasible region is tightened indirectly because $z$ and $y$ are linked to a
 strictly smaller, physically valid $x$-space.
 
-\paragraph{C13 and onward.}
+\paragraph{C13 and cumulative-hour rows.}
 Hour-accumulation constraints are evaluated over a physically executable
 $x$-space once~\eqref{eq:c4_overlap} is imposed. This correction is necessary,
-but it does not by itself establish that a particular C13 algebraic form
+but it does not by itself establish that a particular cumulative-hour algebraic form
 correctly propagates the maintenance counter; that property is analysed below.
 
-In summary, the C2--C4 correction primarily changes the domain over which the
+In summary, the C1--C5 correction primarily changes the domain over which the
 maintenance constraints operate. It is independent of the separate algebraic
 correction required for cumulative-hour propagation.
 
-\subsection{Rigorous feasibility theorem for C1--C10}
-\label{subsec:feasibility_theorem_c1_c10}
+\subsection{Rigorous feasibility theorem for C1--C13}
+\label{subsec:feasibility_theorem_c1_c13}
 
 We now state the corrected sufficiency result for the type-A maintenance model.
 Consider the constraint family
-\eqref{eq:c1}--\eqref{eq:c3}, \eqref{eq:c4_overlap}, \eqref{eq:c5}--\eqref{eq:c10},
+\eqref{eq:c1}--\eqref{eq:c5}, \eqref{eq:c8}--\eqref{eq:c11}, \eqref{eq:c13},
 \eqref{eq:c11_state_lower}--\eqref{eq:c11_state_bound}, and the stated
-variable domains.
+variable domains. Constraint C12 is inactive for the type-A-only model:
+hour spacing is enforced by the cumulative-state rows rather than by
+calendar-day covering.
 
-\begin{theorem}[Physical feasibility under corrected C1--C10]
-  \label{thm:physical_feasibility_c1_c10}
+\begin{theorem}[Physical feasibility under corrected C1--C13]
+  \label{thm:physical_feasibility_c1_c13}
   Any solution satisfying the above constraints, with $x$, $z$, and $y$
   binary and $h$ continuous, induces for each aircraft $j$ a physically
   executable trajectory over the planning horizon:
@@ -190,9 +192,9 @@ variable domains.
 
   \textbf{(iii) Maintenance event consistency.}
   By~\eqref{eq:c9}, maintenance trigger variables can only be activated on
-  assigned flights. By the aggregation equality~\eqref{eq:c8}, each day's
+  assigned flights. By the aggregation equality~\eqref{eq:c11}, each day's
   maintenance trigger is represented by the single aggregate indicator $y_{jd}$;
-  by the daily cap~\eqref{eq:c10}, at most one maintenance event is attached to
+  by the daily cap~\eqref{eq:c13}, at most one maintenance event is attached to
   aircraft $j$ on day $d$.
 
   \textbf{(iv) Maintenance capacity and blocking.}
@@ -212,7 +214,7 @@ variable domains.
   Therefore the global solution is physically feasible.
 \end{proof}
 
-\subsection{Issues of day-indexed maintenance constraints C1-C10}
+\subsection{Issues of day-indexed maintenance constraints C8--C13}
 
 Usage of day-indexed maintenance variables $y_{jd}$ and $z_{ijd}$ is
 operationally intuitive, gives clear modeling semantics, but it has the following drawbacks:
@@ -233,11 +235,11 @@ operationally intuitive, gives clear modeling semantics, but it has the followin
 
   \item The day-indexed formulation does not allow for a natural integration with the ordered flight formulation, which is more efficient and compact. The ordered flight formulation allows for a more direct representation of the maintenance events in relation to the flight sequence, leading to a more efficient model.
 
-  \item The original cumulative-flight-time constraint (C11) in the day-indexed formulation is flawed, as it does not correctly enforce the flight-hour limit between two consecutive maintenance nights. This flaw can lead to infeasible solutions that violate the intended maintenance intervals.
+  \item The original cumulative-flight-time row (paper equation) in the day-indexed formulation is flawed, as it does not correctly enforce the flight-hour limit between two consecutive maintenance nights. This flaw can lead to infeasible solutions that violate the intended maintenance intervals.
 \end{itemize}
 
 
-\subsection{Constraint~(11): original formulation and its flaw}
+\subsection{Legacy cumulative-flight-time row: original formulation and flaw}
 \label{subsec:c11_flaw}
 
 The original paper's cumulative-flight-time constraint \eqref{eq:c13_paper} is intended to enforce that the cumulative flight hours between two consecutive maintenance nights do not exceed $T^A_{\max}$. However, as shown in \Cref{lem:c11_flaw}, this constraint can fail to enforce the intended maintenance intervals in certain cases, particularly when there is no maintenance scheduled at the start of the interval.
@@ -266,7 +268,7 @@ The original paper's cumulative-flight-time constraint \eqref{eq:c13_paper} is i
   of the actual flight hours flown.
 \end{proof}
 
-\subsection{Constraint~(11): endpoint-split strengthening and its limitation}
+\subsection{Legacy cumulative-flight-time row: endpoint-split strengthening and limitation}
 \label{subsec:c11_corrected}
 
 An endpoint-split strengthening considered for replacing
@@ -349,22 +351,58 @@ contains a check. Thus the split model accepts 20 units between consecutive
 maintenance nights. Under the exact recursion
 \eqref{eq:c11_state_lower}--\eqref{eq:c11_state_bound}, the same data give
 $h_{j2}=10$, $h_{j3}=10$, and $h_{j4}=20$; the last value violates
-$h_{j4}\leq T^A_{\max}=10$. In the code, the preserved class
-\texttt{LegacyEndpointSplitMILPScheduler} is identified as
-\texttt{legacy\_endpoint\_split}. The separate
-\texttt{EventMILPScheduler}, identified as \texttt{event\_exact\_state},
-implements the equivalent event-level repair: its state is initialized with
-the pre-horizon hours, propagated by each selected successor flight, reset to
-the next flight's duration only when a qualifying maintenance event follows
-the preceding flight, and bounded by the applicable A/B threshold at every
-event. Unselected successor arcs are deactivated with the valid bound
-$T^c_{\max}+\tilde t_\ell$, while an unused source arc is deactivated with
-$\Phi^c_j+\tilde t_i$; using only $T^c_{\max}$ in either role can create false
-infeasibility. The comparison harness \texttt{experiments/compare\_formulations.py}
-selects these two identifiers explicitly and rejects unknown identifiers, so
-the legacy and exact-state rows can no longer be produced by the same builder.
+$h_{j4}\leq T^A_{\max}=10$. The day-indexed exact-state rows below implement
+this recursion; the ordered prefix-state model of
+\Cref{sec:event_reformulation} implements the same hour-limit along the
+selected route without day-pair windows. The comparison harness
+\texttt{experiments/compare\_formulations.py} selects the legacy and
+exact-state builders explicitly.
 
-\subsection{Constraint~(11): exact cumulative-state formulation}
+\begin{table}[t]
+\centering\small
+\caption{Day-level data for the four-day counterexample.}
+\label{tab:c11_counterexample_day}
+\begin{tabular}{ccccc}
+\toprule
+Day $d$ & $y_{jd}$ & $v_{jd}$ & Exact state $h_{jd}$ & Check of $h_{jd}\le T^A_{\max}$ \\
+\midrule
+1 & 1 & 0  & 0  & holds \\
+2 & 0 & 10 & 10 & holds \\
+3 & 0 & 0  & 10 & holds \\
+4 & 1 & 10 & 20 & violated \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering\small
+\caption{Window-level comparison for the same counterexample ($T^A_{\max}=10$, $M_{dd'}=20$).}
+\label{tab:c11_counterexample_windows}
+\begin{tabular}{lcccc}
+\toprule
+Window $(d,d']$ & LHS $\sum_{i\in F_{d,d'}} x_{ij}\tilde t_i$ & Split-A RHS & Split-B RHS & Paper-row RHS \\
+\midrule
+$(1,3]$ & 10 & 30 & 10 & 30 \\
+$(2,4]$ & 10 & 10 & 30 & 30 \\
+$(1,4]$ & 20 & 30 & 30 & 10 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.82\linewidth]{figures/c11_counterexample_timeline.png}
+\caption{Timeline view of the four-day counterexample: bars show daily flying time $v_{jd}$, markers show exact cumulative state $h_{jd}$, the dashed line is $T^A_{\max}=10$, and dotted vertical lines mark maintenance nights ($d=1,4$).}
+\label{fig:c11_counterexample_timeline}
+\end{figure}
+
+Tables~\ref{tab:c11_counterexample_day} and~\ref{tab:c11_counterexample_windows}
+show why the endpoint split can accept the infeasible pattern: the long window
+$(1,4]$ has LHS 20 while both split rows remain relaxed at 30. In contrast,
+the exact state trajectory in \Cref{fig:c11_counterexample_timeline} reaches
+$h_{j4}=20>T^A_{\max}=10$, so the violation is detected directly.
+
+\subsection{Exact cumulative-state formulation for cumulative flight hours}
 \label{subsec:c11_state}
 
 Define the flying time assigned to aircraft $j$ on day $d$ by
@@ -428,7 +466,10 @@ separate opening-window big-$M$ inequality is needed.
 The variables $h_{jd}$ are continuous and satisfy
 $0\leq h_{jd}\leq T^A_{\max}$ as imposed in~\eqref{eq:c11_state_bound}.
 
-As we see, the fixes to the original paper's maintenance model are twofold: (i) the C2--C4 correction, which ensures that the flight assignment is physically feasible, and (ii) the C11 correction.
-Also, the C11 correction is implemented in two ways: (i) the endpoint-split strengthening, which is a partial fix, and (ii) the exact cumulative-state formulation, which is a complete fix. The exact cumulative-state formulation correctly propagates the flight-hour state and enforces the maintenance intervals as intended.
+As we see, the fixes to the original paper's maintenance model are twofold: (i) the C1--C5 correction, which ensures that the flight assignment is physically feasible, and (ii) the cumulative-flight-time row correction.
+Also, the cumulative-flight-time correction is implemented in two ways: (i) the endpoint-split strengthening, which is a partial fix, and (ii) the exact cumulative-state formulation, which is a complete fix. The exact cumulative-state formulation correctly propagates the flight-hour state and enforces the maintenance intervals as intended.
 The complexity of the corrected model is higher than the original model, because we need to track the cumulative flight hours explicitly that require more $O(n_f D)$ variables, 
 but it is necessary to ensure that the solutions are physically feasible and respect the maintenance requirements.
+day-indexed model is higher than the original
+model, because the cumulative flight-hour state $h_{jd}$ adds
+$O(n_p n_d)$ continuous variables,

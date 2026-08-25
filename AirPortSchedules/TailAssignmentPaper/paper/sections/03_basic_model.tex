@@ -180,35 +180,3 @@ conflict set much smaller. The original variable count compares favourably
 with Levin's $O(n_f^2n_p)$-variable model; \citet{khaled2018compact} also
 report that the time-space network formulation uses approximately
 $1.25$--$2$ times as many variables and constraints on their test instances.
-
-\subsection{Illustrative example}
-
-\begin{example}
-  \label{ex:basic}
-  Consider the six-flight, two-aircraft, two-airport instance of
-  \citet{khaled2018compact} (Table~2 therein, replicated in
-  \Cref{tab:example_timetable}).  Turn time $\dt = 30$\,min; initial positions
-  airport~A for aircraft~1 and airport~B for aircraft~2.  The optimal
-  assignment (objective = 37{,}647) is: aircraft~1 serves flights $1 \to 2
-  \to 3$; aircraft~2 serves flights $4 \to 5 \to 6$.  Imposing the cyclic
-  constraint renders this instance infeasible, illustrating the practical
-  advantage of the non-cyclic formulation.
-\end{example}
-
-\begin{table}[t]
-\centering\small
-\caption{Six-flight timetable for \Cref{ex:basic}.}
-\label{tab:example_timetable}
-\begin{tabular}{ccccc}
-\toprule
-Flight & Dep.\ airport & Arr.\ airport & Dep.\ time & Arr.\ time \\
-\midrule
-1 & A & B & 09:00 & 11:00 \\
-2 & B & A & 11:30 & 13:30 \\
-3 & A & B & 14:00 & 16:00 \\
-4 & B & A & 09:30 & 11:30 \\
-5 & A & B & 12:00 & 14:00 \\
-6 & B & A & 14:30 & 16:30 \\
-\bottomrule
-\end{tabular}
-\end{table}

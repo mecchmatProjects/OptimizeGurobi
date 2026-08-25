@@ -85,18 +85,15 @@ constraints.  Second, we identify and formally correct a flaw in
 the paper's cumulative-flight-time constraint (Constraint~13): the original
 formulation allows maintenance intervals to be incorrectly relaxed. We show
 that a two-row endpoint split is also insufficient and give an exact
-cumulative-state formulation. Third, we give an ordered, day-free event-based
-formulation for type-A maintenance. Each flight's timestamp supplies the
-calendar information and an aircraft-local prefix state propagates the
-flight-hour counter without a day-pair window. We prove the formulation
-correct and evaluate it on feasible A-only fleet and horizon grids, where it
-achieves exact objective parity and uses substantially fewer variables than
-the day-indexed model. We give a numeric counterexample, evaluated against
+cumulative-state formulation. We give a numeric counterexample, evaluated against
 the real built constraint objects at two adversarial check patterns, in
 which the original and endpoint-split formulations each fail on a different
 pattern while the ordered formulation rejects both, and we independently
 verify every reported solution by replaying its maintenance counters outside
-the model. All code, instances, and
+the model. Third, we propose an alternative to Khaled et al.'s set of constraints for the same TAP problem with type-A maintenance:
+an ordered, day-free event-based formulation that uses aircraft-local prefix state without a day-pair window. 
+We prove the reformulation is correct, resolve the counterexamples mentioned, evaluate it and show that it uses substantially fewer variables than
+the day-indexed model and have a speed-up on most cases.  All code, instances, and
 result tables accompany the project.
 \end{abstract}
 

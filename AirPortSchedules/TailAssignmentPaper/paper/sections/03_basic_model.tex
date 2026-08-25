@@ -51,10 +51,11 @@ Each flight must be assigned to exactly one aircraft:
   \sum_{j \in \Pc} x_{ij} = 1, \qquad \forall i \in \F.
 \end{equation}
 
-\paragraph{C2 — Equipment continuity (non-home airports).}
+\paragraph{C2,C3 — Equipment continuity (home/non-home airports).}
 For any aircraft $j$, any non-home airport $k \ne a^0_j$, and any flight
 $i$ departing from $k$, aircraft $j$ can be assigned to flight $i$ only if
-it has already landed at $k$ early enough:
+it has already landed at $k$ early enough,
+but at the home airport ($k = a^0_j$), one free unit is available at time zero
 \begin{equation}\label{eq:c2}
   \sum_{i' \in \Fl{k}{\tD{i}}} x_{i'j}
   - \sum_{i' \in \Fd{k}{\tD{i}}} x_{i'j}
@@ -63,9 +64,6 @@ it has already landed at $k$ early enough:
   i \in \F : \aD{i}=k.
 \end{equation}
 
-\paragraph{C3 — Equipment continuity (home airport).}
-At the home airport $k = a^0_j$, one free unit is available at time zero
-(the initial position):
 \begin{equation}\label{eq:c3}
   \sum_{i' \in \Fl{k}{\tD{i}}} x_{i'j}
   - \sum_{i' \in \Fd{k}{\tD{i}}} x_{i'j}
@@ -145,7 +143,7 @@ In implementations, this corner case is eliminated by adding pairwise
 non-overlap constraints for time-overlapping flights on the same aircraft,
 $x_{i_1j}+x_{i_2j}\le 1$.
 
-\paragraph{Corrected C2--C4 feasibility criterion.}
+\paragraph{Corrected C1--C3 feasibility criterion.}
 Define $\mathcal{O}$ as the set of flight pairs that cannot be operated by one
 aircraft because their operating intervals, including the turn-time buffer,
 overlap:
@@ -156,6 +154,7 @@ overlap:
   \label{eq:overlap_set}
 \end{equation}
 For every pair in this conflict set, impose
+\paragraph{C4 — Overlap constraint.}
 \begin{equation}\label{eq:c4_overlap}
   x_{i_1 j} + x_{i_2 j} \le 1,
   \qquad \forall \{i_1,i_2\}\in\mathcal{O},\; \forall j\in\Pc.

@@ -42,9 +42,7 @@ $F_{d,d'}$                    & Flights with departure day in $(d,d']$ \\
   z_{ijd} &= \begin{cases}1 & \text{night maintenance at arrival airport of } i,\;
                \text{aircraft } j,\;\text{day } d, \\ 0 & \text{else;}\end{cases}\\
   y_{jd}  &= \begin{cases}1 & \text{maintenance of aircraft } j \text{ on day } d,
-               \\ 0 & \text{else,}\end{cases}\\
-  h_{jd}  &\geq 0 && \text{accumulated type-A flying time after day $d$'s
-               flights and before that night's check.}
+               \\ 0 & \text{else,}\end{cases}
 \end{align*}
 
 The variable $z_{ijd}$ is instantiated only when flight $i$ arrives at a
@@ -65,56 +63,69 @@ The objective becomes:
 Constraints~\eqref{eq:c1}--\eqref{eq:c3} are retained.  Additional
 constraints:
 
-\paragraph{C8 — Maintenance blocks same-day subsequent flights.}
-\begin{equation}\label{eq:c8}
+\paragraph{C5 — Maintenance blocks same-day subsequent flights.}
+\begin{equation}\label{eq:c5}
   z_{ijd} + x_{i'j} \le 1,
   \quad \forall d\in\D,\;m\in\MA,\;i\in F_d^{\downarrow}(m),\;
   i'\in F(d,i),\;j\in\Pc.
 \end{equation}
 
-\paragraph{C9 — Maintenance requires assignment.}
-\begin{equation}\label{eq:c9}
+\paragraph{C6 — Maintenance requires assignment.}
+\begin{equation}\label{eq:c6}
   x_{ij} \ge z_{ijd},
   \quad \forall d\in\D,\;m\in\MA,\;i\in F_d^{\downarrow}(m),\;j\in\Pc.
 \end{equation}
 
-\paragraph{C10 — Capacity.}
-\begin{equation}\label{eq:c10}
+\paragraph{C7 — Capacity.}
+\begin{equation}\label{eq:c7}
   \sum_{i \in F_d^{\downarrow}(m)} \sum_{j \in \Pc} z_{ijd}
   \le \text{mcap}_{m,d},
   \qquad \forall d \in \D,\; m \in \MA.
 \end{equation}
 
-\paragraph{C11 — Aggregation ($z \to y$).}
-\begin{equation}\label{eq:c11}
+\paragraph{C8 — Aggregation ($z \to y$).}
+\begin{equation}\label{eq:c8}
   \sum_{m\in\MA}\sum_{i \in F_d^{\downarrow}(m)} z_{ijd} = y_{jd},
   \qquad \forall d \in \D,\; j \in \Pc.
 \end{equation}
 
-\paragraph{C12 — Maximum-spacing constraint.}
-\begin{equation}\label{eq:c12}
+\paragraph{C9 — Maximum-spacing constraint.}
+\begin{equation}\label{eq:c9}
   \sum_{r \in [d, d']} y_{jr} \ge 1,
   \qquad \forall d, d' \in \D \text{ s.t.\ } d' - d = d_{\max} - 1,\;
   \forall j \in \Pc.
 \end{equation}
 
-For the type-A-only model studied in this paper, C12 is not an additional
+For the type-A-only model studied in this paper, C9 is not an additional
 calendar-spacing requirement: type-A maintenance is governed by the exact
 flight-hour state in C13. The displayed row is retained as the generic
 day-indexed maintenance notation and becomes active only for a calendar-time
 maintenance type, which is outside the scope of this paper.
 
-\paragraph{C14 — At most one maintenance event per aircraft per day.}
-\begin{equation}\label{eq:c14}
+\paragraph{C10 — At most one maintenance event per aircraft per day.}
+\begin{equation}\label{eq:c10}
   \sum_{m\in\MA}\sum_{i \in F_d^{\downarrow}(m)} z_{ijd} \le 1,
   \qquad \forall j \in \Pc,\; d \in \D.
 \end{equation}
 
-For binary $y$, C14 is implied by C11; it is retained because it makes the
+For binary $y$, C10 is implied by C8; it is retained because it makes the
 one-event-per-day rule explicit and remains useful in implementations that
 relax or disaggregate the aggregation equality.
 
-\subsection{Impact of corrected C2--C4 feasibility on C8--C14}
+The original paper's cumulative-flight-time constraint is:
+\begin{equation}\label{eq:c11_paper}
+  \tag{13$_{\mathrm{paper}}$}
+  \sum_{i \in F_{d,d'}} x_{ij}\,\tilde{t}_i
+  \;\le\;
+  T^A_{\max}
+  + M_{dd'}\Bigl(2 - y_{jd} - y_{jd'}\Bigr)
+  + M_{dd'}\!\sum_{r \in [d+1,d'-1]} y_{jr},
+\end{equation}
+for all $j \in \Pc$, all pairs $(d, d')$ with $2 \le d'-d \le d_{\max}-1$,
+$d < n_d$, where $\tilde{t}_i$ is the flight duration of leg $i$.
+
+
+\subsection{Impact of corrected C2--C4 feasibility on C5--C10}
 \label{subsec:c2c4_impact_maintenance}
 
 The correction introduced in \Cref{sec:basic} (non-overlap
@@ -122,18 +133,18 @@ constraint~\eqref{eq:c4_overlap}) changes the admissible assignment set for
 $x$, and therefore the interpretation of all maintenance constraints layered on
 top of $x$.
 
-\paragraph{C8.}
-No algebraic change is required in~\eqref{eq:c8}; however, with
+\paragraph{C5.}
+No algebraic change is required in~\eqref{eq:c5}; however, with
 \eqref{eq:c4_overlap} active, the blocking relation now operates on physically
 realizable trajectories only. This removes spurious cases where maintenance
 placement was evaluated on infeasible simultaneous departures.
 
-\paragraph{C9--C12 and C14.}
-Constraints~\eqref{eq:c9}--\eqref{eq:c11}, \eqref{eq:c14} remain structurally unchanged. C12 is inactive in the type-A-only model. Their
+\paragraph{C6--C10.}
+Constraints~\eqref{eq:c6}--\eqref{eq:c10} remain structurally unchanged. C7 is inactive in the type-A-only model. Their
 feasible region is tightened indirectly because $z$ and $y$ are linked to a
 strictly smaller, physically valid $x$-space.
 
-\paragraph{C13 and onward.}
+\paragraph{C9 and onward.}
 Hour-accumulation constraints are evaluated over a physically executable
 $x$-space once~\eqref{eq:c4_overlap} is imposed. This correction is necessary,
 but it does not by itself establish that a particular C13 algebraic form
@@ -143,17 +154,17 @@ In summary, the C2--C4 correction primarily changes the domain over which the
 maintenance constraints operate. It is independent of the separate algebraic
 correction required for cumulative-hour propagation.
 
-\subsection{Rigorous feasibility theorem for C1--C14}
-\label{subsec:feasibility_theorem_c1_c14}
+\subsection{Rigorous feasibility theorem for C1--C10}
+\label{subsec:feasibility_theorem_c1_c10}
 
 We now state the corrected sufficiency result for the type-A maintenance model.
 Consider the constraint family
-\eqref{eq:c1}--\eqref{eq:c3}, \eqref{eq:c4_overlap}, \eqref{eq:c8}--\eqref{eq:c11},
+\eqref{eq:c1}--\eqref{eq:c3}, \eqref{eq:c4_overlap}, \eqref{eq:c5}--\eqref{eq:c10},
 \eqref{eq:c13_state_lower}--\eqref{eq:c13_state_bound}, \eqref{eq:c14}, and
 the stated variable domains.
 
-\begin{theorem}[Physical feasibility under corrected C1--C14]
-  \label{thm:physical_feasibility_c1_c14}
+\begin{theorem}[Physical feasibility under corrected C1--C10]
+  \label{thm:physical_feasibility_c1_c10}
   Any solution satisfying the above constraints, with $x$, $z$, and $y$
   binary and $h$ continuous, induces for each aircraft $j$ a physically
   executable trajectory over the planning horizon:
@@ -201,12 +212,37 @@ the stated variable domains.
   Therefore the global solution is physically feasible.
 \end{proof}
 
-\subsection{Constraint~(13): original formulation and its flaw}
-\label{subsec:c13_flaw}
+\subsection{Issues of day-indexed maintenance constraints C1-C10}
+
+Usage of day-indexed maintenance variables $y_{jd}$ and $z_{ijd}$ is
+operationally intuitive, gives clear modeling semantics, but it has the following drawbacks:
+\begin{itemize}
+\item The day-indexed formulation requires a large number of big-$M$ constants
+  $M_{dd'}$ to cover all day pairs $(d,d')$ with $2\le d'-d\le d_{\max}-1$.
+  This is a combinatorial number of rows, and the big-$M$ values are
+  necessarily loose because they must cover all possible flight-hour
+  accumulations over the horizon.
+
+  \item The day-indexed formulation does not propagate the flight-hour state
+  exactly.  The big-$M$ relaxation allows the flight-hour counter to be reset
+  prematurely, leading to potential violations of the intended maintenance
+  intervals. For example, if a maintenance night is scheduled on day $d$ and the next maintenance night is 
+  scheduled on day $d'$, the big-$M$ constraints only enforce that the cumulative flight hours between $d$ and $d'$ do not exceed $T^A_{\max}$, but they do not prevent excessive flight hours before day $d$.
+
+  \item The day-indexed formulation forces a specific maintenance schedule on each day for a given time zone, thus allowing to have two different maintenance checks within 24 hrs, but not in two different days within the same 24-hr period.
+
+  \item The day-indexed formulation does not allow for a natural integration with the ordered flight formulation, which is more efficient and compact. The ordered flight formulation allows for a more direct representation of the maintenance events in relation to the flight sequence, leading to a more efficient model.
+
+  \item The original cumulative-flight-time constraint (C11) in the day-indexed formulation is flawed, as it does not correctly enforce the flight-hour limit between two consecutive maintenance nights. This flaw can lead to infeasible solutions that violate the intended maintenance intervals.
+\end{itemize}
+
+
+\subsection{Constraint~C(11): original formulation and its flaw}
+\label{subsec:c11_flaw}
 
 The original paper's cumulative-flight-time constraint is:
-\begin{equation}\label{eq:c13_paper}
-  \tag{13$_{\mathrm{paper}}$}
+\begin{equation}\label{eq:c11_paper}
+  \tag{C11$_{\mathrm{paper}}$}
   \sum_{i \in F_{d,d'}} x_{ij}\,\tilde{t}_i
   \;\le\;
   T^A_{\max}
@@ -216,11 +252,11 @@ The original paper's cumulative-flight-time constraint is:
 for all $j \in \Pc$, all pairs $(d, d')$ with $2 \le d'-d \le d_{\max}-1$,
 $d < n_d$, where $\tilde{t}_i$ is the flight duration of leg $i$.
 
-\begin{lemma}[Flaw in~\eqref{eq:c13_paper}]
-  \label{lem:c13_flaw}
+\begin{lemma}[Flaw in~\eqref{eq:c11_paper}]
+  \label{lem:c11_flaw}
   Consider two consecutive maintenance events at days $d$ and $d'$ with no
   check between them ($y_{jr} = 0$ for $r \in (d, d')$).  Then the RHS
-  of~\eqref{eq:c13_paper} equals $T^A_{\max} + M_{dd'}(2 - 1 - 1) +
+  of~\eqref{eq:c11_paper} equals $T^A_{\max} + M_{dd'}(2 - 1 - 1) +
   M_{dd'} \cdot 0 = T^A_{\max}$, which correctly imposes the flight-hour
   limit between the two checks.
 
@@ -234,28 +270,28 @@ $d < n_d$, where $\tilde{t}_i$ is the flight duration of leg $i$.
 
 \begin{proof}
   Direct substitution of $y_{jd} = 0$, $y_{jd'} = 1$, $\sum_{r} y_{jr} = 0$
-  into~\eqref{eq:c13_paper} gives the stated RHS.  Since $M_{dd'}$ is chosen
+  into~\eqref{eq:c11_paper} gives the stated RHS.  Since $M_{dd'}$ is chosen
   as the maximum possible cumulative flight time over the horizon (a large
   positive constant), the resulting constraint is trivially satisfied regardless
   of the actual flight hours flown.
 \end{proof}
 
 \subsection{Endpoint-split strengthening and its limitation}
-\label{subsec:c13_corrected}
+\label{subsec:c11_corrected}
 
 An endpoint-split strengthening considered for replacing
-\eqref{eq:c13_paper} consists of two constraints, each relaxed by one endpoint:
+\eqref{eq:c11_paper} consists of two constraints, each relaxed by one endpoint:
 
-\begin{equation}\label{eq:c13_new_a}
-  \tag{13a}
+\begin{equation}\label{eq:c11_new_a}
+  \tag{C11a}
   \sum_{i \in F_{d,d'}} x_{ij}\,\tilde{t}_i
   \;\le\;
   T^A_{\max}
   + M_{dd'}\, y_{jd}
   + M_{dd'}\!\sum_{r \in [d+1,d'-1]} y_{jr},
 \end{equation}
-\begin{equation}\label{eq:c13_new_b}
-  \tag{13b}
+\begin{equation}\label{eq:c11_new_b}
+  \tag{C11b}
   \sum_{i \in F_{d,d'}} x_{ij}\,\tilde{t}_i
   \;\le\;
   T^A_{\max}
@@ -268,7 +304,7 @@ $d < n_d$.
 \begin{lemma}[The endpoint split is not sufficient]
   \label{lem:c13_split_limit}
   With $F_{d,d'}$ defined as the flights departing in $(d,d']$,
-  constraints~\eqref{eq:c13_new_a}--\eqref{eq:c13_new_b} do not necessarily
+  constraints~\eqref{eq:c11_new_a}--\eqref{eq:c11_new_b} do not necessarily
   bound all flying time between two consecutive maintenance nights.
 \end{lemma}
 
@@ -292,13 +328,13 @@ zero. Neither pattern alone gives an exact cumulative counter.
 
 \begin{remark}[Implementation status]
   The default builder in \texttt{src/model.py} constructs the endpoint-split
-  inequalities~\eqref{eq:c13_new_a}--\eqref{eq:c13_new_b}; the original
-  single-row form~\eqref{eq:c13_paper} remains available as an explicit,
+  inequalities~\eqref{eq:c11_new_a}--\eqref{eq:c11_new_b}; the original
+  single-row form~\eqref{eq:c11_paper} remains available as an explicit,
   opt-in \texttt{use\_paper\_c13} flag for controlled comparison, and an
   interval-specific tight big-$M$ (\texttt{use\_tight\_c13\_m}) is available
   as a formulation-preserving strengthening of either row family.
-  The computational study in \Cref{sec:computational} numerically confirms both Lemma~\ref{lem:c13_flaw}
-  and Lemma~\ref{lem:c13_split_limit} against the real built constraint
+  The computational study in \Cref{sec:computational} numerically confirms both Lemma~\ref{lem:c11_flaw}
+  and Lemma~\ref{lem:c11_split_limit} against the real built constraint
   objects of both forms, at two adversarial check patterns on the same
   four-day test instance: with checks at both window endpoints, all 42 split
   rows are satisfied while the true cumulative flying time exceeds
@@ -323,7 +359,7 @@ day 2 has right-hand side 10. For $(1,4)$, the interval contains all 20 units,
 but each row has right-hand side $10+20=30$ because its corresponding endpoint
 contains a check. Thus the split model accepts 20 units between consecutive
 maintenance nights. Under the exact recursion
-\eqref{eq:c13_state_lower}--\eqref{eq:c13_state_bound}, the same data give
+\eqref{eq:c11_state_lower}--\eqref{eq:c11_state_bound}, the same data give
 $h_{j2}=10$, $h_{j3}=10$, and $h_{j4}=20$; the last value violates
 $h_{j4}\leq T^A_{\max}=10$. In the code, the preserved class
 \texttt{LegacyEndpointSplitMILPScheduler} is identified as
@@ -341,7 +377,7 @@ selects these two identifiers explicitly and rejects unknown identifiers, so
 the legacy and exact-state rows can no longer be produced by the same builder.
 
 \subsection{Exact cumulative-state formulation}
-\label{subsec:c13_state}
+\label{subsec:c11_state}
 
 Define the flying time assigned to aircraft $j$ on day $d$ by
 \begin{equation}
@@ -354,19 +390,19 @@ $h_{j0}=\Phi^A_j$ and $y_{j0}=0$. For consecutive days, impose
 \begin{align}
   h_{jd}
   &\geq h_{j,d-1}+v_{jd}-M^H y_{j,d-1},
-  \label{eq:c13_state_lower}\\
+  \label{eq:c11_state_lower}\\
   h_{jd}
   &\leq h_{j,d-1}+v_{jd}+M^H y_{j,d-1},
-  \label{eq:c13_state_upper}\\
+  \label{eq:c11_state_upper}\\
   h_{jd}
   &\geq v_{jd},
-  \label{eq:c13_state_reset_lower}\\
+  \label{eq:c11_state_reset_lower}\\
   h_{jd}
   &\leq v_{jd}+M^H(1-y_{j,d-1}),
-  \label{eq:c13_state_reset_upper}\\
+  \label{eq:c11_state_reset_upper}\\
   0\leq h_{jd}&\leq T^A_{\max},
   \qquad \forall j\in\Pc,\ d\in\D,
-  \label{eq:c13_state_bound}
+  \label{eq:c11_state_bound}
 \end{align}
 where $M^H\geq T^A_{\max}$ is valid because
 $h_{j,d-1}\leq T^A_{\max}$. If $y_{j,d-1}=0$, the first two inequalities give
@@ -402,4 +438,4 @@ separate opening-window big-$M$ inequality is needed.
 \end{equation}
 
 The variables $h_{jd}$ are continuous and satisfy
-$0\leq h_{jd}\leq T^A_{\max}$ as imposed in~\eqref{eq:c13_state_bound}.
+$0\leq h_{jd}\leq T^A_{\max}$ as imposed in~\eqref{eq:c11_state_bound}.

@@ -26,6 +26,17 @@ docs/heuristic_math.tex       Formal derivation of the greedy/insertion heuristi
 
 ## Key Mathematical Entities
 
+### Basic constraint numbering
+
+- Legacy basic formulation: C0--C3.
+- Corrected basic formulation: C0--C5.
+- C0: binary assignment/domain.
+- C1: flight coverage.
+- C2: non-home airport continuity.
+- C3: home-airport continuity / turn-time balance.
+- C4: pairwise non-overlap.
+- C5: clique-strengthened non-overlap.
+
 | Symbol | Meaning |
 |--------|---------|
 | `F`    | Set of flight legs, indexed by `i` |
@@ -71,7 +82,9 @@ toggle via `use_paper_c13=True/False`.
 - **Random seeds**: use `stable_seed(density, p, h, index)` in `src/generate_instances.py`
   for reproducibility.
 - **Constraint toggles**: All `MILP_Sheduler.build_model()` flags default to `True`.
-  To reproduce the *basic* model (C1–C4 only), pass `use_maintenance=False`.
+  To reproduce the *legacy basic* model (C0–C3), pass
+  `use_maintenance=False` and `use_overlap=False`.
+  The corrected basic model adds C4 pairwise and C5 clique overlap rows.
 
 ## How to Run (Quick Reference)
 

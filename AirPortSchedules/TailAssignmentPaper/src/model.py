@@ -26,7 +26,8 @@ if hasattr(sys.stderr, 'reconfigure'):
 # Optional Pyomo imports (only needed for Optimizer)
 try:
     from pyomo.environ import (ConcreteModel, Set, Var, Objective, Constraint,
-                                ConstraintList, Binary, minimize, value as pyo_value)
+                                ConstraintList, Binary, NonNegativeReals,
+                                minimize, value as pyo_value)
     from pyomo.opt import SolverFactory, TerminationCondition
     PYOMO_AVAILABLE = True
 except ImportError:
@@ -706,8 +707,7 @@ class MILP_Sheduler:
             # C2-C3: equipment-flow balance (prevents implicit teleportation)
             self._add_c23_turn(m)
         if use_overlap:
-            
-            self._add_overlap(m)
+            self._add_overlap(m, mode='both')
         if use_maintenance:
             if not (use_event_maintenance and use_event_only_block_capacity):
                 self._add_c8_maint_blocks_flights(m)
@@ -722,13 +722,16 @@ class MILP_Sheduler:
                 self._add_c12_day_spacing(m)
             self._add_c12b_initial_days(m)   # enforce first C/D check within remaining-days window
             self._add_c12_day_spacing_days(m)
-            if use_existing_hrs:
-                self._add_c13b_existing_hrs(
-                    m, use_strict_state=use_strict_hour_state
+            if use_strict_hour_state:
+                self._add_exact_hour_state(m)
+            else:
+                if use_existing_hrs:
+                    self._add_c13b_existing_hrs(m)
+                self._add_c13_hr_accumulation(
+                    m,
+                    use_paper_c13=use_paper_c13,
+                    use_tight_m=use_tight_c13_m,
                 )
-            self._add_c13_hr_accumulation(m, use_paper_c13=use_paper_c13,
-                                          use_tight_m=use_tight_c13_m,
-                                          use_strict_state=use_strict_hour_state)
             self._add_c15_no_flight_during_maint(m)
         if use_sanity:
             self._add_sanity(m)
@@ -978,6 +981,7 @@ class MILP_Sheduler:
                 for j in self._x_aircrafts_for_flight(i):
                     yield (i, j)
         m.X = Set(dimen=2, initialize=_x_index_init)
+        # C0: binary assignment/domain; C1-C3 are added below.
         m.x = Var(m.X, domain=Binary, initialize=0)
         # z[i,j,d,c] = 1  iff aircraft j does check c on day d triggered by flight i
         # Only indexed over feasible (flight, aircraft, day, check) tuples.
@@ -1146,15 +1150,17 @@ class MILP_Sheduler:
                     m.c23.add(lhs >= rhs)
 
     # ------------------------------------------------------------------
-    # Overlap constraint – two flights that overlap in time cannot share
-    # the same aircraft (fills the gap left by C2–C3 for short windows)
+    # C4/C5 – pairwise and clique-strengthened overlap constraints
     # ------------------------------------------------------------------
 
     def _add_overlap(self, m, mode='clique'):
-        m.c_overlap = ConstraintList()
         tau = self.MIN_TURN
 
-        if mode == 'pairwise':
+        if mode not in {'pairwise', 'clique', 'both'}:
+            raise ValueError(f"Unknown overlap mode: {mode}")
+
+        if mode in {'pairwise', 'both'}:
+            m.c4_pairwise_overlap = ConstraintList()
             fids = list(m.F)
             for idx, i in enumerate(fids):
                 fd_i = self.flight_data[i]
@@ -1167,14 +1173,14 @@ class MILP_Sheduler:
                         continue
                     shared = set(self._x_aircrafts_for_flight(i)) & set(self._x_aircrafts_for_flight(i1))
                     for j in shared:
-                        m.c_overlap.add(m.x[i, j] + m.x[i1, j] <= 1)
-            return
+                        m.c4_pairwise_overlap.add(m.x[i, j] + m.x[i1, j] <= 1)
 
-        if mode != 'clique':
-            raise ValueError(f"Unknown overlap mode: {mode}")
+        if mode not in {'clique', 'both'}:
+            return
 
         # Build interval-graph cliques per aircraft. For interval graphs, clique
         # constraints dominate pairwise overlap rows and are typically fewer.
+        m.c5_clique_overlap = ConstraintList()
         for j in m.P:
             intervals = []
             for i in m.F:
@@ -1209,7 +1215,7 @@ class MILP_Sheduler:
                 maximal.append(clique)
 
             for clique in maximal:
-                m.c_overlap.add(sum(m.x[i, j] for i in clique) <= 1)
+                m.c5_clique_overlap.add(sum(m.x[i, j] for i in clique) <= 1)
 
     # ------------------------------------------------------------------
     # Constraint C8 – maintenance check blocks subsequent same-day flights
@@ -1558,13 +1564,7 @@ class MILP_Sheduler:
                                          + big_m * y_mid
                             )
                             continue
-                        # Two separate constraints: each relaxed by one boundary
-                        # check so the pair is binding whenever either boundary
-                        # day (or the interior) has no check.
-                        #   row 1: relax when check AT d  (counter reset before window)
-                        #   row 2: relax when check AT d_ (counter reset at window end)
-                        # Without any check in [d, d_]: both reduce to
-                        #   t_sum <= hr_limit*60  → correctly enforced.
+
                         m.c13.add(
                             t_sum <= hr_limit * 60
                                      + big_m * y_mid
@@ -1575,16 +1575,51 @@ class MILP_Sheduler:
                                      + big_m * y_mid
                                      + big_m * m.mega[j, d_, c]
                         )
-         
 
                         if use_strict_state:
-                            # A check at d or d_ occurs after the flights
-                            # counted in (d, d_]. Only an intermediate check
-                            # can reset this window before its end.
                             m.c13.add(
                                 t_sum <= hr_limit * 60 + big_m * y_mid
                             )
                             continue
+
+    def _add_exact_hour_state(self, m):
+        """Propagate exact A/B flight-hour state across planning days."""
+        m.h = Var(m.P, m.D, m.C, domain=NonNegativeReals)
+        m.c13_exact_state = ConstraintList()
+        days = sorted(self.days)
+        for c in self.CHECK_LIST:
+            if self.check_days[c] is not None:
+                continue
+            limit = self.check_hrs[c] * 60.0
+            for j in m.P:
+                previous_state = self.init_check_hrs[c].get(j, 0.0) * 60.0
+                previous_day = None
+                for day in days:
+                    daily_time = sum(
+                        self.flight_data[i]['duration'] * m.x[i, j]
+                        for i, flight in self.flight_data.items()
+                        if flight['day_departure'] == day
+                        if self._x_has_arc(i, j)
+                    )
+                    if previous_day is None:
+                        m.c13_exact_state.add(
+                            m.h[j, day, c] == previous_state + daily_time
+                        )
+                    else:
+                        reset = m.mega[j, previous_day, c]
+                        m.c13_exact_state.add(
+                            m.h[j, day, c] >= previous_state + daily_time - limit * reset
+                        )
+                        m.c13_exact_state.add(
+                            m.h[j, day, c] <= previous_state + daily_time + limit * reset
+                        )
+                        m.c13_exact_state.add(m.h[j, day, c] >= daily_time)
+                        m.c13_exact_state.add(
+                            m.h[j, day, c] <= daily_time + limit * (1 - reset)
+                        )
+                    m.c13_exact_state.add(m.h[j, day, c] <= limit)
+                    previous_state = m.h[j, day, c]
+                    previous_day = day
     # ------------------------------------------------------------------
     # Constraint C13b – existing flight hours at start of horizon
     # The aircraft's accumulated hours since last check must be respected.
@@ -1703,7 +1738,8 @@ class MILP_Sheduler:
     # ------------------------------------------------------------------
 
     def solve(self, solver_name='cplex', tee=False, out_path=None,
-              time_limit=None, warm_start=False, executable=None):
+              time_limit=None, warm_start=False, executable=None,
+              solver_options=None):
         """Invoke the solver on the built model.
 
         executable : str | None
@@ -1734,6 +1770,10 @@ class MILP_Sheduler:
         solver_name = solver_name or os.environ.get('TAP_PYOMO_SOLVER', 'cplex_direct')
         executable = executable or os.environ.get('TAP_PYOMO_SOLVER_EXECUTABLE')
         solver = SolverFactory(solver_name, executable=executable) if executable else SolverFactory(solver_name)
+
+        if solver_options:
+            for option, option_value in solver_options.items():
+                solver.options[option] = option_value
 
         # --- solver-specific time-limit options ---
         _sn = solver_name.lower()
@@ -2102,6 +2142,28 @@ def _plot_gantt(events, aid_list, unassigned_flights=None, unassigned_ids=None,
 
 class LegacyEndpointSplitMILPScheduler(MILP_Sheduler):
     """Explicit compatibility name for the preserved legacy formulation."""
+
+
+class LegacyPaperC13MILPScheduler(MILP_Sheduler):
+    """Legacy day-indexed model using Khaled et al. Eq. (13)."""
+
+    FORMULATION_ID = "legacy_paper_c13"
+
+    def build_model(self, **kwargs):
+        kwargs["use_paper_c13"] = True
+        kwargs["use_strict_hour_state"] = False
+        return super().build_model(**kwargs)
+
+
+class LegacyCorrectedMILPScheduler(MILP_Sheduler):
+    """Legacy day-indexed model with the strict corrected hour rows."""
+
+    FORMULATION_ID = "legacy_corrected"
+
+    def build_model(self, **kwargs):
+        kwargs["use_paper_c13"] = False
+        kwargs["use_strict_hour_state"] = True
+        return super().build_model(**kwargs)
 
 
 # ----------------------------

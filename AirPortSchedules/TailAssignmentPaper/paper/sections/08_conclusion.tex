@@ -25,11 +25,14 @@ feasibility correction from objective accounting; they do not support a
 solver-independent speedup claim.
 
 These computational results are deliberately scoped. They use deterministic
-synthetic feasible instances, one instance per parameter cell, and a single
-unrestricted CPLEX configuration. The results expose model-size and timing
-differences among the four formulations on the tested A-only family;
-they do not establish a universal speedup across solvers, instance
-distributions, or larger benchmark sets.
+synthetic A-only instances, one instance per parameter cell, and a single
+unrestricted CPLEX configuration. The results establish objective parity on
+the tested family and expose model-size and timing differences among the four
+formulations; they do not establish a universal speedup across solvers,
+solver configurations, instance distributions, maintenance parameter sets,
+or larger benchmark families. Multiple seeds, structurally different networks,
+presolve and warm-start variants, and an independent MILP solver remain
+necessary for a broader performance conclusion.
 
 \paragraph{Reproducibility.}
 The project contains the model implementations, deterministic instance
@@ -43,8 +46,10 @@ model semantics from implementation choices.
 \begin{itemize}
   \item \textbf{Larger A-only benchmark families:} repeat the horizon and
     fleet-size experiments over multiple seeds and heterogeneous timetable
-    structures, reporting solver variability and confidence intervals after
-    resolving the corrected legacy model's initial-state feasibility.
+    structures, reporting solver variability and confidence intervals.
+  \item \textbf{Solver and configuration robustness:} repeat the comparison
+    with and without presolve, under different time limits and warm-start
+    policies, and with an independently implemented MILP solver.
   \item \textbf{Integrated fleet assignment and routing:} extend the corrected
     compact model while retaining physically executable route constraints.
   \item \textbf{Robust and recoverable variants:} study uncertainty in flight

@@ -72,7 +72,7 @@ def build_feasible_instance(
     rotations = flights_per_aircraft
     if rotations is None:
         rotations = max(2, int(round(density * max(2, h))))
-        if maintenance_families == "AB":
+        if maintenance_families in {"A", "AB"}:
             rotations = min(rotations, 2)
         elif maintenance_families == "ABCD":
             rotations = 1
@@ -113,16 +113,22 @@ def build_feasible_instance(
                 # `+0.25` day margin does not always cover.
                 arrival_days_elapsed = outbound_arr / DAY_SHIFT
                 if primary_family == "A":
-                    initial_checks["A"][str(aid)] = max(0, thresholds["A"] - (outbound_dur + 45))
+                    # The first check is performed at MRO after the outbound
+                    # leg and before the following-morning return.
+                    initial_checks["A"][str(aid)] = max(0, thresholds["A"] - 2 * outbound_dur)
                 elif primary_family == "B":
-                    initial_checks["B"][str(aid)] = max(0, thresholds["B"] - (outbound_dur + 45))
+                    initial_checks["B"][str(aid)] = max(0, thresholds["B"] - 2 * outbound_dur)
                 elif primary_family == "C":
                     initial_checks["C_Days"][str(aid)] = max(0.0, thresholds["C"] - (arrival_days_elapsed + 0.25))
                 elif primary_family == "D":
                     initial_checks["D_Days"][str(aid)] = max(0.0, thresholds["D"] - (arrival_days_elapsed + 0.25))
 
             maint_buffer = max_active_maint_dur + 60
-            return_dep = outbound_arr + maint_buffer
+            # Checks are performed overnight after the inbound leg. Schedule
+            # the return on the following morning so the seeded rotation does
+            # not require an intra-day maintenance reset.
+            next_morning = (int(outbound_arr // DAY_SHIFT) + 1) * DAY_SHIFT + 6 * 60
+            return_dep = max(outbound_arr + maint_buffer, next_morning)
             return_dur = 90
             return_arr = return_dep + return_dur
             ret_orig = maintenance_airport

@@ -35,6 +35,10 @@ constraint index, variable naming, the constraint (13) correction, and code conv
 - Each section is `\input`'d from `sections/{N}_{name}.tex`.
 
 ### Mathematical Notation (docs/ and paper/)
+- Basic constraint numbering: legacy formulation C0--C3; corrected formulation
+  C0--C5. C0 is the binary assignment/domain, C1 is flight coverage, C2 is
+  non-home continuity, C3 is home-airport continuity/turn-time balance, C4 is
+  pairwise non-overlap, and C5 is clique-strengthened non-overlap.
 - Flights: set $\mathcal{F}$, index $i$
 - Aircraft: set $\mathcal{P}$, index $j$
 - Airports: set $\mathcal{A}$, index $k$

@@ -261,6 +261,40 @@ $\Phi_j$, so every assigned route satisfies the type-A limit.
 
 \subsection{Why the ordered formulation is the better method}
 
+\subsection{Theoretical complexity and model size}
+
+Let $n_f=|\F|$, $n_p=|\Pc|$, and let $n_m$ denote the number of flights
+that arrive at a maintenance-capable airport. In the A-only ordered model,
+the assignment variables contribute at most $n_fn_p$ binary variables, while
+the maintenance-event variables contribute at most $n_mn_p$ binary variables.
+The aircraft-local prefix state contributes at most $n_fn_p$ continuous
+variables; with sparse aircraft eligibility, all three counts are smaller and
+are determined by the feasible $(i,j)$ pairs. Thus the principal variable
+bound is
+\[
+O(n_fn_p+n_mn_p),
+\]
+with no additional day-indexed $y_{jd}$ or occupancy-state $q_{a,j}$ family.
+The ordered implementation instead stores one state position per feasible
+flight--aircraft pair.
+
+The main linear constraint families are $O(n_f)$ for coverage,
+$O(n_fn_p)$ for continuity and event assignment, $O(n_fn_p)$ for the
+prefix-state equations, and $O(n_pD)$ for the daily event cap. Pairwise
+non-overlap and timestamp blocking depend on the conflict sets and are
+$O(|\mathcal{O}|n_p)$ and $O(|\mathcal{B}|)$, respectively, where
+$\mathcal{O}$ is the flight-overlap set and $\mathcal{B}$ is the generated set
+of event--following-flight blocking pairs. Timestamp-capacity rows are
+generated per airport breakpoint, so their number is proportional to the
+number of distinct event timestamps rather than to a full time grid. In the
+worst case, $|\mathcal{O}|=O(n_f^2)$ and the sparse conflict families can also
+be quadratic, but timetable sparsity usually makes their observed counts much
+smaller. The theoretical conclusion is therefore precise: the Event-based
+model removes the day dimension from the principal variable families and
+keeps prefix-state size linear in feasible flight--aircraft pairs; it does not
+guarantee fewer total constraints unless the induced conflict and blocking
+sets are also sparse.
+
 The ordered formulation combines event-triggered maintenance with a global
 flight order and aircraft-local prefix states. It removes the day-pair
 accumulation ambiguity of the legacy cumulative-flight-time row, avoids successor-variable

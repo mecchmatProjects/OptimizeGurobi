@@ -116,17 +116,17 @@ support a performance comparison under common feasibility semantics.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.86\linewidth]{figures/ordered_a_wall_vs_horizon.png}
+\includegraphics[width=0.86\linewidth]{figures/ordered_a_wall_vs_horizon_extended_p20.png}
 \caption{A-only solve wall time versus planning horizon for the four-method
-comparison.}
+comparison at $|P|=20$ in the extended suite.}
 \label{fig:ordered_a_wall_horizon}
 \end{figure}
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.86\linewidth]{figures/ordered_a_cpu_vs_horizon.png}
+\includegraphics[width=0.86\linewidth]{figures/ordered_a_cpu_vs_horizon_extended_p20.png}
 \caption{A-only solve CPU time versus planning horizon for the four-method
-comparison.}
+comparison at $|P|=20$ in the extended suite.}
 \label{fig:ordered_a_cpu_horizon}
 \end{figure}
 
@@ -149,31 +149,61 @@ The plots report active scalar variables and constraints counted directly from
 the built Pyomo models; the constraint plot is the requested dependency-size
 view.
 
+Table~\ref{tab:a_fleet_timing} gives the exact CPU and wall-time values used
+in Figures~\ref{fig:a_cpu_fleet} and~\ref{fig:a_wall_fleet}. Values are in
+seconds; each group of four columns follows the method order in the first
+column.
+
+\begin{table}[t]
+\centering\scriptsize
+\caption{Heavy A-only fleet-size timing data used in Figures 6 and 7.
+Values are copied from \texttt{formulation\_a\_fleet\_four\_latest.csv}.}
+\label{tab:a_fleet_timing}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{r r r r r r r r r}
+\toprule
+$|P|$ & \multicolumn{4}{c}{CPU time (s)} & \multicolumn{4}{c}{Wall time (s)} \\
+\cmidrule(lr){2-5}\cmidrule(lr){6-9}
+& Paper & Split & Corrected & Event & Paper & Split & Corrected & Event \\
+\midrule
+5  & 0.282998 & 0.289001 & 0.287998 & 0.285002 & 0.571580 & 0.585721 & 0.574819 & 0.571679 \\
+10 & 0.337262 & 0.336002 & 0.314002 & 0.354125 & 0.719042 & 0.705635 & 0.648694 & 0.720913 \\
+15 & 0.410000 & 0.385956 & 0.359999 & 0.369632 & 0.883896 & 0.837448 & 0.768965 & 0.814893 \\
+20 & 0.441999 & 0.466998 & 0.430000 & 0.462000 & 1.023774 & 1.079396 & 0.978769 & 1.067776 \\
+\bottomrule
+\end{tabular}
+}%
+\end{table}
+
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.86\linewidth]{figures/a_variables_vs_fleet.png}
-\caption{Active model variables versus fleet size on the heavy A-only suite.}
+\includegraphics[width=0.86\linewidth]{figures/a_variables_vs_fleet_extended_h30.png}
+\caption{Active model variables versus fleet size at $H=30$ in the extended
+four-method A-only suite.}
 \label{fig:a_variables_fleet}
 \end{figure}
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.86\linewidth]{figures/a_constraints_vs_fleet.png}
-\caption{Active model constraints versus fleet size on the heavy A-only suite.}
+\includegraphics[width=0.86\linewidth]{figures/a_constraints_vs_fleet_extended_h30.png}
+\caption{Active model constraints versus fleet size at $H=30$ in the extended
+four-method A-only suite.}
 \label{fig:a_constraints_fleet}
 \end{figure}
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.86\linewidth]{figures/a_cpu_vs_fleet.png}
-\caption{Solver CPU time versus fleet size on the heavy A-only suite.}
+\includegraphics[width=0.86\linewidth]{figures/a_cpu_vs_fleet_extended_h30.png}
+\caption{Solver CPU time versus fleet size at $H=30$ in the extended
+four-method A-only suite.}
 \label{fig:a_cpu_fleet}
 \end{figure}
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.86\linewidth]{figures/a_wall_vs_fleet.png}
-\caption{Solver wall time versus fleet size on the heavy A-only suite.}
+\includegraphics[width=0.86\linewidth]{figures/a_wall_vs_fleet_extended_h30.png}
+\caption{Solver wall time versus fleet size at $H=30$ in the extended
+four-method A-only suite.}
 \label{fig:a_wall_fleet}
 \end{figure}
 
@@ -185,3 +215,80 @@ optimal on the corrected generated family, with the explicit-state legacy and
 event variants improving on the legacy split in solve time. The event
 formulation also uses fewer variables and matches the legacy objectives on this
 family. The study does not claim a solver-independent runtime advantage.
+
+\subsubsection{Expanded four-method suite}
+
+To broaden the single-cell horizon and fleet-size snapshots above, we ran the
+dedicated four-method suite in
+\texttt{results/tables/four\_method\_suite.csv}. It contains 12 generated
+A-only performance cases on the Cartesian grid
+$|P|\in\{5,10,20,40\}$ and $H\in\{7,15,30\}$, plus the two regression cases
+\texttt{c13\_loophole\_test} and
+\texttt{event\_vs\_legacy\_clean\_test}. Every performance case uses one
+common JSON instance for all four methods and all 48 performance runs are
+optimal. The aggregate statistics are in
+\texttt{results/tables/four\_method\_suite\_summary.csv}.
+
+\begin{table}[t]
+\centering\scriptsize
+\caption{Aggregate statistics over the 12-case A-only performance suite.
+Variables and constraints are active scalar Pyomo components; times are in
+seconds.}
+\label{tab:four_method_suite_summary}
+\begin{tabular}{lrrrr}
+\toprule
+Method & Mean variables & Mean constraints & Mean CPU & Mean wall \\
+\midrule
+Legacy paper & 14\,225.417 & 26\,923.917 & 1.024107 & 2.291763 \\
+Legacy split & 14\,225.417 & 29\,823.917 & 1.366540 & 2.885747 \\
+Legacy corrected & 14\,544.167 & 25\,261.417 & 0.668684 & 1.579062 \\
+Event-based & 4\,979.167 & 27\,792.750 & 0.750670 & 1.554821 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The expanded suite confirms the focused comparisons: the corrected legacy
+model has the lowest mean CPU time, while the Event-based model has the lowest
+mean wall time and uses approximately 65\% fewer variables than the legacy
+models. The Event-based constraint count is higher than the legacy-paper count
+because its route and timestamp formulations replace compact day-indexed rows;
+this is a structural trade-off, not an omitted capacity condition. The C13
+loophole regression has the expected verdict: the paper and split rows accept
+the fixed violating pattern, whereas the corrected state rejects it. The clean
+regression is optimal under all four methods.
+
+\subsubsection{Validation scope and required robustness checks}
+
+The A-only results are a controlled formulation comparison, not a final
+performance claim. The current evidence uses one deterministic generated case
+per $(P,H)$ cell, a single maintenance-capable airport pattern, one set of
+maintenance parameters, and one unrestricted CPLEX~12.6 configuration. The
+four-method suite also contains two targeted regressions, but these are
+correctness checks rather than statistically independent performance samples.
+Consequently, the observed Event-based reductions in variables and average
+wall time should be interpreted as results for this instance family and solver
+configuration only.
+
+A broader validation should repeat the same four-method comparison on multiple
+seeds and structurally different instances: hub-and-spoke and mixed-airport
+networks, sparse and dense connection graphs, different maintenance capacities,
+different A-check thresholds and durations, nonzero valid initial counters, and
+instances containing simultaneous departures and tight turn windows. The
+solver study should additionally repeat each case under CPLEX with and without
+presolve, vary the time limit and warm-start policy, and include at least one
+independent MILP solver where the model is supported. Each run should retain
+status, optimality gap, objective, active variable and constraint counts, build
+time, CPU time, wall time, and peak memory. Objective parity should be checked
+before timing comparisons are aggregated. These checks are necessary to
+separate formulation effects from instance, solver, and configuration effects.
+
+As an initial configuration check, the representative four-case subset was
+also run with CPLEX cold and warm starts. Both configurations produced the
+same 15 optimal rows and one expected C13-loophole infeasibility; their
+performance summaries were close, with mean CPU times of
+$(0.521,0.614,0.414,0.391)$ seconds for the paper, split, corrected, and
+Event-based methods in the cold run, and
+$(0.517,0.614,0.414,0.391)$ seconds in the warm run. Attempts with the
+available CBC and HiGHS executables, and with the native CPLEX plugin, failed
+at the solver interface before producing model results. They are retained as
+diagnostic outputs, not treated as independent-solver evidence.

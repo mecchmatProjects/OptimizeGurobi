@@ -41,7 +41,7 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
 
     def build_model(
         self,
-        overlap_mode='clique',
+        overlap_mode='both',
         tight_state_big_m=True,
         local_state_indexing=True,
         calendar_candidate_pruning=True,
@@ -136,11 +136,11 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
         local_state_indexing=True,
         calendar_candidate_pruning=True,
     ):
-        model.c5_event = ConstraintList()
+        model.c9_event_assignment = ConstraintList()
         for flight, aircraft, check in model.Z:
-            model.c5_event.add(model.z[flight, aircraft, check] <= model.x[flight, aircraft])
+            model.c9_event_assignment.add(model.z[flight, aircraft, check] <= model.x[flight, aircraft])
 
-        model.c6_event = ConstraintList()
+        model.event_type_exclusivity = ConstraintList()
         for flight in self.maint_flight_ids:
             for aircraft in self._x_aircrafts_for_flight(flight):
                 events = [
@@ -149,9 +149,9 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
                     if (flight, aircraft, check) in model.Z
                 ]
                 if events:
-                    model.c6_event.add(sum(events) <= 1)
+                    model.event_type_exclusivity.add(sum(events) <= 1)
 
-        model.c8_event = ConstraintList()
+        model.c8_event_block = ConstraintList()
         for trigger in self.maint_flight_ids:
             trigger_data = self.flight_data[trigger]
             for aircraft in self._x_aircrafts_for_flight(trigger):
@@ -169,13 +169,13 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
                                 + self.check_dur[check]
                                 + self.MIN_TURN
                             ):
-                                model.c8_event.add(
+                                model.c8_event_block.add(
                                     model.x[following, aircraft]
                                     + model.z[trigger, aircraft, check]
                                     <= 1
                                 )
 
-        model.c9_event = ConstraintList()
+        model.c10_event_capacity = ConstraintList()
         for airport in self.maint_airports:
             capacity = self.station_cap.get(airport, 0)
             checkpoints = sorted(
@@ -200,9 +200,9 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
                     < self.flight_data[flight]["arrivalTime"] + self.check_dur[check]
                 ]
                 if active:
-                    model.c9_event.add(sum(active) <= capacity)
+                    model.c10_event_capacity.add(sum(active) <= capacity)
 
-        model.c14_one_day = ConstraintList()
+        model.c13_event_day_cap = ConstraintList()
         for aircraft in self.aircraft_ids:
             for day in sorted(
                 {
@@ -217,9 +217,9 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
                     and int(self.flight_data[flight]["arrivalTime"] // self.DAY_SHIFT) == day
                 ]
                 if events:
-                    model.c14_one_day.add(sum(events) <= 1)
+                    model.c13_event_day_cap.add(sum(events) <= 1)
 
-        model.c11_state = ConstraintList()
+        model.event_hour_state = ConstraintList()
         state_limit = {
             check: self.check_hrs[check] * 60.0 for check in self.HOUR_CHECKS
         }
@@ -238,7 +238,7 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
                             else model.q[position - 1, aircraft, check]
                         )
                         state = model.q[position, aircraft, check]
-                        model.c11_state.add(state == previous)
+                        model.event_hour_state.add(state == previous)
                         continue
                     checked = sum(
                         model.z[flight, aircraft, reset_check]
@@ -267,24 +267,23 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
                         m_unassigned = coarse
                         m_threshold = coarse
 
-                    model.c11_state.add(state >= previous - m_eq * assigned)
-                    model.c11_state.add(state <= previous + m_eq * assigned)
-                    model.c11_state.add(
+                    model.event_hour_state.add(state >= previous - m_eq * assigned)
+                    model.event_hour_state.add(state <= previous + m_eq * assigned)
+                    model.event_hour_state.add(
                         state >= previous + duration - m_flow * (1 - assigned) - m_flow * checked
                     )
-                    model.c11_state.add(
+                    model.event_hour_state.add(
                         state <= previous + duration + m_flow * (1 - assigned) + m_flow * checked
                     )
-                    model.c11_state.add(
-                        state <= duration * checked + threshold * (assigned - checked)
+                    model.event_hour_state.add(
+                        state <= threshold * (assigned - checked)
                         + m_unassigned * (1 - assigned)
                     )
-                    model.c11_state.add(state >= duration * checked)
-                    model.c11_state.add(
+                    model.event_hour_state.add(
                         previous + duration
                         <= threshold + m_threshold * (1 - assigned)
                     )
-                    model.c11_state.add(state <= state_ub)
+                    model.event_hour_state.add(state <= state_ub)
 
         if self.CALENDAR_CHECKS:
             self._add_ordered_calendar_limits(
@@ -395,6 +394,12 @@ class OrderedAEventMILPScheduler(OrderedHourEventMILPScheduler):
     CHECK_LIST = ("A",)
     HOUR_CHECKS = ("A",)
     FORMULATION_ID = "ordered_a_event"
+
+
+class PaperEventBasedMILPScheduler(OrderedAEventMILPScheduler):
+    """Paper-facing identifier for the ordered A-only event formulation."""
+
+    FORMULATION_ID = "event_based"
 
 
 class OrderedABEventMILPScheduler(OrderedHourEventMILPScheduler):

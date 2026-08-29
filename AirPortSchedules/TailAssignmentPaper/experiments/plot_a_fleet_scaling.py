@@ -10,21 +10,31 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 
 LABELS = {
-    "legacy_a": "Legacy (A only)",
-    "compact_a_event": "Compact event (A only)",
-    "ordered_a_event": "Ordered event (A only)",
+    "legacy_paper_c13": "Legacy paper row",
+    "legacy_endpoint_split": "Legacy endpoint split",
+    "legacy_corrected": "Legacy corrected",
+    "event_based": "Event-based",
 }
 COLORS = {
-    "legacy_a": "#155e75",
-    "compact_a_event": "#6b7280",
-    "ordered_a_event": "#b45309",
+    "legacy_paper_c13": "#7f1d1d",
+    "legacy_endpoint_split": "#155e75",
+    "legacy_corrected": "#166534",
+    "event_based": "#b45309",
 }
-MARKERS = {"legacy_a": "o", "compact_a_event": "^", "ordered_a_event": "s"}
+MARKERS = {
+    "legacy_paper_c13": "v",
+    "legacy_endpoint_split": "o",
+    "legacy_corrected": "^",
+    "event_based": "s",
+}
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--input", default="results/tables/formulation_a_fleet_scaling_latest.csv")
+    parser.add_argument(
+        "--input",
+        default="results/tables/formulation_a_fleet_four_latest.csv",
+    )
     parser.add_argument("--output", default="paper/figures/ordered_a_cpu_vs_fleet.png")
     args = parser.parse_args()
 

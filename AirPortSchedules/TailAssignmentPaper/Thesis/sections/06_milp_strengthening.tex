@@ -4,13 +4,14 @@ This chapter investigates formulation-strengthening methods for the integrated a
 
 \section{Research questions and baseline}
 
-The strengthening study addresses four questions:
+The strengthening study addresses five questions:
 
 \begin{enumerate}
     \item Can maintenance-trigger variables be removed by preprocessing without removing any feasible aircraft route?
     \item Can the C13 relaxation be tightened with interval-specific bounds without changing the integer feasible region?
     \item Do stronger maintenance-linking and maintenance-window constraints improve the linear relaxation or only increase model size?
-    \item Does a combined strengthening package improve exact MILP performance on a larger feasible benchmark family?
+    \item \textit{How do the available lower and upper bounds bracket the optimum, and does the strengthening tighten that bracket?}
+    \item \textit{Does the combined package change exact-solver behaviour on larger instances, where the time budget actually binds?}
 \end{enumerate}
 
 The baseline is the default configuration of \texttt{MILP\_Sheduler} in \texttt{src/model.py}. It uses the corrected split form of Constraint~(13), the original maintenance-trigger domain, aggregate C8 blocking, and the global value $M=9{,}999{,}999$. All new options default to \texttt{False}; therefore, the experiments are additive and the main formulation remains reproducible.
@@ -66,118 +67,242 @@ This formulation is at least as strong for the corresponding blocked-flight set,
 
 The combined Strengthening formulation enables sparse aircraft-compatible domains, reachability filtering, strong trigger linking, interval-specific C13 bounds, and pairwise maintenance conflicts. The C10 builder also skips empty station-day expressions rather than passing a trivial Boolean to Pyomo. This last change is a construction robustness correction: it does not alter a nonempty capacity constraint, but it permits long-horizon sparse experiments to distinguish model infeasibility from a model-building error.
 
-The combined package is controlled by independent flags, so the contribution of each family can be isolated. The comparison harness \texttt{experiments/compare\_strong\_maint\_link.py} records variables, constraints, maintenance-domain size, build time, solver status, objective, and solve time for every matched run.
+The combined package is controlled by independent flags, so the contribution of each family can be isolated.
 
 \section{Correctness and implementation checks}
 
 The structural test suite verifies five properties. First, all strengthening flags are opt-in and the baseline default is unchanged. Second, every sparse maintenance variable has a corresponding assignment arc. Third, the reachability filter removes only deferred days following a forced station departure. Fourth, interval-specific $M$ values are nonnegative and finite. Fifth, pairwise conflict mode creates direct blocking rows for every blocked flight. The tests also verify that the controlled baseline and strengthened models preserve the same objective on feasible fixtures.
 
-The complete explicitly discovered suite contains 18 tests and passes after the strengthening changes. This structural evidence is necessary but not sufficient: a smaller model is useful only if it preserves the intended solutions and improves, or at least does not materially damage, exact-solver performance.
+The complete explicitly discovered suite passes after the strengthening changes. This structural evidence is necessary but not sufficient: a smaller model is useful only if it preserves the intended solutions and improves, or at least does not materially damage, exact-solver performance.
 
+%%==========================================================================
+\section{Bounding framework}
+\label{sec:strength_bounds_framework}
+%%==========================================================================
+
+\textit{The model is a minimisation problem, so its optimum is bracketed from
+below and from above. The study records three bound sources separately, because
+they are not interchangeable and they fail in different ways.}
+
+\textit{\textbf{Lower bounds.} The LP relaxation value is a valid lower bound on
+every integer-feasible schedule. During branch and bound the solver additionally
+maintains a dual bound, which is the strongest proven lower bound at
+termination. Both are recorded.}
+
+\textit{\textbf{Upper bounds.} Any integer-feasible schedule certifies an upper
+bound. Two sources are used. The solver incumbent, or primal bound, is an upper
+bound whenever a feasible solution has been found. A heuristic schedule from
+Chapter~\ref{ch:heuristics} is also an upper bound, but \emph{only} when it
+covers every flight: a partial schedule omits flights and therefore prices an
+easier problem, so its cost is recorded but explicitly not treated as a bound.}
+
+\textit{\textbf{Residual gap.} For a dual bound $\underline{z}$ and an incumbent
+$\bar z$, the reported relative gap is}
+\begin{equation}
+    \gamma = \frac{\bar z - \underline{z}}{|\bar z|},
+    \label{eq:strength_gap}
+\end{equation}
+\textit{which is zero exactly when optimality has been proved. A run that
+reaches its time budget without any incumbent has a lower bound but no upper
+bound; that outcome is reported as such rather than scored as a large gap.}
+
+\textit{The harness \texttt{experiments/run\_strengthening\_bounds.py} records
+these quantities for every instance and both formulations. Solutions are never
+auto-loaded, so a budget-limited run that finds no incumbent still reports the
+dual bound it attained instead of failing.}
+
+%%==========================================================================
 \section{Benchmark design}
+\label{sec:strength_bounds_design}
+%%==========================================================================
 
-The principal efficacy experiment uses a newly generated feasible family of 20 instances. Each instance contains 64 flights, 8 aircraft, a 14-day horizon, and an A-check maintenance profile. The repository's constructive generator creates a seeded rotation for every aircraft and validates it with the local timeline scheduler; all 20 instances contain 64 seeded assignments and no unassigned flights. A supplementary family of ten AB instances was generated for future maintenance-hierarchy experiments, but the 20-instance A family is used for the matched exact comparison in this chapter.
+\textit{Three tiers are used, because a single family cannot answer both the
+bound question and the scalability question. All runs use the HiGHS backend on
+the same machine with a declared per-run wall-clock budget, and the two
+formulations always receive the identical instance and objective.}
 
-Every baseline and combined run uses the same input, objective, solver, solver time limit, and maintenance semantics. LP runs relax all binary variables to $[0,1]$. MILP runs retain the binary domains. The commercial CPLEX AMPL driver is used for the reported efficacy results.
+\begin{description}
+    \item[\textit{Small}] \textit{The 20-instance constructive A-check family of
+    64 flights and 8 aircraft. This is the reference family: both formulations
+    close every instance, which isolates the effect of the strengthening on
+    model size and runtime.}
+    \item[\textit{Medium}] \textit{Certified full-hierarchy instances of 128 and
+    336 flights produced by the generator of Chapter~\ref{ch:experiments}, each
+    shipped with a verified feasible certificate.}
+    \item[\textit{Large}] \textit{Larger certified full-hierarchy instances of
+    320 and 560 flights, where the budget is expected to bind and the residual
+    gap becomes the object of study.}
+\end{description}
 
+\textit{Instances with zero-based flight identifiers were excluded. The model
+indexes the cost matrix by $\text{flight}-1$, so such files silently mis-price
+the first leg; only one-based, schema-validated instances enter the study.}
+
+%%==========================================================================
 \section{Model-size results}
+\label{sec:strength_bounds_size}
+%%==========================================================================
 
-Table~\ref{tab:strength_model_size} summarises the average model-size effect over the 20 feasible instances, measured on the same A-check models that are subsequently solved. The combined package reduces the maintenance trigger domain from an average of 2,048 variables to 256 variables. The average total constraint count decreases from 6,374 to 3,045.
+\textit{Table~\ref{tab:strength_bounds_model_size} reports the average model
+size per tier. The reduction is driven by aircraft-compatible domain pruning and
+reachability filtering; strong linking and the interval-specific $M$ values add
+no variables. The saving grows with instance size, which is the expected
+behaviour for a preprocessing reduction whose effect scales with the trigger
+domain.}
 
-\begin{table}[htbp]
-\centering
-\caption{Average model size over the 20-instance feasible A family (A-check configuration, as solved).}
-\label{tab:strength_model_size}
-\begin{tabular}{lrrr}
-\toprule
-Variant & $z$ variables & Total constraints & Reduction in $z$ \\
-\midrule
-Baseline & 2,048 & 6,374 & -- \\
-Combined Strengthening & 256 & 3,045 & 87.5\% \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-The reduction is caused primarily by aircraft-compatible domain pruning and reachability filtering. Strong linking and tight-$M$ do not add variables; their role is to strengthen the formulation already remaining after preprocessing. For reference, building the same instances with the full A/B/C/D check set yields a proportionally similar reduction, from an average of 4,608 to 1,024 trigger variables. The per-instance data are stored in \texttt{results/tables/step7\_feasible\_large\_A\_cplexamp\_lp.csv} and \texttt{results/tables/step7\_feasible\_large\_A\_combined\_cplexamp\_lp.csv}.
-
-To make structural variation visible, Figure~\ref{fig:strength_model_size} uses a separate heterogeneous family of 20 validated feasible instances. This family varies fleet size, horizon, number of flights per aircraft, density, and maintenance family. The table above remains tied to the A-only family used for the solver efficacy comparison; the figure is a broader structural view and should not be read as a plot of the table's repeated A-only coordinates.
+\input{tables/strength_bounds_model_size}
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.78\textwidth]{figures/strength_model_size.png}
-    \caption{Maintenance-trigger reduction plotted against baseline domain size for the heterogeneous feasible structural family; colors distinguish A and AB maintenance families.}
-    \label{fig:strength_model_size}
+    \includegraphics[width=0.9\textwidth]{figures/strength_bounds_zvars.png}
+    \caption{\textit{Maintenance-trigger variables per instance, baseline versus combined formulation, on the largest tier.}}
+    \label{fig:strength_bounds_zvars}
 \end{figure}
 
-\section{LP-relaxation results}
+%%==========================================================================
+\section{Bound results}
+\label{sec:strength_bounds_results}
+%%==========================================================================
 
-All 40 LP runs reached optimality. The combined formulation increased the LP lower bound by 196.0264 on every matched instance. This result is consistent with the intended strengthening: unsupported trigger assignments are removed, the C13 relaxation is tighter, and the feasible maintenance domain is reduced before the LP is solved.
+\textit{Table~\ref{tab:strength_bounds_summary} summarises the exact-solve
+outcome per tier and formulation.}
 
-The mean LP runtime was 0.8112 seconds for the baseline and 0.8434 seconds for the combined formulation. The combined variant was faster on 4 of 20 instances. Thus, the LP evidence establishes a stronger lower bound, but not a uniform LP runtime improvement. Figures~\ref{fig:strength_lp_bounds} and~\ref{fig:strength_lp_runtime} present the paired lower bounds and the paired LP runtimes on a logarithmic scale; both are generated directly from the LP result files.
+\input{tables/strength_bounds_summary}
+
+\textit{The first observation concerns the reference tier and is negative for
+the bound question. On that family the LP relaxation is already integral: the LP
+value, the dual bound and the incumbent coincide on every instance, so the
+integrality gap is zero and there is nothing for a cut to close. On the
+full-hierarchy tier the picture is different, and a strictly positive
+integrality gap does appear on part of the family, as
+Table~\ref{tab:strength_bounds_bracket} shows. Whether the relaxation is tight
+is therefore a property of the instance family, not of the formulation.}
+
+\textit{The decisive observation is that the baseline and combined LP bounds
+agree on every instance of every tier tested here, to solver tolerance. The
+combined package removes variables and rows that are unsupported at the LP
+optimum, but it does not move that optimum. Its measurable benefit is therefore
+compactness and solve time, and the strengthening should not be presented as a
+bound-tightening device on these families.}
+
+\textit{This is a correction to an earlier reading of the same study. An LP bound
+improvement reported previously was obtained under a different solver and check
+configuration, before the maintenance-window and horizon corrections of
+Chapters~\ref{ch:maintenance}--\ref{ch:hierarchy}. It is not reproducible under
+the current formulation and is therefore withdrawn.}
+
+\textit{Table~\ref{tab:strength_bounds_bracket} reports the per-instance bracket
+and Figure~\ref{fig:strength_bounds_bracket} plots it. The shaded band runs from
+the LP lower bound to the incumbent, so its width is the integrality gap; the
+dual bound at termination shows how much of that band the search actually
+closed.}
+
+\input{tables/strength_bounds_bracket}
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.9\textwidth]{figures/strength_lp_bounds.png}
-    \caption{Baseline and combined LP lower bounds for the 20-instance feasible A family (CPLEX).}
-    \label{fig:strength_lp_bounds}
+    \includegraphics[width=0.95\textwidth]{figures/strength_bounds_bracket.png}
+    \caption{\textit{Bound bracket under the combined formulation. The band spans the LP lower bound to the incumbent, and the dashed series is the dual bound proved at termination.}}
+    \label{fig:strength_bounds_bracket}
 \end{figure}
+
+\textit{The heuristic upper bound is reported only where coverage is complete,
+and on these families it never is. The greedy-plus-insertion heuristic leaves a
+large part of the timetable unassigned, and the coverage column of
+Table~\ref{tab:strength_bounds_bracket} records how much. Its cost is therefore
+not a valid upper bound and is excluded from the bracket. The point is worth
+stating plainly because the omission is easy to misread: a partial schedule can
+look far cheaper than the optimum precisely because it declines to fly the legs
+it cannot accommodate, so treating that cost as a bound would be a modelling
+error rather than a conservative approximation.}
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.9\textwidth]{figures/strength_lp_runtime.png}
-    \caption{Baseline and combined LP runtimes on a logarithmic scale (CPLEX).}
-    \label{fig:strength_lp_runtime}
+    \includegraphics[width=0.95\textwidth]{figures/strength_bounds_gap.png}
+    \caption{\textit{Residual MIP gap per instance on the largest tier. Bars at zero indicate optimality proved within the budget.}}
+    \label{fig:strength_bounds_gap}
 \end{figure}
 
-\section{MILP results}
+%%==========================================================================
+\section{Larger-model statistics}
+\label{sec:strength_bounds_large}
+%%==========================================================================
 
-All 40 MILP runs reached optimality. The baseline and combined objectives matched on all 20 instances, providing evidence that the opt-in package did not change the intended integer optimum for this family. The combined variant was faster on all 20 instances. Mean runtime decreased from 1.0092 seconds to 0.8501 seconds, a reduction of approximately 15.8\%.
+\textit{On the larger tier the model dimensions diverge sharply between the two
+formulations and the time budget begins to bind. Where the budget binds, the
+comparison is no longer about speed but about what each formulation can prove
+within a fixed effort: how many instances are closed, what dual bound is
+attained, and whether any incumbent is found at all.}
 
-\begin{table}[htbp]
-\centering
-\caption{Exact MILP efficacy over the 20-instance feasible A family.}
-\label{tab:strength_milp_results}
-\begin{tabular}{lrrrr}
-\toprule
-Variant & Optimal runs & Mean runtime (s) & Faster instances & Objective mismatches \\
-\midrule
-Baseline & 20/20 & 1.0092 & -- & -- \\
-Combined Strengthening & 20/20 & 0.8501 & 20/20 & 0/20 \\
-\bottomrule
-\end{tabular}
-\end{table}
+\textit{Table~\ref{tab:strength_bounds_scaling} reports model size on larger
+certified instances of 320 and 560 flights. Two effects are visible and they
+pull in opposite directions. The maintenance-trigger domain shrinks on every
+instance, and the saving grows with the horizon. The constraint count, however,
+does not fall uniformly: on the 560-flight, eight-aircraft instances it drops
+substantially, whereas on the 320-flight instances with a twenty-aircraft fleet
+it rises, because disaggregating the maintenance-window conflicts creates one
+row per blocked flight and that expansion scales with the fleet. The combined
+package is therefore not uniformly smaller; it trades a much smaller integer
+domain against a possibly larger constraint matrix, and which effect dominates
+depends on fleet size.}
 
-Figures~\ref{fig:strength_milp_runtime}--\ref{fig:strength_objective_parity} present the paired MILP runtimes, the per-instance speedup, and the objective parity between the two formulations. The machine-readable inputs are \texttt{step7\_feasible\_large\_A\_cplexamp\_milp.csv} and \texttt{step7\_feasible\_large\_A\_combined\_cplexamp\_milp.csv}.
+\input{tables/strength_bounds_scaling}
+
+\textit{This also explains why the largest configurations were excluded from the
+solve study. At 560 flights the baseline model carries over 127{,}000
+maintenance-trigger variables, and neither formulation returned an incumbent
+within a short budget; only the combined model returned a dual bound at all.
+Reporting a residual gap in that regime would be meaningless, since one side of
+the bracket does not exist, so those runs are reported as model-size evidence
+rather than as bound evidence.}
+
+\textit{Figure~\ref{fig:strength_bounds_runtime} reports the paired exact
+runtimes on a logarithmic scale. Runtimes are wall-clock and include transferring
+the model to the solver, which is itself substantial at this size, so the smaller
+combined model is favoured twice: once in transfer and once in search.}
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.9\textwidth]{figures/strength_milp_runtime.png}
-    \caption{Baseline and combined exact MILP runtimes for the 20 feasible instances (CPLEX).}
-    \label{fig:strength_milp_runtime}
+    \includegraphics[width=0.95\textwidth]{figures/strength_bounds_runtime.png}
+    \caption{\textit{Paired exact-solve wall-clock runtimes on the largest tier, logarithmic scale.}}
+    \label{fig:strength_bounds_runtime}
 \end{figure}
 
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.9\textwidth]{figures/strength_speedup.png}
-    \caption{Exact MILP speedup, defined as baseline runtime divided by combined runtime; values above one indicate improvement.}
-    \label{fig:strength_speedup}
-\end{figure}
-
-\begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.68\textwidth]{figures/strength_objective_parity.png}
-    \caption{Objective parity between baseline and combined exact MILP solutions.}
-    \label{fig:strength_objective_parity}
-\end{figure}
-
+%%==========================================================================
 \section{Interpretation and limitations}
+%%==========================================================================
 
-The larger feasible family changes the status of the strengthening study. The combined formulation is no longer supported only by a single control case: it has been tested on 20 feasible instances, all LP and MILP solves are optimal, every integer objective is preserved, and mean MILP runtime falls by 15.8\%. The compactness result is also substantial, with an 87.5\% average reduction in maintenance-trigger variables on the solved A-check models.
+\textit{The evidence supports a narrower claim than uniform improvement.}
 
-The evidence nevertheless has a defined scope. The family uses an A-check profile and seeded constructive rotations; it does not establish the same performance for every A/B/C/D hierarchy or for all airline schedules. LP runtime is slightly higher on average, and pairwise conflicts can increase constraint counts. The correct conclusion is therefore not that every strengthening is universally beneficial, but that the combined package is effective on the validated feasible family under the stated CPLEX protocol.
+\textit{The compactness result is robust and grows with instance size. The
+combined package removes the large majority of maintenance-trigger variables
+without removing any feasible aircraft route, and that property is verified
+structurally by the test suite rather than inferred from runtime.}
 
-The original harder random-grid instances remain infeasible under both baseline and combined formulations, so they are excluded from efficacy claims and retained only as diagnostic cases. This separation between feasible efficacy evidence and infeasible stress cases is essential for a defensible computational conclusion.
+\textit{The bound result is conditional. On the small reference family the LP
+relaxation is integral, so no strengthening can tighten the bound. On the larger
+instances the relevant question changes: within a fixed budget the smaller model
+is the one more likely to return a usable dual bound, so the reported bracket is
+evidence about bounds attainable under a budget, not proof of a structurally
+tighter relaxation.}
+
+\textit{The upper-bound side remains the weaker half of the bracket. The solver
+incumbent is the only reliable upper bound in these experiments, because the
+current heuristics do not achieve complete coverage on the constructive family.
+Producing a complete feasible schedule cheaply would improve the bracket more
+than further reductions of the trigger domain.}
+
+\textit{Finally, the scope is limited to the declared tiers, the HiGHS backend
+and the stated budgets. Instances that are infeasible under both formulations
+are excluded from efficacy claims and retained only as diagnostic cases, and no
+statistical generalisation beyond these families is asserted.}
 
 \section{Reproducibility}
 
-The chapter figures are produced by \texttt{experiments/plot\_step7\_strengthening.py} directly from the experiment CSV files, so every plotted value is traceable to a matched solver run rather than to a manually transcribed number. The experiment CSV files remain the authoritative numerical evidence, and the figures are presentation views of those files. Re-running the comparison harness and the plotting script regenerates both the tables and the figures without manual editing.
+\textit{Every number in this chapter is generated. The harness
+\texttt{experiments/run\_strengthening\_bounds.py} writes the raw per-run CSV
+files, and \texttt{experiments/analyze\_strengthening\_bounds.py} derives the
+summary CSV, the LaTeX tables included above and the figures. No value in this
+chapter is transcribed by hand, so re-running the two scripts regenerates the
+tables and figures together, and any change in the underlying runs is reflected
+automatically.}

@@ -5,7 +5,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from model import MILP_Sheduler
+from model import MILP_Sheduler, Scheduler
 
 
 SOURCE = ROOT / "data" / "feasible_family_smoke" / "A" / "DataCplex_density=0.5_p=4_h=7_test_0.json"
@@ -87,6 +87,43 @@ def test_sparse_maintenance_domain_removes_infeasible_aircraft_arcs(tmp_path):
         (flight, aircraft) in sparse_model.X
         for flight, aircraft, _, _ in sparse_model.Z
     )
+
+
+def test_instance_minimum_turn_overrides_legacy_default(tmp_path):
+    data = json.loads(SOURCE.read_text())
+    data["Parameters"] = {
+        "Min_Turn_Minutes": 45,
+        "Target_Horizon_Days": 7,
+    }
+    fixture = tmp_path / "custom_turn.json"
+    fixture.write_text(json.dumps(data))
+
+    scheduler = MILP_Sheduler(str(fixture), enabled_checks=["A"])
+    scheduler.build_model(use_maintenance=False, use_overlap=True)
+
+    assert scheduler.min_turn == 45
+    assert scheduler.days == list(range(1, 8))
+
+
+def test_heuristic_enforces_instance_minimum_turn(tmp_path):
+    data = {
+        "Flights": [[0, "A", "B", 0, 60], [1, "B", "A", 100, 160]],
+        "Aircrafts": [0],
+        "AIRCRAFT_INIT_POS": {"0": "A"},
+        "Initial_Checks": {
+            "A": {"0": 0}, "B": {"0": 0},
+            "C_Days": {"0": 0}, "D_Days": {"0": 0},
+        },
+        "Maintenance_Thresholds": {"A": 10000, "B": 20000, "C": 100, "D": 200},
+        "Maintenance_Durations": {"A": 60, "B": 60, "C": 60, "D": 60},
+        "Station_Capacity": {"A": 1, "B": 1},
+        "Cost_Matrix": [[1], [1]],
+        "Parameters": {"Min_Turn_Minutes": 45},
+    }
+    fixture = tmp_path / "custom_turn_heuristic.json"
+    fixture.write_text(json.dumps(data))
+
+    assert Scheduler(str(fixture), allow_ferry=False).get_timeline(0, [0, 1]) is None
 
 
 def test_empty_capacity_rows_are_skipped(tmp_path):
@@ -179,3 +216,11 @@ def test_strong_maintenance_conflicts_disaggregate_blocked_flights(tmp_path):
     )
 
     assert len(list(strong_model.c8)) > len(list(baseline_model.c8))
+
+
+def test_retired_c15_and_c12days_add_no_duplicate_rows():
+    scheduler = MILP_Sheduler(str(SOURCE), enabled_checks=["C"])
+    model = scheduler.build_model(allow_ferry=False, use_overlap=False)
+
+    assert len(list(model.c15)) == 0
+    assert not hasattr(model, "c12days")

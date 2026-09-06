@@ -1,0 +1,20 @@
+{
+  "description": "Larger application-compatible certified full-hierarchy tier for the strengthening bound study.",
+  "replicates": [1, 2, 3],
+  "profiles": [
+    {
+      "preset": "med1",
+      "topology": "euler",
+      "threshold_mode": "coprime",
+      "cost_model": "factor",
+      "application_compatible": true
+    },
+    {
+      "preset": "sma3",
+      "topology": "euler",
+      "threshold_mode": "coprime",
+      "cost_model": "factor",
+      "application_compatible": true
+    }
+  ]
+}

@@ -181,21 +181,14 @@ This generalization is the key structural step from a single maintenance class t
  precisely what preserves the dominance ordering in the cumulative-hour
  constraints.
 
-\subsection{Maximum-spacing requirement}
+\subsection{Implemented spacing regime}
 
-The calendar-spacing logic associated with flight-hour checks is also generalized
-by the hierarchy variable. For each aircraft $j$ and check type $c \in \{A,B\}$,
- a maintenance event of level at least $c$ must occur within every admissible
- window:
-\begin{equation}
-    \sum_{r=d}^{d+d_{\max}^{c}-1}\gamma_{jrc} \geq 1,
-    \qquad \forall j\in\Pc,\ d \in \D,\ c\in\{A,B\}.
-    \label{eq:spacing_ab}
-\end{equation}
-The inequality ensures that the cumulative exposure is not only bounded in the
- interval but also reset before the maximum tolerated calendar spacing is
- exceeded. In this sense, the hierarchy couples two complementary regulatory
- dimensions: elapsed time and accumulated usage.
+\textit{The implemented model does not impose an additional calendar-spacing
+rule on the A/B flight-hour checks. Their compliance is governed by the
+endpoint-anchored cumulative-hour rows above, including their pre-horizon
+conditions. Calendar-day spacing is reserved for C/D checks, as specified in
+the next section. This separation avoids introducing an unreported additional
+restriction on the A/B feasible region.}
 
 \section{Calendar-day checks: types C and D}
 \label{sec:hierarchy_cd}
@@ -236,15 +229,20 @@ big-$M$ row and uses the hierarchy variable \texttt{m.mega}.
 
 To preserve feasibility, the model prevents a flight from being assigned to an
 aircraft when its departure overlaps the active maintenance timing window. Let
-$\mathcal W_{jdc}$ denote the candidate flights whose departure time and airport
-fall within the duration window associated with an active level-$c$ maintenance
-event. The blocking condition is
+$\mathcal W_{i'jdc}$ denote the candidate flights whose departure time and airport
+fall within the duration window associated with maintenance triggered by flight
+$i'$. \textit{The blocking condition is tied to the selected maintenance trigger,}
 \begin{equation}
-    \gamma_{j,d_i^{\uparrow},c}+x_{ij}\leq1,
-    \qquad \forall j\in\Pc,\ c\in\C,\ i\in\mathcal W_{jdc},
+    z_{i'jdc}+x_{ij}\leq1,
+    \qquad \forall j\in\Pc,\ c\in\C,\ d\in\D,\ i'\in\F,
+    \ i\in\mathcal W_{i'jdc},
     \label{eq:no_flight_during_maintenance}
 \end{equation}
-which mirrors C15's use of \texttt{m.mega} and absolute departure-time windows.
+\textit{or, in the baseline aggregate implementation, by the equivalent
+C8 row that sums the blocked assignments and relaxes it only when
+$z_{i'jdc}=0$. Thus a flight is blocked only when it overlaps the actual
+maintenance interval created by its chosen trigger; no separate C15
+calendar-day blocking row is used.}
 
 \section{Pre-horizon state accounting}
 \label{sec:hierarchy_prehorizon}

@@ -20,7 +20,10 @@ throughout the thesis.
 
 The model is defined over a finite planning horizon using absolute times from
 the start of that horizon. A flight on day two consequently has larger time
-values than flights on day one. The following assumptions delimit the ground
+values than flights on day one. \textit{When an instance provides a declared
+target horizon $H$, the day set is exactly $\D=\{1,\ldots,H\}$; maintenance
+windows do not extend to an inferred post-horizon day. Legacy files that omit
+this parameter retain the historical inferred-horizon convention.} The following assumptions delimit the ground
 model:
 \begin{enumerate}
     \item every published flight leg must be covered exactly once;

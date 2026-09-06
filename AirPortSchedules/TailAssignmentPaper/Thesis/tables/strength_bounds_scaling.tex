@@ -1,0 +1,17 @@
+\begin{table}[htbp]
+\centering\small
+\caption{Model-size scaling on the larger certified instances. The trigger domain shrinks throughout, but the constraint count can rise when pairwise maintenance conflicts are disaggregated over a large fleet.}
+\label{tab:strength_bounds_scaling}
+\begin{tabular}{lrrrrrrrr}
+\toprule
+Instance & Flights & Aircraft & $z$ base & $z$ comb. & $z$ drop (\%) & Cons. base & Cons. comb. & Cons. change (\%) \\
+\midrule
+med1\_p20\_h8\_r1 & 320 & 20 & 59,200 & 24,800 & 58.1 & 155,624 & 191,584 & $+$23.1 \\
+med1\_p20\_h8\_r2 & 320 & 20 & 59,200 & 24,800 & 58.1 & 155,624 & 195,304 & $+$25.5 \\
+med1\_p20\_h8\_r3 & 320 & 20 & 59,200 & 24,800 & 58.1 & 155,624 & 191,064 & $+$22.8 \\
+sma3\_p8\_h35\_r1 & 560 & 8 & 127,552 & 17,536 & 86.3 & 214,503 & 86,711 & -59.6 \\
+sma3\_p8\_h35\_r2 & 560 & 8 & 127,552 & 17,536 & 86.3 & 214,503 & 86,599 & -59.6 \\
+sma3\_p8\_h35\_r3 & 560 & 8 & 127,552 & 17,536 & 86.3 & 214,503 & 86,407 & -59.7 \\
+\bottomrule
+\end{tabular}
+\end{table}

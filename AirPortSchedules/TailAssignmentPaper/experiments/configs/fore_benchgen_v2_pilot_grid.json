@@ -1,0 +1,20 @@
+{
+  "description": "Application-compatible certified full-hierarchy pilot grid. Results are descriptive only.",
+  "replicates": [1, 2, 3, 4, 5],
+  "profiles": [
+    {
+      "preset": "sma1",
+      "topology": "euler",
+      "threshold_mode": "coprime",
+      "cost_model": "factor",
+      "application_compatible": true
+    },
+    {
+      "preset": "sma2",
+      "topology": "euler",
+      "threshold_mode": "coprime",
+      "cost_model": "factor",
+      "application_compatible": true
+    }
+  ]
+}

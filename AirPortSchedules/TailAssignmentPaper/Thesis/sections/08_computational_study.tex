@@ -165,7 +165,7 @@ in the remainder of the chapter.
 \section{Benchmark families}
 \label{sec:computational_instances}
 
-The repository contains three complementary benchmark families. The first is a
+The repository contains four complementary benchmark families. The first is a
 curated boundary suite with explicit maintenance scenarios: no maintenance,
 capacity bottlenecks, hierarchy interactions, near-threshold exposure, all-check
 coverage, and multi-check windows. These instances are small enough to inspect
@@ -184,6 +184,20 @@ aircraft rotation is generated first, validated with the maintenance timeline,
 and only then serialized to JSON. This family is the preferred basis for a fair
 heuristic-versus-MILP quality comparison because it avoids conflating algorithmic
 failure with an accidentally infeasible random input.
+
+The fourth family is a certified synthetic full-hierarchy benchmark generated
+by 	exttt{src/fore	extunderscore benchgen.py}. It constructs balanced daily
+flight topologies, controlled A/B/C/D maintenance periods, and a complete
+reference assignment. The application-compatible profile uses the published
+minimum-turn parameter, one-based flight identifiers, single-day maintenance
+durations, and post-arrival maintenance events. Each reference certificate is
+validated first for route continuity, capacity, and threshold compliance and
+then by fixing its $x$, $z$, $y$, and $\gamma$ values in the corrected Pyomo
+model and checking every active constraint. The versioned files, certificates,
+and SHA-256 manifests are stored in 	exttt{data/fore	extunderscore benchgen	extunderscore v2/}.
+This family is currently a correctness and semantic-alignment fixture; no
+comparative runtime claim is made until a pre-specified replicated experiment
+grid has been completed.
 
 The benchmark program is not restricted to a single 25-instance matrix. The
 matrix provides one structured density--complexity tier, while additional test

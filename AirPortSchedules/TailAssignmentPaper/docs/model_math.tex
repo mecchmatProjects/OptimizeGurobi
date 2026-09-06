@@ -158,7 +158,7 @@ balance $\geq 1$ for non-home airports, $\geq 0$ for the home airport).
 \end{proposition}
 
 %%==========================================================================
-\section{Maintenance-Extended Model (Constraints C8--C15)}
+\section{Maintenance-Extended Model (Constraints C8--C14b)}
 %%==========================================================================
 
 \subsection{Additional Notation}
@@ -185,6 +185,10 @@ Let $F_{d,d'} = \{i \in \F \mid d \leq d_i \leq d'\}$.
   \quad \forall i \in \F,\; i' \in F(d,i),\; j \in \P,\; d \in \D,\; c \in \C
   \label{eq:c8}
 \end{equation}
+\textit{In the implementation, C8 is generated from each selected
+$(i,j,d,c)$ trigger tuple: same-day rows block departures in the actual
+post-arrival duration window, and deferred rows prevent departure from the
+maintenance airport while the aircraft waits and on the selected check day.}
 
 \paragraph{C9 — Maintenance requires assignment.}
 \begin{equation}
@@ -210,11 +214,19 @@ Let $F_{d,d'} = \{i \in \F \mid d \leq d_i \leq d'\}$.
 \paragraph{C12 — Calendar-day spacing (C/D checks).}
 For every window of $d_{\max}^c$ consecutive days:
 \begin{equation}
-  \sum_{r = d}^{d'} y_{jrc} \geq 1,
+  \sum_{r = d}^{d'} \gamma_{jrc} \geq 1,
   \quad \forall j \in \P,\; c \in \{C,D\},\;
   d,d' \in \D \text{ s.t. } d' - d = d^c_{\max} - 1
   \label{eq:c12}
 \end{equation}
+\textit{For an explicitly declared horizon $H$, $\D=\{1,\ldots,H\}$; no
+post-horizon day is introduced when forming the sliding windows. A/B checks
+are controlled by C13/C13b rather than a calendar-spacing row.}
+
+\textit{The trigger-specific C8 maintenance-window constraints are the active
+flight-blocking formulation. The earlier C15 calendar-day block and a deferred-
+trigger equality block were retired because they could constrain flights or
+maintenance starts outside the selected trigger interval.}
 
 %%==========================================================================
 \section{Constraint (13): Error Identification and Correction}

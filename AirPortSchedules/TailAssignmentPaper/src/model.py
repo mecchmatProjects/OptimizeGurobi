@@ -84,6 +84,9 @@ class Scheduler:
         self.allow_ferry = bool(allow_ferry)
         self.heuristic = self._normalize_heuristic(heuristic)
 
+        self.min_turn = float(
+            self.data.get('Parameters', {}).get('Min_Turn_Minutes', 30)
+        )
         self.ferry_time = 60
         self.ferry_cost = 6000
         self.aco_iterations = max(1, int(aco_iterations))
@@ -216,7 +219,8 @@ class Scheduler:
                 if nd is not None: d_off = nd
 
             # ── 3. Flight execution ───────────────────────────────────────
-            if curr_time > fl['dep']:
+            prior_is_flight = bool(events and events[-1]['kind'] == 'FLIGHT')
+            if curr_time + (self.min_turn if prior_is_flight else 0) > fl['dep']:
                 return None
 
             days_dep = fl['dep'] / 1440.0
@@ -666,6 +670,7 @@ class MILP_Sheduler:
         self.CHECK_LIST = active_checks
         with open(data_path) as f:
             raw = json.load(f)
+        self.data = raw
 
         logger.debug(f"Loaded data from {data_path}")
         self.max_hour_check_deferral_days = max_hour_check_deferral_days
@@ -692,6 +697,9 @@ class MILP_Sheduler:
         logger.debug(f"Loaded aircrafts: {self.aircraft_ids}")
         self.aircraft_init = {int(k): v for k, v in raw['AIRCRAFT_INIT_POS'].items()}
         logger.debug(f"Loaded initial positions: {self.aircraft_init}")
+        self.min_turn = float(
+            raw.get('Parameters', {}).get('Min_Turn_Minutes', self.MIN_TURN)
+        )
 
         # ── Airports ─────────────────────────────────────────────────────────
         all_airports = sorted(set(
@@ -795,8 +803,14 @@ class MILP_Sheduler:
                 self.x_arcs_set.add((fid, aid))
 
         # ── Planning horizon (days) ───────────────────────────────────────────
-        max_day = max(fd['day_arrival'] for fd in self.flight_data.values()) + 1
-        max_day = max(8, max_day)
+        # New benchmark instances publish their intended horizon explicitly.
+        # Retain the historical inferred extra day for legacy files that do not.
+        declared_horizon = raw.get('Parameters', {}).get('Target_Horizon_Days')
+        if declared_horizon is not None:
+            max_day = int(declared_horizon)
+        else:
+            max_day = max(fd['day_arrival'] for fd in self.flight_data.values()) + 1
+            max_day = max(8, max_day)
         self.days = list(range(1, max_day + 1))
 
         # Cached flight groupings to avoid repeated full-table scans inside
@@ -1027,7 +1041,6 @@ class MILP_Sheduler:
             if use_day_spacing:
                 self._add_c12_day_spacing(m)
                 self._add_c12b_initial_days(m)   # enforce first C/D check within remaining-days window
-                self._add_c12_day_spacing_days(m)
             if use_existing_hrs:
                 self._add_c13b_existing_hrs(m)
             self._add_c13_hr_accumulation(
@@ -1240,7 +1253,7 @@ class MILP_Sheduler:
 
     def _add_c23_turn(self, m):
         m.c23 = ConstraintList()
-        tau = self.MIN_TURN
+        tau = self.min_turn
         for j in m.P:
             init_apt = self.aircraft_init[j]
             for k in m.A:
@@ -1262,7 +1275,7 @@ class MILP_Sheduler:
 
     def _add_overlap(self, m):
         m.c_overlap = ConstraintList()
-        tau = self.MIN_TURN
+        tau = self.min_turn
         fids = list(m.F)
         for idx, i in enumerate(fids):
             fd_i = self.flight_data[i]
@@ -1556,35 +1569,14 @@ class MILP_Sheduler:
                 # else: remaining >= n → deadline beyond horizon, no constraint needed
 
     def _add_c12_day_spacing_days(self, m):
-        """Sliding-window day-spacing: within every window of `ival` consecutive
-        days at least one maintenance check of type c must be scheduled.
-        Only applies to check types with a calendar-day interval (C, D).
-        A and B checks are regulated by flight-hour accumulation (C13), not
-        calendar-day spacing, so they are skipped here.
-        Also skips check types whose interval exceeds the planning horizon
-        (the constraint would be trivially inactive)."""
-        m.c12days = ConstraintList()
-        days = sorted(self.days)
-        n    = len(days)
-        for c in self.CHECK_LIST:  # Only C/D have calendar-day intervals; A/B are flight-hour types
-            if self.check_days[c] is None:      # A/B: flight-hour type, skip calendar-day spacing
-                continue
-            ival = self.check_dur_days[c]
-                        
-            for j in m.P:
-                for i in m.FM:  # only maintenance-eligible flights (have z variables)
-                        if not self._x_has_arc(i, j):
-                            continue
-                        z_days = self._z_days_for(i, c)
-                        if not z_days:
-                            continue
-                        start_day = z_days[0]
-                        for d in z_days[1:]:
-                            if (i, j, d, c) in m.Z and (i, j, start_day, c) in m.Z:
-                                m.c12days.add(m.z[i, j, d, c] == m.z[i, j, start_day, c])
-                               
+        """Deprecated placeholder retained for compatibility with older callers.
 
-    
+        C12 already defines the calendar-day sliding-window requirement. The
+        earlier implementation incorrectly tied a trigger's distinct deferred
+        start-day variables together, which changed one selected check into
+        several simultaneous checks. No rows are required here.
+        """
+        m.c12days = ConstraintList()
 
     # ------------------------------------------------------------------
     # Constraint C13 – cumulative flight-hour accumulation between checks
@@ -1705,50 +1697,15 @@ class MILP_Sheduler:
     # ------------------------------------------------------------------
 
     def _add_c15_no_flight_during_maint(self, m):
+        """Deprecated compatibility component.
+
+        C8 already blocks flights using the selected trigger tuple and the
+        corresponding absolute maintenance interval. The former C15 rows used
+        ``mega`` on the blocked flight's day, which could block flights outside
+        the maintenance interval. Retain the named empty component so external
+        diagnostics can distinguish the retired redundant block.
+        """
         m.c15 = ConstraintList()
-        for c in self.CHECK_LIST:
-            dur = self.check_dur[c]               # check duration in minutes
-            # a) Triggered by an arriving flight
-            for i in m.FM:   # only flights arriving at MA have z vars
-                fd   = self.flight_data[i]
-                apt  = fd['destination']
-                t_arr = fd['arrivalTime']
-                d_i   = fd['day_arrival']
-                for j in self._x_aircrafts_for_flight(i):
-                    for i2 in self._f_dep_window(apt, t_arr, t_arr + dur):
-                        if not self._x_has_arc(i2, j):
-                            continue
-                        # Block i2 for aircraft j when:
-                        #   x[i,j]=1  (j flew into apt via flight i)
-                        d = self.flight_data[i2]['day_departure']
-                        if d !=d_i:
-                            m.c15.add(m.mega[j, d, c] + m.x[i2, j] <= 1)
-
-                        # m.c15.add(m.mega[j, d, c] + m.x[i2, j] <= 1)
-
-                        logger.debug(f"Added C15 constraint: if flight {i} triggers check {c} for aircraft {j} on day {d_i}, then flight {i2} departing from {apt} within {dur} minutes is blocked.")
-                        
-                        
-
-            # b) Initial position at time zero
-            days = sorted(self.days)
-            d0   = days[0]
-            seen_apts = set()
-            for j, apt in self.aircraft_init.items():
-                if apt not in self.maint_airports or apt in seen_apts:
-                    continue
-                seen_apts.add(apt)
-                for j2 in m.P:
-                    for i2 in self._f_dep_window(apt, 0, dur):
-                        if not self._x_has_arc(i2, j2):
-                            continue
-                        m.c15.add(m.mega[j2, d0, c] + m.x[i2, j2] <= 1)
-        
-        # Note: Multi-day check blocking is already handled by C15a above,
-        # which uses absolute departure times (_f_dep_window) spanning the
-        # full check duration window across day boundaries.  A separate day-
-        # level "C15b" constraint using y[j,d,c] (start-day only) is both
-        # redundant and causes infeasibility with routing (C23), so it is omitted.
 
     # ------------------------------------------------------------------
     # Sanity: z[i,j,d,c]=0 when day d is after arrival day + check duration

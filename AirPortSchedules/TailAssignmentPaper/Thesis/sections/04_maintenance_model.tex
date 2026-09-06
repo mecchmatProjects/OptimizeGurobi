@@ -209,21 +209,27 @@ most one trigger for aircraft $j$ on day $d$. The explicit inequality
 is therefore redundant in the single-type model but documents the operational
 rule and becomes useful when several check types share a day.
 
-\subsection{C12: maximum calendar spacing}
+\subsection{C12: maximum calendar spacing in the final hierarchy}
 
-For every window containing $d_{\max}^{A}$ consecutive days, at least one
+\textit{The original single-type exposition uses a calendar spacing rule for
+the A-check. In the implemented A/B/C/D model, however, A and B are regulated
+by corrected cumulative flight-hour constraints, whereas C and D are regulated
+by calendar-day spacing. Accordingly, the operational C12 rule is stated for
+$c\in\{C,D\}$ and uses the hierarchy indicator $\gamma_{jrc}$.} For every
+window containing $d_{\max}^{c}$ consecutive days, at least one qualifying
 check must occur:
 \begin{equation}
-    \sum_{r=d}^{d+d_{\max}^{A}-1}y_{jr}\geq1,
+    \sum_{r=d}^{d+d_{\max}^{c}-1}\gamma_{jrc}\geq1,
     \qquad
     \substack{\forall j\in\Pc,\\
-    d=1,\ldots,n_d-d_{\max}^{A}+1.}
+    c\in\{C,D\},\\
+    d=1,\ldots,n_d-d_{\max}^{c}+1.}
     \label{eq:maint_c12}
 \end{equation}
-This sliding-window form is equivalent to requiring that no run of
-$d_{\max}^{A}$ days is check-free. It limits calendar spacing, but it cannot
-replace a flight-hour constraint: an aircraft may accumulate the hour limit
-early in a permissible calendar window.
+\textit{This sliding-window form is equivalent to requiring that no run of
+$d_{\max}^{c}$ days is free of a check at level at least $c$. It does not
+replace the A/B flight-hour constraints: an aircraft may accumulate its hour
+limit early in a permissible calendar window.}
 
 \section{Original cumulative-hour constraint}
 

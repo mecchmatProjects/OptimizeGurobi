@@ -51,6 +51,8 @@ The objective is
 \label{eq:ordered_event_objective}
 \end{equation}
 
+The constraints for $x_{rj}$ time-turn retain from the previous formulations, i.e.constrants E4--E7 the same as C2--C5 in our corrected formulation.
+
 \subsection{Prefix-state propagation}
 
 Let $T_F:=T^A_{\max}$ be the maximum flying time between flight-hour maintenance events and let $\Phi_j$
@@ -59,7 +61,7 @@ position, an unassigned flight carries the state forward, an assigned flight
 adds its duration, and an event resets the state after its triggering flight.
 Using valid position-specific big-$M$ values $M_{rj}$, the transition is
 represented by
-\paragraph{E4--E7. Prefix-state propagation.}
+\paragraph{E8--E14. Prefix-state propagation.}
 \begin{align}
 h_{rj}&\ge h_{r-1,j}-M_{rj}x_{rj},\\
 h_{rj}&\le h_{r-1,j}+M_{rj}x_{rj},\\
@@ -79,7 +81,7 @@ $i_r$. The seventh row bounds the state in all cases. The final row prevents a m
 from repairing an arrival that already exceeds $T_F$.
 The initial state is $h_{0j}=\Phi_j$.
 
- \paragraph{E8. Event assignment and compatibility.}
+ \paragraph{E15. Event assignment and compatibility.}
 Events satisfy
 \begin{equation}
 z_{rj}\le x_{rj},
@@ -95,7 +97,7 @@ is equivalent to maintaining an airport occupancy state $u_{a,\theta}$ and
 imposing $u_{a,\theta}\leq\mathrm{mcap}_{a,\theta}$, but it requires no
 additional occupancy variable.
 
-\paragraph{E9. Event capacity.}
+\paragraph{E16. Event capacity.}
 The ordered event rows correspond to the day-indexed maintenance constraints:
 event assignment is C9, duration blocking is C8, and timestamp-overlap
 capacity is C10. The at-most-one-event-per-aircraft-per-day rule is retained
@@ -107,6 +109,28 @@ explicitly as
 \end{equation}
 which is the event-indexed counterpart of C13. We keep it here in this way in order to keep constraint consistency with the legacy model,
 but now we can easily reformulate even by-day events to be consistent with any or every time-zone needed.
+
+\paragraph{E17. Maintenance capacity.}
+At every airport timestamp breakpoint, the active maintenance events satisfy
+\begin{equation}
+\sum_{(r,j)\in\mathcal{I}(a,\theta)}z_{rj}
+\leq \operatorname{mcap}_{a,\theta},
+\label{eq:ordered_c10_capacity}
+\end{equation}
+where $\mathcal{I}(a,\theta)$ contains events whose maintenance intervals
+cover $\theta$. This is implemented by the timestamp-overlap component
+\texttt{c10\_event\_capacity}; it is the maintenance-capacity constraint that was not
+explicitly displayed earlier.
+
+\paragraph{E18. Maintenance blocking.}
+If $z_{rj}=1$, every selected flight whose
+departure falls before the event's completion plus turn time is blocked:
+\begin{equation}
+x_{\ell j}+z_{rj}\leq1.
+\label{eq:ordered_c8_block}
+\end{equation}
+Only economically relevant timestamp conflicts are generated.
+
 
 \subsection{Complete constraint inventory of the implemented A-only model}
 

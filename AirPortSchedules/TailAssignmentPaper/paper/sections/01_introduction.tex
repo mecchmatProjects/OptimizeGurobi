@@ -35,13 +35,13 @@ The present paper makes three contributions that check and correct
 those results:
 
 \begin{enumerate}
-\item \textbf{Basic feasibility correction (C2--C3 / Khaled constraints (3)--(6)).}
+\item \textbf{Basic feasibility correction (C1--C4 / Khaled constraints (3)--(6)).}
   We show that the strict-time balance definition used in the compact basic
   model admits a simultaneous-departure corner case: one aircraft can be
   assigned to two flights departing at the same airport and same time without
   violating the balance inequalities.  We formalize this counter-example and
   enforce physical executability by adding explicit pairwise non-overlap
-  constraints (our C4).
+  constraints (our C5).
   
   Our non-overlap correction retains the $O(n_fn_p)$ binary-variable space but
 can add $O(n_f^2n_p)$ conflict inequalities in the worst case. In practical
@@ -73,7 +73,7 @@ $\mathcal O$ defined in \Cref{sec:basic}.
 \subsection*{Paper organisation}
 
 \Cref{sec:literature} reviews related work.  \Cref{sec:basic} restates the
-basic TAP model and proves a C2--C3 corner-case correction closed by C4--C5.  \Cref{sec:maintenance}
+basic TAP model and proves a C1--C4 corner-case correction closed by C1--C5.  \Cref{sec:maintenance}
 presents the maintenance-extended model, the cumulative-flight-time row correction, and
 the induced interpretation updates for C8--C13 under the corrected basic model.
 \Cref{sec:event_reformulation} gives the day-free event-based reformulation

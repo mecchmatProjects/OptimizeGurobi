@@ -113,7 +113,8 @@ one-event-per-day rule explicit and remains useful in implementations that
 relax or disaggregate the aggregation equality.
 
 The original paper's cumulative-flight-time constraint is:
-\begin{equation}\label{eq:c13_paper}
+\paragraph{C14 — Paper-based cumulative-flight-time constraint.}
+\begin{equation}\label{eq:c14_paper}
   \sum_{i \in F_{d,d'}} x_{ij}\,\tilde{t}_i
   \;\le\;
   T^A_{\max}
@@ -124,7 +125,7 @@ for all $j \in \Pc$, all pairs $(d, d')$ with $2 \le d'-d \le d_{\max}-1$,
 $d < n_d$, where $\tilde{t}_i$ is the flight duration of leg $i$.
 
 
-\subsection{Impact of corrected C0--C5 feasibility on C8--C13}
+\subsection{Impact of corrected C0--C5 feasibility on C8--C14}
 \label{subsec:c2c4_impact_maintenance}
 
 The correction introduced in \Cref{sec:basic} (non-overlap
@@ -152,67 +153,6 @@ correctly propagates the maintenance counter; that property is analysed below.
 In summary, the C0--C5 correction primarily changes the domain over which the
 maintenance constraints operate. It is independent of the separate algebraic
 correction required for cumulative-hour propagation.
-
-\subsection{Rigorous feasibility theorem for C1--C13}
-\label{subsec:feasibility_theorem_c1_c13}
-
-We now state the corrected sufficiency result for the type-A maintenance model.
-Consider the constraint family
-\eqref{eq:c0}--\eqref{eq:c5}, \eqref{eq:c8}--\eqref{eq:c11}, \eqref{eq:c13},
-\eqref{eq:c11_state_lower}--\eqref{eq:c11_state_bound}, and the stated
-variable domains. Constraint C12 is inactive for the type-A-only model:
-hour spacing is enforced by the cumulative-state rows rather than by
-calendar-day covering.
-
-\begin{theorem}[Physical feasibility under corrected C1--C13]
-  \label{thm:physical_feasibility_c1_c13}
-  Any solution satisfying the above constraints, with $x$, $z$, and $y$
-  binary and $h$ continuous, induces for each aircraft $j$ a physically
-  executable trajectory over the planning horizon:
-  flights assigned to $j$ are temporally non-overlapping, satisfy airport
-  continuity and turn time, and admit a day-by-day maintenance schedule
-  satisfying capacity and hour-spacing rules.
-\end{theorem}
-
-\begin{proof}
-  Fix an aircraft $j$ and let
-  $S_j=\{i\in\F: x_{ij}=1\}$ ordered by nondecreasing departure time.
-
-  \textbf{(i) Flight assignment and continuity.}
-  By~\eqref{eq:c1}, every flight is assigned to exactly one aircraft.
-  By~\eqref{eq:c2}--\eqref{eq:c3}, each departure assigned to $j$ has sufficient
-  prior balance at its departure airport, with the initial unit at $a^0_j$.
-  Therefore airport continuity holds along $S_j$.
-
-  \textbf{(ii) Temporal executability.}
-  For any overlapping pair $\{i_1,i_2\}\in\mathcal{O}$,
-  \eqref{eq:c4_overlap} enforces $x_{i_1j}+x_{i_2j}\le 1$.
-  Hence no two flights assigned to $j$ overlap once turn time is included.
-  Combined with (i), this yields a realizable single-aircraft flight timeline.
-
-  \textbf{(iii) Maintenance event consistency.}
-  By~\eqref{eq:c9}, maintenance trigger variables can only be activated on
-  assigned flights. By the aggregation equality~\eqref{eq:c11}, each day's
-  maintenance trigger is represented by the single aggregate indicator $y_{jd}$;
-  by the daily cap~\eqref{eq:c13}, at most one maintenance event is attached to
-  aircraft $j$ on day $d$.
-
-  \textbf{(iv) Maintenance capacity and blocking.}
-  By~\eqref{eq:c10}, airport-day capacities are respected. By~\eqref{eq:c8}, if
-  maintenance is triggered after flight $i$ on day $d$, then any subsequent
-  same-day flight is forbidden for the same aircraft. Under the stated
-  overnight-duration assumption, the maintenance action is operationally
-  executable.
-
-  \textbf{(v) Hour/day maintenance admissibility.}
-  By~\eqref{eq:c11_state_lower}--\eqref{eq:c11_state_bound}, the cumulative
-  flight-time state increases by the flying time assigned each day, resets
-  after a maintenance night, and never exceeds $T^A_{\max}$.
-
-  Steps (i)--(v) show that every aircraft has a consistent, non-overlapping
-  flight sequence with feasible maintenance placement and resource usage.
-  Therefore the global solution is physically feasible.
-\end{proof}
 
 \subsection{Issues of day-indexed maintenance constraints C8--C13}
 
@@ -316,96 +256,11 @@ the original row is active when both endpoints contain checks, whereas the
 split rows are active when at least one corresponding endpoint indicator is
 zero. Neither pattern alone gives an exact cumulative counter.
 
-\begin{remark}[Implementation status]
-  The default builder in \texttt{src/model.py} constructs the endpoint-split
-  inequalities~\eqref{eq:c11_split_a}--\eqref{eq:c11_split_b}; the original
-  single-row form~\eqref{eq:c13_paper} remains available as an explicit,
-  opt-in \texttt{use\_paper\_c13} flag for controlled comparison, and an
-  interval-specific tight big-$M$ (\texttt{use\_tight\_c13\_m}) is available
-  as a formulation-preserving strengthening of either row family.
-  The computational study in \Cref{sec:computational} numerically confirms both Lemma~\ref{lem:c11_flaw}
-  and Lemma~\ref{lem:c11_split_limit} against the real built constraint
-  objects of both forms, at two adversarial check patterns on the same
-  four-day test instance: with checks at both window endpoints, all 42 split
-  rows are satisfied while the true cumulative flying time exceeds
-  $T^A_{\max}$ by a factor of two, and the single paper-form row correctly
-  rejects it; with only the end-day checked, the paper-form row is satisfied
-  at the same violation while all 42 split rows correctly reject it. The
-  event-based implementation in \texttt{src/event\_model.py} uses a
-  flight-sequence state recursion analogous to the exact formulation below.
-\end{remark}
-
-\paragraph{Four-day counterexample and implemented repair.}
-The failure and its repair can be traced completely on one aircraft over four
-days. Let $T^A_{\max}=10$, $M_{dd'}=20$, $v_{j1}=v_{j3}=0$, and
-$v_{j2}=v_{j4}=10$, with maintenance after the flights of days 1 and 4:
-$y_{j1}=y_{j4}=1$ and $y_{j2}=y_{j3}=0$. The check on night 1 resets the
-counter before day 2, whereas the check on night 4 occurs only after the
-day-4 flying and therefore cannot legalize those hours. Nevertheless, every
-endpoint-split row is satisfied. For $(d,d')=(1,3)$, the interval $(1,3]$
-contains 10 units and the row anchored at day 3 has right-hand side 10. For
-$(2,4)$, the interval $(2,4]$ also contains 10 units and the row anchored at
-day 2 has right-hand side 10. For $(1,4)$, the interval contains all 20 units,
-but each row has right-hand side $10+20=30$ because its corresponding endpoint
-contains a check. Thus the split model accepts 20 units between consecutive
-maintenance nights. Under the exact recursion
-\eqref{eq:c11_state_lower}--\eqref{eq:c11_state_bound}, the same data give
-$h_{j2}=10$, $h_{j3}=10$, and $h_{j4}=20$; the last value violates
-$h_{j4}\leq T^A_{\max}=10$. The day-indexed exact-state rows below implement
-this recursion; the ordered prefix-state model of
-\Cref{sec:event_reformulation} implements the same hour-limit along the
-selected route without day-pair windows. The comparison harness
-\texttt{experiments/compare\_formulations.py} selects the legacy and
-exact-state builders explicitly.
-
-\begin{table}[t]
-\centering\small
-\caption{Day-level data for the four-day counterexample.}
-\label{tab:c11_counterexample_day}
-\begin{tabular}{ccccc}
-\toprule
-Day $d$ & $y_{jd}$ & $v_{jd}$ & Exact state $h_{jd}$ & Check of $h_{jd}\le T^A_{\max}$ \\
-\midrule
-1 & 1 & 0  & 0  & holds \\
-2 & 0 & 10 & 10 & holds \\
-3 & 0 & 0  & 10 & holds \\
-4 & 1 & 10 & 20 & violated \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{table}[t]
-\centering\small
-\caption{Window-level comparison for the same counterexample ($T^A_{\max}=10$, $M_{dd'}=20$).}
-\label{tab:c11_counterexample_windows}
-\begin{tabular}{lcccc}
-\toprule
-Window $(d,d']$ & LHS $\sum_{i\in F_{d,d'}} x_{ij}\tilde t_i$ & Split-A RHS & Split-B RHS & Paper-row RHS \\
-\midrule
-$(1,3]$ & 10 & 30 & 10 & 30 \\
-$(2,4]$ & 10 & 10 & 30 & 30 \\
-$(1,4]$ & 20 & 30 & 30 & 10 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.82\linewidth]{figures/c11_counterexample_timeline.png}
-\caption{Timeline view of the four-day counterexample: bars show daily flying time $v_{jd}$, markers show exact cumulative state $h_{jd}$, the dashed line is $T^A_{\max}=10$, and dotted vertical lines mark maintenance nights ($d=1,4$).}
-\label{fig:c11_counterexample_timeline}
-\end{figure}
-
-Tables~\ref{tab:c11_counterexample_day} and~\ref{tab:c11_counterexample_windows}
-show why the endpoint split can accept the infeasible pattern: the long window
-$(1,4]$ has LHS 20 while both split rows remain relaxed at 30. In contrast,
-the exact state trajectory in \Cref{fig:c11_counterexample_timeline} reaches
-$h_{j4}=20>T^A_{\max}=10$, so the violation is detected directly.
-
 \subsection{Exact cumulative-state formulation for cumulative flight hours}
 \label{subsec:c11_state}
 
 Define the flying time assigned to aircraft $j$ on day $d$ by
+\paragraph{C14a Daily flight time}
 \begin{equation}
   v_{jd}=\sum_{i\in\F:\,d_i=d}\tilde{t}_i x_{ij}.
   \label{eq:daily_flight_time}
@@ -413,6 +268,7 @@ Define the flying time assigned to aircraft $j$ on day $d$ by
 Let $h_{jd}\geq0$ be the accumulated type-A flying time immediately after the
 flights of day $d$ and before maintenance that night. Set
 $h_{j0}=\Phi^A_j$ and $y_{j0}=0$. For consecutive days, impose
+\paragraph{C14b-C14f Accumulated flight time constraints}
 \begin{align}
   h_{jd}
   &\geq h_{j,d-1}+v_{jd}-M^H y_{j,d-1},
@@ -450,7 +306,6 @@ The condition is required for every aircraft, including $\Phi^A_j=0$; no
 separate opening-window big-$M$ inequality is needed.
 
 \subsection{Integrality constraints}
-
 \begin{equation}
   x_{ij} \in \{0,1\},\quad
   z_{ijd} \in \{0,1\},\quad
@@ -473,3 +328,66 @@ but it is necessary to ensure that the solutions are physically feasible and res
 day-indexed model is higher than the original
 model, because the cumulative flight-hour state $h_{jd}$ adds
 $O(n_p n_d)$ continuous variables,
+
+The additional complexity is justified by the need to accurately model the maintenance requirements and ensure that the resulting flight schedules are feasible in practice.
+
+\subsection{Rigorous feasibility theorem for C1--C14}
+\label{subsec:feasibility_theorem_c1_c14}
+
+We now state the corrected sufficiency result for the type-A maintenance model.
+Consider the constraint family
+\eqref{eq:c0}--\eqref{eq:c5}, \eqref{eq:c8}--\eqref{eq:c11}, \eqref{eq:c13},
+\eqref{eq:c11_state_lower}--\eqref{eq:c11_state_bound}, and the stated
+variable domains. Constraint C12 is inactive for the type-A-only model:
+hour spacing is enforced by the cumulative-state rows rather than by
+calendar-day covering.
+
+\begin{theorem}[Physical feasibility under corrected C1--C14]
+  \label{thm:physical_feasibility_c1_c14}
+  Any solution satisfying the above constraints, with $x$, $z$, and $y$
+  binary and $h$ continuous, induces for each aircraft $j$ a physically
+  executable trajectory over the planning horizon:
+  flights assigned to $j$ are temporally non-overlapping, satisfy airport
+  continuity and turn time, and admit a day-by-day maintenance schedule
+  satisfying capacity and hour-spacing rules.
+\end{theorem}
+
+\begin{proof}
+  Fix an aircraft $j$ and let
+  $S_j=\{i\in\F: x_{ij}=1\}$ ordered by nondecreasing departure time.
+
+  \textbf{(i) Flight assignment and continuity.}
+  By~\eqref{eq:c1}, every flight is assigned to exactly one aircraft.
+  By~\eqref{eq:c2}--\eqref{eq:c3}, each departure assigned to $j$ has sufficient
+  prior balance at its departure airport, with the initial unit at $a^0_j$.
+  Therefore airport continuity holds along $S_j$.
+
+  \textbf{(ii) Temporal executability.}
+  For any overlapping pair $\{i_1,i_2\}\in\mathcal{O}$,
+  \eqref{eq:c4_overlap} enforces $x_{i_1j}+x_{i_2j}\le 1$.
+  Hence no two flights assigned to $j$ overlap once turn time is included.
+  Combined with (i), this yields a realizable single-aircraft flight timeline.
+
+  \textbf{(iii) Maintenance event consistency.}
+  By~\eqref{eq:c9}, maintenance trigger variables can only be activated on
+  assigned flights. By the aggregation equality~\eqref{eq:c11}, each day's
+  maintenance trigger is represented by the single aggregate indicator $y_{jd}$;
+  by the daily cap~\eqref{eq:c13}, at most one maintenance event is attached to
+  aircraft $j$ on day $d$.
+
+  \textbf{(iv) Maintenance capacity and blocking.}
+  By~\eqref{eq:c10}, airport-day capacities are respected. By~\eqref{eq:c8}, if
+  maintenance is triggered after flight $i$ on day $d$, then any subsequent
+  same-day flight is forbidden for the same aircraft. Under the stated
+  overnight-duration assumption, the maintenance action is operationally
+  executable.
+
+  \textbf{(v) Hour/day maintenance admissibility.}
+  By~\eqref{eq:c11_state_lower}--\eqref{eq:c11_state_bound}, the cumulative
+  flight-time state increases by the flying time assigned each day, resets
+  after a maintenance night, and never exceeds $T^A_{\max}$.
+
+  Steps (i)--(v) show that every aircraft has a consistent, non-overlapping
+  flight sequence with feasible maintenance placement and resource usage.
+  Therefore the global solution is physically feasible.
+\end{proof}

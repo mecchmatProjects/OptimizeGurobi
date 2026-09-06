@@ -32,8 +32,9 @@ $\Fd{k}{\theta}$             & $\{i \in \F : \aD{i} = k,\; \tD{i} < \theta\}$ \\
 
 \subsection{Decision variables and objective}
 
-Let
-\paragraph{C0 — Binary assignment domain.}
+Let us define the decision variables and constraints for the basic tail assignment model.
+\paragraph{C1 — Binary assignment domain.}
+The decision variable $x_{ij}$ indicates whether flight $i$ is assigned to aircraft $j$.
 \begin{equation}\label{eq:c0}
   x_{ij} = \begin{cases} 1 & \text{if flight } i \text{ is operated by aircraft } j, \\ 0 & \text{otherwise,} \end{cases}
   \qquad i \in \F,\; j \in \Pc.
@@ -46,13 +47,13 @@ The objective minimises total assignment cost:
 
 \subsection{Constraints}
 
-\paragraph{C1 — Flight coverage.}
+\paragraph{C2 — Flight coverage.}
 Each flight must be assigned to exactly one aircraft:
 \begin{equation}\label{eq:c1}
   \sum_{j \in \Pc} x_{ij} = 1, \qquad \forall i \in \F.
 \end{equation}
 
-\paragraph{C2,C3 — Equipment continuity (home/non-home airports).}
+\paragraph{C3,C4 — Equipment continuity (home/non-home airports).}
 For any aircraft $j$, any non-home airport $k \ne a^0_j$, and any flight
 $i$ departing from $k$, aircraft $j$ can be assigned to flight $i$ only if
 it has already landed at $k$ early enough,
@@ -84,7 +85,7 @@ after the required turn time. This mechanism is valid when departures are
 strictly ordered, but it does not prevent two equal-time departures from using
 the same available aircraft, as shown below.
 
-\begin{proposition}[Claimed in \citealt{khaled2018compact}, Proposition~1]
+\begin{proposition}[Claimed in \citealt{khaled2018compact}]
   Any feasible solution to \eqref{eq:c0}--\eqref{eq:c3}
   corresponds to a
   feasible flight plan satisfying the original continuity and turn-time
@@ -142,7 +143,7 @@ In implementations, this corner case is eliminated by adding pairwise
 non-overlap constraints for time-overlapping flights on the same aircraft,
 $x_{i_1j}+x_{i_2j}\le 1$.
 
-\paragraph{Corrected C0--C5 feasibility criterion.}
+\paragraph{Corrected C1--C5 feasibility criterion.}
 Define $\mathcal{O}$ as the set of flight pairs that cannot be operated by one
 aircraft because their operating intervals, including the turn-time buffer,
 overlap:
@@ -154,31 +155,23 @@ overlap:
   \label{eq:overlap_set}
 \end{equation}
 For every pair in this conflict set, impose
-\paragraph{C4 — Pairwise non-overlap.}
+\paragraph{C5 — Pairwise non-overlap.}
 \begin{equation}\label{eq:c4_overlap}
   x_{i_1 j} + x_{i_2 j} \le 1,
   \qquad \forall \{i_1,i_2\}\in\mathcal{O},\; \forall j\in\Pc.
 \end{equation}
 
-Let $\mathcal{K}_j$ denote the maximal cliques of the interval-overlap graph
-for aircraft $j$. The clique strengthening is:
-\paragraph{C5 — Clique-strengthened non-overlap.}
-\begin{equation}\label{eq:c5}
-  \sum_{i\in K}x_{ij}\leq 1,
-  \qquad \forall j\in\Pc,\; K\in\mathcal{K}_j.
-\end{equation}
-
 The corrected core model is therefore
-\eqref{eq:c0}--\eqref{eq:c5}.
+\eqref{eq:c0}--\eqref{eq:c4_overlap}.
 This preserves the original $n_fn_p$ binary-variable space while restoring
 physical executability. It does not, in general, preserve the linear
 constraint count: the overlap family contains $|\mathcal{O}|n_p$ inequalities.
 
 \subsection{Model size}
 
-\begin{proposition}[\citealt{khaled2018compact}, Proposition~2]
+\begin{proposition}[Analogue of \citealt{khaled2018compact}, Proposition~2]
   The original model \eqref{eq:obj}--\eqref{eq:c3} with binary $x$ contains $n_f n_p$ binary
-  decision variables and $O(n_fn_p)$ constraints.
+  decision variables and $O(n_fn_p)$ constraints, while the corrected model has $n_fn_p$ binary variables and $O(n_fn_p+|\mathcal{O}|n_p)$ constraints.
 \end{proposition}
 
 The corrected model retains $n_fn_p$ binary variables and has
@@ -188,3 +181,45 @@ conflict set much smaller. The original variable count compares favourably
 with Levin's $O(n_f^2n_p)$-variable model; \citet{khaled2018compact} also
 report that the time-space network formulation uses approximately
 $1.25$--$2$ times as many variables and constraints on their test instances.
+
+\subsection{Corrected proposition and its proof.}
+
+The issue with the proof of feasibility in the original model is that it does not account for simultaneous departures 
+of overlapping flights. Moreover, the logic of the published proof goes in the wrong direction, 
+and instead of proving that any solution of C1--C4 defines correct 
+feasibility, it proves that any feasible assignment flights satisfy C1-C4. 
+
+
+The corrected proposition and its accompanying proof look like the following:
+
+\begin{proposition}[Proposition~1]
+  Any feasible solution to \eqref{eq:c0}--\eqref{eq:c4_overlap}
+  corresponds to a feasible flight plan satisfying the original continuity and turn-time
+  conditions.
+\end{proposition}
+
+\begin{proof}
+
+  Let's formally prove it by induction on the number of planes.
+  For the base case of one plane, any feasible assignment trivially satisfies the continuity and turn-time conditions:
+\begin{itemize}
+\item The single plane can start only for the airport it is assigned form the start, which is follows form the condition \ref{eq:c3}.
+Let's define this assigned flight as $f_1$, so the time of departure and arrival are $t_{\text{dep}}(f_1)$ and $t_{\text{arr}}(f_1)$, respectively.
+\item Any next $k$-th flight of this plane with time of departure $t_{\text{dep}}(f_k)$ must satisfy the turn-time condition $t_{\text{dep}}(f_k) \ge t_{\text{arr}}(f_{k-1}) + \tau$, where $\tau$ is the required turn time.
+This follows directly from the turn-time condition \eqref{eq:c2} and overlap constraints \eqref{eq:c4_overlap}.
+\end{itemize}
+  This completes the base case.
+
+  For the induction step, assume that any feasible assignment for $n-1$ planes satisfies the continuity and turn-time conditions. 
+  Consider a feasible assignment for $n$ planes. 
+  Select one plane and consider its sequence of assigned flights. 
+  By the same argument as in the base case, this plane's flights satisfy the continuity and turn-time conditions. 
+  Removing this plane from the assignment leaves a feasible assignment for the remaining $n-1$ planes, which by the induction hypothesis satisfies the continuity and turn-time conditions. Therefore, the entire assignment for $n$ planes satisfies the continuity and turn-time conditions.
+  This completes the induction step.
+\end{proof}
+
+
+
+
+
+

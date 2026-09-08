@@ -77,6 +77,18 @@ class CompactAEventTests(unittest.TestCase):
         self.assertFalse(hasattr(model, "w"))
         self.assertFalse(hasattr(model, "c13_event_day_cap"))
 
+    def test_ordered_model_aggregates_events_without_daily_cap(self):
+        scheduler = OrderedAEventMILPScheduler(str(SOURCE))
+        model = scheduler.build_model()
+
+        self.assertTrue(hasattr(model, "event_count"))
+        self.assertTrue(hasattr(model, "c11_event_count"))
+        self.assertEqual(
+            len(list(model.c11_event_count)),
+            len(model.P) * len(model.D),
+        )
+        self.assertFalse(hasattr(model, "c13_event_day_cap"))
+
     def test_ordered_model_has_one_transition_block_per_flight_aircraft(self):
         scheduler = OrderedAEventMILPScheduler(str(SOURCE))
         model = scheduler.build_model()

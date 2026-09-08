@@ -4,7 +4,8 @@
 %%==========================================================================
 
 In this paper, we present an ordered event-based model for
-flight-hour maintenance. It removes the day index and does not introduce the
+flight-hour maintenance. It removes day-indexed maintenance decision states
+and does not introduce the
 standalone successor-arc event formulation. Flights are processed in
 nondecreasing departure-time order, and maintenance is represented by a binary
 event attached to the flight that triggers it. Thus the design-note variables
@@ -27,15 +28,18 @@ an order index over flights. Define
 \[
 \mathcal{R}^M=\{r\in\mathcal{R}: i_r\in\F^M\},
 \]
-and use the following variables:
+and let $\mathcal{Z}$ be the set of admissible event pairs $(r,j)$ for which
+flight $i_r$ can trigger the single type-A check on aircraft $j$.
+Use the following A-only variables:
 \paragraph{E1-E3. Ordered event variables.}
 \begin{itemize}
 \item $x_{rj}\in\{0,1\}$: aircraft $j$ operates flight $i_r$;
-\item $z_{rj}\in\{0,1\}$: a flight-hour maintenance event is performed after flight $i_r$ on aircraft $j$;
-\item $h_{rj}\ge 0$: cumulative flight time of aircraft $j$ immediately after processing position $r$.
+\item $z_{rj}\in\{0,1\}$: a type-A maintenance event is performed after flight $i_r$ on aircraft $j$;
+\item $h_{rj}\ge 0$: cumulative type-A flight time of aircraft $j$ immediately after processing position $r$.
 \end{itemize}
 Because $r\leftrightarrow i_r$ is one-to-one, the relation to the original
-notation is direct: $x_{rj}=x_{i_r j}$ and $z_{rj}=z_{i_r j}$ (the same for the other parameters, such as $h_{rj}=h_{i_r j}$).
+notation is direct: $x_{rj}=x_{i_r j}$ and $z_{rj}=z_{i_r jd}$ for the
+corresponding arrival day $d$; the check type is always A in this section.
 
 A maintenance event after flight $i_r$ is assignment-linked and starts at its
 arrival time. The corrected airport-continuity, turn-time, and overlap constraints remain
@@ -47,34 +51,36 @@ assigned departure.
 The objective is
 \begin{equation}
 \min\ \sum_{r\in\mathcal{R}}\sum_{j\in\Pc}c_{rj}x_{rj}
- +\sum_{r\in\mathcal{R}^M}\sum_{j\in\Pc}mc_{r j}\,z_{rj}.
+ +\sum_{r\in\mathcal{R}^M}\sum_{j\in\Pc}mc_{rjA}\,z_{rj}.
 \label{eq:ordered_event_objective}
 \end{equation}
 
-The constraints (E4--E7) for $x_{rj}$ retain the corrected basic constraints
-C2--C5: flight coverage, non-home continuity, home-airport
-continuity/turn-time balance, and pairwise non-overlap remains active on the
-assignment variables.
+The event formulation numbers its route constraints independently as follows:
+E4 is flight coverage, E5 is non-home continuity, E6 is home-airport
+continuity and turn-time balance, and E7 is pairwise non-overlap. These are
+implemented by \texttt{\_add\_c1\_coverage}, \texttt{\_add\_c23\_turn}, and
+\texttt{\_add\_overlap}. E1--E3 are the binary/continuous variable domains defined
+above.
 
-The constraint C8 - maintenance duration blocking is enforced through the event assignment and compatibility constraints
-turn into constraint (E8):
+The event constraints separate maintenance blocking (E14), event assignment
+(E8), and maintenance capacity (E15).
 
-\paragraph{E8. Event assignment and compatibility.}
+\paragraph{E8. Event assignment.}
 Events satisfy
 \begin{equation}
 z_{rj}\le x_{rj},
-\qquad \forall r\in\mathcal{R}^M,\ \forall j\in\Pc,
+\qquad \forall (r,j)\in\mathcal{Z},
 \label{eq:ordered_event_assignment}
 \end{equation}
-and timestamp-based incompatibility rows prevent an event from being
-followed by a departure that occurs before the maintenance duration and turn
-time have elapsed. These rows preserve physical route feasibility while
-avoiding a separate successor-variable family. 
+The integer event-count link in~\eqref{eq:ordered_c11_recovery} is an auxiliary C11
+aggregation, not a separate E family. Timestamp-based incompatibility rows are E14;
+they prevent an event from being followed by a departure before the
+maintenance duration and turn time have elapsed.
 
 
 \subsection{Prefix-state propagation}
 
-Let $T_F:=T^A_{\max}$ be the maximum flying time between flight-hour maintenance events and let $\Phi_j$
+Let $T_F:=T^A_{\max}$ be the maximum flying time between type-A maintenance events and let $\Phi_j$
 be the pre-horizon accumulated flying time of aircraft $j$. At every ordered
 position, an unassigned flight carries the state forward, an assigned flight
 adds its duration, and an event resets the state after its triggering flight.
@@ -100,60 +106,62 @@ The initial state is $h_{0j}=\Phi_j$.
 
 \subsection{Maintenance blocking and capacity constraints}
 
-The maintenance blocking and capacity constraints are formulated as follows. 
-We assume that every maintenance event starts immediately after the triggering flight. 
-In this case we can rewrite constraints C8 in the next way:
+Every maintenance event starts immediately after its triggering flight. Let
+ $\delta_A$ be the duration of the type-A check and let $\Delta t$ be the
+minimum post-maintenance turn time.
 
-\paragraph{E14. Maintenance blocking.}
-Define $F^{\text{dep}}_{ra}$ as the set of flights from airport $a$ whose departure falls before the event's completion plus turn time:
+\paragraph{E14. Maintenance blocking (C8).}
+For an event $(r,j)$, define the incompatible following-flight set
 \begin{equation}
-	F^{\text{dep}}_{ra} = \{ i \in \F \mid \alpha(i) = a,\ t_i^{\text{dep}} < t_{r}^{\text{arr}} + T_F \}.
+F^{\mathrm{dep}}_{r}=\left\{\ell\in\F: \tD{\ell}<\tI{r}+\delta_A+\Delta t\right\}.
 \end{equation}
-If $z_{rj}=1$, every selected flight whose
-departure falls before the event's completion plus turn time is blocked:
+If $z_{rj}=1$, every selected incompatible flight is blocked:
 \begin{equation}
-x_{ij}+z_{rj}\leq 1,
-\qquad \forall i \in F^{\text{dep}}_{ra},\ j \in \Pc.
+x_{\ell j}+z_{rj}\leq1,
+\qquad \forall \ell\in F^{\mathrm{dep}}_{r},\ j\in\Pc.
 \end{equation}
-Only economically relevant timestamp conflicts are generated.
+Only feasible $(\ell,j)$ assignment arcs are generated.
 
-
-\paragraph{E15. Maintenance capacity.}
-Define $F^{\text{arr}}_{ra}$ as the set of flights to airport $a$ whose arrival 
-falls before the event's completion plus turn time:
+\paragraph{E15. Maintenance capacity (C10).}
+ Define the active event set
 \begin{equation}
-	F^{\text{arr}}_{ra} = \{ i \in \F \mid \beta(i) = a,\ t_i^{\text{arr}} < t_{r}^{\text{arr}} + T_F \}.
+\mathcal{E}(a,r)=\left\{(i,j):\aI{i}=a,\quad
+\tI{r}\leq \tD{i}<\tI{r}+\delta_A\right\}.
 \end{equation}
-At every airport timestamp breakpoint, the active maintenance events satisfy
+At every breakpoint, active maintenance occupancy satisfies
 \begin{equation}
-\sum_{(r,j)\in F^{\text{arr}}_{ra}\times \Pc} z_{rj}
+\sum_{(i,j)\in\mathcal{E}(a,r)}z_{i j}
 \leq \operatorname{mcap}_{a},
+\qquad \forall a\in \MA,\ r\in \mathcal{R}.
 \label{eq:ordered_c10_capacity}
 \end{equation}
-This is implemented by the timestamp-overlap component
-\texttt{c10\_event\_capacity}.
+
+This constraint ensures that the number of simultaneously active maintenance events at any airport 
+does not exceed the airport's maintenance capacity for every $r \in \mathcal{R}$.
 
 
-\subsection{Complete constraint inventory of the implemented A-only model}
+\subsection{Complete E1--E15 inventory of the implemented A-only model}
 
-The following list gives every constraint family constructed by the current
-ordered A-only builder. It distinguishes the numbered legacy requirements from
-the auxiliary rows introduced by the event reformulation.
+The following list gives every event-family component constructed by the current
+ordered A-only builder. Legacy C labels are given only as cross-references.
 
 \begin{description}
-\item[C1--C2: assignment domain and coverage.] The variables $x_{rj}$ are
-binary, and each ordered flight is assigned exactly once:
+\item[E1--E3: variable domains.] The variables $x_{rj}$ and $z_{rj}$ are
+binary and $h_{rj}$ is nonnegative. These domains correspond to the
+assignment, event, and prefix-state variables.
+
+\item[E4: flight coverage (legacy C2).] Each ordered flight is assigned exactly once:
 \begin{equation}
 \sum_{j\in\Pc}x_{rj}=1,\qquad r\in\mathcal{R}.
 \label{eq:ordered_c0_c1}
 \end{equation}
 
-\item[C3--C4: aircraft continuity and turn time.] The corrected equipment-flow
-balance is applied to $x_{rj}$, including the initial aircraft position and
-the minimum turn time. The implementation is
+\item[E5--E6: aircraft continuity and turn time (legacy C3--C4).] The
+corrected equipment-flow balance is applied to $x_{rj}$, including the initial
+aircraft position and the minimum turn time. The implementation is
 \texttt{\_add\_c23\_turn}.
 
-\item[C5: pairwise non-overlap.] For every temporally conflicting flight pair
+\item[E7: pairwise non-overlap (legacy C5).] For every temporally conflicting flight pair
 and aircraft, the builder adds
 \begin{equation}
 x_{ij}+x_{\ell j}\leq1.
@@ -166,14 +174,13 @@ The current ground-truth Sections 01--04 do not define a separate clique
 constraint number; any clique strengthening is an implementation strengthening
 of C5 rather than a new numbered requirement.
 
-\item[C6--C7: event variables.] The maintenance event variables $z_{rj}$ are
+\item[E8: event assignment (legacy C6--C7 and C9).]
+The maintenance event variables $z_{rj}$ are
 binary and are instantiated only for flights arriving at a maintenance-capable
 airport. There is no independent daily $y$ variable in this formulation.
-An auxiliary event-type exclusivity row limits each triggering flight and
-aircraft to at most one check type. Its practical meaning is that one arrival
-cannot simultaneously start two different maintenance types.
+Each admissible arrival can trigger at most one type-A event for an aircraft.
 
-\item[C8: maintenance blocking.] If $z_{rj}=1$, every selected flight whose
+\item[E14: maintenance blocking (legacy C8).] If $z_{rj}=1$, every selected flight whose
 departure falls before the event's completion plus turn time is blocked:
 \begin{equation}
 x_{\ell j}+z_{rj}\leq1.
@@ -181,36 +188,31 @@ x_{\ell j}+z_{rj}\leq1.
 \end{equation}
 Only economically relevant timestamp conflicts are generated.
 
-\item[C9: event assignment.] An event requires its triggering flight:
-\begin{equation}
-z_{rj}\leq x_{rj}.
-\label{eq:ordered_c9_assignment}
-\end{equation}
-The reverse inequality would force maintenance after every eligible flight and
-is not the intended maintenance-request semantics.
-
-\item[C10: maintenance capacity.] At every airport timestamp breakpoint, the
+\item[E15: maintenance capacity (legacy C10).] At every airport timestamp breakpoint, the
 active maintenance events satisfy
 \begin{equation}
-\sum_{(r,j)\in\mathcal{I}(a,\theta)}z_{rj}
-\leq \operatorname{mcap}_{a,\theta},
+\sum_{(r,j)\in\mathcal{E}(a,\theta)}z_{rj}
+\leq \operatorname{mcap}_{a},
 \end{equation}
 where $\mathcal{I}(a,\theta)$ contains events whose maintenance intervals
 cover $\theta$. This is implemented by the timestamp-overlap component
 \texttt{c10\_event\_capacity}; it is the maintenance-capacity constraint that was not
 explicitly displayed earlier.
 
-\item[C11: event-to-day aggregation.] The day indicator is eliminated, but it
-can be recovered as
+\item[Auxiliary C11 event-count aggregation.] The binary day indicator is intentionally
+not retained. Define the nonnegative integer event count $n_{jd}$ by
 \begin{equation}
-y_{jd}=\sum_{r:\,\lfloor\tI{i_r}/1440\rfloor=d}z_{rj}.
+n_{jd}=\sum_{r:\,\lfloor\tI{i_r}/1440\rfloor=d}z_{rj},
+\qquad n_{jd}\in\mathbb{Z}_{+}.
 \label{eq:ordered_c11_recovery}
 \end{equation}
+This preserves C11's aggregation information without imposing the removed
+one-event-per-day restriction.
 
-\item[C12: calendar spacing.] C12 is inactive in the A-only model. It is
+\item[Inactive legacy C12.] Calendar spacing is inactive in the A-only model. It is
 implemented only by the C/D calendar extension, which is not enabled here.
 
-\item[C13--C13f: cumulative flight-hour correction.] The paper's C13 row is
+\item[E9--E13: cumulative flight-hour state (legacy C13--C13f).] The paper's C13 row is
 replaced by the auxiliary prefix state $h_{rj}$, which is
 nonnegative, carries forward at unassigned positions, accumulates an assigned
 flight when $z_{rj}=0$, resets to zero when $z_{rj}=1$, and is bounded by
@@ -221,8 +223,8 @@ than adding another numbered C-constraint.
 \end{description}
 
 The event formulation therefore has no additional business rule hidden under
-an unnumbered C-constraint. The only auxiliary families are the event-type
-exclusivity rows just described and the linearization rows for the C13 hour
+an unnumbered C-constraint. The auxiliary families are the integer C11 event
+counts and the linearization rows for the C13 hour
 state. The airport occupancy quantity $q_{a,j}$ proposed in the design note is
 not introduced as a variable: its role is represented directly by the C10
 timestamp-capacity sums, which is smaller and equivalent for the A-only case.
@@ -246,10 +248,10 @@ C2 & Flight coverage & Coverage equation on $x_{rj}$ (equivalently $x_{i_rj}$). 
 C3--C4 & Airport continuity and turn time & Corrected equipment-flow balance on assignment variables. \\
 C5 & Pairwise non-overlap & Pairwise overlap inequalities on $x$. \\
 C6--C7 & Maintenance variables $z,y$ & Event indicator $z_{rj}$; the daily indicator $y$ is not a primitive variable. \\
-C8 & Maintenance blocks later flights & Timestamp blocking using $\delta_F+\dt$. \\
+C8 & Maintenance blocks later flights & Timestamp blocking using $\delta_A+\dt$. \\
 C9 & Maintenance requires assignment & The event-assignment inequality above. \\
 C10 & Maintenance capacity & Direct timestamp-overlap capacity rows, equivalent to an airport occupancy state. \\
-C11 & Link event triggers to a daily indicator & Daily indicator is eliminated; it is recoverable as $y_{jd}=\sum_{r:\,\lfloor\tI{i_r}/1440\rfloor=d}z_{rj}$. \\
+C11 & Aggregate events by aircraft and day & Integer event count $n_{jd}=\sum_{r:\,d(i_r)=d}z_{rj}$. \\
 C12 & Calendar-time spacing & Inactive for type-A-only maintenance in this paper. \\
 C13 & Paper cumulative-flight-time row & Replaced by the exact ordered prefix state. \\
 C13a & Daily assigned flight time & Implicit in the ordered flight sequence. \\
@@ -295,8 +297,9 @@ The ordered implementation instead stores one state position per feasible
 flight--aircraft pair.
 
 The main linear constraint families are $O(n_f)$ for coverage,
-$O(n_fn_p)$ for continuity and event assignment, $O(n_fn_p)$ for the
-prefix-state equations, and $O(n_pD)$ for the daily event cap. Pairwise
+$O(n_fn_p)$ for continuity and event assignment, and $O(n_fn_p)$ for the
+prefix-state equations. C11 aggregation contributes $O(n_pD)$ equalities for
+the event counts, without restricting their values. Pairwise
 non-overlap and timestamp blocking depend on the conflict sets and are
 $O(|\mathcal{O}|n_p)$ and $O(|\mathcal{B}|)$, respectively, where
 $\mathcal{O}$ is the flight-overlap set and $\mathcal{B}$ is the generated set

@@ -11,6 +11,7 @@ from pyomo.environ import (
     ConcreteModel,
     ConstraintList,
     NonNegativeReals,
+    NonNegativeIntegers,
     Objective,
     Set,
     Var,
@@ -23,7 +24,11 @@ from .event_model import EventMILPScheduler
 
 
 class CompactAEventMILPScheduler(EventMILPScheduler):
-    """A-check-only event model with timestamp-based state propagation."""
+    """A-check-only successor-arc prototype retained for comparison tests.
+
+    The paper-facing ordered E1-E15 implementation is
+    :class:`OrderedAEventMILPScheduler` below.
+    """
 
     CHECK_LIST = ("A",)
     HOUR_CHECKS = ("A",)
@@ -32,7 +37,7 @@ class CompactAEventMILPScheduler(EventMILPScheduler):
 
 
 class OrderedHourEventMILPScheduler(MILP_Sheduler):
-    """Hour-check event model using chronological prefix states instead of w arcs."""
+    """Event E1-E15 model using chronological prefix states instead of w arcs."""
 
     CHECK_LIST = ("A",)
     HOUR_CHECKS = ("A",)
@@ -53,6 +58,15 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
         model.A = Set(initialize=self.airports, ordered=True)
         model.MA = Set(initialize=self.maint_airports, ordered=True)
         model.C = Set(initialize=self.CHECK_LIST, ordered=True)
+        model.D = Set(
+            initialize=sorted(
+                {
+                    int(self.flight_data[flight]["arrivalTime"] // self.DAY_SHIFT)
+                    for flight in self.flight_ids
+                }
+            ),
+            ordered=True,
+        )
         model.X = Set(
             dimen=2,
             initialize=(
@@ -103,6 +117,12 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
         model.x = Var(model.X, domain=Binary, initialize=0)
         model.z = Var(model.Z, domain=Binary, initialize=0)
         model.q = Var(model.Q, domain=NonNegativeReals, initialize=0)
+        model.event_count = Var(
+            model.P,
+            model.D,
+            domain=NonNegativeIntegers,
+            initialize=0,
+        )
 
         model.obj = Objective(
             expr=(
@@ -139,6 +159,24 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
         model.c9_event_assignment = ConstraintList()
         for flight, aircraft, check in model.Z:
             model.c9_event_assignment.add(model.z[flight, aircraft, check] <= model.x[flight, aircraft])
+
+        # C11 aggregation without a binary day indicator: multiple events on
+        # one calendar day remain representable instead of being forbidden.
+        model.c11_event_count = ConstraintList()
+        for aircraft in model.P:
+            for day in model.D:
+                model.c11_event_count.add(
+                    model.event_count[aircraft, day]
+                    == sum(
+                        model.z[flight, aircraft, check]
+                        for flight, candidate_aircraft, check in model.Z
+                        if candidate_aircraft == aircraft
+                        and int(
+                            self.flight_data[flight]["arrivalTime"] // self.DAY_SHIFT
+                        )
+                        == day
+                    )
+                )
 
         model.event_type_exclusivity = ConstraintList()
         for flight in self.maint_flight_ids:

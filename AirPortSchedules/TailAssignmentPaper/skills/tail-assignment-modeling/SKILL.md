@@ -129,7 +129,7 @@ Write with `write-paper.prompt.md`. Section order:
 2. Literature review (3 formulation families + comparison)
 3. Basic MILP (C1–C4, compactness proof)
 4. Maintenance model (C8–C15, **correction of C13**)
-5. Hierarchy extension (A/B/C/D, C13b, C14b)
+5. Hierarchy extension (A/B/C/D, C13b, C14)
 6. Heuristic (greedy/insertion, complexity, gap)
 7. Computational study (Tables 5,6,10,11 + correction impact)
 8. Conclusion

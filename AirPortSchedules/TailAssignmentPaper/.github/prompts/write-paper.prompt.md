@@ -18,7 +18,7 @@ paper/sections/
   2_literature.tex     — comparison with 3 formulation families
   3_basic_model.tex    — constraints C1–C4, Propositions 1 & 2
   4_maintenance_model.tex — constraints 8–15 + CORRECTION of eq.(13)
-  5_hierarchy_extension.tex — A/B/C/D hierarchy; C13b; C14b
+  5_hierarchy_extension.tex — A/B/C/D hierarchy; C13b; C14
   6_heuristics.tex     — greedy/insertion heuristic; complexity
   7_computational.tex  — reproduced + corrected Tables 5/6/10/11; new results
   8_conclusion.tex     — contributions, limitations, future work

@@ -1,0 +1,4 @@
+instance,H,P,F,formulation,status,objective,vars,constraints,cpu_s,build_s,wall_s,peak_rss_mb,error,overlap_mode,tight_state_big_m,local_state_indexing
+data\instances\ABCD_all_checks_test.json,3,5,9,ordered_abcd,optimal,9500.0,115,258,0.33562326431274414,0.012091,0.615751,113.996,,clique,True,False
+data\instances\ABCD_multi_check_test.json,4,4,16,ordered_abcd,infeasible,,176,448,0.33541274070739746,0.011948,0.5992,115.57,,clique,True,False
+data\instances\ABCD_multi_check_test_OLD.json,16,,,ordered_abcd,ERROR,,,,,,,,ValueError: No reachable C event meets the initial deadline for aircraft 4,,,

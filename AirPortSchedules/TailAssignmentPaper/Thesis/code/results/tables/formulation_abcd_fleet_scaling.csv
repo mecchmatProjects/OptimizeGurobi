@@ -1,0 +1,13 @@
+instance,P,F,formulation,status,objective,vars,constraints,cpu_s
+p=10/DataCplex_density=1_p=10_h=7_test_0.json,10,20,legacy,optimal,10327.0,2460,4932,0.2950005531311035
+p=10/DataCplex_density=1_p=10_h=7_test_0.json,10,20,ordered_abcd,optimal,10327.0,1000,3657,0.2930030822753906
+p=10/DataCplex_density=1_p=10_h=7_test_0.json,10,20,event_exact,optimal,10327.0,1800,5344,0.29200267791748047
+p=15/DataCplex_density=1_p=15_h=7_test_0.json,15,30,legacy,optimal,15441.0,4620,8865,0.33738255500793457
+p=15/DataCplex_density=1_p=15_h=7_test_0.json,15,30,ordered_abcd,optimal,15441.0,2250,8340,0.3410038948059082
+p=15/DataCplex_density=1_p=15_h=7_test_0.json,15,30,event_exact,optimal,15441.0,4680,15787,0.34999990463256836
+p=20/DataCplex_density=1_p=20_h=7_test_0.json,20,40,legacy,optimal,20592.0,7560,14298,0.4078819751739502
+p=20/DataCplex_density=1_p=20_h=7_test_0.json,20,40,ordered_abcd,optimal,20592.0,4000,15138,0.4080018997192383
+p=20/DataCplex_density=1_p=20_h=7_test_0.json,20,40,event_exact,optimal,20592.0,9480,35029,0.45905447006225586
+p=5/DataCplex_density=1_p=5_h=7_test_0.json,5,10,legacy,optimal,5139.0,880,1830,0.27300071716308594
+p=5/DataCplex_density=1_p=5_h=7_test_0.json,5,10,ordered_abcd,optimal,5139.0,250,907,0.266002893447876
+p=5/DataCplex_density=1_p=5_h=7_test_0.json,5,10,event_exact,optimal,5139.0,380,922,0.26800036430358887

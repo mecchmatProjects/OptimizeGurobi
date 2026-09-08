@@ -1,0 +1,15 @@
+instance,family,formulation,n_var,n_con,status,lp_bound,runtime_s
+ABCD_no_maint_test,exact,classical,872,70,optimal,14000.0,0.0
+ABCD_no_maint_test,exact,integrated,872,1806,optimal,14000.0,0.0
+ABCD_capacity_bottleneck_test,exact,classical,648,32,optimal,8000.0,0.0
+ABCD_capacity_bottleneck_test,exact,integrated,648,1234,optimal,8000.0130000013,0.0
+ABCD_check_hierarchy_test,exact,classical,1092,85,optimal,13000.0,0.0
+ABCD_check_hierarchy_test,exact,integrated,1092,2445,optimal,13000.010020001002,0.0
+ABCD_all_checks_test,exact,classical,709,18,optimal,9000.0,0.0
+ABCD_all_checks_test,exact,integrated,,,error,,
+DataCplex_density=0.5_p=10_h=7_test_0,random-grid,classical,14540,3582,optimal,827659.0,0.0
+DataCplex_density=0.5_p=10_h=7_test_0,random-grid,integrated,14540,42899,optimal,827659.0259450026,0.0
+DataCplex_density=1_p=10_h=7_test_0,random-grid,classical,,,error,,
+DataCplex_density=1_p=10_h=7_test_0,random-grid,integrated,,,error,,
+DataCplex_density=0.95_p=10_h=7_test_0,random-grid,classical,,,error,,
+DataCplex_density=0.95_p=10_h=7_test_0,random-grid,integrated,,,error,,

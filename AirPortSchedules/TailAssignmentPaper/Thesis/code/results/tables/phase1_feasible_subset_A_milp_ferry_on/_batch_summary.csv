@@ -1,0 +1,4 @@
+stem,mode,flights,assigned,unassigned,cost,obj,gap_%,status,cpu_s
+DataCplex_density=0.5_p=4_h=7_test_0,milp,28,28,0,18028.0,18028.0,,optimal,2.27
+DataCplex_density=0.5_p=6_h=10_test_0,milp,54,54,0,0.0,0.0,3.882,maxTimeLimit,54.3
+DataCplex_density=0.8_p=4_h=7_test_0,milp,30,30,0,19906.0,19906.0,,optimal,3.77

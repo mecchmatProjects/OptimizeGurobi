@@ -1,0 +1,3 @@
+instance,variant,variables,constraints,c9_rows,z_variables,build_s,solver,status,objective,runtime_s,error
+step7_long_control,baseline,52,106,12,24,0.010514,highs,optimal,120.0,0.02649,
+step7_long_control,strong,52,106,12,24,0.009391,highs,optimal,120.0,0.013423,

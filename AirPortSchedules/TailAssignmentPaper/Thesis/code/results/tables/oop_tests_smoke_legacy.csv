@@ -1,0 +1,4 @@
+stem,mode,flights,assigned,unassigned,status,objective,gap_pct,cpu_s,wall_s,num_vars,num_constraints,returncode
+ABCD_no_maint_test,milp,14,14,0,optimal,14000.000000,0.000000,0.059000,0.189679,,,0
+ABCD_no_maint_test,heuristic,14,14,0,feasible,14000.000000,,,0.000530,,,0
+ABCD_no_maint_test,heuristic,14,0,14,not_applicable,0.000000,,,0.000000,,,0

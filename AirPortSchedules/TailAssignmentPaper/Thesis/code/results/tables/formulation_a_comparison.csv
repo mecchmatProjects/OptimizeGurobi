@@ -1,0 +1,9 @@
+instance,P,F,formulation,status,objective,vars,constraints,build_s,wall_s,error
+DataCplex_density=1_p=10_h=15_test_0.json,10,60,legacy_a,optimal,29914.0,3370,7774,0.240244,1.005818,
+DataCplex_density=1_p=10_h=15_test_0.json,10,60,compact_a_event,optimal,29914.0,7320,18780,0.621734,1.464383,
+DataCplex_density=1_p=10_h=21_test_0.json,10,60,legacy_a,optimal,29886.0,3370,7774,0.320883,0.991973,
+DataCplex_density=1_p=10_h=21_test_0.json,10,60,compact_a_event,optimal,29886.0,7320,18780,0.626816,1.442515,
+DataCplex_density=1_p=10_h=30_test_0.json,10,60,legacy_a,optimal,29875.0,3370,7774,0.317573,0.991943,
+DataCplex_density=1_p=10_h=30_test_0.json,10,60,compact_a_event,optimal,29875.0,7320,18780,0.629212,1.435033,
+DataCplex_density=1_p=10_h=7_test_0.json,10,50,legacy_a,optimal,24935.0,1910,4098,0.103349,0.855921,
+DataCplex_density=1_p=10_h=7_test_0.json,10,50,compact_a_event,optimal,24935.0,5615,14230,0.423296,1.172347,

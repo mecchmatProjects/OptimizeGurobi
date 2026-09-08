@@ -1,0 +1,15 @@
+stem,method,mode,flights,assigned,unassigned,status,objective,gap_pct,cpu_s,wall_s,num_vars,num_constraints,returncode
+DataCplex_density=0.5_p=10_h=15_test_0,classical_milp,milp,,,,optimal,1132028.0,0.0,0.75,3.83,37590,3080,0
+DataCplex_density=0.5_p=10_h=21_test_0,classical_milp,milp,,,,optimal,879863.0,0.0,0.41,3.35,37790,1879,0
+DataCplex_density=0.5_p=10_h=7_test_0,classical_milp,milp,,,,optimal,827758.0,0.0,1.06,3.45,14540,3582,0
+DataCplex_density=0.95_p=10_h=15_test_0,classical_milp,milp,,,,infeasible,,,,3.35,32560,3892,0
+DataCplex_density=0.95_p=10_h=7_test_0,classical_milp,milp,,,,infeasible,,,,2.37,10320,1686,0
+DataCplex_density=0.95_p=20_h=15_test_0,classical_milp,milp,,,,infeasible,,,,25.52,129480,22025,0
+DataCplex_density=0.95_p=20_h=7_test_0,classical_milp,milp,,,,infeasible,,,,4.21,39280,10433,0
+DataCplex_density=1_p=10_h=15_test_0,classical_milp,milp,,,,infeasible,,,,3.17,32760,4080,0
+DataCplex_density=1_p=10_h=21_test_0,classical_milp,milp,,,,infeasible,,,,4.35,60620,5840,0
+DataCplex_density=1_p=10_h=30_test_0,classical_milp,milp,,,,ERROR,,,,128.69,,,1
+DataCplex_density=1_p=10_h=7_test_0,classical_milp,milp,,,,infeasible,,,,2.89,10480,1870,0
+DataCplex_density=1_p=20_h=15_test_0,classical_milp,milp,,,,infeasible,,,,20.51,133440,24780,0
+DataCplex_density=1_p=20_h=21_test_0,classical_milp,milp,,,,infeasible,,,,54.11,236280,34920,0
+DataCplex_density=1_p=20_h=7_test_0,classical_milp,milp,,,,infeasible,,,,4.09,39320,11940,0

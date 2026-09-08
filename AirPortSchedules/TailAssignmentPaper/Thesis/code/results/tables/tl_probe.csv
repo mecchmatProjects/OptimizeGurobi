@@ -1,0 +1,3 @@
+instance,variant,mode,flights,aircraft,days,variables,constraints,z_variables,build_s,solver,time_limit_s,status,objective,dual_bound,primal_bound,mip_gap,nodes,runtime_s,coverage,error
+sma3_p8_h35_r1,baseline,milp,560,8,35,135392,214503,127552,11.771232,highs,30,maxTimeLimit,,,,,,65.529161,,no incumbent within budget
+sma3_p8_h35_r1,combined,milp,560,8,35,25376,86711,17536,24.926135,highs,30,maxTimeLimit,,11083.600000000002,,,,138.25461,,no incumbent within budget

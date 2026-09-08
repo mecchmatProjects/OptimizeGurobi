@@ -1,0 +1,13 @@
+instance,P,F,formulation,status,objective,vars,constraints,cpu_s
+data\feasible_instances\abcd_fleet_scaling\p=10\DataCplex_density=1_p=10_h=7_test_0.json,10,20,legacy,optimal,10327.0,2460,4932,0.3039979934692383
+data\feasible_instances\abcd_fleet_scaling\p=10\DataCplex_density=1_p=10_h=7_test_0.json,10,20,ordered_abcd,optimal,10327.0,1000,3657,0.3040001392364502
+data\feasible_instances\abcd_fleet_scaling\p=10\DataCplex_density=1_p=10_h=7_test_0.json,10,20,event_exact,optimal,10327.0,1800,5344,0.31583428382873535
+data\feasible_instances\abcd_fleet_scaling\p=15\DataCplex_density=1_p=15_h=7_test_0.json,15,30,legacy,optimal,15441.0,4620,8865,0.33500051498413086
+data\feasible_instances\abcd_fleet_scaling\p=15\DataCplex_density=1_p=15_h=7_test_0.json,15,30,ordered_abcd,optimal,15441.0,2250,8340,0.34418773651123047
+data\feasible_instances\abcd_fleet_scaling\p=15\DataCplex_density=1_p=15_h=7_test_0.json,15,30,event_exact,optimal,15441.0,4680,15787,0.3430013656616211
+data\feasible_instances\abcd_fleet_scaling\p=20\DataCplex_density=1_p=20_h=7_test_0.json,20,40,legacy,optimal,20592.0,7560,14298,0.3770003318786621
+data\feasible_instances\abcd_fleet_scaling\p=20\DataCplex_density=1_p=20_h=7_test_0.json,20,40,ordered_abcd,optimal,20592.0,4000,15138,0.40924525260925293
+data\feasible_instances\abcd_fleet_scaling\p=20\DataCplex_density=1_p=20_h=7_test_0.json,20,40,event_exact,optimal,20592.0,9480,35029,0.4720025062561035
+data\feasible_instances\abcd_fleet_scaling\p=5\DataCplex_density=1_p=5_h=7_test_0.json,5,10,legacy,optimal,5139.0,880,1830,0.270998477935791
+data\feasible_instances\abcd_fleet_scaling\p=5\DataCplex_density=1_p=5_h=7_test_0.json,5,10,ordered_abcd,optimal,5139.0,250,907,0.2782881259918213
+data\feasible_instances\abcd_fleet_scaling\p=5\DataCplex_density=1_p=5_h=7_test_0.json,5,10,event_exact,optimal,5139.0,380,922,0.2690012454986572

@@ -1,0 +1,2 @@
+stem,P,H,F,vars,constraints,nodes_max,gap_pct,cpu_s,objective,formulation,routing_scope,status,build_s,wall_s,solver,time_limit_s,error
+ABCD_near_threshold_test,6,4,20,1182,4741,,,0.043039,,event_exact_state,connected_event_arcs_no_ferry,infeasible,0.1316,0.209564,cplex,60,

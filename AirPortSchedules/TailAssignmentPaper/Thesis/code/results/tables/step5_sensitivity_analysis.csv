@@ -1,0 +1,61 @@
+base_instance,experiment_id,parameter_set,param_change,n_var,n_con,model_size_ratio,runtime_s,solver_status,objective,feasible,infeasibility_reason
+ABCD_no_maint_test,ABCD_no_maint_test_thr_25,Thresholds=25%,Thresholds=25%,872,1806,1.000,0.30,optimal,14000.0,True,N/A
+ABCD_no_maint_test,ABCD_no_maint_test_thr_50,Thresholds=50%,Thresholds=50%,872,1806,1.000,0.32,optimal,14000.0,True,N/A
+ABCD_no_maint_test,ABCD_no_maint_test_thr_75,Thresholds=75%,Thresholds=75%,872,1806,1.000,0.33,optimal,14000.0,True,N/A
+ABCD_no_maint_test,ABCD_no_maint_test_thr_100,Thresholds=100%,Thresholds=100%,872,1806,1.000,0.28,optimal,14000.0,True,N/A
+ABCD_no_maint_test,ABCD_no_maint_test_thr_150,Thresholds=150%,Thresholds=150%,872,1806,1.000,0.29,optimal,14000.0,True,N/A
+ABCD_no_maint_test,ABCD_no_maint_test_thr_200,Thresholds=200%,Thresholds=200%,872,1806,1.000,0.34,optimal,14000.0,True,N/A
+ABCD_no_maint_test,ABCD_no_maint_test_dur_50,Durations=50%,Durations=50%,868,1742,0.975,0.26,optimal,14000.0,True,N/A
+ABCD_no_maint_test,ABCD_no_maint_test_dur_75,Durations=75%,Durations=75%,872,1754,0.981,0.27,optimal,14000.0,True,N/A
+ABCD_no_maint_test,ABCD_no_maint_test_dur_100,Durations=100%,Durations=100%,872,1806,1.000,0.31,optimal,14000.0,True,N/A
+ABCD_no_maint_test,ABCD_no_maint_test_dur_150,Durations=150%,Durations=150%,872,1826,1.007,0.54,optimal,14000.0,True,N/A
+ABCD_no_maint_test,ABCD_no_maint_test_dur_200,Durations=200%,Durations=200%,872,1842,1.013,0.36,optimal,14000.0,True,N/A
+ABCD_no_maint_test,ABCD_no_maint_test_cap_50,Capacity=50%,Capacity=50%,872,1806,1.000,0.44,optimal,14000.0,True,N/A
+ABCD_no_maint_test,ABCD_no_maint_test_cap_100,Capacity=100%,Capacity=100%,872,1806,1.000,0.38,optimal,14000.0,True,N/A
+ABCD_no_maint_test,ABCD_no_maint_test_cap_150,Capacity=150%,Capacity=150%,872,1806,1.000,0.29,optimal,14000.0,True,N/A
+ABCD_no_maint_test,ABCD_no_maint_test_cap_200,Capacity=200%,Capacity=200%,872,1806,1.000,0.34,optimal,14000.0,True,N/A
+ABCD_near_threshold_test,ABCD_near_threshold_test_thr_25,Thresholds=25%,Thresholds=25%,2232,5280,1.000,0.97,infeasible,N/A,False,MILP infeasible (no solution loadable)
+ABCD_near_threshold_test,ABCD_near_threshold_test_thr_50,Thresholds=50%,Thresholds=50%,2232,5280,1.000,0.90,infeasible,N/A,False,MILP infeasible (no solution loadable)
+ABCD_near_threshold_test,ABCD_near_threshold_test_thr_75,Thresholds=75%,Thresholds=75%,2232,5280,1.000,0.92,infeasible,N/A,False,MILP infeasible (no solution loadable)
+ABCD_near_threshold_test,ABCD_near_threshold_test_thr_100,Thresholds=100%,Thresholds=100%,2232,5280,1.000,0.93,optimal,21100.0,True,N/A
+ABCD_near_threshold_test,ABCD_near_threshold_test_thr_150,Thresholds=150%,Thresholds=150%,2232,5278,1.000,0.92,optimal,20000.0,True,N/A
+ABCD_near_threshold_test,ABCD_near_threshold_test_thr_200,Thresholds=200%,Thresholds=200%,2232,5278,1.000,1.04,optimal,20000.0,True,N/A
+ABCD_near_threshold_test,ABCD_near_threshold_test_dur_50,Durations=50%,Durations=50%,2196,5094,0.970,0.93,optimal,21100.0,True,N/A
+ABCD_near_threshold_test,ABCD_near_threshold_test_dur_75,Durations=75%,Durations=75%,2232,5184,0.987,0.88,optimal,21100.0,True,N/A
+ABCD_near_threshold_test,ABCD_near_threshold_test_dur_100,Durations=100%,Durations=100%,2232,5280,1.000,1.04,optimal,21100.0,True,N/A
+ABCD_near_threshold_test,ABCD_near_threshold_test_dur_150,Durations=150%,Durations=150%,2232,5370,1.012,1.04,optimal,21100.0,True,N/A
+ABCD_near_threshold_test,ABCD_near_threshold_test_dur_200,Durations=200%,Durations=200%,2232,5388,1.014,0.94,optimal,21100.0,True,N/A
+ABCD_near_threshold_test,ABCD_near_threshold_test_cap_50,Capacity=50%,Capacity=50%,2232,5280,1.000,1.04,optimal,21100.0,True,N/A
+ABCD_near_threshold_test,ABCD_near_threshold_test_cap_100,Capacity=100%,Capacity=100%,2232,5280,1.000,1.01,optimal,21100.0,True,N/A
+ABCD_near_threshold_test,ABCD_near_threshold_test_cap_150,Capacity=150%,Capacity=150%,2232,5280,1.000,0.99,optimal,21100.0,True,N/A
+ABCD_near_threshold_test,ABCD_near_threshold_test_cap_200,Capacity=200%,Capacity=200%,2232,5280,1.000,0.95,optimal,21100.0,True,N/A
+ABCD_capacity_bottleneck_test,ABCD_capacity_bottleneck_test_thr_25,Thresholds=25%,Thresholds=25%,648,1234,1.000,0.19,infeasible,N/A,False,MILP infeasible (no solution loadable)
+ABCD_capacity_bottleneck_test,ABCD_capacity_bottleneck_test_thr_50,Thresholds=50%,Thresholds=50%,648,1234,1.000,0.17,infeasible,N/A,False,MILP infeasible (no solution loadable)
+ABCD_capacity_bottleneck_test,ABCD_capacity_bottleneck_test_thr_75,Thresholds=75%,Thresholds=75%,648,1234,1.000,0.25,infeasible,N/A,False,MILP infeasible (no solution loadable)
+ABCD_capacity_bottleneck_test,ABCD_capacity_bottleneck_test_thr_100,Thresholds=100%,Thresholds=100%,648,1234,1.000,0.48,optimal,8300.0,True,N/A
+ABCD_capacity_bottleneck_test,ABCD_capacity_bottleneck_test_thr_150,Thresholds=150%,Thresholds=150%,648,1234,1.000,0.22,optimal,8000.0,True,N/A
+ABCD_capacity_bottleneck_test,ABCD_capacity_bottleneck_test_thr_200,Thresholds=200%,Thresholds=200%,648,1234,1.000,0.21,optimal,8000.0,True,N/A
+ABCD_capacity_bottleneck_test,ABCD_capacity_bottleneck_test_dur_50,Durations=50%,Durations=50%,642,1192,0.974,0.39,optimal,8300.0,True,N/A
+ABCD_capacity_bottleneck_test,ABCD_capacity_bottleneck_test_dur_75,Durations=75%,Durations=75%,648,1207,0.986,0.52,optimal,8300.0,True,N/A
+ABCD_capacity_bottleneck_test,ABCD_capacity_bottleneck_test_dur_100,Durations=100%,Durations=100%,648,1234,1.000,0.47,optimal,8300.0,True,N/A
+ABCD_capacity_bottleneck_test,ABCD_capacity_bottleneck_test_dur_150,Durations=150%,Durations=150%,648,1246,1.006,0.27,optimal,8300.0,True,N/A
+ABCD_capacity_bottleneck_test,ABCD_capacity_bottleneck_test_dur_200,Durations=200%,Durations=200%,648,1246,1.006,0.26,optimal,8300.0,True,N/A
+ABCD_capacity_bottleneck_test,ABCD_capacity_bottleneck_test_cap_50,Capacity=50%,Capacity=50%,648,1234,1.000,0.47,optimal,8300.0,True,N/A
+ABCD_capacity_bottleneck_test,ABCD_capacity_bottleneck_test_cap_100,Capacity=100%,Capacity=100%,648,1234,1.000,0.45,optimal,8300.0,True,N/A
+ABCD_capacity_bottleneck_test,ABCD_capacity_bottleneck_test_cap_150,Capacity=150%,Capacity=150%,648,1234,1.000,0.41,optimal,8300.0,True,N/A
+ABCD_capacity_bottleneck_test,ABCD_capacity_bottleneck_test_cap_200,Capacity=200%,Capacity=200%,648,1234,1.000,0.38,optimal,8300.0,True,N/A
+ABCD_check_hierarchy_test,ABCD_check_hierarchy_test_thr_25,Thresholds=25%,Thresholds=25%,1092,2445,1.000,0.39,optimal,14700.0,True,N/A
+ABCD_check_hierarchy_test,ABCD_check_hierarchy_test_thr_50,Thresholds=50%,Thresholds=50%,1092,2445,1.000,0.42,optimal,14700.0,True,N/A
+ABCD_check_hierarchy_test,ABCD_check_hierarchy_test_thr_75,Thresholds=75%,Thresholds=75%,1092,2445,1.000,0.37,optimal,14700.0,True,N/A
+ABCD_check_hierarchy_test,ABCD_check_hierarchy_test_thr_100,Thresholds=100%,Thresholds=100%,1092,2445,1.000,0.37,optimal,14700.0,True,N/A
+ABCD_check_hierarchy_test,ABCD_check_hierarchy_test_thr_150,Thresholds=150%,Thresholds=150%,1092,2445,1.000,0.43,optimal,13000.0,True,N/A
+ABCD_check_hierarchy_test,ABCD_check_hierarchy_test_thr_200,Thresholds=200%,Thresholds=200%,1092,2445,1.000,0.40,optimal,13000.0,True,N/A
+ABCD_check_hierarchy_test,ABCD_check_hierarchy_test_dur_50,Durations=50%,Durations=50%,1076,2365,0.973,0.56,optimal,13300.0,True,N/A
+ABCD_check_hierarchy_test,ABCD_check_hierarchy_test_dur_75,Durations=75%,Durations=75%,1092,2409,0.990,0.40,optimal,13300.0,True,N/A
+ABCD_check_hierarchy_test,ABCD_check_hierarchy_test_dur_100,Durations=100%,Durations=100%,1092,2445,1.000,0.36,optimal,14700.0,True,N/A
+ABCD_check_hierarchy_test,ABCD_check_hierarchy_test_dur_150,Durations=150%,Durations=150%,1092,2485,1.011,0.40,infeasible,N/A,False,MILP infeasible (no solution loadable)
+ABCD_check_hierarchy_test,ABCD_check_hierarchy_test_dur_200,Durations=200%,Durations=200%,1092,2509,1.018,0.35,infeasible,N/A,False,MILP infeasible (no solution loadable)
+ABCD_check_hierarchy_test,ABCD_check_hierarchy_test_cap_50,Capacity=50%,Capacity=50%,1092,2445,1.000,0.35,infeasible,N/A,False,MILP infeasible (no solution loadable)
+ABCD_check_hierarchy_test,ABCD_check_hierarchy_test_cap_100,Capacity=100%,Capacity=100%,1092,2445,1.000,0.44,optimal,14700.0,True,N/A
+ABCD_check_hierarchy_test,ABCD_check_hierarchy_test_cap_150,Capacity=150%,Capacity=150%,1092,2445,1.000,0.38,optimal,14700.0,True,N/A
+ABCD_check_hierarchy_test,ABCD_check_hierarchy_test_cap_200,Capacity=200%,Capacity=200%,1092,2445,1.000,0.42,optimal,14700.0,True,N/A

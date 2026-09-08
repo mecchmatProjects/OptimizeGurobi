@@ -1,0 +1,2 @@
+instance,status_legacy,status_event_strict,status_event_only,vars_legacy,vars_event_strict,vars_event_only,cons_legacy,cons_event_strict,cons_event_only,d_vars_strict_minus_legacy,d_cons_strict_minus_legacy,d_vars_event_only_minus_legacy,d_cons_event_only_minus_legacy,obj_legacy,obj_event_strict,obj_event_only,cpu_legacy,cpu_event_strict,cpu_event_only
+ABCD_no_maint_test.json,unknown,unknown,unknown,1000,1392,1392,2174,3627,3283,392.0,1453.0,392.0,1109.0,,,,0.02700018882751465,0.026997804641723633,0.024000167846679688

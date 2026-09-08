@@ -1,0 +1,3 @@
+instance,variant,variables,constraints,c9_rows,z_variables,build_s,solver,status,objective,runtime_s,error
+step7_long_control,sparse_z+tight_c13_m+reachability+strong_conflicts,46,95,12,18,0.011389,cplexamp,optimal,120.0,0.57168,
+step7_long_control,strong_link+sparse_z+tight_c13_m+reachability+strong_conflicts,46,95,12,18,0.010086,cplexamp,optimal,120.0,0.528148,

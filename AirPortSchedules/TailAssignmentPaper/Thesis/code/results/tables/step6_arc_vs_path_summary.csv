@@ -1,0 +1,10 @@
+metric,value
+instances,7
+repeats_per_instance,10
+objective_match_count,7
+coverage_valid_count,7
+arc_total_median_across_instances_s,0.026785
+path_total_median_across_instances_s,0.116396
+speedup_mean_arc_over_path,0.4031214285714286
+speedup_median_arc_over_path,0.27685
+path_faster_count,1

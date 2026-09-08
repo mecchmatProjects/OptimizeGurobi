@@ -1,0 +1,193 @@
+case,file,P,H,F,formulation,solver_configuration,warm_start,status,objective,vars,constraints,cpu_s,wall_s,build_s,error
+c13_loophole_test,c13_loophole_test.json,1,4,3,legacy_paper_c13,presolve_on,False,ERROR,,47,96,,,0.011095,"RuntimeError: Attempting to use an unavailable solver.
+
+The SolverFactory was unable to create the solver ""highs""
+and returned an UnknownSolver object.  This error is raised at the point
+where the UnknownSolver object was used as if it were valid (by calling
+method ""solve"").
+
+The original solver was created with the following parameters:
+	executable: F:\Progs\AMPL\highs.exe
+	type: highs
+	_args: ()
+	options: {'TimeLimit': 60}"
+c13_loophole_test,c13_loophole_test.json,1,4,3,legacy_endpoint_split,presolve_on,False,ERROR,,47,117,,,0.009625,"RuntimeError: Attempting to use an unavailable solver.
+
+The SolverFactory was unable to create the solver ""highs""
+and returned an UnknownSolver object.  This error is raised at the point
+where the UnknownSolver object was used as if it were valid (by calling
+method ""solve"").
+
+The original solver was created with the following parameters:
+	executable: F:\Progs\AMPL\highs.exe
+	type: highs
+	_args: ()
+	options: {'TimeLimit': 60}"
+c13_loophole_test,c13_loophole_test.json,1,4,3,legacy_corrected,presolve_on,False,ERROR,,55,105,,,0.010049,"RuntimeError: Attempting to use an unavailable solver.
+
+The SolverFactory was unable to create the solver ""highs""
+and returned an UnknownSolver object.  This error is raised at the point
+where the UnknownSolver object was used as if it were valid (by calling
+method ""solve"").
+
+The original solver was created with the following parameters:
+	executable: F:\Progs\AMPL\highs.exe
+	type: highs
+	_args: ()
+	options: {'TimeLimit': 60}"
+c13_loophole_test,c13_loophole_test.json,1,4,3,event_based,presolve_on,False,ERROR,,9,39,,,0.005166,"RuntimeError: Attempting to use an unavailable solver.
+
+The SolverFactory was unable to create the solver ""highs""
+and returned an UnknownSolver object.  This error is raised at the point
+where the UnknownSolver object was used as if it were valid (by calling
+method ""solve"").
+
+The original solver was created with the following parameters:
+	executable: F:\Progs\AMPL\highs.exe
+	type: highs
+	_args: ()
+	options: {'TimeLimit': 60}"
+event_vs_legacy_clean_test,event_vs_legacy_clean_test.json,2,3,6,legacy_paper_c13,presolve_on,False,ERROR,,144,238,,,0.012424,"RuntimeError: Attempting to use an unavailable solver.
+
+The SolverFactory was unable to create the solver ""highs""
+and returned an UnknownSolver object.  This error is raised at the point
+where the UnknownSolver object was used as if it were valid (by calling
+method ""solve"").
+
+The original solver was created with the following parameters:
+	executable: F:\Progs\AMPL\highs.exe
+	type: highs
+	_args: ()
+	options: {'TimeLimit': 60}"
+event_vs_legacy_clean_test,event_vs_legacy_clean_test.json,2,3,6,legacy_endpoint_split,presolve_on,False,ERROR,,144,280,,,0.0123,"RuntimeError: Attempting to use an unavailable solver.
+
+The SolverFactory was unable to create the solver ""highs""
+and returned an UnknownSolver object.  This error is raised at the point
+where the UnknownSolver object was used as if it were valid (by calling
+method ""solve"").
+
+The original solver was created with the following parameters:
+	executable: F:\Progs\AMPL\highs.exe
+	type: highs
+	_args: ()
+	options: {'TimeLimit': 60}"
+event_vs_legacy_clean_test,event_vs_legacy_clean_test.json,2,3,6,legacy_corrected,presolve_on,False,ERROR,,160,256,,,0.012479,"RuntimeError: Attempting to use an unavailable solver.
+
+The SolverFactory was unable to create the solver ""highs""
+and returned an UnknownSolver object.  This error is raised at the point
+where the UnknownSolver object was used as if it were valid (by calling
+method ""solve"").
+
+The original solver was created with the following parameters:
+	executable: F:\Progs\AMPL\highs.exe
+	type: highs
+	_args: ()
+	options: {'TimeLimit': 60}"
+event_vs_legacy_clean_test,event_vs_legacy_clean_test.json,2,3,6,event_based,presolve_on,False,ERROR,,36,138,,,0.006579,"RuntimeError: Attempting to use an unavailable solver.
+
+The SolverFactory was unable to create the solver ""highs""
+and returned an UnknownSolver object.  This error is raised at the point
+where the UnknownSolver object was used as if it were valid (by calling
+method ""solve"").
+
+The original solver was created with the following parameters:
+	executable: F:\Progs\AMPL\highs.exe
+	type: highs
+	_args: ()
+	options: {'TimeLimit': 60}"
+perf_p=10_h=7,perf_p=10_h=7.json,10,8,36,legacy_paper_c13,presolve_on,False,ERROR,,1720,3035,,,0.120173,"RuntimeError: Attempting to use an unavailable solver.
+
+The SolverFactory was unable to create the solver ""highs""
+and returned an UnknownSolver object.  This error is raised at the point
+where the UnknownSolver object was used as if it were valid (by calling
+method ""solve"").
+
+The original solver was created with the following parameters:
+	executable: F:\Progs\AMPL\highs.exe
+	type: highs
+	_args: ()
+	options: {'TimeLimit': 60}"
+perf_p=10_h=7,perf_p=10_h=7.json,10,8,36,legacy_endpoint_split,presolve_on,False,ERROR,,1720,3315,,,0.092422,"RuntimeError: Attempting to use an unavailable solver.
+
+The SolverFactory was unable to create the solver ""highs""
+and returned an UnknownSolver object.  This error is raised at the point
+where the UnknownSolver object was used as if it were valid (by calling
+method ""solve"").
+
+The original solver was created with the following parameters:
+	executable: F:\Progs\AMPL\highs.exe
+	type: highs
+	_args: ()
+	options: {'TimeLimit': 60}"
+perf_p=10_h=7,perf_p=10_h=7.json,10,8,36,legacy_corrected,presolve_on,False,ERROR,,1810,3095,,,0.072203,"RuntimeError: Attempting to use an unavailable solver.
+
+The SolverFactory was unable to create the solver ""highs""
+and returned an UnknownSolver object.  This error is raised at the point
+where the UnknownSolver object was used as if it were valid (by calling
+method ""solve"").
+
+The original solver was created with the following parameters:
+	executable: F:\Progs\AMPL\highs.exe
+	type: highs
+	_args: ()
+	options: {'TimeLimit': 60}"
+perf_p=10_h=7,perf_p=10_h=7.json,10,8,36,event_based,presolve_on,False,ERROR,,900,4205,,,0.112163,"RuntimeError: Attempting to use an unavailable solver.
+
+The SolverFactory was unable to create the solver ""highs""
+and returned an UnknownSolver object.  This error is raised at the point
+where the UnknownSolver object was used as if it were valid (by calling
+method ""solve"").
+
+The original solver was created with the following parameters:
+	executable: F:\Progs\AMPL\highs.exe
+	type: highs
+	_args: ()
+	options: {'TimeLimit': 60}"
+perf_p=20_h=15,perf_p=20_h=15.json,20,16,76,legacy_paper_c13,presolve_on,False,ERROR,,10680,17393,,,0.81927,"RuntimeError: Attempting to use an unavailable solver.
+
+The SolverFactory was unable to create the solver ""highs""
+and returned an UnknownSolver object.  This error is raised at the point
+where the UnknownSolver object was used as if it were valid (by calling
+method ""solve"").
+
+The original solver was created with the following parameters:
+	executable: F:\Progs\AMPL\highs.exe
+	type: highs
+	_args: ()
+	options: {'TimeLimit': 60}"
+perf_p=20_h=15,perf_p=20_h=15.json,20,16,76,legacy_endpoint_split,presolve_on,False,ERROR,,10680,19793,,,0.848773,"RuntimeError: Attempting to use an unavailable solver.
+
+The SolverFactory was unable to create the solver ""highs""
+and returned an UnknownSolver object.  This error is raised at the point
+where the UnknownSolver object was used as if it were valid (by calling
+method ""solve"").
+
+The original solver was created with the following parameters:
+	executable: F:\Progs\AMPL\highs.exe
+	type: highs
+	_args: ()
+	options: {'TimeLimit': 60}"
+perf_p=20_h=15,perf_p=20_h=15.json,20,16,76,legacy_corrected,presolve_on,False,ERROR,,11020,16313,,,0.545483,"RuntimeError: Attempting to use an unavailable solver.
+
+The SolverFactory was unable to create the solver ""highs""
+and returned an UnknownSolver object.  This error is raised at the point
+where the UnknownSolver object was used as if it were valid (by calling
+method ""solve"").
+
+The original solver was created with the following parameters:
+	executable: F:\Progs\AMPL\highs.exe
+	type: highs
+	_args: ()
+	options: {'TimeLimit': 60}"
+perf_p=20_h=15,perf_p=20_h=15.json,20,16,76,event_based,presolve_on,False,ERROR,,3800,17777,,,0.378546,"RuntimeError: Attempting to use an unavailable solver.
+
+The SolverFactory was unable to create the solver ""highs""
+and returned an UnknownSolver object.  This error is raised at the point
+where the UnknownSolver object was used as if it were valid (by calling
+method ""solve"").
+
+The original solver was created with the following parameters:
+	executable: F:\Progs\AMPL\highs.exe
+	type: highs
+	_args: ()
+	options: {'TimeLimit': 60}"

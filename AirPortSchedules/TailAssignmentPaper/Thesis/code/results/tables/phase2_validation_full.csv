@@ -1,0 +1,22 @@
+instance,config,status,obj,n_vars,n_cons,gap,cpu,report,error
+ABCD_all_checks_test.json,legacy,ERROR,,,,,,results\tables\formulation_reports\ABCD_all_checks_test_legacy.txt,"""Index '(6, 0)' is not valid for indexed component 'x'"""
+ABCD_all_checks_test.json,event_strict_bridge,ERROR,,,,,,results\tables\formulation_reports\ABCD_all_checks_test_event_strict_bridge.txt,"""Index '(6, 0)' is not valid for indexed component 'x'"""
+ABCD_all_checks_test.json,event_only_block_capacity,ERROR,,,,,,results\tables\formulation_reports\ABCD_all_checks_test_event_only_block_capacity.txt,"""Index '(6, 0)' is not valid for indexed component 'x'"""
+ABCD_capacity_bottleneck_test.json,legacy,optimal,8300.0,744,1510,nan,0.35500001907348633,results\tables\formulation_reports\ABCD_capacity_bottleneck_test_legacy.txt,
+ABCD_capacity_bottleneck_test.json,event_strict_bridge,optimal,8300.0,888,2082,nan,0.3710002899169922,results\tables\formulation_reports\ABCD_capacity_bottleneck_test_event_strict_bridge.txt,
+ABCD_capacity_bottleneck_test.json,event_only_block_capacity,optimal,8300.0,888,1759,nan,0.37999773025512695,results\tables\formulation_reports\ABCD_capacity_bottleneck_test_event_only_block_capacity.txt,
+ABCD_check_hierarchy_test.json,legacy,optimal,15900.0,1220,2813,nan,0.3209989070892334,results\tables\formulation_reports\ABCD_check_hierarchy_test_legacy.txt,
+ABCD_check_hierarchy_test.json,event_strict_bridge,optimal,15900.0,1571,4168,nan,0.3210010528564453,results\tables\formulation_reports\ABCD_check_hierarchy_test_event_strict_bridge.txt,
+ABCD_check_hierarchy_test.json,event_only_block_capacity,optimal,14600.0,1571,3216,nan,0.37084484100341797,results\tables\formulation_reports\ABCD_check_hierarchy_test_event_only_block_capacity.txt,
+ABCD_multi_check_test.json,legacy,ERROR,,,,,,results\tables\formulation_reports\ABCD_multi_check_test_legacy.txt,"""Index '(14, 0)' is not valid for indexed component 'x'"""
+ABCD_multi_check_test.json,event_strict_bridge,ERROR,,,,,,results\tables\formulation_reports\ABCD_multi_check_test_event_strict_bridge.txt,"""Index '(14, 0)' is not valid for indexed component 'x'"""
+ABCD_multi_check_test.json,event_only_block_capacity,ERROR,,,,,,results\tables\formulation_reports\ABCD_multi_check_test_event_only_block_capacity.txt,"""Index '(14, 0)' is not valid for indexed component 'x'"""
+ABCD_near_threshold_test.json,legacy,optimal,25600.0,2424,5832,nan,0.3820021152496338,results\tables\formulation_reports\ABCD_near_threshold_test_legacy.txt,
+ABCD_near_threshold_test.json,event_strict_bridge,optimal,25600.0,3384,9472,nan,0.48067474365234375,results\tables\formulation_reports\ABCD_near_threshold_test_event_strict_bridge.txt,
+ABCD_near_threshold_test.json,event_only_block_capacity,optimal,25600.0,3384,7208,nan,0.457000732421875,results\tables\formulation_reports\ABCD_near_threshold_test_event_only_block_capacity.txt,
+ABCD_no_maint_test.json,legacy,optimal,14000.0,1000,2174,nan,0.31861162185668945,results\tables\formulation_reports\ABCD_no_maint_test_legacy.txt,
+ABCD_no_maint_test.json,event_strict_bridge,optimal,14000.0,1392,3627,nan,0.33099961280822754,results\tables\formulation_reports\ABCD_no_maint_test_event_strict_bridge.txt,
+ABCD_no_maint_test.json,event_only_block_capacity,optimal,14000.0,1392,3283,nan,0.32399773597717285,results\tables\formulation_reports\ABCD_no_maint_test_event_only_block_capacity.txt,
+ABCD_two_b_one_c_test.json,legacy,infeasible,,2850,7201,nan,0.372999906539917,results\tables\formulation_reports\ABCD_two_b_one_c_test_legacy.txt,
+ABCD_two_b_one_c_test.json,event_strict_bridge,infeasible,,3330,8984,nan,0.3914306163787842,results\tables\formulation_reports\ABCD_two_b_one_c_test_event_strict_bridge.txt,
+ABCD_two_b_one_c_test.json,event_only_block_capacity,infeasible,,3330,7268,nan,0.47299766540527344,results\tables\formulation_reports\ABCD_two_b_one_c_test_event_only_block_capacity.txt,

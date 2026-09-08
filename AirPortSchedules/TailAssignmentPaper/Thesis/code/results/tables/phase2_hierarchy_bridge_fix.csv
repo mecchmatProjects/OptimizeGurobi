@@ -1,0 +1,4 @@
+instance,config,status,obj,n_vars,n_cons,gap,cpu,report,error
+ABCD_check_hierarchy_test.json,legacy,optimal,15900.0,1220,2813,nan,0.31799936294555664,results\tables\formulation_reports\ABCD_check_hierarchy_test_legacy.txt,
+ABCD_check_hierarchy_test.json,event_strict_bridge,optimal,15900.0,1571,4168,nan,0.33499956130981445,results\tables\formulation_reports\ABCD_check_hierarchy_test_event_strict_bridge.txt,
+ABCD_check_hierarchy_test.json,event_only_block_capacity,optimal,14600.0,1571,3216,nan,0.3699629306793213,results\tables\formulation_reports\ABCD_check_hierarchy_test_event_only_block_capacity.txt,

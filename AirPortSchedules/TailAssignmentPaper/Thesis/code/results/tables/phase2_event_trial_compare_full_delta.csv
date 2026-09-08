@@ -1,0 +1,6 @@
+instance,status_legacy,status_event_strict,status_event_only,vars_legacy,vars_event_strict,vars_event_only,cons_legacy,cons_event_strict,cons_event_only,d_vars_strict_minus_legacy,d_cons_strict_minus_legacy,d_vars_event_only_minus_legacy,d_cons_event_only_minus_legacy,obj_legacy,obj_event_strict,obj_event_only,cpu_legacy,cpu_event_strict,cpu_event_only
+ABCD_capacity_bottleneck_test.json,unknown,unknown,unknown,744,888,888,1510,2082,1759,144.0,572.0,144.0,249.0,,,,0.024001359939575195,0.0240018367767334,0.023998022079467773
+ABCD_check_hierarchy_test.json,unknown,unknown,unknown,1220,1571,1571,2813,4168,3216,351.0,1355.0,351.0,403.0,,,,0.02299976348876953,0.03300023078918457,0.029997587203979492
+ABCD_near_threshold_test.json,unknown,unknown,unknown,2424,3384,3384,5832,9472,7208,960.0,3640.0,960.0,1376.0,,,,0.02700328826904297,0.031000137329101562,0.03099966049194336
+ABCD_no_maint_test.json,unknown,unknown,unknown,1000,1392,1392,2174,3627,3283,392.0,1453.0,392.0,1109.0,,,,0.02500152587890625,0.025002241134643555,0.025998592376708984
+ABCD_two_b_one_c_test.json,unknown,unknown,unknown,2850,3330,3330,7201,8984,7268,480.0,1783.0,480.0,67.0,,,,0.028000593185424805,0.030001163482666016,0.030000925064086914

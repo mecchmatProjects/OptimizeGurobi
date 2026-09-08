@@ -1,0 +1,7 @@
+stem,method,status,objective,score,flights,assigned,unassigned,gap_pct,wall_s,cpu_s,violations,solver,solver_attempt_order,num_vars,num_constraints,returncode
+DataCplex_density=1_p=10_h=7_test_0,greedy_baseline,feasible,1620593.000000,10920593.000000,234,141,93,,1.089687,,93,,,,,0
+DataCplex_density=1_p=10_h=7_test_0,dijkstra_heuristic,feasible,1421556.000000,13321556.000000,234,115,119,,3.508471,,119,,,,,0
+DataCplex_density=1_p=10_h=7_test_0,aco_heuristic,feasible,239135.000000,21139135.000000,234,25,209,,76.875469,,209,,,,,0
+DataCplex_density=1_p=10_h=7_test_0,bruteforce_exact,not_applicable,0.000000,23400000.000000,234,0,234,,0.000000,,234,,,,,0
+DataCplex_density=1_p=10_h=7_test_0,milp_compact,infeasible,0.000000,23400000.000000,234,0,234,nan,12.932358,7.146330,234,cplex,"cplex,cplex_direct,cplex_persistent,gurobi,glpk,cbc",,,0
+DataCplex_density=1_p=10_h=7_test_0,dp_exact_small,not_applicable,0.000000,23400000.000000,234,0,234,,0.000000,,234,,,,,0

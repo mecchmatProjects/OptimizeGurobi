@@ -1,0 +1,8 @@
+instance,repeat,flights,aircraft,arc_status,arc_obj,arc_build_s,arc_solve_s,arc_total_s,arc_vars,arc_declared_vars,arc_cons,path_status,path_obj,path_enumeration_s,path_build_s,path_solve_s,path_total_s,path_vars,path_cons,path_count_total,path_coverage_valid,objective_match,speedup_path_vs_arc
+ABCD_all_checks_test,1,9,5,optimal,9000.0,0.004155,0.058691,0.062846,9,709,18,optimal,9000.0,0.000466,0.001485,0.016966,0.018917,106,14,106,True,True,3.3223
+ABCD_multi_check_test,1,16,4,optimal,16000.0,0.003666,0.011582,0.015249,16,808,32,optimal,16000.000000000007,0.009868,0.028744,0.410872,0.449484,2592,20,2592,True,True,0.0339
+ABCD_no_maint_test,1,14,4,optimal,14000.0,0.004443,0.021631,0.026074,56,872,70,optimal,14000.0,0.015250,0.104845,0.452489,0.572584,3948,18,3948,True,True,0.0455
+ABCD_near_threshold_test,1,20,6,optimal,20000.0,0.014235,0.044282,0.058517,120,2232,248,optimal,20000.0,0.036912,0.085008,1.326676,1.448596,6848,26,6848,True,True,0.0404
+ABCD_capacity_bottleneck_test,1,8,3,optimal,8000.0,0.002500,0.023536,0.026036,24,648,32,optimal,8000.0,0.000390,0.001534,0.017225,0.019149,135,11,135,True,True,1.3597
+ABCD_check_hierarchy_test,1,13,4,optimal,13000.0,0.004183,0.025707,0.029890,52,1092,85,optimal,13000.0,0.002595,0.009745,0.096841,0.109181,920,17,920,True,True,0.2738
+ABCD_two_b_one_c_test,1,14,5,optimal,14000.0,0.007719,0.031544,0.039263,70,2530,119,optimal,14000.0,0.003308,0.010508,0.102625,0.116442,1125,19,1125,True,True,0.3372

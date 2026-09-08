@@ -1,0 +1,3 @@
+instance,variant,variables,constraints,c9_rows,z_variables,build_s,solver,status,objective,runtime_s,error
+step7_strong_link_tiny,baseline,85,211,4,19,0.012143,cplex,optimal,20.0,0.079841,
+step7_strong_link_tiny,strong,85,211,4,19,0.011863,cplex,optimal,20.0,0.04585,

@@ -1,0 +1,5 @@
+instance,H,P,F,formulation,status,objective,vars,constraints,cpu_s,build_s,wall_s,peak_rss_mb,error,overlap_mode,tight_state_big_m
+data\feasible_instances\DataCplex_density=1_p=10_h=7_test_0.json,7,10,50,ordered_abcd,optimal,24935.0,2500,11913,,0.218099,1.540189,144.934,,clique,True
+data\feasible_instances\DataCplex_density=1_p=10_h=15_test_0.json,15,10,60,ordered_abcd,optimal,29914.0,3000,13157,,0.281744,2.146337,148.906,,clique,True
+data\feasible_instances\DataCplex_density=1_p=10_h=21_test_0.json,21,10,60,ordered_abcd,optimal,29886.0,3000,13157,,0.34308,2.092474,153.059,,clique,True
+data\feasible_instances\DataCplex_density=1_p=10_h=30_test_0.json,30,10,60,ordered_abcd,optimal,29875.0,3000,13157,,0.30033,2.18562,152.801,,clique,True

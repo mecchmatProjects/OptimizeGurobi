@@ -1,0 +1,9 @@
+mode,runs,complete_runs,optimal_runs,mean_assigned,median_assigned,mean_coverage_pct,median_coverage_pct,mean_cpu_s,median_cpu_s,mean_objective
+heuristic:aco,5,0,0,52.4,53.0,40.9375,41.4062,1.2714,1.2925,69505.6
+heuristic:dijkstra,5,0,0,69.0,69.0,53.9062,53.9062,1.1267,1.1431,89479.72
+heuristic:greedy,5,0,0,46.8,49.0,36.5625,38.2812,0.0086,0.0091,61417.7
+heuristic:greedy+insertion,5,0,0,46.8,49.0,36.5625,38.2812,0.1436,0.1487,61417.7
+heuristic:insertion,5,0,0,46.8,49.0,36.5625,38.2812,0.0299,0.0307,61417.7
+heuristic:local_search,5,0,0,46.8,49.0,36.5625,38.2812,0.1151,0.1273,61417.7
+heuristic:repair,5,0,0,46.8,49.0,36.5625,38.2812,0.0359,0.037,61417.7
+milp,5,0,5,128.0,128.0,100.0,100.0,4.9393,4.8981,161129.38

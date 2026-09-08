@@ -1,0 +1,379 @@
+Aircraft 0:
+  Flight  F8       ->   day    start   363.0 - end   482.0
+  Flight  F9       ->   day    start   518.0 - end   645.0
+  Flight  F40      ->   day    start  1803.0 - end  1912.0
+  Flight  F41      ->   day    start  1953.0 - end  2015.0
+  Flight  F88      ->   day    start  3246.0 - end  3362.0
+  Flight  F89      ->   day    start  3411.0 - end  3555.0
+  Flight  F136     ->   day    start  4680.0 - end  4830.0
+  Flight  F137     ->   day    start  4868.0 - end  4949.0
+  Flight  F160     ->   day    start  6125.0 - end  6253.0
+  Flight  F199     ->   day    start  6265.0 - end  6411.0
+  Flight  F222     ->   day    start  7564.0 - end  7698.0
+  Flight  F223     ->   day    start  7744.0 - end  7869.0
+  Flight  F254     ->   day    start  9000.0 - end  9128.0
+  Flight  F255     ->   day    start  9168.0 - end  9275.0
+  Flight  F318     ->   day    start 10443.0 - end 10550.0
+  Flight  F281     ->   day    start 10587.0 - end 10717.0
+  No maintenance scheduled  |  total flight mins = 1913.0
+
+Aircraft 1:
+  Flight  F2       ->   day    start   374.0 - end   464.0
+  Flight  F3       ->   day    start   496.0 - end   586.0
+  Flight  F58      ->   day    start  1800.0 - end  1879.0
+  Flight  F59      ->   day    start  1917.0 - end  2064.0
+  Flight  F98      ->   day    start  3240.0 - end  3332.0
+  Flight  F99      ->   day    start  3379.0 - end  3522.0
+  Flight  F154     ->   day    start  4680.0 - end  4752.0
+  Flight  F155     ->   day    start  4797.0 - end  4869.0
+  Flight  F170     ->   day    start  6124.0 - end  6272.0
+  Flight  F171     ->   day    start  6307.0 - end  6409.0
+  Flight  F210     ->   day    start  7561.0 - end  7697.0
+  Flight  F211     ->   day    start  7735.0 - end  7814.0
+  Flight  F274     ->   day    start  9004.0 - end  9070.0
+  Flight  F275     ->   day    start  9101.0 - end  9185.0
+  Flight  F306     ->   day    start 10440.0 - end 10565.0
+  Flight  F307     ->   day    start 10611.0 - end 10754.0
+  No maintenance scheduled  |  total flight mins = 1668.0
+
+Aircraft 2:
+  Flight  F36      ->   day    start   367.0 - end   470.0
+  Flight  F37      ->   day    start   509.0 - end   656.0
+  Flight  F52      ->   day    start  1814.0 - end  1923.0
+  Flight  F53      ->   day    start  1965.0 - end  2037.0
+  Flight  F92      ->   day    start  3247.0 - end  3317.0
+  Flight  F93      ->   day    start  3363.0 - end  3463.0
+  Flight  F132     ->   day    start  4688.0 - end  4782.0
+  Flight  F133     ->   day    start  4814.0 - end  4945.0
+  Flight  F180     ->   day    start  6127.0 - end  6200.0
+  Flight  F181     ->   day    start  6237.0 - end  6377.0
+  Flight  F212     ->   day    start  7561.0 - end  7635.0
+  Flight  F213     ->   day    start  7675.0 - end  7752.0
+  Flight  F268     ->   day    start  9005.0 - end  9108.0
+  Flight  F269     ->   day    start  9158.0 - end  9244.0
+  Flight  F316     ->   day    start 10440.0 - end 10583.0
+  Flight  F317     ->   day    start 10628.0 - end 10740.0
+  No maintenance scheduled  |  total flight mins = 1634.0
+
+Aircraft 3:
+  Flight  F38      ->   day    start   374.0 - end   467.0
+  Flight  F1       ->   day    start   511.0 - end   608.0
+  Flight  F56      ->   day    start  1815.0 - end  1914.0
+  Flight  F57      ->   day    start  1958.0 - end  2020.0
+  Flight  F112     ->   day    start  3248.0 - end  3386.0
+  Flight  F113     ->   day    start  3428.0 - end  3542.0
+  Flight  F120     ->   day    start  4694.0 - end  4817.0
+  Flight  F121     ->   day    start  4847.0 - end  4969.0
+  Flight  F192     ->   day    start  6135.0 - end  6262.0
+  Flight  F193     ->   day    start  6308.0 - end  6438.0
+  Flight  F208     ->   day    start  7570.0 - end  7687.0
+  Flight  F209     ->   day    start  7734.0 - end  7852.0
+  Flight  F264     ->   day    start  9012.0 - end  9132.0
+  Flight  F265     ->   day    start  9181.0 - end  9319.0
+  Flight  F288     ->   day    start 10452.0 - end 10534.0
+  Flight  F289     ->   day    start 10572.0 - end 10676.0
+  No maintenance scheduled  |  total flight mins = 1784.0
+
+Aircraft 4:
+  Flight  F32      ->   day    start   364.0 - end   430.0
+  Flight  F33      ->   day    start   466.0 - end   550.0
+  Flight  F72      ->   day    start  1801.0 - end  1909.0
+  Flight  F73      ->   day    start  1945.0 - end  2072.0
+  Flight  F96      ->   day    start  3241.0 - end  3352.0
+  Flight  F97      ->   day    start  3397.0 - end  3480.0
+  Flight  F152     ->   day    start  4686.0 - end  4760.0
+  Flight  F151     ->   day    start  4827.0 - end  4911.0
+  Flight  F198     ->   day    start  6130.0 - end  6223.0
+  Flight  F161     ->   day    start  6291.0 - end  6417.0
+  Flight  F232     ->   day    start  7562.0 - end  7641.0
+  Flight  F233     ->   day    start  7679.0 - end  7779.0
+  Flight  F248     ->   day    start  9009.0 - end  9153.0
+  Flight  F249     ->   day    start  9193.0 - end  9309.0
+  Flight  F312     ->   day    start 10448.0 - end 10597.0
+  Flight  F313     ->   day    start 10638.0 - end 10737.0
+  No maintenance scheduled  |  total flight mins = 1643.0
+
+Aircraft 5:
+  Flight  F10      ->   day    start   370.0 - end   495.0
+  Flight  F11      ->   day    start   544.0 - end   651.0
+  Flight  F50      ->   day    start  1813.0 - end  1932.0
+  Flight  F51      ->   day    start  1977.0 - end  2060.0
+  Flight  F114     ->   day    start  3245.0 - end  3360.0
+  Flight  F115     ->   day    start  3399.0 - end  3466.0
+  Flight  F130     ->   day    start  4695.0 - end  4813.0
+  Flight  F131     ->   day    start  4845.0 - end  4957.0
+  Flight  F162     ->   day    start  6132.0 - end  6252.0
+  Flight  F163     ->   day    start  6283.0 - end  6406.0
+  Flight  F234     ->   day    start  7568.0 - end  7698.0
+  Flight  F235     ->   day    start  7735.0 - end  7811.0
+  Flight  F250     ->   day    start  9012.0 - end  9117.0
+  Flight  F251     ->   day    start  9163.0 - end  9287.0
+  Flight  F298     ->   day    start 10451.0 - end 10593.0
+  Flight  F299     ->   day    start 10632.0 - end 10721.0
+  No maintenance scheduled  |  total flight mins = 1755.0
+
+Aircraft 6:
+  Flight  F28      ->   day    start   360.0 - end   488.0
+  Flight  F29      ->   day    start   538.0 - end   656.0
+  Flight  F76      ->   day    start  1811.0 - end  1950.0
+  Flight  F77      ->   day    start  2000.0 - end  2076.0
+  Flight  F108     ->   day    start  3253.0 - end  3382.0
+  Flight  F109     ->   day    start  3421.0 - end  3508.0
+  Flight  F148     ->   day    start  4691.0 - end  4751.0
+  Flight  F149     ->   day    start  4792.0 - end  4930.0
+  Flight  F188     ->   day    start  6135.0 - end  6262.0
+  Flight  F189     ->   day    start  6301.0 - end  6373.0
+  Flight  F236     ->   day    start  7575.0 - end  7711.0
+  Flight  F237     ->   day    start  7759.0 - end  7871.0
+  Flight  F244     ->   day    start  9014.0 - end  9088.0
+  Flight  F245     ->   day    start  9137.0 - end  9247.0
+  Flight  F300     ->   day    start 10455.0 - end 10535.0
+  Flight  F301     ->   day    start 10566.0 - end 10673.0
+  No maintenance scheduled  |  total flight mins = 1693.0
+
+Aircraft 7:
+  Flight  F14      ->   day    start   367.0 - end   429.0
+  Flight  F15      ->   day    start   472.0 - end   553.0
+  Flight  F62      ->   day    start  1802.0 - end  1915.0
+  Flight  F63      ->   day    start  1962.0 - end  2083.0
+  Flight  F94      ->   day    start  3244.0 - end  3332.0
+  Flight  F95      ->   day    start  3362.0 - end  3459.0
+  Flight  F142     ->   day    start  4685.0 - end  4807.0
+  Flight  F143     ->   day    start  4840.0 - end  4965.0
+  Flight  F182     ->   day    start  6124.0 - end  6221.0
+  Flight  F183     ->   day    start  6268.0 - end  6394.0
+  Flight  F206     ->   day    start  7561.0 - end  7707.0
+  Flight  F207     ->   day    start  7740.0 - end  7845.0
+  Flight  F246     ->   day    start  9004.0 - end  9086.0
+  Flight  F247     ->   day    start  9131.0 - end  9248.0
+  Flight  F294     ->   day    start 10445.0 - end 10575.0
+  Flight  F295     ->   day    start 10624.0 - end 10754.0
+  No maintenance scheduled  |  total flight mins = 1742.0
+
+Aircraft 8:
+  Flight  F16      ->   day    start   360.0 - end   480.0
+  Flight  F17      ->   day    start   525.0 - end   662.0
+  Flight  F48      ->   day    start  1802.0 - end  1904.0
+  Flight  F49      ->   day    start  1947.0 - end  2048.0
+  Flight  F80      ->   day    start  3240.0 - end  3327.0
+  Flight  F119     ->   day    start  3389.0 - end  3523.0
+  Flight  F158     ->   day    start  4685.0 - end  4796.0
+  Flight  F159     ->   day    start  4833.0 - end  4978.0
+  Flight  F190     ->   day    start  6130.0 - end  6240.0
+  Flight  F191     ->   day    start  6276.0 - end  6400.0
+  Flight  F230     ->   day    start  7563.0 - end  7679.0
+  Flight  F231     ->   day    start  7720.0 - end  7827.0
+  Flight  F278     ->   day    start  9012.0 - end  9160.0
+  Flight  F279     ->   day    start  9205.0 - end  9336.0
+  Flight  F310     ->   day    start 10449.0 - end 10528.0
+  Flight  F311     ->   day    start 10571.0 - end 10694.0
+  No maintenance scheduled  |  total flight mins = 1875.0
+
+Aircraft 9:
+  Flight  F18      ->   day    start   369.0 - end   480.0
+  Flight  F19      ->   day    start   523.0 - end   604.0
+  Flight  F42      ->   day    start  1812.0 - end  1935.0
+  Flight  F43      ->   day    start  1975.0 - end  2068.0
+  Flight  F90      ->   day    start  3242.0 - end  3330.0
+  Flight  F91      ->   day    start  3372.0 - end  3471.0
+  Flight  F138     ->   day    start  4683.0 - end  4790.0
+  Flight  F139     ->   day    start  4839.0 - end  4967.0
+  Flight  F178     ->   day    start  6133.0 - end  6222.0
+  Flight  F179     ->   day    start  6260.0 - end  6349.0
+  Flight  F218     ->   day    start  7574.0 - end  7681.0
+  Flight  F219     ->   day    start  7721.0 - end  7791.0
+  Flight  F242     ->   day    start  9008.0 - end  9098.0
+  Flight  F243     ->   day    start  9142.0 - end  9210.0
+  Flight  F314     ->   day    start 10442.0 - end 10531.0
+  Flight  F315     ->   day    start 10569.0 - end 10683.0
+  No maintenance scheduled  |  total flight mins = 1546.0
+
+Aircraft 10:
+  Flight  F20      ->   day    start   368.0 - end   459.0
+  Flight  F21      ->   day    start   507.0 - end   580.0
+  Flight  F68      ->   day    start  1806.0 - end  1942.0
+  Flight  F69      ->   day    start  1973.0 - end  2116.0
+  Flight  F100     ->   day    start  3249.0 - end  3319.0
+  Flight  F101     ->   day    start  3364.0 - end  3492.0
+  Flight  F124     ->   day    start  4688.0 - end  4802.0
+  Flight  F125     ->   day    start  4844.0 - end  4976.0
+  Flight  F164     ->   day    start  6124.0 - end  6256.0
+  Flight  F165     ->   day    start  6293.0 - end  6435.0
+  Flight  F220     ->   day    start  7573.0 - end  7665.0
+  Flight  F221     ->   day    start  7714.0 - end  7776.0
+  Flight  F252     ->   day    start  9007.0 - end  9146.0
+  Flight  F253     ->   day    start  9187.0 - end  9258.0
+  Flight  F284     ->   day    start 10454.0 - end 10526.0
+  Flight  F285     ->   day    start 10562.0 - end 10625.0
+  No maintenance scheduled  |  total flight mins = 1660.0
+
+Aircraft 11:
+  Flight  F6       ->   day    start   368.0 - end   481.0
+  Flight  F7       ->   day    start   531.0 - end   638.0
+  Flight  F78      ->   day    start  1814.0 - end  1927.0
+  Flight  F79      ->   day    start  1959.0 - end  2046.0
+  Flight  F102     ->   day    start  3250.0 - end  3325.0
+  Flight  F103     ->   day    start  3366.0 - end  3500.0
+  Flight  F134     ->   day    start  4686.0 - end  4826.0
+  Flight  F135     ->   day    start  4866.0 - end  4975.0
+  Flight  F166     ->   day    start  6128.0 - end  6200.0
+  Flight  F167     ->   day    start  6232.0 - end  6363.0
+  Flight  F238     ->   day    start  7575.0 - end  7672.0
+  Flight  F201     ->   day    start  7725.0 - end  7835.0
+  Flight  F240     ->   day    start  9008.0 - end  9077.0
+  Flight  F241     ->   day    start  9111.0 - end  9233.0
+  Flight  F296     ->   day    start 10444.0 - end 10545.0
+  Flight  F297     ->   day    start 10591.0 - end 10703.0
+  No maintenance scheduled  |  total flight mins = 1692.0
+
+Aircraft 12:
+  Flight  F0       ->   day    start   372.0 - end   472.0
+  Flight  F39      ->   day    start   508.0 - end   614.0
+  Flight  F46      ->   day    start  1811.0 - end  1889.0
+  Flight  F47      ->   day    start  1938.0 - end  2039.0
+  Flight  F118     ->   day    start  3246.0 - end  3344.0
+  Flight  F81      ->   day    start  3362.0 - end  3427.0
+  Flight  F128     ->   day    start  4680.0 - end  4758.0
+  Flight  F129     ->   day    start  4805.0 - end  4947.0
+  Flight  F184     ->   day    start  6124.0 - end  6218.0
+  Flight  F185     ->   day    start  6260.0 - end  6398.0
+  Flight  F224     ->   day    start  7560.0 - end  7641.0
+  Flight  F225     ->   day    start  7683.0 - end  7778.0
+  Flight  F256     ->   day    start  9005.0 - end  9130.0
+  Flight  F257     ->   day    start  9180.0 - end  9250.0
+  Flight  F304     ->   day    start 10440.0 - end 10500.0
+  Flight  F305     ->   day    start 10531.0 - end 10658.0
+  No maintenance scheduled  |  total flight mins = 1558.0
+
+Aircraft 13:
+  Flight  F34      ->   day    start   366.0 - end   430.0
+  Flight  F35      ->   day    start   474.0 - end   539.0
+  Flight  F74      ->   day    start  1807.0 - end  1886.0
+  Flight  F75      ->   day    start  1921.0 - end  2009.0
+  Flight  F82      ->   day    start  3246.0 - end  3377.0
+  Flight  F83      ->   day    start  3410.0 - end  3483.0
+  Flight  F146     ->   day    start  4681.0 - end  4821.0
+  Flight  F147     ->   day    start  4851.0 - end  4989.0
+  Flight  F194     ->   day    start  6129.0 - end  6256.0
+  Flight  F195     ->   day    start  6303.0 - end  6450.0
+  Flight  F226     ->   day    start  7571.0 - end  7664.0
+  Flight  F227     ->   day    start  7711.0 - end  7806.0
+  Flight  F266     ->   day    start  9007.0 - end  9109.0
+  Flight  F267     ->   day    start  9155.0 - end  9298.0
+  Flight  F282     ->   day    start 10441.0 - end 10573.0
+  Flight  F283     ->   day    start 10613.0 - end 10705.0
+  No maintenance scheduled  |  total flight mins = 1709.0
+
+Aircraft 14:
+  Flight  F4       ->   day    start   365.0 - end   427.0
+  Flight  F5       ->   day    start   473.0 - end   584.0
+  Flight  F60      ->   day    start  1802.0 - end  1907.0
+  Flight  F61      ->   day    start  1940.0 - end  2036.0
+  Flight  F84      ->   day    start  3250.0 - end  3386.0
+  Flight  F85      ->   day    start  3425.0 - end  3559.0
+  Flight  F156     ->   day    start  4694.0 - end  4841.0
+  Flight  F157     ->   day    start  4881.0 - end  4983.0
+  Flight  F172     ->   day    start  6129.0 - end  6246.0
+  Flight  F173     ->   day    start  6278.0 - end  6345.0
+  Flight  F228     ->   day    start  7566.0 - end  7631.0
+  Flight  F229     ->   day    start  7672.0 - end  7792.0
+  Flight  F276     ->   day    start  9010.0 - end  9076.0
+  Flight  F277     ->   day    start  9122.0 - end  9242.0
+  Flight  F308     ->   day    start 10444.0 - end 10565.0
+  Flight  F309     ->   day    start 10605.0 - end 10682.0
+  No maintenance scheduled  |  total flight mins = 1646.0
+
+Aircraft 15:
+  Flight  F30      ->   day    start   363.0 - end   426.0
+  Flight  F31      ->   day    start   464.0 - end   556.0
+  Flight  F54      ->   day    start  1805.0 - end  1881.0
+  Flight  F55      ->   day    start  1919.0 - end  2067.0
+  Flight  F110     ->   day    start  3249.0 - end  3331.0
+  Flight  F111     ->   day    start  3369.0 - end  3495.0
+  Flight  F150     ->   day    start  4681.0 - end  4793.0
+  Flight  F153     ->   day    start  4808.0 - end  4869.0
+  Flight  F176     ->   day    start  6123.0 - end  6252.0
+  Flight  F177     ->   day    start  6294.0 - end  6434.0
+  Flight  F200     ->   day    start  7561.0 - end  7693.0
+  Flight  F239     ->   day    start  7708.0 - end  7831.0
+  Flight  F262     ->   day    start  9000.0 - end  9076.0
+  Flight  F263     ->   day    start  9121.0 - end  9227.0
+  Flight  F286     ->   day    start 10445.0 - end 10593.0
+  Flight  F287     ->   day    start 10627.0 - end 10736.0
+  No maintenance scheduled  |  total flight mins = 1723.0
+
+Aircraft 16:
+  Flight  F24      ->   day    start   373.0 - end   496.0
+  Flight  F25      ->   day    start   544.0 - end   619.0
+  Flight  F64      ->   day    start  1811.0 - end  1943.0
+  Flight  F65      ->   day    start  1982.0 - end  2050.0
+  Flight  F104     ->   day    start  3244.0 - end  3307.0
+  Flight  F105     ->   day    start  3355.0 - end  3493.0
+  Flight  F144     ->   day    start  4687.0 - end  4792.0
+  Flight  F145     ->   day    start  4834.0 - end  4917.0
+  Flight  F168     ->   day    start  6125.0 - end  6227.0
+  Flight  F169     ->   day    start  6271.0 - end  6362.0
+  Flight  F216     ->   day    start  7562.0 - end  7647.0
+  Flight  F217     ->   day    start  7687.0 - end  7819.0
+  Flight  F272     ->   day    start  9006.0 - end  9068.0
+  Flight  F273     ->   day    start  9103.0 - end  9233.0
+  Flight  F280     ->   day    start 10445.0 - end 10555.0
+  Flight  F319     ->   day    start 10589.0 - end 10718.0
+  No maintenance scheduled  |  total flight mins = 1628.0
+
+Aircraft 17:
+  Flight  F26      ->   day    start   372.0 - end   509.0
+  Flight  F27      ->   day    start   541.0 - end   621.0
+  Flight  F66      ->   day    start  1803.0 - end  1907.0
+  Flight  F67      ->   day    start  1956.0 - end  2073.0
+  Flight  F106     ->   day    start  3243.0 - end  3315.0
+  Flight  F107     ->   day    start  3356.0 - end  3427.0
+  Flight  F122     ->   day    start  4684.0 - end  4786.0
+  Flight  F123     ->   day    start  4832.0 - end  4960.0
+  Flight  F186     ->   day    start  6126.0 - end  6234.0
+  Flight  F187     ->   day    start  6271.0 - end  6419.0
+  Flight  F202     ->   day    start  7562.0 - end  7672.0
+  Flight  F203     ->   day    start  7707.0 - end  7813.0
+  Flight  F258     ->   day    start  9006.0 - end  9113.0
+  Flight  F259     ->   day    start  9161.0 - end  9238.0
+  Flight  F290     ->   day    start 10455.0 - end 10588.0
+  Flight  F291     ->   day    start 10621.0 - end 10758.0
+  No maintenance scheduled  |  total flight mins = 1737.0
+
+Aircraft 18:
+  Flight  F12      ->   day    start   360.0 - end   446.0
+  Flight  F13      ->   day    start   491.0 - end   561.0
+  Flight  F44      ->   day    start  1807.0 - end  1925.0
+  Flight  F45      ->   day    start  1955.0 - end  2015.0
+  Flight  F116     ->   day    start  3251.0 - end  3329.0
+  Flight  F117     ->   day    start  3368.0 - end  3512.0
+  Flight  F140     ->   day    start  4681.0 - end  4791.0
+  Flight  F141     ->   day    start  4832.0 - end  4953.0
+  Flight  F196     ->   day    start  6120.0 - end  6250.0
+  Flight  F197     ->   day    start  6281.0 - end  6397.0
+  Flight  F204     ->   day    start  7566.0 - end  7688.0
+  Flight  F205     ->   day    start  7737.0 - end  7808.0
+  Flight  F260     ->   day    start  9008.0 - end  9122.0
+  Flight  F261     ->   day    start  9171.0 - end  9270.0
+  Flight  F292     ->   day    start 10442.0 - end 10529.0
+  Flight  F293     ->   day    start 10561.0 - end 10670.0
+  No maintenance scheduled  |  total flight mins = 1635.0
+
+Aircraft 19:
+  Flight  F22      ->   day    start   371.0 - end   461.0
+  Flight  F23      ->   day    start   503.0 - end   585.0
+  Flight  F70      ->   day    start  1810.0 - end  1949.0
+  Flight  F71      ->   day    start  1982.0 - end  2110.0
+  Flight  F86      ->   day    start  3254.0 - end  3361.0
+  Flight  F87      ->   day    start  3411.0 - end  3495.0
+  Flight  F126     ->   day    start  4691.0 - end  4838.0
+  Flight  F127     ->   day    start  4871.0 - end  5019.0
+  Flight  F174     ->   day    start  6132.0 - end  6201.0
+  Flight  F175     ->   day    start  6234.0 - end  6298.0
+  Flight  F214     ->   day    start  7574.0 - end  7692.0
+  Flight  F215     ->   day    start  7738.0 - end  7843.0
+  Flight  F270     ->   day    start  9004.0 - end  9129.0
+  Flight  F271     ->   day    start  9159.0 - end  9274.0
+  Flight  F302     ->   day    start 10447.0 - end 10520.0
+  Flight  F303     ->   day    start 10562.0 - end 10647.0
+  No maintenance scheduled  |  total flight mins = 1679.0

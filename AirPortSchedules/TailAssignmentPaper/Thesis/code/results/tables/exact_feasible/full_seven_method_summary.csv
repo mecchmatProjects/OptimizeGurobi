@@ -1,0 +1,8 @@
+method,instances,complete_instances,mean_coverage_pct,mean_total_cost,median_wall_s,mean_cost_difference_pct,complete_rate_pct
+aco,9,7,96.902,17027.0,0.086,23.044,77.778
+dijkstra,9,6,96.284,50688.667,0.006,256.464,66.667
+greedy,9,7,96.902,25808.556,0.001,75.431,77.778
+greedy+insertion,9,7,96.902,25808.556,0.001,75.431,77.778
+insertion,9,7,96.902,25808.556,0.001,75.431,77.778
+local_search,9,7,96.902,23731.111,0.006,60.537,77.778
+repair,9,7,96.902,25808.556,0.001,75.431,77.778

@@ -1,0 +1,4 @@
+"stem","flights","heu_on_assigned","heu_on_obj","heu_off_assigned","heu_off_unassigned","heu_off_obj","milp_on_status","milp_on_assigned","milp_on_obj","milp_on_gap","milp_off_status","milp_off_assigned","milp_off_obj","milp_off_gap"
+"DataCplex_density=0.5_p=4_h=7_test_0","28","28","20513.0","28","0","20513.0","optimal","28","18028.0","","optimal","28","14732.0",""
+"DataCplex_density=0.5_p=6_h=10_test_0","54","54","60121.0","48","6","36831.0","maxTimeLimit","54","0.0","3.882","intermediateNonInteger","54","0.0","3.557752190819328e+47"
+"DataCplex_density=0.8_p=4_h=7_test_0","30","30","22954.0","30","0","22954.0","optimal","30","19906.0","","optimal","30","15836.0",""

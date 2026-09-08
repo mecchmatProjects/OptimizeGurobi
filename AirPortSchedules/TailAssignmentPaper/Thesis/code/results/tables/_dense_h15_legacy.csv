@@ -1,0 +1,7 @@
+stem,mode,flights,assigned,unassigned,status,objective,gap_pct,cpu_s,wall_s,num_vars,num_constraints,returncode
+DataCplex_density=1_p=10_h=15_test_0,heuristic,420,284,136,feasible,3338053.000000,,,5.671179,,,0
+DataCplex_density=1_p=10_h=15_test_0,heuristic,420,142,278,feasible,1802971.000000,,,15.225129,,,0
+DataCplex_density=1_p=10_h=15_test_0,heuristic,420,32,388,feasible,265968.000000,,,190.723475,,,0
+DataCplex_density=1_p=10_h=15_test_0,heuristic,420,0,420,not_applicable,0.000000,,,0.000000,,,0
+DataCplex_density=1_p=10_h=15_test_0,milp,420,0,420,error,0.000000,nan,61.015013,80.339766,,,0
+DataCplex_density=1_p=10_h=15_test_0,heuristic,420,0,420,not_applicable,0.000000,,,0.000000,,,0

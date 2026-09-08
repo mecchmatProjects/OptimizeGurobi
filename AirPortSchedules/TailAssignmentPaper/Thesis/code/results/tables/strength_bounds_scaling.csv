@@ -1,0 +1,13 @@
+instance,variant,mode,flights,aircraft,days,variables,constraints,z_variables,build_s,solver,time_limit_s,status,objective,dual_bound,primal_bound,mip_gap,nodes,runtime_s,coverage,error
+med1_p20_h8_r1,baseline,build,320,20,8,67520,155624,59200,4.364088,none,,built,,,,,,,,
+med1_p20_h8_r1,combined,build,320,20,8,33120,191584,24800,4.23689,none,,built,,,,,,,,
+med1_p20_h8_r2,baseline,build,320,20,8,67520,155624,59200,4.513573,none,,built,,,,,,,,
+med1_p20_h8_r2,combined,build,320,20,8,33120,195304,24800,4.312528,none,,built,,,,,,,,
+med1_p20_h8_r3,baseline,build,320,20,8,67520,155624,59200,4.471744,none,,built,,,,,,,,
+med1_p20_h8_r3,combined,build,320,20,8,33120,191064,24800,4.400147,none,,built,,,,,,,,
+sma3_p8_h35_r1,baseline,build,560,8,35,135392,214503,127552,12.166702,none,,built,,,,,,,,
+sma3_p8_h35_r1,combined,build,560,8,35,25376,86711,17536,24.85795,none,,built,,,,,,,,
+sma3_p8_h35_r2,baseline,build,560,8,35,135392,214503,127552,12.537171,none,,built,,,,,,,,
+sma3_p8_h35_r2,combined,build,560,8,35,25376,86599,17536,24.900903,none,,built,,,,,,,,
+sma3_p8_h35_r3,baseline,build,560,8,35,135392,214503,127552,12.137104,none,,built,,,,,,,,
+sma3_p8_h35_r3,combined,build,560,8,35,25376,86407,17536,24.90766,none,,built,,,,,,,,

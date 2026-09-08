@@ -1,0 +1,9 @@
+instance,formulation,status,objective,n_calendar_violations,violations
+DataCplex_density=1_p=10_h=7_test_0.json,ordered_abcd,optimal,10327.0,0,
+DataCplex_density=1_p=10_h=7_test_0.json,event_exact,optimal,10327.0,0,
+DataCplex_density=1_p=15_h=7_test_0.json,ordered_abcd,optimal,15441.0,0,
+DataCplex_density=1_p=15_h=7_test_0.json,event_exact,optimal,15441.0,0,
+DataCplex_density=1_p=20_h=7_test_0.json,ordered_abcd,optimal,20592.0,0,
+DataCplex_density=1_p=20_h=7_test_0.json,event_exact,optimal,20592.0,0,
+DataCplex_density=1_p=5_h=7_test_0.json,ordered_abcd,optimal,5139.0,0,
+DataCplex_density=1_p=5_h=7_test_0.json,event_exact,optimal,5139.0,0,

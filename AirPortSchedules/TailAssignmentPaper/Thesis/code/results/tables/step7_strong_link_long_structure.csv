@@ -1,0 +1,11 @@
+instance,variant,variables,constraints,c9_rows,z_variables,build_s,solver,status,objective,runtime_s,error
+DataCplex_density=0.5_p=10_h=10_test_0,baseline,11770,13925,2000,10390,0.513069,none,built,,,
+DataCplex_density=0.5_p=10_h=10_test_0,strong,11770,13925,2000,10390,0.525637,none,built,,,
+DataCplex_density=0.5_p=10_h=14_test_0,baseline,16870,21588,2800,14970,0.865723,none,built,,,
+DataCplex_density=0.5_p=10_h=14_test_0,strong,16870,21588,2800,14970,0.979928,none,built,,,
+DataCplex_density=0.5_p=8_h=14_test_0,baseline,11272,13831,1792,9864,0.589229,none,built,,,
+DataCplex_density=0.5_p=8_h=14_test_0,strong,11272,13831,1792,9864,0.613064,none,built,,,
+DataCplex_density=0.65_p=8_h=14_test_1,baseline,14440,17116,2336,12896,0.741759,none,built,,,
+DataCplex_density=0.65_p=8_h=14_test_1,strong,14440,17116,2336,12896,0.776416,none,built,,,
+DataCplex_density=0.6_p=10_h=14_test_1,baseline,20980,26252,3360,18940,1.168215,none,built,,,
+DataCplex_density=0.6_p=10_h=14_test_1,strong,20980,26252,3360,18940,1.11717,none,built,,,

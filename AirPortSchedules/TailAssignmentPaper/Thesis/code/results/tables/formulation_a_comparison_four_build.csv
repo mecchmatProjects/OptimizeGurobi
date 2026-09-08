@@ -1,0 +1,5 @@
+instance,H,P,F,formulation,status,objective,vars,constraints,cpu_s,build_s,wall_s,error
+DataCplex_density=1_p=10_h=7_test_0.json,7,10,70,legacy_paper_c13,build_only,,4460,5209,,0.203459,,
+DataCplex_density=1_p=10_h=7_test_0.json,7,10,70,legacy_endpoint_split,build_only,,4460,5419,,0.210947,,
+DataCplex_density=1_p=10_h=7_test_0.json,7,10,70,legacy_corrected,build_only,,4460,5629,,0.210579,,
+DataCplex_density=1_p=10_h=7_test_0.json,7,10,70,event_based,build_only,,2100,8338,,0.181622,,

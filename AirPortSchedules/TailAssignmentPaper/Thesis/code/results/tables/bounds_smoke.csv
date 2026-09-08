@@ -1,0 +1,6 @@
+instance,variant,mode,flights,aircraft,days,variables,constraints,z_variables,build_s,solver,time_limit_s,status,objective,dual_bound,primal_bound,mip_gap,nodes,runtime_s,coverage,error
+DataCplex_density=0.65_p=8_h=14_test_0,heuristic:greedy+insertion,heuristic,64,8,,,,,,none,,partial,43104.0,,,,,0.036961,0.84375,10 unassigned
+DataCplex_density=0.65_p=8_h=14_test_0,baseline,lp,64,8,14,2896,6598,2048,0.219156,highs,60,optimal,29738.0,29738.0,29738.0,0.0,,0.809751,,
+DataCplex_density=0.65_p=8_h=14_test_0,baseline,milp,64,8,14,2896,6598,2048,0.241643,highs,60,optimal,29738.0,29738.0,29738.0,0.0,,1.651131,,
+DataCplex_density=0.65_p=8_h=14_test_0,combined,lp,64,8,14,1104,3269,256,0.227378,highs,60,optimal,29738.0,29738.0,29738.0,0.0,,0.380505,,
+DataCplex_density=0.65_p=8_h=14_test_0,combined,milp,64,8,14,1104,3269,256,0.215849,highs,60,optimal,29738.0,29738.0,29738.0,0.0,,0.979219,,

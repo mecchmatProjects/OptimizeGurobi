@@ -1,0 +1,8 @@
+instance,status_legacy,status_event_strict,status_event_only,vars_legacy,vars_event_strict,vars_event_only,cons_legacy,cons_event_strict,cons_event_only,d_vars_strict_minus_legacy,d_cons_strict_minus_legacy,d_vars_event_only_minus_legacy,d_cons_event_only_minus_legacy,obj_legacy,obj_event_strict,obj_event_only,cpu_legacy,cpu_event_strict,cpu_event_only
+ABCD_all_checks_test.json,ERROR,ERROR,ERROR,,,,,,,0.0,0.0,0.0,0.0,,,,,,
+ABCD_capacity_bottleneck_test.json,optimal,optimal,optimal,744,888,888,1510,2082,1759,144.0,572.0,144.0,249.0,8300.0,8300.0,8300.0,0.35500001907348633,0.3710002899169922,0.37999773025512695
+ABCD_check_hierarchy_test.json,optimal,optimal,optimal,1220,1571,1571,2813,4168,3216,351.0,1355.0,351.0,403.0,15900.0,15900.0,14600.0,0.3209989070892334,0.3210010528564453,0.37084484100341797
+ABCD_multi_check_test.json,ERROR,ERROR,ERROR,,,,,,,0.0,0.0,0.0,0.0,,,,,,
+ABCD_near_threshold_test.json,optimal,optimal,optimal,2424,3384,3384,5832,9472,7208,960.0,3640.0,960.0,1376.0,25600.0,25600.0,25600.0,0.3820021152496338,0.48067474365234375,0.457000732421875
+ABCD_no_maint_test.json,optimal,optimal,optimal,1000,1392,1392,2174,3627,3283,392.0,1453.0,392.0,1109.0,14000.0,14000.0,14000.0,0.31861162185668945,0.33099961280822754,0.32399773597717285
+ABCD_two_b_one_c_test.json,infeasible,infeasible,infeasible,2850,3330,3330,7201,8984,7268,480.0,1783.0,480.0,67.0,,,,0.372999906539917,0.3914306163787842,0.47299766540527344

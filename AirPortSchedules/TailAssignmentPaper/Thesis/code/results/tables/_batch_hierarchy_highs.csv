@@ -1,0 +1,8 @@
+stem,method,mode,flights,assigned,unassigned,status,objective,gap_pct,cpu_s,wall_s,num_vars,num_constraints,returncode
+ABCD_all_checks_test,milp,milp,,,,infeasible,,,,1.79,709,1117,0
+ABCD_capacity_bottleneck_test,milp,milp,,,,optimal,8300.0,0.0,,2.08,648,1234,0
+ABCD_check_hierarchy_test,milp,milp,,,,optimal,14700.0,0.0,,2.11,1092,2445,0
+ABCD_multi_check_test,milp,milp,,,,infeasible,,,,1.89,808,1038,0
+ABCD_near_threshold_test,milp,milp,,,,optimal,21100.0,0.0,,2.58,2232,5280,0
+ABCD_no_maint_test,milp,milp,,,,optimal,14000.0,0.0,,1.96,872,1806,0
+ABCD_two_b_one_c_test,milp,milp,,,,infeasible,,,,2.57,2530,6261,0

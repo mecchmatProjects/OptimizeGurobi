@@ -1,0 +1,3 @@
+stem,P,H,F,vars,constraints,nodes_max,gap_pct,cpu_s,objective,formulation,routing_scope,status,build_s,wall_s,solver,time_limit_s,peak_rss_mb,error
+event_vs_legacy_clean_test,2,3,6,396,702,,,,,legacy_endpoint_split,legacy_day_indexed_routing,build_only,0.024917,,cplexamp,300,unavailable,
+event_vs_legacy_clean_test,2,3,6,138,376,,,,,event_exact_state,connected_event_arcs_no_ferry,build_only,0.021665,,cplexamp,300,unavailable,

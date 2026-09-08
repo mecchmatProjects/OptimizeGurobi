@@ -1,0 +1,3 @@
+mode,P,H,topology,threshold_mode,cost_model,application_compatible,runs,complete_runs,optimal_runs,mean_assigned,median_assigned,mean_coverage_pct,median_coverage_pct,mean_cpu_s,median_cpu_s,mean_objective
+milp,8,8,euler,coprime,factor,True,5,0,5,128.0,128.0,100.0,100.0,4.9393,4.8981,161129.38
+milp,8,21,euler,coprime,factor,True,5,0,5,336.0,336.0,100.0,100.0,65.541,68.4229,414358.06

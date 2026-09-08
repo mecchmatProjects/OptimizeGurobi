@@ -1,0 +1,7 @@
+stem,method,status,objective,score,flights,assigned,unassigned,gap_pct,wall_s,cpu_s,violations,solver,solver_attempt_order,num_vars,num_constraints,returncode
+ABCD_capacity_bottleneck_test,greedy_baseline,feasible,37000.000000,137000.000000,8,7,1,,0.000558,,1,,,,,0
+ABCD_capacity_bottleneck_test,dijkstra_heuristic,feasible,37000.000000,137000.000000,8,7,1,,0.000859,,1,,,,,0
+ABCD_capacity_bottleneck_test,aco_heuristic,feasible,17000.000000,317000.000000,8,5,3,,0.084142,,3,,,,,0
+ABCD_capacity_bottleneck_test,bruteforce_exact,infeasible,0.000000,800000.000000,8,0,8,,12.269185,,8,,,,,0
+ABCD_capacity_bottleneck_test,milp_compact,optimal,8300.000000,8300.000000,8,8,0,0.000000,0.191171,0.089001,0,cplex,"cplex,cplex_direct,cplex_persistent,gurobi,glpk,cbc",,,0
+ABCD_capacity_bottleneck_test,dp_exact_small,infeasible,0.000000,800000.000000,8,0,8,,12.127011,,8,,,,,0

@@ -1,0 +1,11 @@
+instance,variant,variables,constraints,c9_rows,z_variables,build_s,solver,status,objective,runtime_s,error
+DataCplex_density=0.5_p=10_h=10_test_0,sparse_z+tight_c13_m+reachability+strong_conflicts,5250,9020,2000,3870,0.514792,cplexamp,infeasible,,0.869343,non-success termination
+DataCplex_density=0.5_p=10_h=10_test_0,strong_link+sparse_z+tight_c13_m+reachability+strong_conflicts,5250,9020,2000,3870,0.553284,cplexamp,infeasible,,0.779921,non-success termination
+DataCplex_density=0.5_p=10_h=14_test_0,sparse_z+tight_c13_m+reachability+strong_conflicts,7690,12950,2800,5790,0.94927,cplexamp,infeasible,,1.084971,non-success termination
+DataCplex_density=0.5_p=10_h=14_test_0,strong_link+sparse_z+tight_c13_m+reachability+strong_conflicts,7690,12950,2800,5790,1.125706,cplexamp,infeasible,,1.051782,non-success termination
+DataCplex_density=0.5_p=8_h=14_test_0,sparse_z+tight_c13_m+reachability+strong_conflicts,5088,9495,1792,3680,0.670689,cplexamp,infeasible,,0.964758,non-success termination
+DataCplex_density=0.5_p=8_h=14_test_0,strong_link+sparse_z+tight_c13_m+reachability+strong_conflicts,5088,9495,1792,3680,0.632806,cplexamp,infeasible,,0.914696,non-success termination
+DataCplex_density=0.65_p=8_h=14_test_1,sparse_z+tight_c13_m+reachability+strong_conflicts,6400,11075,2336,4856,0.852066,cplexamp,infeasible,,0.995269,non-success termination
+DataCplex_density=0.65_p=8_h=14_test_1,strong_link+sparse_z+tight_c13_m+reachability+strong_conflicts,6400,11075,2336,4856,0.851306,cplexamp,infeasible,,0.961724,non-success termination
+DataCplex_density=0.6_p=10_h=14_test_1,sparse_z+tight_c13_m+reachability+strong_conflicts,8100,15132,3360,6060,1.294084,cplexamp,infeasible,,1.094346,non-success termination
+DataCplex_density=0.6_p=10_h=14_test_1,strong_link+sparse_z+tight_c13_m+reachability+strong_conflicts,8100,15132,3360,6060,1.209208,cplexamp,infeasible,,1.189435,non-success termination

@@ -1,0 +1,6 @@
+stem,P,H,F,vars,constraints,nodes_max,gap_pct,cpu_s,objective,mode,status,assigned,unassigned,generator_version,generator_seed,topology,threshold_mode,cost_model,application_compatible,certificate_status,milp_representable
+sma1_p8_h8_r1,8,8,128,,,,,1.051,81753.1,heuristic:dijkstra,partial,63,65,2.0.0,20260814,euler,coprime,factor,True,PASS,True
+sma1_p8_h8_r2,8,8,128,,,,,1.192,96354.6,heuristic:dijkstra,partial,73,55,2.0.0,20260814,euler,coprime,factor,True,PASS,True
+sma1_p8_h8_r3,8,8,128,,,,,1.1431,88073.9,heuristic:dijkstra,partial,69,59,2.0.0,20260814,euler,coprime,factor,True,PASS,True
+sma1_p8_h8_r4,8,8,128,,,,,1.0967,92850.3,heuristic:dijkstra,partial,71,57,2.0.0,20260814,euler,coprime,factor,True,PASS,True
+sma1_p8_h8_r5,8,8,128,,,,,1.1507,88366.7,heuristic:dijkstra,partial,69,59,2.0.0,20260814,euler,coprime,factor,True,PASS,True

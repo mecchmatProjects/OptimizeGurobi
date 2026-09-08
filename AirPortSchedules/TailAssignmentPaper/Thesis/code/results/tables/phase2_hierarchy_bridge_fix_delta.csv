@@ -1,0 +1,2 @@
+instance,status_legacy,status_event_strict,status_event_only,vars_legacy,vars_event_strict,vars_event_only,cons_legacy,cons_event_strict,cons_event_only,d_vars_strict_minus_legacy,d_cons_strict_minus_legacy,d_vars_event_only_minus_legacy,d_cons_event_only_minus_legacy,obj_legacy,obj_event_strict,obj_event_only,cpu_legacy,cpu_event_strict,cpu_event_only
+ABCD_check_hierarchy_test.json,optimal,optimal,optimal,1220,1571,1571,2813,4168,3216,351.0,1355.0,351.0,403.0,15900.0,15900.0,14600.0,0.31799936294555664,0.33499956130981445,0.3699629306793213

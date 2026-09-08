@@ -1,0 +1,2 @@
+stem,P,H,F,vars,constraints,nodes_max,gap_pct,cpu_s,objective,mode,status,assigned,unassigned,generator_version,generator_seed,topology,threshold_mode,cost_model,application_compatible,certificate_status,milp_representable
+sma2_p8_h21_r1,8,21,336,53984,88321,,0.0,73.8076,419367.2,milp,optimal,336,0,2.0.0,20260814,euler,coprime,factor,True,PASS,True

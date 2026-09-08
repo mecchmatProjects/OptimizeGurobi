@@ -1,0 +1,13 @@
+stem,P,H,F,vars,constraints,nodes_max,gap_pct,cpu_s,objective,formulation,routing_scope,status,build_s,wall_s,solver,time_limit_s,error
+DataCplex_density=0.5_p=10_h=10_test_0,10,10,68,5800,12269,,,1.125988,41134.0,legacy_endpoint_split,legacy_day_indexed_routing,optimal,0.479944,1.81688,cplexamp,60,
+DataCplex_density=0.5_p=10_h=10_test_0,10,10,68,11124,52124,,,2.844731,47340.0,event_exact_state,connected_event_arcs_no_ferry,optimal,1.444202,4.672427,cplexamp,60,
+DataCplex_density=0.5_p=10_h=15_test_0,10,15,98,11520,25484,,,47.013606,63827.0,legacy_endpoint_split,legacy_day_indexed_routing,optimal,1.344684,48.241027,cplexamp,60,
+DataCplex_density=0.5_p=10_h=15_test_0,10,15,98,19839,97617,,,60.592301,,event_exact_state,connected_event_arcs_no_ferry,maxIterations,2.690611,63.833499,cplexamp,60,
+DataCplex_density=0.5_p=10_h=21_test_0,10,16,100,12660,28267,,,59.619536,64838.0,legacy_endpoint_split,legacy_day_indexed_routing,optimal,1.663769,60.957772,cplexamp,60,
+DataCplex_density=0.5_p=10_h=21_test_0,10,16,100,20500,101064,,,60.573282,,event_exact_state,connected_event_arcs_no_ferry,maxIterations,2.77997,63.958321,cplexamp,60,
+DataCplex_density=0.5_p=10_h=25_test_0,10,16,100,12660,28267,,,60.435176,,legacy_endpoint_split,legacy_day_indexed_routing,maxIterations,1.695954,61.791613,cplexamp,60,
+DataCplex_density=0.5_p=10_h=25_test_0,10,16,100,20500,101064,,,60.5743,,event_exact_state,connected_event_arcs_no_ferry,maxIterations,2.882111,63.929519,cplexamp,60,
+DataCplex_density=0.5_p=10_h=30_test_0,10,16,100,12660,28267,,,60.0874,64821.0,legacy_endpoint_split,legacy_day_indexed_routing,optimal,1.652754,61.465865,cplexamp,60,
+DataCplex_density=0.5_p=10_h=30_test_0,10,16,100,20500,101064,,,60.619495,,event_exact_state,connected_event_arcs_no_ferry,maxIterations,2.770802,64.004245,cplexamp,60,
+DataCplex_density=0.5_p=10_h=7_test_0,10,7,62,4500,9220,,,0.833258,34996.0,legacy_endpoint_split,legacy_day_indexed_routing,optimal,1.147351,1.517392,cplexamp,60,
+DataCplex_density=0.5_p=10_h=7_test_0,10,7,62,9771,46228,,,1.429168,,event_exact_state,connected_event_arcs_no_ferry,infeasible,1.368836,3.475407,cplexamp,60,

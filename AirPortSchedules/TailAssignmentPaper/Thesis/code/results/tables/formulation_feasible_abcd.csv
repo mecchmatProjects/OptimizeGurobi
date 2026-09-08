@@ -1,0 +1,3 @@
+stem,P,H,F,vars,constraints,nodes_max,gap_pct,cpu_s,objective,formulation,routing_scope,status,build_s,wall_s,solver,time_limit_s,error
+DataCplex_density=1_p=10_h=7_test_0,10,7,20,2140,4012,,,0.305998,10327.0,legacy_endpoint_split,legacy_day_indexed_routing,optimal,0.094928,0.715231,cplexamp,180,
+DataCplex_density=1_p=10_h=7_test_0,10,7,20,1800,5344,,,0.294773,10327.0,event_exact_state,connected_event_arcs_no_ferry,optimal,0.171059,0.719499,cplexamp,180,

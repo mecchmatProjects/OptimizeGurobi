@@ -1,0 +1,11 @@
+{
+  "feasibility_status": "PASS",
+  "errors": [],
+  "warnings": [],
+  "metrics": {
+    "n_legs": 42,
+    "fleet_size": 8,
+    "peak_threshold_utilisation": 0.7333,
+    "threshold_violations": 0
+  }
+}

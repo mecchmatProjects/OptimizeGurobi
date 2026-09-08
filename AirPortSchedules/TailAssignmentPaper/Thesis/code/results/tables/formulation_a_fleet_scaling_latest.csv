@@ -1,0 +1,13 @@
+instance,H,P,F,formulation,status,objective,vars,constraints,cpu_s,build_s,wall_s,error
+DataCplex_density=1_p=10_h=7_test_0.json,7,10,20,legacy_a,optimal,9627.0,990,2128,0.336071252822876,0.052569,0.672646,
+DataCplex_density=1_p=10_h=7_test_0.json,7,10,20,compact_a_event,optimal,9627.0,1300,2840,0.3356945514678955,0.113115,0.660219,
+DataCplex_density=1_p=10_h=7_test_0.json,7,10,20,ordered_a_event,optimal,9627.0,500,1873,0.3367784023284912,0.031881,0.627266,
+DataCplex_density=1_p=15_h=7_test_0.json,7,15,30,legacy_a,optimal,14341.0,1950,3938,0.33649754524230957,0.104527,0.696556,
+DataCplex_density=1_p=15_h=7_test_0.json,7,15,30,compact_a_event,optimal,14341.0,3555,8250,0.3362860679626465,0.291626,0.805467,
+DataCplex_density=1_p=15_h=7_test_0.json,7,15,30,ordered_a_event,optimal,14341.0,1125,4283,0.333956241607666,0.068365,0.676138,
+DataCplex_density=1_p=20_h=7_test_0.json,7,20,40,legacy_a,optimal,19092.0,3300,6248,0.4373652935028076,0.253578,0.887621,
+DataCplex_density=1_p=20_h=7_test_0.json,7,20,40,compact_a_event,optimal,19092.0,7480,18119,0.4367053508758545,0.584681,1.265947,
+DataCplex_density=1_p=20_h=7_test_0.json,7,20,40,ordered_a_event,optimal,19092.0,2000,7511,0.33556437492370605,0.235292,0.74828,
+DataCplex_density=1_p=5_h=7_test_0.json,7,5,10,legacy_a,optimal,4839.0,320,748,0.3358898162841797,0.021811,0.611998,
+DataCplex_density=1_p=5_h=7_test_0.json,7,5,10,compact_a_event,optimal,4839.0,255,510,0.3357057571411133,0.021208,0.59882,
+DataCplex_density=1_p=5_h=7_test_0.json,7,5,10,ordered_a_event,optimal,4839.0,125,465,0.33515119552612305,0.011438,0.599157,

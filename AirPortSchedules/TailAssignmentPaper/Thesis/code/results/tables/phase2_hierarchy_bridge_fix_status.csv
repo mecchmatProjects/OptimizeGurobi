@@ -1,0 +1,4 @@
+config,total_runs,status_optimal
+legacy,1,1
+event_strict_bridge,1,1
+event_only_block_capacity,1,1

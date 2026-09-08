@@ -1,0 +1,17 @@
+case,file,P,H,F,formulation,solver_configuration,warm_start,status,objective,vars,constraints,cpu_s,wall_s,build_s,error
+c13_loophole_test,c13_loophole_test.json,1,4,3,legacy_paper_c13,presolve_off,False,ERROR,,47,96,,,0.011164,ValueError: Cannot load a SolverResults object with bad status: error
+c13_loophole_test,c13_loophole_test.json,1,4,3,legacy_endpoint_split,presolve_off,False,ERROR,,47,117,,,0.009609,ValueError: Cannot load a SolverResults object with bad status: error
+c13_loophole_test,c13_loophole_test.json,1,4,3,legacy_corrected,presolve_off,False,ERROR,,55,105,,,0.009828,ValueError: Cannot load a SolverResults object with bad status: error
+c13_loophole_test,c13_loophole_test.json,1,4,3,event_based,presolve_off,False,ERROR,,9,39,,,0.005639,ValueError: Cannot load a SolverResults object with bad status: error
+event_vs_legacy_clean_test,event_vs_legacy_clean_test.json,2,3,6,legacy_paper_c13,presolve_off,False,ERROR,,144,238,,,0.01266,ValueError: Cannot load a SolverResults object with bad status: error
+event_vs_legacy_clean_test,event_vs_legacy_clean_test.json,2,3,6,legacy_endpoint_split,presolve_off,False,ERROR,,144,280,,,0.013128,ValueError: Cannot load a SolverResults object with bad status: error
+event_vs_legacy_clean_test,event_vs_legacy_clean_test.json,2,3,6,legacy_corrected,presolve_off,False,ERROR,,160,256,,,0.012607,ValueError: Cannot load a SolverResults object with bad status: error
+event_vs_legacy_clean_test,event_vs_legacy_clean_test.json,2,3,6,event_based,presolve_off,False,ERROR,,36,138,,,0.007426,ValueError: Cannot load a SolverResults object with bad status: error
+perf_p=10_h=7,perf_p=10_h=7.json,10,8,36,legacy_paper_c13,presolve_off,False,ERROR,,1720,3035,,,0.120457,ValueError: Cannot load a SolverResults object with bad status: error
+perf_p=10_h=7,perf_p=10_h=7.json,10,8,36,legacy_endpoint_split,presolve_off,False,ERROR,,1720,3315,,,0.084684,ValueError: Cannot load a SolverResults object with bad status: error
+perf_p=10_h=7,perf_p=10_h=7.json,10,8,36,legacy_corrected,presolve_off,False,ERROR,,1810,3095,,,0.072363,ValueError: Cannot load a SolverResults object with bad status: error
+perf_p=10_h=7,perf_p=10_h=7.json,10,8,36,event_based,presolve_off,False,ERROR,,900,4205,,,0.11105,ValueError: Cannot load a SolverResults object with bad status: error
+perf_p=20_h=15,perf_p=20_h=15.json,20,16,76,legacy_paper_c13,presolve_off,False,ERROR,,10680,17393,,,0.796995,ValueError: Cannot load a SolverResults object with bad status: error
+perf_p=20_h=15,perf_p=20_h=15.json,20,16,76,legacy_endpoint_split,presolve_off,False,ERROR,,10680,19793,,,0.864838,ValueError: Cannot load a SolverResults object with bad status: error
+perf_p=20_h=15,perf_p=20_h=15.json,20,16,76,legacy_corrected,presolve_off,False,ERROR,,11020,16313,,,0.553803,ValueError: Cannot load a SolverResults object with bad status: error
+perf_p=20_h=15,perf_p=20_h=15.json,20,16,76,event_based,presolve_off,False,ERROR,,3800,17777,,,0.391299,ValueError: Cannot load a SolverResults object with bad status: error

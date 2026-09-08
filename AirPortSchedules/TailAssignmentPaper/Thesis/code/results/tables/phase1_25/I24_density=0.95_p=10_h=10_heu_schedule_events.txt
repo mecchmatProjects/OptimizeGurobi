@@ -1,0 +1,184 @@
+Aircraft 0:
+  Flight  F2       ->   day    start   770.0 - end   947.0
+  Flight  F8       ->   day    start  1143.0 - end  1235.0
+  Flight  F11      ->   day    start  1815.0 - end  1919.0
+  Flight  F17      ->   day    start  2581.0 - end  2701.0
+  Flight  F19      ->   day    start  3319.0 - end  3445.0
+  Maint   FERRY   day    start  3445.0 - end  3505.0
+  Flight  F24      ->   day    start  3838.0 - end  3899.0
+  Flight  F36      ->   day    start  5101.0 - end  5225.0
+  Maint   FERRY   day    start  5225.0 - end  5285.0
+  Maint   A       day    start  5285.0 - end  5375.0
+  Flight  F46      ->   day    start  6240.0 - end  6417.0
+  Maint   FERRY   day    start  6417.0 - end  6477.0
+  Flight  F59      ->   day    start  7957.0 - end  8104.0
+  Flight  F71      ->   day    start 10597.0 - end 10726.0
+  Maint   FERRY   day    start 10726.0 - end 10786.0
+  Flight  F76      ->   day    start 10999.0 - end 11133.0
+  Flight  F80      ->   day    start 11276.0 - end 11403.0
+  Flight  F83      ->   day    start 12098.0 - end 12262.0
+  Maintenance statistics:
+    Check A:  #1: flight mins before =   804.0  cum days before =   3.67
+
+Aircraft 1:
+  Flight  F5       ->   day    start  1096.0 - end  1262.0
+  Maint   FERRY   day    start  1262.0 - end  1322.0
+  Flight  F18      ->   day    start  2603.0 - end  2694.0
+  Flight  F23      ->   day    start  3787.0 - end  3950.0
+  Flight  F33      ->   day    start  4914.0 - end  4998.0
+  Maint   FERRY   day    start  4998.0 - end  5058.0
+  Flight  F40      ->   day    start  5161.0 - end  5262.0
+  Flight  F52      ->   day    start  6960.0 - end  7036.0
+  Maint   FERRY   day    start  7036.0 - end  7096.0
+  Flight  F57      ->   day    start  7946.0 - end  8054.0
+  Flight  F62      ->   day    start  8063.0 - end  8171.0
+  Maint   FERRY   day    start  8171.0 - end  8231.0
+  Maint   A       day    start  8231.0 - end  8321.0
+  Flight  F73      ->   day    start 10720.0 - end 10827.0
+  Flight  F84      ->   day    start 12184.0 - end 12334.0
+  Flight  F93      ->   day    start 13918.0 - end 14075.0
+  Maintenance statistics:
+    Check A:  #1: flight mins before =   897.0  cum days before =   5.72
+
+Aircraft 2:
+  Maint   FERRY   day    start     0.0 - end    60.0
+  Flight  F4       ->   day    start  1060.0 - end  1190.0
+  Maint   FERRY   day    start  1190.0 - end  1250.0
+  Flight  F26      ->   day    start  3950.0 - end  4087.0
+  Maint   FERRY   day    start  4087.0 - end  4147.0
+  Flight  F43      ->   day    start  5334.0 - end  5494.0
+  Flight  F53      ->   day    start  7774.0 - end  7893.0
+  Maint   FERRY   day    start  7893.0 - end  7953.0
+  Flight  F61      ->   day    start  8025.0 - end  8177.0
+  Maint   FERRY   day    start  8177.0 - end  8237.0
+  Flight  F79      ->   day    start 11227.0 - end 11398.0
+  No maintenance scheduled  |  total flight mins = 869.0
+
+Aircraft 3:
+  Maint   FERRY   day    start     0.0 - end    60.0
+  Flight  F3       ->   day    start   994.0 - end  1133.0
+  Maint   FERRY   day    start  1133.0 - end  1193.0
+  Flight  F28      ->   day    start  4006.0 - end  4086.0
+  Maint   FERRY   day    start  4086.0 - end  4146.0
+  Flight  F42      ->   day    start  5264.0 - end  5342.0
+  Flight  F56      ->   day    start  7929.0 - end  8016.0
+  Flight  F64      ->   day    start  9178.0 - end  9293.0
+  Maint   FERRY   day    start  9293.0 - end  9353.0
+  Flight  F66      ->   day    start  9355.0 - end  9436.0
+  Flight  F68      ->   day    start  9532.0 - end  9670.0
+  Flight  F74      ->   day    start 10787.0 - end 10928.0
+  Maint   A       day    start 10928.0 - end 11018.0
+  Flight  F90      ->   day    start 13675.0 - end 13802.0
+  Maint   FERRY   day    start 13802.0 - end 13862.0
+  Flight  F95      ->   day    start 14045.0 - end 14112.0
+  Maintenance statistics:
+    Check A:  #1: flight mins before =   859.0  cum days before =   7.59
+
+Aircraft 4:
+  Maint   FERRY   day    start     0.0 - end    60.0
+  Flight  F7       ->   day    start  1127.0 - end  1250.0
+  Flight  F22      ->   day    start  3732.0 - end  3885.0
+  Maint   FERRY   day    start  3885.0 - end  3945.0
+  Flight  F32      ->   day    start  4870.0 - end  4968.0
+  Flight  F44      ->   day    start  5492.0 - end  5639.0
+  Maint   FERRY   day    start  5639.0 - end  5699.0
+  Flight  F50      ->   day    start  6949.0 - end  7045.0
+  Maint   FERRY   day    start  7045.0 - end  7105.0
+  Flight  F65      ->   day    start  9260.0 - end  9357.0
+  Maint   FERRY   day    start  9357.0 - end  9417.0
+  Flight  F88      ->   day    start 13498.0 - end 13656.0
+  No maintenance scheduled  |  total flight mins = 872.0
+
+Aircraft 5:
+  Flight  F1       ->   day    start   555.0 - end   667.0
+  Maint   FERRY   day    start   667.0 - end   727.0
+  Flight  F16      ->   day    start  2512.0 - end  2602.0
+  Maint   FERRY   day    start  2602.0 - end  2662.0
+  Flight  F29      ->   day    start  4701.0 - end  4786.0
+  Maint   FERRY   day    start  4786.0 - end  4846.0
+  Flight  F47      ->   day    start  6429.0 - end  6545.0
+  Maint   FERRY   day    start  6545.0 - end  6605.0
+  Flight  F60      ->   day    start  8001.0 - end  8094.0
+  Flight  F77      ->   day    start 11036.0 - end 11197.0
+  Flight  F82      ->   day    start 11998.0 - end 12091.0
+  Maint   FERRY   day    start 12091.0 - end 12151.0
+  Maint   A       day    start 12151.0 - end 12241.0
+  Flight  F91      ->   day    start 13854.0 - end 14006.0
+  Maintenance statistics:
+    Check A:  #1: flight mins before =   750.0  cum days before =   8.44
+
+Aircraft 6:
+  Flight  F6       ->   day    start  1119.0 - end  1230.0
+  Maint   FERRY   day    start  1230.0 - end  1290.0
+  Flight  F13      ->   day    start  2138.0 - end  2204.0
+  Flight  F21      ->   day    start  3615.0 - end  3786.0
+  Maint   FERRY   day    start  3786.0 - end  3846.0
+  Flight  F35      ->   day    start  5018.0 - end  5098.0
+  Flight  F37      ->   day    start  5107.0 - end  5249.0
+  Maint   FERRY   day    start  5249.0 - end  5309.0
+  Flight  F54      ->   day    start  7810.0 - end  7940.0
+  Maint   FERRY   day    start  7940.0 - end  8000.0
+  Flight  F70      ->   day    start  9639.0 - end  9721.0
+  Maint   FERRY   day    start  9721.0 - end  9781.0
+  Flight  F92      ->   day    start 13872.0 - end 13975.0
+  No maintenance scheduled  |  total flight mins = 885.0
+
+Aircraft 7:
+  Maint   FERRY   day    start     0.0 - end    60.0
+  Flight  F9       ->   day    start  1159.0 - end  1245.0
+  Maint   FERRY   day    start  1245.0 - end  1305.0
+  Flight  F20      ->   day    start  3421.0 - end  3541.0
+  Flight  F31      ->   day    start  4774.0 - end  4915.0
+  Flight  F39      ->   day    start  5156.0 - end  5266.0
+  Flight  F48      ->   day    start  6647.0 - end  6729.0
+  Flight  F49      ->   day    start  6925.0 - end  7001.0
+  Maint   FERRY   day    start  7001.0 - end  7061.0
+  Flight  F58      ->   day    start  7952.0 - end  8078.0
+  Maint   FERRY   day    start  8078.0 - end  8138.0
+  Maint   A       day    start  8138.0 - end  8228.0
+  Flight  F72      ->   day    start 10697.0 - end 10871.0
+  Flight  F86      ->   day    start 12411.0 - end 12500.0
+  Flight  F87      ->   day    start 12708.0 - end 12813.0
+  Maintenance statistics:
+    Check A:  #1: flight mins before =   741.0  cum days before =   5.65
+
+Aircraft 8:
+  Maint   FERRY   day    start     0.0 - end    60.0
+  Flight  F12      ->   day    start  2078.0 - end  2158.0
+  Flight  F15      ->   day    start  2334.0 - end  2407.0
+  Flight  F27      ->   day    start  3971.0 - end  4042.0
+  Maint   FERRY   day    start  4042.0 - end  4102.0
+  Flight  F30      ->   day    start  4765.0 - end  4904.0
+  Flight  F38      ->   day    start  5135.0 - end  5268.0
+  Flight  F45      ->   day    start  6226.0 - end  6392.0
+  Flight  F55      ->   day    start  7830.0 - end  7956.0
+  Maint   FERRY   day    start  7956.0 - end  8016.0
+  Flight  F63      ->   day    start  9007.0 - end  9092.0
+  Maint   A       day    start  9092.0 - end  9182.0
+  Flight  F67      ->   day    start  9512.0 - end  9653.0
+  Flight  F75      ->   day    start 10888.0 - end 11041.0
+  Flight  F78      ->   day    start 11155.0 - end 11240.0
+  Maint   FERRY   day    start 11240.0 - end 11300.0
+  Flight  F81      ->   day    start 11938.0 - end 12023.0
+  Maintenance statistics:
+    Check A:  #1: flight mins before =   873.0  cum days before =   6.31
+
+Aircraft 9:
+  Maint   FERRY   day    start     0.0 - end    60.0
+  Flight  F10      ->   day    start  1191.0 - end  1276.0
+  Flight  F14      ->   day    start  2158.0 - end  2284.0
+  Flight  F25      ->   day    start  3865.0 - end  3995.0
+  Maint   FERRY   day    start  3995.0 - end  4055.0
+  Flight  F34      ->   day    start  5015.0 - end  5107.0
+  Flight  F41      ->   day    start  5202.0 - end  5282.0
+  Maint   FERRY   day    start  5282.0 - end  5342.0
+  Flight  F51      ->   day    start  6957.0 - end  7051.0
+  Maint   FERRY   day    start  7051.0 - end  7111.0
+  Flight  F69      ->   day    start  9606.0 - end  9671.0
+  Flight  F85      ->   day    start 12375.0 - end 12502.0
+  Maint   A       day    start 12502.0 - end 12592.0
+  Flight  F89      ->   day    start 13553.0 - end 13688.0
+  Maint   FERRY   day    start 13688.0 - end 13748.0
+  Flight  F94      ->   day    start 13974.0 - end 14105.0
+  Maintenance statistics:
+    Check A:  #1: flight mins before =   799.0  cum days before =   8.68

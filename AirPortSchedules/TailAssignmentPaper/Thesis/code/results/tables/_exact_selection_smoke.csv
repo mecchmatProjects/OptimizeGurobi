@@ -1,0 +1,2 @@
+stem,P,H,F,vars,constraints,nodes_max,gap_pct,cpu_s,objective,formulation,status,build_s,wall_s,solver,time_limit_s,error
+DataCplex_density=0.5_p=10_h=7_test_0,10,7,102,11978,52119,,,,,event_exact_state,build_only,1.449029,,cplex,300,

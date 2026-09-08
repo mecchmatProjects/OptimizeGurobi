@@ -1,0 +1,3 @@
+instance,variant,variables,constraints,c9_rows,z_variables,build_s,solver,status,objective,runtime_s,error
+DataCplex_density=0.5_p=4_h=7_test_0,sparse_z,984,1964,224,616,0.062707,none,built,,,
+DataCplex_density=0.5_p=4_h=7_test_0,combined,984,1964,224,616,0.060004,none,built,,,

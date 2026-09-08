@@ -1,0 +1,4 @@
+config,total_runs,status_infeasible,status_optimal
+legacy,7,3,4
+event_strict_bridge,7,3,4
+event_only_block_capacity,7,3,4

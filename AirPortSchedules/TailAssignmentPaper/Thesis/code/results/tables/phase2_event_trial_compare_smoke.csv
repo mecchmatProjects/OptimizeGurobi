@@ -1,0 +1,4 @@
+instance,config,status,obj,n_vars,n_cons,gap,cpu,report,error
+ABCD_no_maint_test.json,legacy,unknown,,1000,2174,nan,0.028002262115478516,results\tables\formulation_reports\ABCD_no_maint_test_legacy.txt,
+ABCD_no_maint_test.json,event_strict_bridge,unknown,,1392,3627,nan,0.025002717971801758,results\tables\formulation_reports\ABCD_no_maint_test_event_strict_bridge.txt,
+ABCD_no_maint_test.json,event_only_block_capacity,unknown,,1392,3283,nan,0.02399897575378418,results\tables\formulation_reports\ABCD_no_maint_test_event_only_block_capacity.txt,

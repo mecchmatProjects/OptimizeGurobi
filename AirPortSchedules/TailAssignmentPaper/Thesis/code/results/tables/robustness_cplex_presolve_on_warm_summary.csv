@@ -1,0 +1,5 @@
+formulation,cases,performance_cases,performance_optimal,performance_infeasible,mean_vars,mean_constraints,mean_cpu_s,mean_wall_s
+legacy_paper_c13,4,2,2,0,6200.0,10214.0,0.517,1.158407
+legacy_endpoint_split,4,2,2,0,6200.0,11554.0,0.614464,1.320137
+legacy_corrected,4,2,2,0,6415.0,9704.0,0.413686,0.912095
+event_based,4,2,2,0,2350.0,10991.0,0.390673,0.864368

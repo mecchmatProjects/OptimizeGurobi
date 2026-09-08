@@ -1,0 +1,3 @@
+stem,P,H,F,vars,constraints,nodes_max,gap_pct,cpu_s,objective,formulation,routing_scope,status,build_s,wall_s,solver,time_limit_s,error
+ABCD_all_checks_test,5,3,9,61,148,,0.0,0.035119,9500.0,event_exact_state,connected_event_arcs_no_ferry,optimal,0.013287,0.070738,cplex,60,
+ABCD_near_threshold_test,6,4,20,,,,,,,event_exact_state,connected_event_arcs_no_ferry,ERROR,,,cplex,60,ValueError: Constraint '[Unattached ConstraintData]' is always infeasible

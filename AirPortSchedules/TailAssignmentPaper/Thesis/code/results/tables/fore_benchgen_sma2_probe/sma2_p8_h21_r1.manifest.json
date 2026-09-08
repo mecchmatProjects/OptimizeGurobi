@@ -1,0 +1,14 @@
+{
+  "sma2_p8_h21_r1.json": {
+    "bytes": 73690,
+    "sha256": "0547429b21d22d12dcf862e60a11d3cb8bb6b1faee156f5c84ca9bc77f835415"
+  },
+  "sma2_p8_h21_r1.solution.json": {
+    "bytes": 17002,
+    "sha256": "424a0ca8df0db1e568903a4287ee6c347d8e842a5bba0046fd55c03e8aa903d0"
+  },
+  "sma2_p8_h21_r1.validation.json": {
+    "bytes": 212,
+    "sha256": "09785f01c4413d866fdba0358c70d088c7ce6041cf40bbbb061bdd2f08c568ac"
+  }
+}

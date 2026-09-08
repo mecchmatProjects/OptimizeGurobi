@@ -1,0 +1,5 @@
+instance,variant,variables,constraints,c9_rows,z_variables,build_s,solver,status,objective,runtime_s,error
+I11_density=0.5_p=8_h=7,baseline,3808,4687,896,3072,0.186816,cplex,unknown,,0.26401,non-success termination
+I11_density=0.5_p=8_h=7,strong,3808,4687,896,3072,0.144175,cplex,unknown,,0.349647,non-success termination
+I12_density=0.65_p=8_h=7,baseline,4400,5287,1152,3600,0.225704,cplex,unknown,,0.185362,non-success termination
+I12_density=0.65_p=8_h=7,strong,4400,5287,1152,3600,0.24379,cplex,unknown,,0.201879,non-success termination

@@ -1,0 +1,7 @@
+stem,mode,flights,assigned,unassigned,status,objective,gap_pct,cpu_s,wall_s,num_vars,num_constraints,returncode
+ABCD_capacity_bottleneck_test,heuristic,8,7,1,feasible,37000.000000,,,0.000558,,,0
+ABCD_capacity_bottleneck_test,heuristic,8,7,1,feasible,37000.000000,,,0.000859,,,0
+ABCD_capacity_bottleneck_test,heuristic,8,5,3,feasible,17000.000000,,,0.084142,,,0
+ABCD_capacity_bottleneck_test,heuristic,8,0,8,infeasible,0.000000,,,12.269185,,,0
+ABCD_capacity_bottleneck_test,milp,8,8,0,optimal,8300.000000,0.000000,0.089001,0.191171,,,0
+ABCD_capacity_bottleneck_test,heuristic,8,0,8,infeasible,0.000000,,,12.127011,,,0

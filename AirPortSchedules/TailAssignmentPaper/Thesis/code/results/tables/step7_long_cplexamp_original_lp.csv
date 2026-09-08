@@ -1,0 +1,11 @@
+instance,variant,variables,constraints,c9_rows,z_variables,build_s,solver,status,objective,runtime_s,error
+DataCplex_density=0.5_p=10_h=10_test_0,baseline,10800,11765,2000,9420,0.499882,cplexamp,infeasible,,0.937822,non-success termination
+DataCplex_density=0.5_p=10_h=10_test_0,strong_link,10800,11765,2000,9420,0.560794,cplexamp,infeasible,,0.911944,non-success termination
+DataCplex_density=0.5_p=10_h=14_test_0,baseline,15500,18428,2800,13600,0.88104,cplexamp,infeasible,,1.297777,non-success termination
+DataCplex_density=0.5_p=10_h=14_test_0,strong_link,15500,18428,2800,13600,0.923539,cplexamp,infeasible,,1.222143,non-success termination
+DataCplex_density=0.5_p=8_h=14_test_0,baseline,10400,12087,1792,8992,0.592453,cplexamp,infeasible,,1.031343,non-success termination
+DataCplex_density=0.5_p=8_h=14_test_0,strong_link,10400,12087,1792,8992,0.563463,cplexamp,infeasible,,0.978966,non-success termination
+DataCplex_density=0.65_p=8_h=14_test_1,baseline,13312,14596,2336,11768,0.787475,cplexamp,infeasible,,1.15049,non-success termination
+DataCplex_density=0.65_p=8_h=14_test_1,strong_link,13312,14596,2336,11768,0.760896,cplexamp,infeasible,,1.109506,non-success termination
+DataCplex_density=0.6_p=10_h=14_test_1,baseline,19340,22122,3360,17300,1.113264,cplexamp,infeasible,,1.413911,non-success termination
+DataCplex_density=0.6_p=10_h=14_test_1,strong_link,19340,22122,3360,17300,1.078048,cplexamp,infeasible,,1.470841,non-success termination

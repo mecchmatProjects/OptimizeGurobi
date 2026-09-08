@@ -1,0 +1,17 @@
+case,file,P,H,F,formulation,solver_configuration,warm_start,status,objective,vars,constraints,cpu_s,wall_s,build_s,error
+c13_loophole_test,c13_loophole_test.json,1,4,3,legacy_paper_c13,presolve_on,False,ERROR,,47,96,,,0.010979,ApplicationError: Solver (cplex) did not exit normally
+c13_loophole_test,c13_loophole_test.json,1,4,3,legacy_endpoint_split,presolve_on,False,ERROR,,47,117,,,0.010593,ApplicationError: Solver (cplex) did not exit normally
+c13_loophole_test,c13_loophole_test.json,1,4,3,legacy_corrected,presolve_on,False,ERROR,,55,105,,,0.010403,ApplicationError: Solver (cplex) did not exit normally
+c13_loophole_test,c13_loophole_test.json,1,4,3,event_based,presolve_on,False,ERROR,,9,39,,,0.005982,ApplicationError: Solver (cplex) did not exit normally
+event_vs_legacy_clean_test,event_vs_legacy_clean_test.json,2,3,6,legacy_paper_c13,presolve_on,False,ERROR,,144,238,,,0.013291,ApplicationError: Solver (cplex) did not exit normally
+event_vs_legacy_clean_test,event_vs_legacy_clean_test.json,2,3,6,legacy_endpoint_split,presolve_on,False,ERROR,,144,280,,,0.013106,ApplicationError: Solver (cplex) did not exit normally
+event_vs_legacy_clean_test,event_vs_legacy_clean_test.json,2,3,6,legacy_corrected,presolve_on,False,ERROR,,160,256,,,0.013837,ApplicationError: Solver (cplex) did not exit normally
+event_vs_legacy_clean_test,event_vs_legacy_clean_test.json,2,3,6,event_based,presolve_on,False,ERROR,,36,138,,,0.007388,ApplicationError: Solver (cplex) did not exit normally
+perf_p=10_h=7,perf_p=10_h=7.json,10,8,36,legacy_paper_c13,presolve_on,False,ERROR,,1720,3035,,,0.125132,ApplicationError: Solver (cplex) did not exit normally
+perf_p=10_h=7,perf_p=10_h=7.json,10,8,36,legacy_endpoint_split,presolve_on,False,ERROR,,1720,3315,,,0.08631,ApplicationError: Solver (cplex) did not exit normally
+perf_p=10_h=7,perf_p=10_h=7.json,10,8,36,legacy_corrected,presolve_on,False,ERROR,,1810,3095,,,0.075202,ApplicationError: Solver (cplex) did not exit normally
+perf_p=10_h=7,perf_p=10_h=7.json,10,8,36,event_based,presolve_on,False,ERROR,,900,4205,,,0.127154,ApplicationError: Solver (cplex) did not exit normally
+perf_p=20_h=15,perf_p=20_h=15.json,20,16,76,legacy_paper_c13,presolve_on,False,ERROR,,10680,17393,,,0.772899,ApplicationError: Solver (cplex) did not exit normally
+perf_p=20_h=15,perf_p=20_h=15.json,20,16,76,legacy_endpoint_split,presolve_on,False,ERROR,,10680,19793,,,0.940894,ApplicationError: Solver (cplex) did not exit normally
+perf_p=20_h=15,perf_p=20_h=15.json,20,16,76,legacy_corrected,presolve_on,False,ERROR,,11020,16313,,,0.730468,ApplicationError: Solver (cplex) did not exit normally
+perf_p=20_h=15,perf_p=20_h=15.json,20,16,76,event_based,presolve_on,False,ERROR,,3800,17777,,,0.426789,ApplicationError: Solver (cplex) did not exit normally

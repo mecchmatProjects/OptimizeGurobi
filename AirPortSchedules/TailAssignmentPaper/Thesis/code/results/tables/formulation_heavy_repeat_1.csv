@@ -1,0 +1,7 @@
+stem,P,H,F,vars,constraints,nodes_max,gap_pct,cpu_s,objective,formulation,routing_scope,status,build_s,wall_s,solver,time_limit_s,peak_rss_mb,error
+DataCplex_density=0.5_p=10_h=7_test_0,10,7,102,14860,43819,,,2.306748,827858.0,legacy_endpoint_split,legacy_day_indexed_routing,optimal,1.223157,3.459202,cplexamp,60,,
+DataCplex_density=0.5_p=10_h=7_test_0,10,7,102,11978,52119,,,12.854855,827858.0,event_exact_state,connected_event_arcs_no_ferry,optimal,1.393415,14.610457,cplexamp,60,,
+DataCplex_density=0.5_p=10_h=15_test_0,10,15,140,38230,95306,,,4.814261,1132028.0,legacy_endpoint_split,legacy_day_indexed_routing,optimal,2.925029,7.203814,cplexamp,60,,
+DataCplex_density=0.5_p=10_h=15_test_0,10,15,140,18064,79832,,,10.628066,1132028.0,event_exact_state,connected_event_arcs_no_ferry,optimal,2.486293,13.044043,cplexamp,60,,
+DataCplex_density=0.5_p=10_h=21_test_0,10,20,109,38630,82892,,,3.955483,881263.0,legacy_endpoint_split,legacy_day_indexed_routing,optimal,2.875365,6.404236,cplexamp,60,,
+DataCplex_density=0.5_p=10_h=21_test_0,10,20,109,13042,56425,,,7.249049,881263.0,event_exact_state,connected_event_arcs_no_ferry,optimal,1.890031,9.018617,cplexamp,60,,

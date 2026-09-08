@@ -1,0 +1,2 @@
+stem,method,status,objective,score,flights,assigned,unassigned,gap_pct,wall_s,cpu_s,violations,solver,solver_attempt_order,num_vars,num_constraints,returncode
+DataCplex_density=0.5_p=10_h=7_test_0,milp_compact,optimal,827858.000000,827858.000000,102,102,0,0.000075,3.680718,1.331072,0,cplex,"cplex,cplex_direct,cplex_persistent,gurobi,glpk,cbc",,,0

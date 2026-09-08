@@ -1,0 +1,9 @@
+instance,H,P,F,formulation,status,objective,vars,constraints,cpu_s,build_s,wall_s,peak_rss_mb,error
+data\feasible_instances\DataCplex_density=1_p=10_h=7_test_0.json,7,10,50,legacy,optimal,24935.0,4300,8848,,0.294289,2.380807,145.055,
+data\feasible_instances\DataCplex_density=1_p=10_h=7_test_0.json,7,10,50,ordered_abcd,optimal,24935.0,2500,12513,,0.24924,1.892354,149.598,
+data\feasible_instances\DataCplex_density=1_p=10_h=15_test_0.json,15,10,60,legacy,optimal,29914.0,7580,17134,,0.641183,4.933835,176.191,
+data\feasible_instances\DataCplex_density=1_p=10_h=15_test_0.json,15,10,60,ordered_abcd,optimal,29914.0,3000,13437,,0.407644,1.92225,164.16,
+data\feasible_instances\DataCplex_density=1_p=10_h=21_test_0.json,21,10,60,legacy,optimal,29886.0,7580,17134,,0.62075,5.154166,176.781,
+data\feasible_instances\DataCplex_density=1_p=10_h=21_test_0.json,21,10,60,ordered_abcd,optimal,29886.0,3000,13437,,0.382365,1.912876,169.906,
+data\feasible_instances\DataCplex_density=1_p=10_h=30_test_0.json,30,10,60,legacy,optimal,29875.0,7580,17134,,0.640293,5.077577,176.992,
+data\feasible_instances\DataCplex_density=1_p=10_h=30_test_0.json,30,10,60,ordered_abcd,optimal,29875.0,3000,13437,,0.420237,1.995532,171.832,

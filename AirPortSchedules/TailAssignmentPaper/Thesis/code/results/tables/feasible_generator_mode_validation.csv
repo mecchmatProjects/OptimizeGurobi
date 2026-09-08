@@ -1,0 +1,4 @@
+mode,status,notes
+A,optimal,Constructive sample generated and solved exactly with CBC
+AB,optimal,Constructive sample generated and solved exactly with CBC
+ABCD,optimal,Constructive sample generated and solved exactly with CBC

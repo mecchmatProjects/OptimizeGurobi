@@ -1,0 +1,11 @@
+label,family,flights,use_existing_hrs,hard_status,hard_assigned,hard_coverage_pct,hard_obj,hard_secondary_cost,soft_status,soft_assigned,soft_unassigned,soft_coverage_pct,soft_obj,soft_secondary_cost,delta_assigned,delta_coverage_pp,both_optimal_count,hard_optimal_count,soft_optimal_count,recovered_from_infeasible
+feas_A_p4h7_d05,A-only,28,True,optimal,28,100.0,17523.0,17523.0,optimal,28,0,100.0,-27982477.0,17523.0,0,0.0,,,,
+feas_AB_p4h7_d05,AB,16,True,optimal,16,100.0,7847.0,7847.0,optimal,16,0,100.0,-15992153.0,7847.0,0,0.0,,,,
+feas_ABCD_p4h7_d05,ABCD,8,True,optimal,8,100.0,4128.0,4128.0,optimal,8,0,100.0,-7995872.0,4128.0,0,0.0,,,,
+feas_A_p4h7_d08,A-only,30,True,optimal,30,100.0,19032.0,19032.0,optimal,30,0,100.0,-29980094.0,19906.0,0,0.0,,,,
+feas_A_p6h10_d05,A-only,54,True,optimal,54,100.0,34087.00000000012,34087.00000000012,optimal,54,0,100.0,-53964974.00000001,35026.00000000001,0,0.0,,,,
+ABCD_cap_botl,capacity,8,True,optimal,8,100.0,8300.0,8300.0,optimal,8,0,100.0,-7991700.0,8300.0,0,0.0,,,,
+ABCD_hier,hierarchy,13,True,optimal,13,100.0,14700.0,14700.0,optimal,13,0,100.0,-12985300.0,14700.0,0,0.0,,,,
+ABCD_near_thr,threshold,20,True,optimal,20,100.0,21100.0,21100.0,optimal,20,0,100.0,-19978900.0,21100.0,0,0.0,,,,
+ABCD_no_maint,baseline,14,True,optimal,14,100.0,14000.0,14000.0,optimal,14,0,100.0,-13986000.0,14000.0,0,0.0,,,,
+AGGREGATE,exact_feasible_9,191,mixed,summary,191,,,,summary,191,0,,,,0,0.0,9,9,9,0

@@ -1,0 +1,4 @@
+config,total_runs,status_ERROR,status_unknown
+legacy,7,2,5
+event_strict_bridge,7,2,5
+event_only_block_capacity,7,2,5

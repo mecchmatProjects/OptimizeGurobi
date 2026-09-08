@@ -1,0 +1,8 @@
+PHASE 1 VALIDATION SUMMARY
+dataset_cells=25
+heuristic_full_assignment_cells=24
+heuristic_partial_cells=1
+check_counts_A=320,B=269,C=317,D=329
+cbc_milp_smoke_instances=10,infeasible=10,optimal=0,other=0,max_cpu_s=323.77
+gate_decision=PASS_WITH_NOTES
+notes=All 25 canonical cells generated and validated in heuristic mode with full check-type activity; one cell had 1 unassigned flight; MILP smoke under CBC completed on subset and returned infeasible statuses.

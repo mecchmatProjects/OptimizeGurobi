@@ -1,0 +1,5 @@
+our_flights,paper_flights,our_num_vars,paper_num_vars,our_num_constraints,paper_num_constraints,our_gap_pct,paper_gap_pct,our_cpu_s,paper_cpu_s,p,h,density
+,206,,,,,,,,2.62,10,7,0.95
+,301,,,,,,,,11.54,10,15,0.95
+,362,,,,,,,,6.8,20,7,0.95
+,592,,,,,,,,46.99,20,15,0.95

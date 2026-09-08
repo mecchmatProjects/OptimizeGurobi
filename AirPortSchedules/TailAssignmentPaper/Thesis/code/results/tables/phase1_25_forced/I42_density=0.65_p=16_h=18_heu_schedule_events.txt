@@ -1,0 +1,533 @@
+Aircraft 0:
+  Maint   FERRY   day    start     0.0 - end    60.0
+  Maint   C       day    start    60.0 - end   300.0
+  Flight  F3       ->   day    start   617.0 - end   735.0
+  Maint   A       day    start   735.0 - end   780.0
+  Flight  F33      ->   day    start  5081.0 - end  5216.0
+  Maint   D       day    start  5216.0 - end  5636.0
+  Flight  F41      ->   day    start  6376.0 - end  6474.0
+  Flight  F51      ->   day    start  7678.0 - end  7772.0
+  Maint   FERRY   day    start  7772.0 - end  7832.0
+  Maint   A       day    start  7832.0 - end  7877.0
+  Flight  F57      ->   day    start  8083.0 - end  8186.0
+  Maint   FERRY   day    start  8186.0 - end  8246.0
+  Maint   B       day    start  8246.0 - end  8336.0
+  Flight  F78      ->   day    start 10915.0 - end 11080.0
+  Maint   A       day    start 11080.0 - end 11125.0
+  Flight  F99      ->   day    start 13874.0 - end 13998.0
+  Maint   C       day    start 13998.0 - end 14238.0
+  Flight  F113     ->   day    start 16245.0 - end 16374.0
+  Maint   FERRY   day    start 16374.0 - end 16434.0
+  Maint   D       day    start 16434.0 - end 16854.0
+  Flight  F123     ->   day    start 16858.0 - end 16937.0
+  Maint   FERRY   day    start 16937.0 - end 16997.0
+  Maint   A       day    start 16997.0 - end 17042.0
+  Flight  F142     ->   day    start 19498.0 - end 19668.0
+  Maint   A       day    start 19668.0 - end 19713.0
+  Flight  F155     ->   day    start 21172.0 - end 21284.0
+  Maint   B       day    start 21284.0 - end 21374.0
+  Flight  F178     ->   day    start 24128.0 - end 24288.0
+  Maint   C       day    start 24288.0 - end 24528.0
+  Flight  F183     ->   day    start 25340.0 - end 25459.0
+  Maintenance statistics:
+    Check A:  #1: flight mins before =   118.0  cum days before =   0.51   |   #2: flight mins before =   327.0  cum days before =   4.90   |   #3: flight mins before =   268.0  cum days before =   2.22   |   #4: flight mins before =   332.0  cum days before =   4.08   |   #5: flight mins before =   170.0  cum days before =   1.82
+    Check B:  #1: flight mins before =   548.0  cum days before =   5.73   |   #2: flight mins before =   779.0  cum days before =   8.99
+    Check C:  #1: flight mins before =     0.0  cum days before =   0.04   |   #2: flight mins before =   837.0  cum days before =   9.51   |   #3: flight mins before =   650.0  cum days before =   6.98
+    Check D:  #1: flight mins before =   253.0  cum days before =   3.62   |   #2: flight mins before =   713.0  cum days before =   7.50
+
+Aircraft 1:
+  Maint   A       day    start     0.0 - end    45.0
+  Flight  F7       ->   day    start   738.0 - end   833.0
+  Maint   B       day    start   833.0 - end   923.0
+  Flight  F19      ->   day    start  2070.0 - end  2173.0
+  Maint   FERRY   day    start  2173.0 - end  2233.0
+  Maint   D       day    start  2233.0 - end  2653.0
+  Flight  F28      ->   day    start  3658.0 - end  3794.0
+  Maint   FERRY   day    start  3794.0 - end  3854.0
+  Flight  F54      ->   day    start  7885.0 - end  7961.0
+  Maint   A       day    start  7961.0 - end  8006.0
+  Flight  F58      ->   day    start  8291.0 - end  8450.0
+  Maint   C       day    start  8450.0 - end  8690.0
+  Flight  F69      ->   day    start  9538.0 - end  9599.0
+  Maint   FERRY   day    start  9599.0 - end  9659.0
+  Flight  F85      ->   day    start 11982.0 - end 12104.0
+  Maint   A       day    start 12104.0 - end 12149.0
+  Flight  F101     ->   day    start 14854.0 - end 14956.0
+  Maint   FERRY   day    start 14956.0 - end 15016.0
+  Maint   D       day    start 15016.0 - end 15436.0
+  Flight  F116     ->   day    start 16475.0 - end 16587.0
+  Maint   A       day    start 16587.0 - end 16632.0
+  Flight  F140     ->   day    start 19370.0 - end 19541.0
+  Maint   FERRY   day    start 19541.0 - end 19601.0
+  Maint   A       day    start 19601.0 - end 19646.0
+  Flight  F148     ->   day    start 20549.0 - end 20629.0
+  Maint   B       day    start 20629.0 - end 20719.0
+  Flight  F154     ->   day    start 21088.0 - end 21203.0
+  Maintenance statistics:
+    Check A:  #1: flight mins before =     0.0  cum days before =   0.00   |   #2: flight mins before =   410.0  cum days before =   5.50   |   #3: flight mins before =   342.0  cum days before =   2.85   |   #4: flight mins before =   214.0  cum days before =   3.08   |   #5: flight mins before =   171.0  cum days before =   2.06
+    Check B:  #1: flight mins before =    95.0  cum days before =   0.58   |   #2: flight mins before =  1122.0  cum days before =  13.68
+    Check C:  #1: flight mins before =   569.0  cum days before =   5.87
+    Check D:  #1: flight mins before =   198.0  cum days before =   1.55   |   #2: flight mins before =   656.0  cum days before =   8.59
+
+Aircraft 2:
+  Maint   FERRY   day    start     0.0 - end    60.0
+  Maint   C       day    start    60.0 - end   300.0
+  Flight  F5       ->   day    start   719.0 - end   823.0
+  Flight  F32      ->   day    start  4776.0 - end  4891.0
+  Maint   D       day    start  4891.0 - end  5311.0
+  Flight  F36      ->   day    start  5404.0 - end  5491.0
+  Maint   FERRY   day    start  5491.0 - end  5551.0
+  Flight  F49      ->   day    start  7564.0 - end  7707.0
+  Maint   FERRY   day    start  7707.0 - end  7767.0
+  Maint   A       day    start  7767.0 - end  7812.0
+  Flight  F71      ->   day    start  9648.0 - end  9747.0
+  Maint   B       day    start  9747.0 - end  9837.0
+  Flight  F79      ->   day    start 10973.0 - end 11083.0
+  Maint   C       day    start 11083.0 - end 11323.0
+  Flight  F94      ->   day    start 13543.0 - end 13699.0
+  Maint   A       day    start 13699.0 - end 13744.0
+  Flight  F110     ->   day    start 15536.0 - end 15711.0
+  Maint   D       day    start 15711.0 - end 16131.0
+  Flight  F117     ->   day    start 16587.0 - end 16744.0
+  Maint   FERRY   day    start 16744.0 - end 16804.0
+  Maint   A       day    start 16804.0 - end 16849.0
+  Flight  F125     ->   day    start 17648.0 - end 17737.0
+  Flight  F129     ->   day    start 18074.0 - end 18213.0
+  Maint   B       day    start 18213.0 - end 18303.0
+  Flight  F146     ->   day    start 19633.0 - end 19770.0
+  Maint   A       day    start 19770.0 - end 19815.0
+  Flight  F149     ->   day    start 20550.0 - end 20722.0
+  Maint   B       day    start 20722.0 - end 20812.0
+  Flight  F167     ->   day    start 23453.0 - end 23580.0
+  Maint   FERRY   day    start 23580.0 - end 23640.0
+  Maint   C       day    start 23640.0 - end 23880.0
+  Flight  F174     ->   day    start 23957.0 - end 24046.0
+  Maint   A       day    start 24046.0 - end 24091.0
+  Flight  F180     ->   day    start 25025.0 - end 25184.0
+  Maintenance statistics:
+    Check A:  #1: flight mins before =   449.0  cum days before =   5.39   |   #2: flight mins before =   365.0  cum days before =   4.09   |   #3: flight mins before =   332.0  cum days before =   2.12   |   #4: flight mins before =   365.0  cum days before =   2.03   |   #5: flight mins before =   388.0  cum days before =   2.94
+    Check B:  #1: flight mins before =   548.0  cum days before =   6.77   |   #2: flight mins before =   826.0  cum days before =   5.82   |   #3: flight mins before =   309.0  cum days before =   1.68
+    Check C:  #1: flight mins before =     0.0  cum days before =   0.04   |   #2: flight mins before =   658.0  cum days before =   7.49   |   #3: flight mins before =  1152.0  cum days before =   8.55
+    Check D:  #1: flight mins before =   219.0  cum days before =   3.40   |   #2: flight mins before =   770.0  cum days before =   7.22
+
+Aircraft 3:
+  Maint   D       day    start     0.0 - end   420.0
+  Flight  F8       ->   day    start   895.0 - end  1052.0
+  Maint   A       day    start  1052.0 - end  1097.0
+  Flight  F12      ->   day    start  1129.0 - end  1266.0
+  Flight  F27      ->   day    start  3397.0 - end  3464.0
+  Maint   FERRY   day    start  3464.0 - end  3524.0
+  Maint   B       day    start  3524.0 - end  3614.0
+  Flight  F35      ->   day    start  5385.0 - end  5447.0
+  Flight  F44      ->   day    start  6793.0 - end  6891.0
+  Maint   FERRY   day    start  6891.0 - end  6951.0
+  Maint   C       day    start  6951.0 - end  7191.0
+  Flight  F61      ->   day    start  9063.0 - end  9133.0
+  Maint   FERRY   day    start  9133.0 - end  9193.0
+  Maint   A       day    start  9193.0 - end  9238.0
+  Flight  F84      ->   day    start 11944.0 - end 12115.0
+  Maint   D       day    start 12115.0 - end 12535.0
+  Flight  F98      ->   day    start 13867.0 - end 13979.0
+  Maint   FERRY   day    start 13979.0 - end 14039.0
+  Maint   A       day    start 14039.0 - end 14084.0
+  Flight  F119     ->   day    start 16676.0 - end 16810.0
+  Maint   FERRY   day    start 16810.0 - end 16870.0
+  Maint   A       day    start 16870.0 - end 16915.0
+  Flight  F141     ->   day    start 19491.0 - end 19599.0
+  Maint   C       day    start 19599.0 - end 19839.0
+  Flight  F150     ->   day    start 20552.0 - end 20692.0
+  Maint   A       day    start 20692.0 - end 20737.0
+  Flight  F169     ->   day    start 23541.0 - end 23709.0
+  Maint   D       day    start 23709.0 - end 24129.0
+  Flight  F181     ->   day    start 25134.0 - end 25249.0
+  Maintenance statistics:
+    Check A:  #1: flight mins before =   157.0  cum days before =   0.73   |   #2: flight mins before =   434.0  cum days before =   5.62   |   #3: flight mins before =   283.0  cum days before =   3.33   |   #4: flight mins before =   134.0  cum days before =   1.93   |   #5: flight mins before =   248.0  cum days before =   2.62
+    Check B:  #1: flight mins before =   361.0  cum days before =   2.45
+    Check C:  #1: flight mins before =   521.0  cum days before =   4.83   |   #2: flight mins before =   595.0  cum days before =   8.62
+    Check D:  #1: flight mins before =     0.0  cum days before =   0.00   |   #2: flight mins before =   762.0  cum days before =   8.12   |   #3: flight mins before =   662.0  cum days before =   7.76
+
+Aircraft 4:
+  Maint   A       day    start     0.0 - end    45.0
+  Flight  F9       ->   day    start   898.0 - end   972.0
+  Maint   FERRY   day    start   972.0 - end  1032.0
+  Maint   B       day    start  1032.0 - end  1122.0
+  Flight  F22      ->   day    start  2354.0 - end  2517.0
+  Maint   D       day    start  2517.0 - end  2937.0
+  Flight  F29      ->   day    start  3749.0 - end  3857.0
+  Maint   A       day    start  3857.0 - end  3902.0
+  Flight  F37      ->   day    start  5405.0 - end  5580.0
+  Maint   FERRY   day    start  5580.0 - end  5640.0
+  Maint   A       day    start  5640.0 - end  5685.0
+  Flight  F59      ->   day    start  8340.0 - end  8469.0
+  Maint   B       day    start  8469.0 - end  8559.0
+  Flight  F64      ->   day    start  9232.0 - end  9374.0
+  Maint   FERRY   day    start  9374.0 - end  9434.0
+  Maint   C       day    start  9434.0 - end  9674.0
+  Flight  F88      ->   day    start 12537.0 - end 12671.0
+  Maint   FERRY   day    start 12671.0 - end 12731.0
+  Maint   A       day    start 12731.0 - end 12776.0
+  Flight  F120     ->   day    start 16690.0 - end 16867.0
+  Maint   D       day    start 16867.0 - end 17287.0
+  Flight  F139     ->   day    start 19346.0 - end 19518.0
+  Flight  F147     ->   day    start 19906.0 - end 19966.0
+  Maint   FERRY   day    start 19966.0 - end 20026.0
+  Maint   A       day    start 20026.0 - end 20071.0
+  Flight  F159     ->   day    start 22107.0 - end 22222.0
+  Maintenance statistics:
+    Check A:  #1: flight mins before =     0.0  cum days before =   0.00   |   #2: flight mins before =   345.0  cum days before =   2.65   |   #3: flight mins before =   175.0  cum days before =   1.21   |   #4: flight mins before =   405.0  cum days before =   4.89   |   #5: flight mins before =   409.0  cum days before =   5.03
+    Check B:  #1: flight mins before =    74.0  cum days before =   0.72   |   #2: flight mins before =   575.0  cum days before =   5.10
+    Check C:  #1: flight mins before =   791.0  cum days before =   6.55
+    Check D:  #1: flight mins before =   237.0  cum days before =   1.75   |   #2: flight mins before =   865.0  cum days before =   9.67
+
+Aircraft 5:
+  Maint   FERRY   day    start     0.0 - end    60.0
+  Maint   B       day    start    60.0 - end   150.0
+  Flight  F10      ->   day    start   934.0 - end  1046.0
+  Flight  F26      ->   day    start  3360.0 - end  3425.0
+  Maint   D       day    start  3425.0 - end  3845.0
+  Flight  F45      ->   day    start  6824.0 - end  6946.0
+  Maint   FERRY   day    start  6946.0 - end  7006.0
+  Maint   A       day    start  7006.0 - end  7051.0
+  Flight  F50      ->   day    start  7566.0 - end  7719.0
+  Maint   FERRY   day    start  7719.0 - end  7779.0
+  Maint   A       day    start  7779.0 - end  7824.0
+  Flight  F73      ->   day    start 10496.0 - end 10607.0
+  Maint   C       day    start 10607.0 - end 10847.0
+  Flight  F91      ->   day    start 13435.0 - end 13515.0
+  Maint   FERRY   day    start 13515.0 - end 13575.0
+  Flight  F105     ->   day    start 15115.0 - end 15193.0
+  Maint   FERRY   day    start 15193.0 - end 15253.0
+  Maint   D       day    start 15253.0 - end 15673.0
+  Flight  F132     ->   day    start 18230.0 - end 18371.0
+  Maint   A       day    start 18371.0 - end 18416.0
+  Flight  F143     ->   day    start 19543.0 - end 19698.0
+  Maint   B       day    start 19698.0 - end 19788.0
+  Flight  F152     ->   day    start 20750.0 - end 20882.0
+  Maint   A       day    start 20882.0 - end 20927.0
+  Flight  F163     ->   day    start 22470.0 - end 22634.0
+  Maintenance statistics:
+    Check A:  #1: flight mins before =   299.0  cum days before =   4.87   |   #2: flight mins before =   153.0  cum days before =   0.51   |   #3: flight mins before =   410.0  cum days before =   7.32   |   #4: flight mins before =   287.0  cum days before =   1.71
+    Check B:  #1: flight mins before =     0.0  cum days before =   0.04   |   #2: flight mins before =  1017.0  cum days before =  13.57
+    Check C:  #1: flight mins before =   563.0  cum days before =   7.37
+    Check D:  #1: flight mins before =   177.0  cum days before =   2.38   |   #2: flight mins before =   544.0  cum days before =   7.92
+
+Aircraft 6:
+  Maint   B       day    start     0.0 - end    90.0
+  Flight  F1       ->   day    start   414.0 - end   589.0
+  Flight  F4       ->   day    start   716.0 - end   778.0
+  Maint   FERRY   day    start   778.0 - end   838.0
+  Maint   A       day    start   838.0 - end   883.0
+  Flight  F30      ->   day    start  3768.0 - end  3883.0
+  Maint   FERRY   day    start  3883.0 - end  3943.0
+  Maint   D       day    start  3943.0 - end  4363.0
+  Flight  F55      ->   day    start  7973.0 - end  8092.0
+  Flight  F72      ->   day    start 10483.0 - end 10563.0
+  Maint   FERRY   day    start 10563.0 - end 10623.0
+  Maint   C       day    start 10623.0 - end 10863.0
+  Flight  F82      ->   day    start 11256.0 - end 11339.0
+  Maint   FERRY   day    start 11339.0 - end 11399.0
+  Maint   A       day    start 11399.0 - end 11444.0
+  Flight  F106     ->   day    start 15164.0 - end 15328.0
+  Maint   D       day    start 15328.0 - end 15748.0
+  Flight  F118     ->   day    start 16671.0 - end 16793.0
+  Flight  F133     ->   day    start 18356.0 - end 18449.0
+  Maint   FERRY   day    start 18449.0 - end 18509.0
+  Maint   A       day    start 18509.0 - end 18554.0
+  Flight  F144     ->   day    start 19572.0 - end 19729.0
+  Maint   B       day    start 19729.0 - end 19819.0
+  Flight  F168     ->   day    start 23454.0 - end 23561.0
+  Maintenance statistics:
+    Check A:  #1: flight mins before =   237.0  cum days before =   0.58   |   #2: flight mins before =   397.0  cum days before =   7.30   |   #3: flight mins before =   379.0  cum days before =   4.91
+    Check B:  #1: flight mins before =     0.0  cum days before =   0.00   |   #2: flight mins before =  1170.0  cum days before =  13.64
+    Check C:  #1: flight mins before =   551.0  cum days before =   7.38
+    Check D:  #1: flight mins before =   352.0  cum days before =   2.74   |   #2: flight mins before =   446.0  cum days before =   7.61
+
+Aircraft 7:
+  Maint   FERRY   day    start     0.0 - end    60.0
+  Maint   B       day    start    60.0 - end   150.0
+  Flight  F14      ->   day    start  1863.0 - end  2029.0
+  Maint   FERRY   day    start  2029.0 - end  2089.0
+  Maint   A       day    start  2089.0 - end  2134.0
+  Flight  F43      ->   day    start  6679.0 - end  6773.0
+  Maint   FERRY   day    start  6773.0 - end  6833.0
+  Maint   D       day    start  6833.0 - end  7253.0
+  Flight  F68      ->   day    start  9438.0 - end  9501.0
+  Flight  F74      ->   day    start 10577.0 - end 10704.0
+  Maint   FERRY   day    start 10704.0 - end 10764.0
+  Maint   A       day    start 10764.0 - end 10809.0
+  Flight  F97      ->   day    start 13861.0 - end 13963.0
+  Maint   C       day    start 13963.0 - end 14203.0
+  Flight  F114     ->   day    start 16294.0 - end 16357.0
+  Maint   FERRY   day    start 16357.0 - end 16417.0
+  Flight  F131     ->   day    start 18188.0 - end 18284.0
+  Maint   D       day    start 18284.0 - end 18704.0
+  Flight  F156     ->   day    start 21228.0 - end 21388.0
+  Maint   A       day    start 21388.0 - end 21433.0
+  Flight  F176     ->   day    start 24077.0 - end 24179.0
+  Maint   FERRY   day    start 24179.0 - end 24239.0
+  Maint   A       day    start 24239.0 - end 24284.0
+  Flight  F184     ->   day    start 25404.0 - end 25555.0
+  Maintenance statistics:
+    Check A:  #1: flight mins before =   166.0  cum days before =   1.45   |   #2: flight mins before =   284.0  cum days before =   5.99   |   #3: flight mins before =   421.0  cum days before =   7.35   |   #4: flight mins before =   102.0  cum days before =   1.95
+    Check B:  #1: flight mins before =     0.0  cum days before =   0.04
+    Check C:  #1: flight mins before =   552.0  cum days before =   9.70
+    Check D:  #1: flight mins before =   260.0  cum days before =   4.75   |   #2: flight mins before =   451.0  cum days before =   7.66
+
+Aircraft 8:
+  Maint   FERRY   day    start     0.0 - end    60.0
+  Maint   B       day    start    60.0 - end   150.0
+  Flight  F15      ->   day    start  1906.0 - end  1975.0
+  Maint   FERRY   day    start  1975.0 - end  2035.0
+  Maint   C       day    start  2035.0 - end  2275.0
+  Flight  F38      ->   day    start  5513.0 - end  5592.0
+  Maint   FERRY   day    start  5592.0 - end  5652.0
+  Maint   D       day    start  5652.0 - end  6072.0
+  Flight  F63      ->   day    start  9156.0 - end  9229.0
+  Maint   FERRY   day    start  9229.0 - end  9289.0
+  Flight  F90      ->   day    start 12617.0 - end 12757.0
+  Maint   C       day    start 12757.0 - end 12997.0
+  Flight  F100     ->   day    start 13896.0 - end 14023.0
+  Maint   FERRY   day    start 14023.0 - end 14083.0
+  Maint   A       day    start 14083.0 - end 14128.0
+  Flight  F128     ->   day    start 17968.0 - end 18098.0
+  Maint   FERRY   day    start 18098.0 - end 18158.0
+  Maint   D       day    start 18158.0 - end 18578.0
+  Flight  F162     ->   day    start 22407.0 - end 22567.0
+  Maint   A       day    start 22567.0 - end 22612.0
+  Flight  F175     ->   day    start 23974.0 - end 24135.0
+  Maintenance statistics:
+    Check A:  #1: flight mins before =   488.0  cum days before =   9.78   |   #2: flight mins before =   290.0  cum days before =   5.86
+    Check B:  #1: flight mins before =     0.0  cum days before =   0.04
+    Check C:  #1: flight mins before =    69.0  cum days before =   1.41   |   #2: flight mins before =   292.0  cum days before =   7.28
+    Check D:  #1: flight mins before =   148.0  cum days before =   3.92   |   #2: flight mins before =   470.0  cum days before =   8.39
+
+Aircraft 9:
+  Maint   D       day    start     0.0 - end   420.0
+  Flight  F17      ->   day    start  2000.0 - end  2157.0
+  Maint   A       day    start  2157.0 - end  2202.0
+  Flight  F21      ->   day    start  2262.0 - end  2369.0
+  Maint   FERRY   day    start  2369.0 - end  2429.0
+  Maint   A       day    start  2429.0 - end  2474.0
+  Flight  F34      ->   day    start  5084.0 - end  5219.0
+  Maint   FERRY   day    start  5219.0 - end  5279.0
+  Maint   B       day    start  5279.0 - end  5369.0
+  Flight  F56      ->   day    start  8001.0 - end  8112.0
+  Maint   FERRY   day    start  8112.0 - end  8172.0
+  Maint   C       day    start  8172.0 - end  8412.0
+  Flight  F77      ->   day    start 10824.0 - end 10932.0
+  Maint   D       day    start 10932.0 - end 11352.0
+  Flight  F95      ->   day    start 13660.0 - end 13731.0
+  Flight  F104     ->   day    start 15099.0 - end 15178.0
+  Maint   FERRY   day    start 15178.0 - end 15238.0
+  Maint   A       day    start 15238.0 - end 15283.0
+  Flight  F111     ->   day    start 15599.0 - end 15697.0
+  Flight  F122     ->   day    start 16852.0 - end 16923.0
+  Maint   B       day    start 16923.0 - end 17013.0
+  Flight  F127     ->   day    start 17902.0 - end 18023.0
+  Maint   FERRY   day    start 18023.0 - end 18083.0
+  Maint   C       day    start 18083.0 - end 18323.0
+  Flight  F145     ->   day    start 19617.0 - end 19758.0
+  Flight  F177     ->   day    start 24091.0 - end 24189.0
+  Maint   D       day    start 24189.0 - end 24609.0
+  Flight  F182     ->   day    start 25258.0 - end 25384.0
+  Maint   A       day    start 25384.0 - end 25429.0
+  Flight  F186     ->   day    start 25619.0 - end 25787.0
+  Maintenance statistics:
+    Check A:  #1: flight mins before =   157.0  cum days before =   1.50   |   #2: flight mins before =   107.0  cum days before =   0.16   |   #3: flight mins before =   504.0  cum days before =   8.86   |   #4: flight mins before =   655.0  cum days before =   7.01
+    Check B:  #1: flight mins before =   399.0  cum days before =   3.67   |   #2: flight mins before =   538.0  cum days before =   8.02
+    Check C:  #1: flight mins before =   510.0  cum days before =   5.67   |   #2: flight mins before =   548.0  cum days before =   6.72
+    Check D:  #1: flight mins before =     0.0  cum days before =   0.00   |   #2: flight mins before =   618.0  cum days before =   7.30   |   #3: flight mins before =   679.0  cum days before =   8.91
+
+Aircraft 10:
+  Maint   C       day    start     0.0 - end   240.0
+  Flight  F13      ->   day    start  1200.0 - end  1379.0
+  Maint   FERRY   day    start  1379.0 - end  1439.0
+  Maint   A       day    start  1439.0 - end  1484.0
+  Flight  F25      ->   day    start  2615.0 - end  2682.0
+  Flight  F42      ->   day    start  6648.0 - end  6817.0
+  Maint   D       day    start  6817.0 - end  7237.0
+  Flight  F53      ->   day    start  7807.0 - end  7914.0
+  Maint   FERRY   day    start  7914.0 - end  7974.0
+  Flight  F60      ->   day    start  8375.0 - end  8505.0
+  Maint   A       day    start  8505.0 - end  8550.0
+  Flight  F76      ->   day    start 10792.0 - end 10862.0
+  Maint   B       day    start 10862.0 - end 10952.0
+  Flight  F81      ->   day    start 11162.0 - end 11301.0
+  Maint   FERRY   day    start 11301.0 - end 11361.0
+  Maint   A       day    start 11361.0 - end 11406.0
+  Flight  F89      ->   day    start 12581.0 - end 12732.0
+  Maint   FERRY   day    start 12732.0 - end 12792.0
+  Maint   B       day    start 12792.0 - end 12882.0
+  Flight  F124     ->   day    start 16979.0 - end 17139.0
+  Maint   C       day    start 17139.0 - end 17379.0
+  Flight  F134     ->   day    start 18376.0 - end 18462.0
+  Maint   D       day    start 18462.0 - end 18882.0
+  Flight  F160     ->   day    start 22347.0 - end 22447.0
+  Flight  F165     ->   day    start 22739.0 - end 22832.0
+  Maint   FERRY   day    start 22832.0 - end 22892.0
+  Maint   A       day    start 22892.0 - end 22937.0
+  Flight  F166     ->   day    start 23438.0 - end 23518.0
+  Flight  F170     ->   day    start 23589.0 - end 23720.0
+  Maintenance statistics:
+    Check A:  #1: flight mins before =   179.0  cum days before =   1.00   |   #2: flight mins before =   473.0  cum days before =   4.88   |   #3: flight mins before =   209.0  cum days before =   1.95   |   #4: flight mins before =   590.0  cum days before =   7.98
+    Check B:  #1: flight mins before =   722.0  cum days before =   7.54   |   #2: flight mins before =   290.0  cum days before =   1.28
+    Check C:  #1: flight mins before =     0.0  cum days before =   0.00   |   #2: flight mins before =  1172.0  cum days before =  11.74
+    Check D:  #1: flight mins before =   415.0  cum days before =   4.73   |   #2: flight mins before =   843.0  cum days before =   7.80
+
+Aircraft 11:
+  Maint   B       day    start     0.0 - end    90.0
+  Flight  F2       ->   day    start   524.0 - end   649.0
+  Maint   FERRY   day    start   649.0 - end   709.0
+  Flight  F24      ->   day    start  2502.0 - end  2562.0
+  Maint   FERRY   day    start  2562.0 - end  2622.0
+  Maint   C       day    start  2622.0 - end  2862.0
+  Flight  F47      ->   day    start  6953.0 - end  7109.0
+  Maint   D       day    start  7109.0 - end  7529.0
+  Flight  F66      ->   day    start  9327.0 - end  9455.0
+  Flight  F75      ->   day    start 10615.0 - end 10689.0
+  Maint   A       day    start 10689.0 - end 10734.0
+  Flight  F80      ->   day    start 11007.0 - end 11145.0
+  Maint   FERRY   day    start 11145.0 - end 11205.0
+  Maint   B       day    start 11205.0 - end 11295.0
+  Flight  F86      ->   day    start 12088.0 - end 12182.0
+  Maint   FERRY   day    start 12182.0 - end 12242.0
+  Flight  F107     ->   day    start 15184.0 - end 15324.0
+  Maint   C       day    start 15324.0 - end 15564.0
+  Flight  F121     ->   day    start 16833.0 - end 16928.0
+  Maint   A       day    start 16928.0 - end 16973.0
+  Flight  F138     ->   day    start 19222.0 - end 19368.0
+  Maint   FERRY   day    start 19368.0 - end 19428.0
+  Maint   D       day    start 19428.0 - end 19848.0
+  Flight  F151     ->   day    start 20718.0 - end 20822.0
+  Maint   FERRY   day    start 20822.0 - end 20882.0
+  Flight  F187     ->   day    start 25679.0 - end 25760.0
+  Maintenance statistics:
+    Check A:  #1: flight mins before =   543.0  cum days before =   7.42   |   #2: flight mins before =   467.0  cum days before =   4.30
+    Check B:  #1: flight mins before =     0.0  cum days before =   0.00   |   #2: flight mins before =   681.0  cum days before =   7.72
+    Check C:  #1: flight mins before =   185.0  cum days before =   1.82   |   #2: flight mins before =   730.0  cum days before =   8.65
+    Check D:  #1: flight mins before =   341.0  cum days before =   4.94   |   #2: flight mins before =   815.0  cum days before =   8.26
+
+Aircraft 12:
+  Maint   B       day    start     0.0 - end    90.0
+  Flight  F6       ->   day    start   737.0 - end   900.0
+  Maint   A       day    start   900.0 - end   945.0
+  Flight  F16      ->   day    start  1909.0 - end  1996.0
+  Maint   FERRY   day    start  1996.0 - end  2056.0
+  Maint   D       day    start  2056.0 - end  2476.0
+  Flight  F31      ->   day    start  3955.0 - end  4020.0
+  Flight  F46      ->   day    start  6857.0 - end  6996.0
+  Maint   A       day    start  6996.0 - end  7041.0
+  Flight  F52      ->   day    start  7756.0 - end  7877.0
+  Maint   FERRY   day    start  7877.0 - end  7937.0
+  Maint   B       day    start  7937.0 - end  8027.0
+  Flight  F62      ->   day    start  9122.0 - end  9261.0
+  Maint   FERRY   day    start  9261.0 - end  9321.0
+  Maint   C       day    start  9321.0 - end  9561.0
+  Flight  F87      ->   day    start 12156.0 - end 12252.0
+  Maint   FERRY   day    start 12252.0 - end 12312.0
+  Flight  F115     ->   day    start 16438.0 - end 16555.0
+  Maint   D       day    start 16555.0 - end 16975.0
+  Flight  F130     ->   day    start 18137.0 - end 18256.0
+  Maint   A       day    start 18256.0 - end 18301.0
+  Flight  F137     ->   day    start 19152.0 - end 19289.0
+  Maint   FERRY   day    start 19289.0 - end 19349.0
+  Maint   A       day    start 19349.0 - end 19394.0
+  Flight  F153     ->   day    start 20774.0 - end 20914.0
+  Maint   B       day    start 20914.0 - end 21004.0
+  Flight  F172     ->   day    start 23890.0 - end 24027.0
+  Maintenance statistics:
+    Check A:  #1: flight mins before =   163.0  cum days before =   0.62   |   #2: flight mins before =   291.0  cum days before =   4.20   |   #3: flight mins before =   592.0  cum days before =   7.79   |   #4: flight mins before =   137.0  cum days before =   0.73
+    Check B:  #1: flight mins before =     0.0  cum days before =   0.00   |   #2: flight mins before =   575.0  cum days before =   5.45   |   #3: flight mins before =   748.0  cum days before =   8.95
+    Check C:  #1: flight mins before =   714.0  cum days before =   6.47
+    Check D:  #1: flight mins before =   250.0  cum days before =   1.43   |   #2: flight mins before =   677.0  cum days before =   9.78
+
+Aircraft 13:
+  Maint   D       day    start     0.0 - end   420.0
+  Flight  F11      ->   day    start   968.0 - end  1061.0
+  Maint   FERRY   day    start  1061.0 - end  1121.0
+  Flight  F23      ->   day    start  2467.0 - end  2566.0
+  Maint   FERRY   day    start  2566.0 - end  2626.0
+  Maint   A       day    start  2626.0 - end  2671.0
+  Flight  F48      ->   day    start  7563.0 - end  7742.0
+  Maint   FERRY   day    start  7742.0 - end  7802.0
+  Maint   C       day    start  7802.0 - end  8042.0
+  Flight  F70      ->   day    start  9569.0 - end  9650.0
+  Flight  F92      ->   day    start 13455.0 - end 13581.0
+  Maint   FERRY   day    start 13581.0 - end 13641.0
+  Maint   D       day    start 13641.0 - end 14061.0
+  Flight  F103     ->   day    start 15022.0 - end 15142.0
+  Maint   A       day    start 15142.0 - end 15187.0
+  Flight  F109     ->   day    start 15530.0 - end 15687.0
+  Maint   FERRY   day    start 15687.0 - end 15747.0
+  Maint   A       day    start 15747.0 - end 15792.0
+  Flight  F136     ->   day    start 19088.0 - end 19214.0
+  Maint   B       day    start 19214.0 - end 19304.0
+  Flight  F161     ->   day    start 22352.0 - end 22422.0
+  Maint   C       day    start 22422.0 - end 22662.0
+  Flight  F171     ->   day    start 23705.0 - end 23839.0
+  Maint   FERRY   day    start 23839.0 - end 23899.0
+  Flight  F185     ->   day    start 25512.0 - end 25595.0
+  Maintenance statistics:
+    Check A:  #1: flight mins before =   192.0  cum days before =   1.82   |   #2: flight mins before =   506.0  cum days before =   8.66   |   #3: flight mins before =   157.0  cum days before =   0.39
+    Check B:  #1: flight mins before =   981.0  cum days before =  13.34
+    Check C:  #1: flight mins before =   371.0  cum days before =   5.42   |   #2: flight mins before =   680.0  cum days before =   9.99
+    Check D:  #1: flight mins before =     0.0  cum days before =   0.00   |   #2: flight mins before =   578.0  cum days before =   9.18
+
+Aircraft 14:
+  Maint   FERRY   day    start     0.0 - end    60.0
+  Maint   A       day    start    60.0 - end   105.0
+  Flight  F20      ->   day    start  2085.0 - end  2152.0
+  Maint   FERRY   day    start  2152.0 - end  2212.0
+  Maint   D       day    start  2212.0 - end  2632.0
+  Flight  F39      ->   day    start  6156.0 - end  6254.0
+  Maint   FERRY   day    start  6254.0 - end  6314.0
+  Maint   A       day    start  6314.0 - end  6359.0
+  Flight  F65      ->   day    start  9293.0 - end  9459.0
+  Maint   FERRY   day    start  9459.0 - end  9519.0
+  Maint   C       day    start  9519.0 - end  9759.0
+  Flight  F96      ->   day    start 13727.0 - end 13898.0
+  Maint   FERRY   day    start 13898.0 - end 13958.0
+  Maint   D       day    start 13958.0 - end 14378.0
+  Flight  F126     ->   day    start 17677.0 - end 17785.0
+  Flight  F158     ->   day    start 21999.0 - end 22079.0
+  Maint   FERRY   day    start 22079.0 - end 22139.0
+  Maint   C       day    start 22139.0 - end 22379.0
+  Flight  F173     ->   day    start 23901.0 - end 24081.0
+  Maintenance statistics:
+    Check A:  #1: flight mins before =     0.0  cum days before =   0.04   |   #2: flight mins before =   165.0  cum days before =   4.31
+    Check C:  #1: flight mins before =   331.0  cum days before =   6.61   |   #2: flight mins before =   359.0  cum days before =   8.60
+    Check D:  #1: flight mins before =    67.0  cum days before =   1.54   |   #2: flight mins before =   435.0  cum days before =   7.87
+
+Aircraft 15:
+  Maint   FERRY   day    start     0.0 - end    60.0
+  Maint   D       day    start    60.0 - end   480.0
+  Flight  F18      ->   day    start  2057.0 - end  2140.0
+  Maint   FERRY   day    start  2140.0 - end  2200.0
+  Maint   A       day    start  2200.0 - end  2245.0
+  Flight  F40      ->   day    start  6320.0 - end  6483.0
+  Maint   FERRY   day    start  6483.0 - end  6543.0
+  Maint   C       day    start  6543.0 - end  6783.0
+  Flight  F67      ->   day    start  9412.0 - end  9473.0
+  Flight  F83      ->   day    start 11931.0 - end 11997.0
+  Maint   D       day    start 11997.0 - end 12417.0
+  Flight  F93      ->   day    start 13468.0 - end 13558.0
+  Flight  F102     ->   day    start 14981.0 - end 15127.0
+  Maint   A       day    start 15127.0 - end 15172.0
+  Flight  F108     ->   day    start 15506.0 - end 15566.0
+  Maint   FERRY   day    start 15566.0 - end 15626.0
+  Flight  F112     ->   day    start 16213.0 - end 16283.0
+  Maint   FERRY   day    start 16283.0 - end 16343.0
+  Maint   B       day    start 16343.0 - end 16433.0
+  Flight  F135     ->   day    start 18439.0 - end 18519.0
+  Maint   C       day    start 18519.0 - end 18759.0
+  Flight  F157     ->   day    start 21293.0 - end 21465.0
+  Maint   A       day    start 21465.0 - end 21510.0
+  Flight  F164     ->   day    start 22723.0 - end 22871.0
+  Maint   FERRY   day    start 22871.0 - end 22931.0
+  Maint   D       day    start 22931.0 - end 23351.0
+  Flight  F179     ->   day    start 24211.0 - end 24365.0
+  Maintenance statistics:
+    Check A:  #1: flight mins before =    83.0  cum days before =   1.53   |   #2: flight mins before =   526.0  cum days before =   8.95   |   #3: flight mins before =   382.0  cum days before =   4.37
+    Check B:  #1: flight mins before =   739.0  cum days before =  11.35
+    Check C:  #1: flight mins before =   246.0  cum days before =   4.54   |   #2: flight mins before =   573.0  cum days before =   8.15
+    Check D:  #1: flight mins before =     0.0  cum days before =   0.04   |   #2: flight mins before =   373.0  cum days before =   8.00   |   #3: flight mins before =   766.0  cum days before =   7.30

@@ -1,0 +1,2 @@
+stem,mode,flights,assigned,unassigned,status,objective,gap_pct,cpu_s,wall_s,num_vars,num_constraints,returncode
+ABCD_no_maint_test,milp,14,14,0,optimal,14000.000000,0.000000,0.059053,0.192121,,,0

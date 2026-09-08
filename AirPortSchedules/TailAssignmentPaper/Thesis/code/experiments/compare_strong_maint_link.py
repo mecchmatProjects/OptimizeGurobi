@@ -52,6 +52,39 @@ def model_size(model):
     return variables, constraints
 
 
+def _finite(raw):
+    if raw is None:
+        return None
+    try:
+        number = float(raw)
+    except (TypeError, ValueError):
+        return None
+    return number if float("-inf") < number < float("inf") else None
+
+
+def extract_bounds(result):
+    """Return (dual bound, primal bound, relative gap, nodes).
+
+    This is a minimisation model, so the dual bound is a valid lower bound and
+    the primal bound is the incumbent, i.e. a valid upper bound on the optimum.
+    """
+    problem = result.problem
+    dual_bound = _finite(getattr(problem, "lower_bound", None))
+    primal_bound = _finite(getattr(problem, "upper_bound", None))
+    gap = None
+    if dual_bound is not None and primal_bound is not None:
+        denominator = abs(primal_bound)
+        if denominator > 1e-12:
+            gap = abs(primal_bound - dual_bound) / denominator
+    nodes = None
+    for attribute in ("nodes_explored", "number_of_nodes", "node_count"):
+        candidate = _finite(getattr(result.solver, attribute, None))
+        if candidate is not None:
+            nodes = int(candidate)
+            break
+    return dual_bound, primal_bound, gap, nodes
+
+
 def run_variant(path, strong_link, solver_name, time_limit, solve_mode,
                 duration_days, enabled_checks, use_day_spacing,
                 use_capacity, executable, sparse_domain, tight_c13_m,
@@ -91,6 +124,10 @@ def run_variant(path, strong_link, solver_name, time_limit, solve_mode,
         "status": "built",
         "objective": None,
         "runtime_s": None,
+        "dual_bound": None,
+        "primal_bound": None,
+        "mip_gap": None,
+        "nodes": None,
         "error": "",
     }
     if not solve_mode:
@@ -108,6 +145,11 @@ def run_variant(path, strong_link, solver_name, time_limit, solve_mode,
         result = solver.solve(model, tee=False)
         row["runtime_s"] = round(time.perf_counter() - solve_started, 6)
         row["status"] = str(result.solver.termination_condition)
+        dual_bound, primal_bound, gap, nodes = extract_bounds(result)
+        row["dual_bound"] = dual_bound
+        row["primal_bound"] = primal_bound
+        row["mip_gap"] = gap
+        row["nodes"] = nodes
         if row["status"] not in {"optimal", "feasible"}:
             row["error"] = "non-success termination"
             return row

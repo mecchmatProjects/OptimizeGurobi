@@ -1,0 +1,22 @@
+Aircraft 0:
+  Flight  F1      B -> C  day 1   start    60.0 - end   260.0
+  Maint   MA      day 1   start   260.0 - end   620.0
+  Flight  F4      C -> B  day 1   start   700.0 - end   900.0
+  Flight  F7      B -> C  day 1   start  1000.0 - end  1200.0
+  Flight  F5      C -> B  day 2   start  2160.0 - end  2360.0
+  Flight  F8      B -> C  day 2   start  2500.0 - end  2700.0
+  Flight  F6      C -> B  day 3   start  3600.0 - end  3800.0
+  Maintenance statistics:
+    Check A:  #1: flight mins before =   200.0  cum days before =   0.18
+
+Aircraft 1:
+  Flight  F2      B -> C  day 2   start  1500.0 - end  1700.0
+  Maint   MA      day 2   start  1700.0 - end  2060.0
+  Maintenance statistics:
+    Check A:  #1: flight mins before =   200.0  cum days before =   1.18
+
+Aircraft 2:
+  Flight  F3      B -> C  day 3   start  2940.0 - end  3140.0
+  Maint   MA      day 3   start  3140.0 - end  3500.0
+  Maintenance statistics:
+    Check A:  #1: flight mins before =   200.0  cum days before =   2.18

@@ -1,0 +1,11 @@
+instance,variant,variables,constraints,c9_rows,z_variables,build_s,solver,status,objective,runtime_s,error
+DataCplex_density=0.5_p=10_h=10_test_0,sparse_z+tight_c13_m+reachability+strong_conflicts,5250,9020,2000,3870,0.52327,none,built,,,
+DataCplex_density=0.5_p=10_h=10_test_0,strong_link+sparse_z+tight_c13_m+reachability+strong_conflicts,5250,9020,2000,3870,0.569266,none,built,,,
+DataCplex_density=0.5_p=10_h=14_test_0,sparse_z+tight_c13_m+reachability+strong_conflicts,7690,12950,2800,5790,0.996404,none,built,,,
+DataCplex_density=0.5_p=10_h=14_test_0,strong_link+sparse_z+tight_c13_m+reachability+strong_conflicts,7690,12950,2800,5790,1.059122,none,built,,,
+DataCplex_density=0.5_p=8_h=14_test_0,sparse_z+tight_c13_m+reachability+strong_conflicts,5088,9495,1792,3680,0.679044,none,built,,,
+DataCplex_density=0.5_p=8_h=14_test_0,strong_link+sparse_z+tight_c13_m+reachability+strong_conflicts,5088,9495,1792,3680,0.669131,none,built,,,
+DataCplex_density=0.65_p=8_h=14_test_1,sparse_z+tight_c13_m+reachability+strong_conflicts,6400,11075,2336,4856,0.924014,none,built,,,
+DataCplex_density=0.65_p=8_h=14_test_1,strong_link+sparse_z+tight_c13_m+reachability+strong_conflicts,6400,11075,2336,4856,0.867306,none,built,,,
+DataCplex_density=0.6_p=10_h=14_test_1,sparse_z+tight_c13_m+reachability+strong_conflicts,8100,15132,3360,6060,1.198143,none,built,,,
+DataCplex_density=0.6_p=10_h=14_test_1,strong_link+sparse_z+tight_c13_m+reachability+strong_conflicts,8100,15132,3360,6060,1.268809,none,built,,,

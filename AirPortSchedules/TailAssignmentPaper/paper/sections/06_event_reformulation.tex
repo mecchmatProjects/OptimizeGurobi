@@ -52,8 +52,8 @@ The objective is
 \end{equation}
 
 The constraints (E4--E7) for $x_{rj}$ retain the corrected basic constraints
-C2--C4: flight coverage, non-home continuity, and home-airport
-continuity/turn-time balance. C5 pairwise non-overlap remains active on the
+C2--C5: flight coverage, non-home continuity, home-airport
+continuity/turn-time balance, and pairwise non-overlap remains active on the
 assignment variables.
 
 The constraint C8 - maintenance duration blocking is enforced through the event assignment and compatibility constraints
@@ -80,7 +80,7 @@ position, an unassigned flight carries the state forward, an assigned flight
 adds its duration, and an event resets the state after its triggering flight.
 Using valid position-specific big-$M$ values $M_{rj}$, the transition is
 represented by
-\paragraph{E11--E15. Prefix-state propagation.}
+\paragraph{E9--E13. Prefix-state propagation.}
 \begin{align}
 h_{rj}&\ge h_{r-1,j}-M_{rj}x_{rj},\\
 h_{rj}&\le h_{r-1,j}+M_{rj}x_{rj},\\
@@ -89,35 +89,49 @@ h_{rj}&\le h_{r-1,j}+p_{r}+M_{rj}(1-x_{rj})+M_{rj}z_{rj},\\
 h_{rj}&\le T_F(1-z_{rj})
 \label{eq:ordered_hour_transition}
 \end{align}
-The first two rows (E11--E12) carry the state at an unassigned position. The next two
-rows (E13--E14) impose accumulation for an assigned flight unless an event is selected.
-The final row (E15), together with the nonnegative state domain, gives the exact
+The first two rows (E9--E10) carry the state at an unassigned position. The next two
+rows (E11--E12) impose accumulation for an assigned flight unless an event is selected.
+The final row (E13), together with the nonnegative state domain, gives the exact
 post-event state:
 $h_{rj}=0$ when $z_{rj}=1$, because the maintenance occurs after flight
 $i_r$. The final row together with (E3) bounds the state in all cases and prevents a maintenance event
 from repairing an arrival that already exceeds $T_F$. 
 The initial state is $h_{0j}=\Phi_j$.
 
+\subsection{Maintenance blocking and capacity constraints}
 
-\paragraph{E9. Maintenance capacity.}
-At every airport timestamp breakpoint, the active maintenance events satisfy
+The maintenance blocking and capacity constraints are formulated as follows. 
+We assume that every maintenance event starts immediately after the triggering flight. 
+In this case we can rewrite constraints C8 in the next way:
+
+\paragraph{E14. Maintenance blocking.}
+Define $F^{\text{dep}}_{ra}$ as the set of flights from airport $a$ whose departure falls before the event's completion plus turn time:
 \begin{equation}
-\sum_{(r,j)\in\mathcal{I}(a,\theta)}z_{rj}
-\leq \operatorname{mcap}_{a,\theta},
-\label{eq:ordered_c10_capacity}
+	F^{\text{dep}}_{ra} = \{ i \in \F \mid \alpha(i) = a,\ t_i^{\text{dep}} < t_{r}^{\text{arr}} + T_F \}.
 \end{equation}
-where $\mathcal{I}(a,\theta)$ contains events whose maintenance intervals
-cover $\theta$. This is implemented by the timestamp-overlap component
-\texttt{c10\_event\_capacity}; it is the maintenance-capacity constraint that was not
-explicitly displayed earlier.
-
-\paragraph{E10. Maintenance blocking.}
 If $z_{rj}=1$, every selected flight whose
 departure falls before the event's completion plus turn time is blocked:
 \begin{equation}
-x_{\ell j}+z_{rj}\leq1.
+x_{ij}+z_{rj}\leq 1,
+\qquad \forall i \in F^{\text{dep}}_{ra},\ j \in \Pc.
 \end{equation}
 Only economically relevant timestamp conflicts are generated.
+
+
+\paragraph{E15. Maintenance capacity.}
+Define $F^{\text{arr}}_{ra}$ as the set of flights to airport $a$ whose arrival 
+falls before the event's completion plus turn time:
+\begin{equation}
+	F^{\text{arr}}_{ra} = \{ i \in \F \mid \beta(i) = a,\ t_i^{\text{arr}} < t_{r}^{\text{arr}} + T_F \}.
+\end{equation}
+At every airport timestamp breakpoint, the active maintenance events satisfy
+\begin{equation}
+\sum_{(r,j)\in F^{\text{arr}}_{ra}\times \Pc} z_{rj}
+\leq \operatorname{mcap}_{a},
+\label{eq:ordered_c10_capacity}
+\end{equation}
+This is implemented by the timestamp-overlap component
+\texttt{c10\_event\_capacity}.
 
 
 \subsection{Complete constraint inventory of the implemented A-only model}

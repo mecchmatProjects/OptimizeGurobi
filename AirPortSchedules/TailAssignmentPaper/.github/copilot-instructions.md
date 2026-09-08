@@ -35,10 +35,12 @@ constraint index, variable naming, the constraint (13) correction, and code conv
 - Each section is `\input`'d from `sections/{N}_{name}.tex`.
 
 ### Mathematical Notation (docs/ and paper/)
-- Basic constraint numbering: legacy formulation C0--C3; corrected formulation
-  C0--C5. C0 is the binary assignment/domain, C1 is flight coverage, C2 is
-  non-home continuity, C3 is home-airport continuity/turn-time balance, C4 is
-  pairwise non-overlap, and C5 is clique-strengthened non-overlap.
+- Basic constraint numbering: legacy formulation C1--C4; corrected formulation
+  C1--C5. C1 is the binary assignment/domain, C2 is flight coverage, C3 is
+  non-home continuity, C4 is home-airport continuity/turn-time balance, and C5
+   is pairwise non-overlap. Maintenance uses C6--C12; C13 is the paper
+   cumulative-flight-time row, with C13a and C13b--C13f as the corrected state
+  formulation.
 - Flights: set $\mathcal{F}$, index $i$
 - Aircraft: set $\mathcal{P}$, index $j$
 - Airports: set $\mathcal{A}$, index $k$
@@ -47,9 +49,10 @@ constraint index, variable naming, the constraint (13) correction, and code conv
 - Decision variables: $x_{ij}$, $z_{ijdc}$, $y_{jdc}$, $\gamma_{jdc}$ (mega)
 - Big-M: $M_{dd'}$ (computed per day-pair, not a global constant)
 
-## Constraint (13) — Always Use the Corrected Version
+## C13 — Always Use the Corrected Version
 
-When writing or suggesting code for the cumulative flight-hour constraint,
+When writing or suggesting code for the cumulative flight-hour constraint
+(internally named `c13` in the existing implementation),
 **always use the corrected split formulation** (two constraints), not the
 original single-constraint version from the paper:
 

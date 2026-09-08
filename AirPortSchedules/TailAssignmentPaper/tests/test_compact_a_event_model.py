@@ -75,16 +75,15 @@ class CompactAEventTests(unittest.TestCase):
         self.assertEqual(len(model.Q), len(model.X))
         self.assertFalse(hasattr(model, "y"))
         self.assertFalse(hasattr(model, "w"))
-        self.assertTrue(hasattr(model, "c14_one_day"))
-        self.assertGreater(len(list(model.c14_one_day)), 0)
+        self.assertFalse(hasattr(model, "c13_event_day_cap"))
 
     def test_ordered_model_has_one_transition_block_per_flight_aircraft(self):
         scheduler = OrderedAEventMILPScheduler(str(SOURCE))
         model = scheduler.build_model()
 
         self.assertEqual(
-            len(list(model.c11_state)),
-            8 * len(model.Q),
+            len(list(model.event_hour_state)),
+            7 * len(model.Q),
         )
 
     def test_ordered_model_global_state_indexing_restores_full_q_shape(self):
@@ -94,14 +93,14 @@ class CompactAEventTests(unittest.TestCase):
         expected = 0
         for flight in scheduler.flight_ids:
             for aircraft in scheduler.aircraft_ids:
-                expected += 8 if scheduler._x_has_arc(flight, aircraft) else 1
+                expected += 7 if scheduler._x_has_arc(flight, aircraft) else 1
 
         self.assertEqual(
             len(model.Q),
             len(scheduler.flight_ids) * len(scheduler.aircraft_ids),
         )
         self.assertEqual(
-            len(list(model.c11_state)),
+            len(list(model.event_hour_state)),
             expected,
         )
 
@@ -113,7 +112,7 @@ class CompactAEventTests(unittest.TestCase):
         self.assertTrue(all(check in {"A", "B"} for _, _, check in model.Z))
         self.assertTrue(all(check in {"A", "B"} for _, _, check in model.Q))
         self.assertEqual(len(model.Q), len(model.X) * 2)
-        self.assertTrue(hasattr(model, "c6_event"))
+        self.assertTrue(hasattr(model, "event_type_exclusivity"))
 
     def test_ordered_full_model_adds_calendar_event_domain(self):
         scheduler = OrderedABCDEventMILPScheduler(str(SOURCE))

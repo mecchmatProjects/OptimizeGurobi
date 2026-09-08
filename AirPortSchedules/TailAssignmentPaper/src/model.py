@@ -521,8 +521,8 @@ class MILP_Sheduler:
             self._dep_flights_by_day_airport[(fd['day_departure'], fd['origin'])].append(fid)
 
         # ── Big-M values ──────────────────────────────────────────────────────
-        # M_BIG is used in C13/C13b (hour-accumulation) big-M relaxations.
-        # Large M is intentional: C13b with tight M makes the LP relaxation
+        # M_BIG is used in the internal c13/c13b hour-accumulation rows,
+        # corresponding to paper C13/C13b. Large M is intentional: c13b with tight M makes the LP relaxation
         # harder (more simplex pivots), which slows CPLEX on large instances.
         # M_C14b is used only in C14b (check duration); it only needs to exceed
         # the max check duration in days.
@@ -676,13 +676,13 @@ class MILP_Sheduler:
             When *True*, build the original Khaled et al. (2018) Eq. (13)
             single-constraint form (vacuous whenever either endpoint
             indicator is 0; see paper/sections/04_maintenance_model.tex,
-            Lemma ``lem:c13_flaw``) instead of the corrected two-row split.
+            Lemma ``lem:c11_flaw``) instead of the corrected two-row split.
             Default *False* uses the split formulation that is the base of
             this codebase (still provably insufficient in isolation; see
-            Lemma ``lem:c13_split_limit`` and
+            Lemma ``lem:c11_split_limit`` and
             ``experiments/c13_loophole_validation.py``).
         use_tight_c13_m : bool
-            When *True*, replace the global ``M_BIG`` constant in C13 with
+            When *True*, replace the global ``M_BIG`` constant in paper C13 with
             an interval-specific valid upper bound (the real maximum
             flyable time between the two boundary days, minus the
             threshold). Tightens the LP relaxation without changing the
@@ -1455,7 +1455,7 @@ class MILP_Sheduler:
         n    = len(days)
         for c in self.CHECK_LIST:
             thresh_days = self.check_days[c]
-            if thresh_days is None:       # A/B: flight-hour type, handled by C13b
+            if thresh_days is None:       # A/B: flight-hour type, handled by internal c13b (paper C13b)
                 continue
             for j in m.P:
                 # init_check_hrs stores hours (converted from days×24 at load time)
@@ -1504,7 +1504,7 @@ class MILP_Sheduler:
     
 
     # ------------------------------------------------------------------
-    # Constraint C13 – cumulative flight-hour accumulation between checks
+    # Internal c13 rows: paper C13 cumulative flight-hour accumulation
     # Between any two days d and d_ (within one check interval), total
     # flight minutes assigned to aircraft j must not exceed threshold
     # unless a check occurs in between (uses big-M relaxation).
@@ -1531,7 +1531,7 @@ class MILP_Sheduler:
         days  = sorted(self.days)
         n     = len(days)
         for c in self.CHECK_LIST:
-            # C13 enforces flight-hour accumulation between checks.
+            # Internal c13 enforces paper C13 flight-hour accumulation.
             # A/B thresholds are in flight-minutes; C/D thresholds are calendar
             # days (handled by C12), so skip C/D here to avoid trivial constraints.
             if self.check_days[c] is not None:   # C/D: calendar-day type -> skip
@@ -1557,7 +1557,7 @@ class MILP_Sheduler:
                             # Original Khaled et al. (2018) Eq. (13): a single
                             # constraint keyed on (2 - mega[d] - mega[d_]), which
                             # is trivially satisfied whenever either endpoint
-                            # indicator is 0 (Lemma lem:c13_flaw).
+                            # indicator is 0 (the paper C13 flaw).
                             m.c13.add(
                                 t_sum <= hr_limit * 60
                                          + big_m * (2 - m.mega[j, d, c] - m.mega[j, d_, c])

@@ -102,19 +102,9 @@ flight-hour state introduced in the cumulative-state formulation below. The disp
 day-indexed maintenance notation and becomes active only for a calendar-time
 maintenance type, which is outside the scope of this paper.
 
-\paragraph{C13 — At most one maintenance event per aircraft per day.}
-\begin{equation}\label{eq:c13}
-  \sum_{m\in\MA}\sum_{i \in F_d^{\downarrow}(m)} z_{ijd} \le 1,
-  \qquad \forall j \in \Pc,\; d \in \D.
-\end{equation}
-
-For binary $y$, C13 is implied by C11; it is retained because it makes the
-one-event-per-day rule explicit and remains useful in implementations that
-relax or disaggregate the aggregation equality.
-
-The original paper's cumulative-flight-time constraint is:
-\paragraph{C14 — Paper-based cumulative-flight-time constraint.}
-\begin{equation}\label{eq:c14_paper}
+The original paper's cumulative-flight-time constraint is C13:
+\paragraph{C13 — Paper-based cumulative-flight-time constraint.}
+\begin{equation}\label{eq:c13_paper}
   \sum_{i \in F_{d,d'}} x_{ij}\,\tilde{t}_i
   \;\le\;
   T^A_{\max}
@@ -125,7 +115,7 @@ for all $j \in \Pc$, all pairs $(d, d')$ with $2 \le d'-d \le d_{\max}-1$,
 $d < n_d$, where $\tilde{t}_i$ is the flight duration of leg $i$.
 
 
-\subsection{Impact of corrected C0--C5 feasibility on C8--C14}
+\subsection{Impact of corrected C1--C5 feasibility on C8--C13}
 \label{subsec:c2c4_impact_maintenance}
 
 The correction introduced in \Cref{sec:basic} (non-overlap
@@ -150,7 +140,7 @@ $x$-space once~\eqref{eq:c4_overlap} is imposed. This correction is necessary,
 but it does not by itself establish that a particular cumulative-hour algebraic form
 correctly propagates the maintenance counter; that property is analysed below.
 
-In summary, the C0--C5 correction primarily changes the domain over which the
+In summary, the C1--C5 correction primarily changes the domain over which the
 maintenance constraints operate. It is independent of the separate algebraic
 correction required for cumulative-hour propagation.
 
@@ -186,18 +176,12 @@ The original paper's cumulative-flight-time constraint \eqref{eq:c13_paper} is i
 
 \begin{lemma}[Flaw in~\eqref{eq:c13_paper}]
   \label{lem:c11_flaw}
-  Consider two consecutive maintenance events at days $d$ and $d'$ with no
-  check between them ($y_{jr} = 0$ for $r \in (d, d')$). Then the RHS
-  of~\eqref{eq:c13_paper} equals $T^A_{\max} + M_{dd'}(2 - 1 - 1) +
-  M_{dd'} \cdot 0 = T^A_{\max}$, which correctly imposes the flight-hour
-  limit between the two checks.
-
-  However, if $y_{jd} = 0$ (no maintenance at the start day) and $y_{jd'} =
-  1$ (maintenance only at the end day), the RHS becomes $T^A_{\max} +
-  M_{dd'}(2 - 0 - 1) = T^A_{\max} + M_{dd'}$, which is vacuously large and
-  imposes \emph{no limit} on cumulative flight hours before the first check of
-  the period. Hence the constraint fails to enforce the check-interval bound
-  for the opening sub-period.
+  If $y_{jd}=0$ and $y_{jd'}=1$, with no intermediate check, the RHS of
+  \eqref{eq:c13_paper} becomes $T^A_{\max}+M_{dd'}$. Because $M_{dd'}$ is
+  chosen as a large upper bound on cumulative flight time, the row is then
+  vacuous and imposes no limit on flying time before the first check of the
+  period. The same issue occurs symmetrically when $y_{jd}=1$ and
+  $y_{jd'}=0$.
 \end{lemma}
 
 \begin{proof}
@@ -260,7 +244,7 @@ zero. Neither pattern alone gives an exact cumulative counter.
 \label{subsec:c11_state}
 
 Define the flying time assigned to aircraft $j$ on day $d$ by
-\paragraph{C14a Daily flight time}
+\paragraph{C13a Daily flight time}
 \begin{equation}
   v_{jd}=\sum_{i\in\F:\,d_i=d}\tilde{t}_i x_{ij}.
   \label{eq:daily_flight_time}
@@ -268,7 +252,7 @@ Define the flying time assigned to aircraft $j$ on day $d$ by
 Let $h_{jd}\geq0$ be the accumulated type-A flying time immediately after the
 flights of day $d$ and before maintenance that night. Set
 $h_{j0}=\Phi^A_j$ and $y_{j0}=0$. For consecutive days, impose
-\paragraph{C14b-C14f Accumulated flight time constraints}
+\paragraph{C13b-C13f Accumulated flight time constraints}
 \begin{align}
   h_{jd}
   &\geq h_{j,d-1}+v_{jd}-M^H y_{j,d-1},
@@ -331,19 +315,19 @@ $O(n_p n_d)$ continuous variables,
 
 The additional complexity is justified by the need to accurately model the maintenance requirements and ensure that the resulting flight schedules are feasible in practice.
 
-\subsection{Rigorous feasibility theorem for C1--C14}
-\label{subsec:feasibility_theorem_c1_c14}
+\subsection{Rigorous feasibility theorem for C1--C13f}
+\label{subsec:feasibility_theorem_c1_c13}
 
 We now state the corrected sufficiency result for the type-A maintenance model.
 Consider the constraint family
-\eqref{eq:c0}--\eqref{eq:c4_overlap}, \eqref{eq:c8}--\eqref{eq:c11}, \eqref{eq:c13},
+\eqref{eq:c0}--\eqref{eq:c4_overlap}, \eqref{eq:c8}--\eqref{eq:c11},
 \eqref{eq:c11_state_lower}--\eqref{eq:c11_state_bound}, and the stated
 variable domains. Constraint C12 is inactive for the type-A-only model:
 hour spacing is enforced by the cumulative-state rows rather than by
 calendar-day covering.
 
-\begin{theorem}[Physical feasibility under corrected C1--C14]
-  \label{thm:physical_feasibility_c1_c14}
+\begin{theorem}[Physical feasibility under corrected C1--C13f]
+  \label{thm:physical_feasibility_c1_c13}
   Any solution satisfying the above constraints, with $x$, $z$, and $y$
   binary and $h$ continuous, induces for each aircraft $j$ a physically
   executable trajectory over the planning horizon:
@@ -372,8 +356,8 @@ calendar-day covering.
   By~\eqref{eq:c9}, maintenance trigger variables can only be activated on
   assigned flights. By the aggregation equality~\eqref{eq:c11}, each day's
   maintenance trigger is represented by the single aggregate indicator $y_{jd}$;
-  by the daily cap~\eqref{eq:c13}, at most one maintenance event is attached to
-  aircraft $j$ on day $d$.
+  by the binary day indicator in~\eqref{eq:c11}, the maintenance triggers on
+  day $d$ are represented by the corresponding aggregate maintenance state.
 
   \textbf{(iv) Maintenance capacity and blocking.}
   By~\eqref{eq:c10}, airport-day capacities are respected. By~\eqref{eq:c8}, if

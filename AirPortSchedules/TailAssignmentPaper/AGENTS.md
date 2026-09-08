@@ -28,14 +28,15 @@ docs/heuristic_math.tex       Formal derivation of the greedy/insertion heuristi
 
 ### Basic constraint numbering
 
-- Legacy basic formulation: C0--C3.
-- Corrected basic formulation: C0--C5.
-- C0: binary assignment/domain.
-- C1: flight coverage.
-- C2: non-home airport continuity.
-- C3: home-airport continuity / turn-time balance.
-- C4: pairwise non-overlap.
-- C5: clique-strengthened non-overlap.
+- Legacy basic formulation: C1--C4.
+- Corrected basic formulation: C1--C5.
+- C1: binary assignment/domain.
+- C2: flight coverage.
+- C3: non-home airport continuity.
+- C4: home-airport continuity / turn-time balance.
+- C5: pairwise non-overlap.
+- Maintenance extension: C6--C12; C13 is Khaled's cumulative-flight-time row,
+  with C13a daily flight time and C13b--C13f the exact cumulative-state fix.
 
 | Symbol | Meaning |
 |--------|---------|
@@ -51,9 +52,9 @@ docs/heuristic_math.tex       Formal derivation of the greedy/insertion heuristi
 | `T_max`| Maximum cumulative flight hours between A/B checks |
 | `d_max`| Maximum calendar days between C/D checks |
 
-## Constraint (13) — The Correction (Central Paper Claim)
+## C13 — The Cumulative-Flight-Time Correction (Central Paper Claim)
 
-**Khaled et al. (2018) original** (eq. 13):
+**Khaled et al. (2018) original** (paper eq. 13, mapped here to C13):
 ```
   Σ_{i ∈ F_{d,d'}} x_{ij} t_i  ≤  T_max + M*(2 − y_{jd} − y_{jd'}) + M * Σ_{r∈[d+1,d'−1]} y_{jr}
 ```
@@ -69,8 +70,9 @@ incorrectly allowed to exceed `T_max`.
 ```
 where `y_sum = Σ_{r ∈ [d+1,d'−1]} y_{jr}` (any intermediate check).
 
-Implementation: `src/model.py`, `MILP_Sheduler._add_c13_hr_accumulation()`,
-toggle via `use_paper_c13=True/False`.
+Implementation: `src/model.py`, `MILP_Sheduler._add_c13_hr_accumulation()`
+(internal method name retained for compatibility), toggled via
+`use_paper_c13=True/False`.
 
 ## Code Conventions
 
@@ -82,9 +84,9 @@ toggle via `use_paper_c13=True/False`.
 - **Random seeds**: use `stable_seed(density, p, h, index)` in `src/generate_instances.py`
   for reproducibility.
 - **Constraint toggles**: All `MILP_Sheduler.build_model()` flags default to `True`.
-  To reproduce the *legacy basic* model (C0–C3), pass
+  To reproduce the *legacy basic* model (C1–C4), pass
   `use_maintenance=False` and `use_overlap=False`.
-  The corrected basic model adds C4 pairwise and C5 clique overlap rows.
+  The corrected basic model adds C5 pairwise non-overlap rows.
 
 ## How to Run (Quick Reference)
 
@@ -123,7 +125,7 @@ Located in `.github/prompts/`:
 | `2_literature.tex` | Comparison with set-partitioning, multi-commodity flow, time-space network models |
 | `3_basic_model.tex` | Basic MILP: constraints C1–C4, Proposition 1 & 2, illustrative example |
 | `4_maintenance_model.tex` | Extended model with maintenance; **constraint (13) correction** |
-| `5_hierarchy_extension.tex` | Full A/B/C/D hierarchy; C13b (pre-horizon hours); C14b (multi-day checks) |
+| `5_hierarchy_extension.tex` | Full A/B/C/D hierarchy; C13b (pre-horizon hours); C14 (multi-day checks) |
 | `6_heuristics.tex` | Greedy/insertion heuristic; complexity; gap analysis |
 | `7_computational.tex` | Reproduced Tables 5/6/10/11; corrected results; new instance classes |
 | `8_conclusion.tex` | Summary of contributions, limitations, future work |

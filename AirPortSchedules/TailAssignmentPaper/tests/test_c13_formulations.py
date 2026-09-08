@@ -61,12 +61,10 @@ class C13FormulationTests(unittest.TestCase):
             use_strict_hour_state=True,
         )
 
-        c13_text = "\n".join(str(row.expr) for row in strict.c13.values())
-        c13b_text = "\n".join(str(row.expr) for row in strict.c13b.values())
-        self.assertIn("mega", c13_text)
-        self.assertIn("mega", c13b_text)
-        self.assertTrue(list(strict.c13))
-        self.assertTrue(list(strict.c13b))
+        self.assertTrue(hasattr(strict, "c13_exact_state"))
+        self.assertGreater(len(list(strict.c13_exact_state)), 0)
+        self.assertFalse(hasattr(strict, "c13"))
+        self.assertFalse(hasattr(strict, "c13b"))
 
 
 if __name__ == "__main__":

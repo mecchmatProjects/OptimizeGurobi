@@ -93,10 +93,10 @@ For checks $c \in \{C, D\}$, the constraint is on calendar-day spacing only:
   \qquad d'-d = d^c_{\max}-1,\; \forall j,\; c \in \{C,D\}.
 \end{equation}
 
-\paragraph{Multi-day check duration (C14b).}
+\paragraph{Multi-day check duration (C14).}
 A C- or D-check occupies multiple consecutive days. Let $\delta^c$ denote
 the duration in days. Start and occupancy indicators are linked by
-\begin{equation}\label{eq:c14b}
+\begin{equation}\label{eq:c14}
   q_{jmrc}=\sum_{d\in\D:\ d\le r<d+\delta^c}s_{jmdc},
   \quad \forall j,\ m\in\MA,\ r\in\D,\ c\in\{C,D\}.
 \end{equation}
@@ -106,17 +106,17 @@ overlap for one aircraft and enforce airport-day capacity $\kappa_{mr}$:
 \begin{align}
   \sum_{m\in\MA}\sum_{c\in\{C,D\}}q_{jmrc}&\le1,
   &&\forall j,\ r\in\D,
-  \label{eq:c14b_no_overlap}\\
+  \label{eq:c14_no_overlap}\\
   \sum_{j\in\Pc}\sum_{c\in\{C,D\}}q_{jmrc}&\le\kappa_{mr},
   &&\forall m\in\MA,\ r\in\D.
-  \label{eq:c14b_capacity}
+  \label{eq:c14_capacity}
 \end{align}
 The start variable $s_{jmdc}$ is permitted only when the aircraft can reach
 $m$ by day $d$; this uses the same assignment-to-location linking principle
 as C9. Capacity is imposed on occupancy, not only on starts.
 
 Under the corrected basic feasibility criterion
-(\Cref{eq:c4_overlap}), \eqref{eq:c14b} is interpreted over physically
+(\Cref{eq:c4_overlap}), \eqref{eq:c14} is interpreted over physically
 executable aircraft trajectories; no additional linearization is needed.
 
 \paragraph{C15 — No flight during active maintenance.}

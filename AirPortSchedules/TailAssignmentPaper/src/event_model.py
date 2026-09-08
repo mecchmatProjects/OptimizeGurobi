@@ -146,7 +146,7 @@ class EventMILPScheduler(MILP_Sheduler):
         )
 
     def build_model(self):
-        """Build the complete event-based C1--C14 formulation."""
+        """Build the complete event-based C1--C13 formulation."""
         model = ConcreteModel(name=self.FORMULATION_ID)
         self.model = model
         self._add_event_sets_and_variables(model)

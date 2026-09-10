@@ -235,6 +235,30 @@ state. The airport occupancy quantity $q_{a,j}$ proposed in the design note is
 not introduced as a variable: its role is represented directly by the C10
 timestamp-capacity sums, which is smaller and equivalent for the A-only case.
 
+\subsection{Equivalent A-only implementation strengthening}
+\label{subsec:event_implementation_strengthening}
+
+The E1--E15 formulation also admits an equivalent reduced implementation.
+The daily event count in~\eqref{eq:ordered_c11_recovery} is not used by any
+E-constraint or by the objective, so it can be recovered after solution
+rather than represented by integer variables and equalities. With only one
+maintenance type, event-type exclusivity is implied by the binary domain of
+$z_{rj}$ and is omitted.
+
+The prefix state receives its valid upper bound directly as a variable bound.
+Consequently, the additional generated row that repeats this bound is
+redundant with E13 and is removed. Identical E15 active-event sets are emitted
+only once, and a capacity row is omitted whenever its number of binary terms
+does not exceed the capacity and is therefore satisfied for every assignment.
+Finally, maximal interval-clique rows replace the pairwise-plus-clique E7
+implementation; every conflicting pair belongs to a maximal clique, so the
+integer feasible set is unchanged.
+
+The baseline implementation remains
+\texttt{PaperEventBasedMILPScheduler}. The equivalent reduced implementation
+is \texttt{OptimizedPaperEventBasedMILPScheduler}; keeping both classes makes
+the effect of implementation choices independently reproducible.
+
 Table~\ref{tab:ordered_c1_c13} records the correspondence with the numbered
 day-indexed requirements. Some legacy rows disappear because their variables
 are eliminated; this is a formulation change, not an omitted feasibility

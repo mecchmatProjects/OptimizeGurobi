@@ -43,6 +43,11 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
     HOUR_CHECKS = ("A",)
     CALENDAR_CHECKS = ()
     FORMULATION_ID = "ordered_hour_event"
+    INCLUDE_EVENT_COUNT = True
+    INCLUDE_TYPE_EXCLUSIVITY = True
+    INCLUDE_STATE_BOUND_ROW = True
+    DEDUPLICATE_CAPACITY_ROWS = False
+    NATIVE_STATE_BOUNDS = False
 
     def build_model(
         self,
@@ -58,15 +63,16 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
         model.A = Set(initialize=self.airports, ordered=True)
         model.MA = Set(initialize=self.maint_airports, ordered=True)
         model.C = Set(initialize=self.CHECK_LIST, ordered=True)
-        model.D = Set(
-            initialize=sorted(
-                {
-                    int(self.flight_data[flight]["arrivalTime"] // self.DAY_SHIFT)
-                    for flight in self.flight_ids
-                }
-            ),
-            ordered=True,
-        )
+        if self.INCLUDE_EVENT_COUNT:
+            model.D = Set(
+                initialize=sorted(
+                    {
+                        int(self.flight_data[flight]["arrivalTime"] // self.DAY_SHIFT)
+                        for flight in self.flight_ids
+                    }
+                ),
+                ordered=True,
+            )
         model.X = Set(
             dimen=2,
             initialize=(
@@ -116,13 +122,27 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
         )
         model.x = Var(model.X, domain=Binary, initialize=0)
         model.z = Var(model.Z, domain=Binary, initialize=0)
-        model.q = Var(model.Q, domain=NonNegativeReals, initialize=0)
-        model.event_count = Var(
-            model.P,
-            model.D,
-            domain=NonNegativeIntegers,
-            initialize=0,
-        )
+        if self.NATIVE_STATE_BOUNDS:
+            def state_bounds(_model, _position, aircraft, check):
+                threshold = self.check_hrs[check] * 60.0
+                initial = self.init_check_hrs[check][aircraft] * 60.0
+                return 0.0, max(threshold, initial)
+
+            model.q = Var(
+                model.Q,
+                domain=NonNegativeReals,
+                bounds=state_bounds,
+                initialize=0,
+            )
+        else:
+            model.q = Var(model.Q, domain=NonNegativeReals, initialize=0)
+        if self.INCLUDE_EVENT_COUNT:
+            model.event_count = Var(
+                model.P,
+                model.D,
+                domain=NonNegativeIntegers,
+                initialize=0,
+            )
 
         model.obj = Objective(
             expr=(
@@ -177,32 +197,34 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
 
         # C11 aggregation without a binary day indicator: multiple events on
         # one calendar day remain representable instead of being forbidden.
-        model.c11_event_count = ConstraintList()
-        for aircraft in model.P:
-            for day in model.D:
-                model.c11_event_count.add(
-                    model.event_count[aircraft, day]
-                    == sum(
-                        model.z[flight, aircraft, check]
-                        for flight, candidate_aircraft, check in model.Z
-                        if candidate_aircraft == aircraft
-                        and int(
-                            self.flight_data[flight]["arrivalTime"] // self.DAY_SHIFT
+        if self.INCLUDE_EVENT_COUNT:
+            model.c11_event_count = ConstraintList()
+            for aircraft in model.P:
+                for day in model.D:
+                    model.c11_event_count.add(
+                        model.event_count[aircraft, day]
+                        == sum(
+                            model.z[flight, aircraft, check]
+                            for flight, candidate_aircraft, check in model.Z
+                            if candidate_aircraft == aircraft
+                            and int(
+                                self.flight_data[flight]["arrivalTime"] // self.DAY_SHIFT
+                            )
+                            == day
                         )
-                        == day
                     )
-                )
 
-        model.event_type_exclusivity = ConstraintList()
-        for flight in self.maint_flight_ids:
-            for aircraft in self._x_aircrafts_for_flight(flight):
-                events = [
-                    model.z[flight, aircraft, check]
-                    for check in self.CHECK_LIST
-                    if (flight, aircraft, check) in model.Z
-                ]
-                if events:
-                    model.event_type_exclusivity.add(sum(events) <= 1)
+        if self.INCLUDE_TYPE_EXCLUSIVITY:
+            model.event_type_exclusivity = ConstraintList()
+            for flight in self.maint_flight_ids:
+                for aircraft in self._x_aircrafts_for_flight(flight):
+                    events = [
+                        model.z[flight, aircraft, check]
+                        for check in self.CHECK_LIST
+                        if (flight, aircraft, check) in model.Z
+                    ]
+                    if events:
+                        model.event_type_exclusivity.add(sum(events) <= 1)
 
         model.e14_maintenance_block = ConstraintList()
         for trigger in self.maint_flight_ids:
@@ -231,22 +253,31 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
         model.e15_maintenance_capacity = ConstraintList()
         for airport in self.maint_airports:
             capacity = self.station_cap.get(airport, 0)
+            emitted_capacity_rows = set()
             # E15 follows the paper's ordered-trigger indexing: each r is a
             # possible immediate-start event time, and active event flights i
             # are selected by the displayed [arrival(r), arrival(r)+delta_A)
             # window over their departure timestamps.
             for trigger in model.F:
                 trigger_arrival = self.flight_data[trigger]["arrivalTime"]
-                active = [
-                    model.z[flight, aircraft, check]
+                active_indices = [
+                    (flight, aircraft, check)
                     for flight, aircraft, check in model.Z
                     if self.flight_data[flight]["destination"] == airport
                     and trigger_arrival
                     <= self.flight_data[flight]["departureTime"]
                     < trigger_arrival + self.check_dur[check]
                 ]
-                if active:
-                    model.e15_maintenance_capacity.add(sum(active) <= capacity)
+                if not active_indices:
+                    continue
+                signature = tuple(active_indices)
+                if self.DEDUPLICATE_CAPACITY_ROWS:
+                    if signature in emitted_capacity_rows or len(signature) <= capacity:
+                        continue
+                    emitted_capacity_rows.add(signature)
+                model.e15_maintenance_capacity.add(
+                    sum(model.z[index] for index in active_indices) <= capacity
+                )
 
         model.e9_e13_prefix_state = ConstraintList()
         state_limit = {
@@ -312,7 +343,8 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
                         previous + duration
                         <= threshold + m_threshold * (1 - assigned)
                     )
-                    model.e9_e13_prefix_state.add(state <= state_ub)
+                    if self.INCLUDE_STATE_BOUND_ROW:
+                        model.e9_e13_prefix_state.add(state <= state_ub)
 
         if self.CALENDAR_CHECKS:
             self._add_ordered_calendar_limits(
@@ -429,6 +461,21 @@ class PaperEventBasedMILPScheduler(OrderedAEventMILPScheduler):
     """Paper-facing identifier for the ordered A-only event formulation."""
 
     FORMULATION_ID = "event_based"
+
+
+class OptimizedPaperEventBasedMILPScheduler(OrderedAEventMILPScheduler):
+    """Equivalent A-only E1-E15 implementation with redundant rows removed."""
+
+    FORMULATION_ID = "event_based_optimized"
+    INCLUDE_EVENT_COUNT = False
+    INCLUDE_TYPE_EXCLUSIVITY = False
+    INCLUDE_STATE_BOUND_ROW = False
+    DEDUPLICATE_CAPACITY_ROWS = True
+    NATIVE_STATE_BOUNDS = True
+
+    def build_model(self, **kwargs):
+        kwargs["overlap_mode"] = "clique"
+        return super().build_model(**kwargs)
 
 
 class OrderedABEventMILPScheduler(OrderedHourEventMILPScheduler):

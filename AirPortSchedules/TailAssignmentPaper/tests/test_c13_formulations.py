@@ -11,7 +11,11 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.model import MILP_Sheduler
+from src.model import (
+    LegacyCorrectedMILPScheduler,
+    LegacyCorrectedStrengthenedMILPScheduler,
+    MILP_Sheduler,
+)
 
 SOURCE = ROOT / "data" / "instances" / "ABCD_near_threshold_test.json"
 
@@ -65,6 +69,27 @@ class C13FormulationTests(unittest.TestCase):
         self.assertGreater(len(list(strict.c13_exact_state)), 0)
         self.assertFalse(hasattr(strict, "c13"))
         self.assertFalse(hasattr(strict, "c13b"))
+
+    def test_strengthened_corrected_state_is_sparse_and_smaller(self):
+        baseline_scheduler = LegacyCorrectedMILPScheduler(
+            str(SOURCE), enabled_checks=["A"]
+        )
+        baseline = baseline_scheduler.build_model()
+        strengthened_scheduler = LegacyCorrectedStrengthenedMILPScheduler(
+            str(SOURCE), enabled_checks=["A"]
+        )
+        strengthened = strengthened_scheduler.build_model()
+
+        self.assertEqual(len(strengthened.h), len(strengthened.P) * len(strengthened.D))
+        sample = next(iter(strengthened.h.values()))
+        self.assertEqual(sample.lb, 0.0)
+        self.assertEqual(sample.ub, strengthened_scheduler.check_hrs["A"] * 60.0)
+        self.assertLess(
+            len(list(strengthened.c13_exact_state)),
+            len(list(baseline.c13_exact_state)),
+        )
+        self.assertFalse(hasattr(strengthened, "c4_pairwise_overlap"))
+        self.assertTrue(hasattr(strengthened, "c5_clique_overlap"))
 
 
 if __name__ == "__main__":

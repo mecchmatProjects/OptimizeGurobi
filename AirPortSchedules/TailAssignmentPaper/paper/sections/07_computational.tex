@@ -294,6 +294,43 @@ the same type-A state variables. These measurements support the
 strengthening as an implementation improvement, not as a new mathematical
 formulation.
 
+\subsubsection{Optimized Event-based implementation}
+
+We next compared the baseline Event-based implementation, the equivalent
+reduction in \Cref{subsec:event_implementation_strengthening}, and the
+strengthened corrected legacy implementation on the same 12 performance
+cases and three repetitions. All 36 three-way groups are optimal and
+objective-matched. The optimized and baseline Event-based implementations
+also agree on both regression cases; the corrected legacy variant retains its
+intended infeasible verdict on the C13 loophole case.
+
+\begin{table}[t]
+\centering\small
+\caption{Event-based implementation optimization over 36 paired runs. Times
+are means in seconds.}
+\label{tab:event_optimization}
+\begin{tabular}{lrrrrr}
+\toprule
+Implementation & Variables & Constraints & Build & CPU & Wall \\
+\midrule
+Corrected legacy strengthened & 14\,544.167 & 15\,761.833 & 0.640321 & 0.619518 & 1.445313 \\
+Event-based baseline & 5\,279.167 & 27\,767.500 & 0.582939 & 0.781733 & 1.568599 \\
+Event-based optimized & 4\,979.167 & 15\,299.167 & 0.478636 & 0.572310 & 1.261526 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Relative to the baseline Event-based implementation, the optimized variant
+uses 5.68\% fewer variables and 44.90\% fewer constraints, with 26.79\%
+lower mean CPU and 19.58\% lower mean wall time. It is faster in 33 of 36
+paired CPU measurements and 34 of 36 paired wall measurements. On this test
+grid it also improves on strengthened corrected legacy by 7.62\% in mean CPU
+and 12.72\% in mean wall time, while using 65.77\% fewer variables and 2.94\%
+fewer constraints. It wins 25 of 36 paired CPU and 25 of 36 paired wall
+comparisons against strengthened corrected legacy. These results demonstrate
+an implementation-level improvement for this instance family, not universal
+runtime dominance.
+
 \subsubsection{Validation scope and required robustness checks}
 
 The A-only results are a controlled formulation comparison, not a final

@@ -24,6 +24,14 @@ on every tested horizon. These results demonstrate the need to separate
 feasibility correction from objective accounting; they do not support a
 solver-independent speedup claim.
 
+Equivalent implementation strengthening reduced the corrected legacy
+constraint count substantially, and removing exact A-only redundancies from
+the Event-based implementation reduced both model size and runtime. In the
+paired 12-case experiment, the optimized Event-based implementation had lower
+mean CPU and wall time than strengthened corrected legacy, while preserving
+all tested objectives and regression verdicts. This ordering remains specific
+to the tested instances and CPLEX configuration.
+
 These computational results are deliberately scoped. They use deterministic
 synthetic A-only instances, one instance per parameter cell, and a single
 unrestricted CPLEX configuration. The results establish objective parity on

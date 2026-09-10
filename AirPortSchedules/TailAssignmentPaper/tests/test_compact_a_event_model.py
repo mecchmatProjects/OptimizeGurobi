@@ -12,6 +12,7 @@ if str(ROOT) not in sys.path:
 
 from src.compact_a_event_model import (
     CompactAEventMILPScheduler,
+    OptimizedPaperEventBasedMILPScheduler,
     OrderedAEventMILPScheduler,
     OrderedABEventMILPScheduler,
     OrderedABCDEventMILPScheduler,
@@ -103,6 +104,33 @@ class CompactAEventTests(unittest.TestCase):
         self.assertEqual(
             len(list(model.e9_e13_prefix_state)),
             7 * len(model.Q),
+        )
+
+    def test_optimized_ordered_model_removes_a_only_redundancies(self):
+        baseline_scheduler = OrderedAEventMILPScheduler(str(SOURCE))
+        baseline = baseline_scheduler.build_model()
+        optimized_scheduler = OptimizedPaperEventBasedMILPScheduler(str(SOURCE))
+        optimized = optimized_scheduler.build_model()
+
+        self.assertFalse(hasattr(optimized, "event_count"))
+        self.assertFalse(hasattr(optimized, "c11_event_count"))
+        self.assertFalse(hasattr(optimized, "event_type_exclusivity"))
+        self.assertFalse(hasattr(optimized, "e7_pairwise_overlap"))
+        self.assertTrue(hasattr(optimized, "e7_clique_strengthening"))
+        self.assertEqual(
+            len(list(optimized.e9_e13_prefix_state)),
+            6 * len(optimized.Q),
+        )
+        sample = next(iter(optimized.q.values()))
+        self.assertEqual(sample.lb, 0.0)
+        self.assertIsNotNone(sample.ub)
+        self.assertLess(
+            len(list(optimized.component_data_objects(Var, active=True))),
+            len(list(baseline.component_data_objects(Var, active=True))),
+        )
+        self.assertLess(
+            len(list(optimized.component_data_objects(Constraint, active=True))),
+            len(list(baseline.component_data_objects(Constraint, active=True))),
         )
 
     def test_ordered_model_global_state_indexing_restores_full_q_shape(self):

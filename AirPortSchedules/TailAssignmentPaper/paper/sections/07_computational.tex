@@ -87,22 +87,22 @@ exact builder and C13 treatment.}
 \toprule
 $h$ & Method & Status & Objective & CPU (s) & Wall (s) & Vars & Cons. \\
 \midrule
-7  & Legacy paper & optimal & 17526 & 0.328 & 0.671 & 1720 & 3035 \\
-  & Legacy split & optimal & 17526 & 0.331 & 0.686 & 1720 & 3315 \\
-  & Legacy corrected & optimal & 17526 & 0.315 & 0.651 & 1810 & 3095 \\
-  & Event-based & optimal & 17526 & 0.306 & 0.642 & 900 & 3455 \\
-15 & Legacy paper & optimal & 19586 & 0.393 & 0.817 & 2520 & 4304 \\
-  & Legacy split & optimal & 19586 & 0.406 & 0.846 & 2520 & 5084 \\
-  & Legacy corrected & optimal & 19586 & 0.355 & 0.714 & 2660 & 4064 \\
-  & Event-based & optimal & 19586 & 0.325 & 0.678 & 1000 & 3898 \\
-21 & Legacy paper & optimal & 19570 & 0.393 & 0.790 & 2520 & 4304 \\
-  & Legacy split & optimal & 19570 & 0.399 & 0.837 & 2520 & 5084 \\
-  & Legacy corrected & optimal & 19570 & 0.360 & 0.721 & 2660 & 4064 \\
-  & Event-based & optimal & 19570 & 0.325 & 0.667 & 1000 & 3898 \\
-30 & Legacy paper & optimal & 19592 & 0.398 & 0.795 & 2520 & 4304 \\
-  & Legacy split & optimal & 19592 & 0.400 & 0.836 & 2520 & 5084 \\
-  & Legacy corrected & optimal & 19592 & 0.351 & 0.708 & 2660 & 4064 \\
-  & Event-based & optimal & 19592 & 0.322 & 0.665 & 1000 & 3898 \\
+7  & Legacy paper & optimal & 17526 & 0.318 & 0.656 & 1720 & 3035 \\
+  & Legacy split & optimal & 17526 & 0.323 & 0.674 & 1720 & 3315 \\
+  & Legacy corrected & optimal & 17526 & 0.307 & 0.636 & 1810 & 3095 \\
+  & Event-based & optimal & 17526 & 0.311 & 0.647 & 980 & 4186 \\
+15 & Legacy paper & optimal & 19586 & 0.383 & 0.798 & 2520 & 4304 \\
+  & Legacy split & optimal & 19586 & 0.391 & 0.820 & 2520 & 5084 \\
+  & Legacy corrected & optimal & 19586 & 0.343 & 0.697 & 2660 & 4064 \\
+  & Event-based & optimal & 19586 & 0.325 & 0.668 & 1130 & 4380 \\
+21 & Legacy paper & optimal & 19570 & 0.380 & 0.790 & 2520 & 4304 \\
+  & Legacy split & optimal & 19570 & 0.397 & 0.847 & 2520 & 5084 \\
+  & Legacy corrected & optimal & 19570 & 0.346 & 0.704 & 2660 & 4064 \\
+  & Event-based & optimal & 19570 & 0.324 & 0.668 & 1130 & 4380 \\
+30 & Legacy paper & optimal & 19592 & 0.376 & 0.771 & 2520 & 4304 \\
+  & Legacy split & optimal & 19592 & 0.395 & 0.821 & 2520 & 5084 \\
+  & Legacy corrected & optimal & 19592 & 0.351 & 0.717 & 2660 & 4064 \\
+  & Event-based & optimal & 19592 & 0.327 & 0.673 & 1130 & 4380 \\
 \bottomrule
 \end{tabular}
 }%
@@ -111,8 +111,11 @@ $h$ & Method & Status & Objective & CPU (s) & Wall (s) & Vars & Cons. \\
 All four methods are optimal on every horizon in the corrected feasible family.
 All four methods have identical objectives here, confirming objective parity
 after the event-reset correction. The event-based method uses fewer variables
-and is faster than each legacy variant on every tested horizon. These results
-support a performance comparison under common feasibility semantics.
+than every legacy variant. It is faster than the paper and split variants on
+all four horizons and faster than corrected legacy on the three longer
+horizons; corrected legacy is slightly faster at $H=7$. These results support
+a performance comparison under common feasibility semantics without implying
+universal runtime dominance.
 
 \begin{figure}[t]
 \centering
@@ -166,10 +169,10 @@ $|P|$ & \multicolumn{4}{c}{CPU time (s)} & \multicolumn{4}{c}{Wall time (s)} \\
 \cmidrule(lr){2-5}\cmidrule(lr){6-9}
 & Paper & Split & Corrected & Event & Paper & Split & Corrected & Event \\
 \midrule
-5  & 0.282998 & 0.289001 & 0.287998 & 0.285002 & 0.571580 & 0.585721 & 0.574819 & 0.571679 \\
-10 & 0.337262 & 0.336002 & 0.314002 & 0.354125 & 0.719042 & 0.705635 & 0.648694 & 0.720913 \\
-15 & 0.410000 & 0.385956 & 0.359999 & 0.369632 & 0.883896 & 0.837448 & 0.768965 & 0.814893 \\
-20 & 0.441999 & 0.466998 & 0.430000 & 0.462000 & 1.023774 & 1.079396 & 0.978769 & 1.067776 \\
+5  & 0.278806 & 0.284396 & 0.285962 & 0.279441 & 0.563580 & 0.570828 & 0.570250 & 0.585978 \\
+10 & 0.322849 & 0.323723 & 0.307218 & 0.314193 & 0.688894 & 0.672230 & 0.637101 & 0.654668 \\
+15 & 0.366002 & 0.374803 & 0.351611 & 0.372924 & 0.789226 & 0.827724 & 0.749238 & 0.805344 \\
+20 & 0.435350 & 0.458497 & 0.427633 & 0.474430 & 1.016204 & 1.062455 & 0.951910 & 1.069048 \\
 \bottomrule
 \end{tabular}
 }%
@@ -239,22 +242,22 @@ seconds.}
 \toprule
 Method & Mean variables & Mean constraints & Mean CPU & Mean wall \\
 \midrule
-Legacy paper & 14\,225.417 & 26\,923.917 & 1.024107 & 2.291763 \\
-Legacy split & 14\,225.417 & 29\,823.917 & 1.366540 & 2.885747 \\
-Legacy corrected & 14\,544.167 & 25\,261.417 & 0.668684 & 1.579062 \\
-Event-based & 4\,979.167 & 27\,792.750 & 0.750670 & 1.554821 \\
+Legacy paper & 14\,225.417 & 26\,923.917 & 1.059189 & 2.414120 \\
+Legacy split & 14\,225.417 & 29\,823.917 & 1.478338 & 3.040388 \\
+Legacy corrected & 14\,544.167 & 25\,261.417 & 0.692639 & 1.609347 \\
+Event-based & 5\,279.167 & 27\,767.500 & 0.818958 & 1.635593 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The expanded suite confirms the focused comparisons: the corrected legacy
-model has the lowest mean CPU time, while the Event-based model has the lowest
-mean wall time and uses approximately 65\% fewer variables than the legacy
-models. The Event-based constraint count is higher than the legacy-paper count
-because its route and timestamp formulations replace compact day-indexed rows;
-this is a structural trade-off, not an omitted capacity condition. The C13
-loophole regression has the expected verdict: the paper and split rows accept
-the fixed violating pattern, whereas the corrected state rejects it. The clean
+The expanded suite confirms the focused comparisons: corrected legacy has the
+lowest mean CPU and wall time in this regenerated run, while the Event-based
+model uses approximately 63\% fewer variables than the legacy models. Its
+constraint count is slightly higher than the legacy-paper count because its
+route and timestamp formulations replace compact day-indexed rows; this is a
+structural trade-off, not an omitted capacity condition. The C13 loophole
+regression has the expected verdict: the paper and split rows accept the fixed
+violating pattern, whereas the corrected state rejects it. The clean
 regression is optimal under all four methods.
 
 \subsubsection{Validation scope and required robustness checks}

@@ -106,7 +106,7 @@ The initial state is $h_{0j}=\Phi_j$.
 
 \subsection{Maintenance blocking and capacity constraints}
 
-Every maintenance event starts immediately after its triggering flight. Let
+Let's assume that every maintenance event starts immediately after its triggering flight. Let
  $\delta_A$ be the duration of the type-A check and let $\Delta t$ be the
 minimum post-maintenance turn time.
 
@@ -116,11 +116,17 @@ For an event $(r,j)$, define the incompatible following-flight set
 F^{\mathrm{dep}}_{r}=\left\{\ell\in\F: \tD{\ell}<\tI{r}+\delta_A+\Delta t\right\}.
 \end{equation}
 If $z_{rj}=1$, every selected incompatible flight is blocked:
-\begin{equation}
+\begin{equation}\label{eq:E14}
 x_{\ell j}+z_{rj}\leq1,
 \qquad \forall \ell\in F^{\mathrm{dep}}_{r},\ j\in\Pc.
 \end{equation}
 Only feasible $(\ell,j)$ assignment arcs are generated.
+
+This constraint also can be rewritten in the next equivalent form:
+\begin{equation}\label{eq:E14_rewritten}
+M(x_{r'j}-1) + \tD{j} \ge \tI{r} z_{rj}+\delta_A+\Delta t, \quad \forall (r',j)\in\F\times\Pc, \ r'>r.
+\end{equation}
+
 
 \paragraph{E15. Maintenance capacity (C10).}
  Define the active event set

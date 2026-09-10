@@ -1620,6 +1620,62 @@ class MILP_Sheduler:
                     m.c13_exact_state.add(m.h[j, day, c] <= limit)
                     previous_state = m.h[j, day, c]
                     previous_day = day
+
+    def _add_strengthened_exact_hour_state(self, m):
+        """Exact type-A hour state with day-specific bounds."""
+        check = 'A'
+        limit = self.check_hrs[check] * 60.0
+        m.h = Var(
+            m.P,
+            m.D,
+            domain=NonNegativeReals,
+            bounds=(0.0, limit),
+        )
+        m.c13_exact_state = ConstraintList()
+        days = sorted(self.days)
+        for aircraft in m.P:
+            initial = self.init_check_hrs[check].get(aircraft, 0.0) * 60.0
+            previous_state = initial
+            previous_day = None
+            cumulative_ub = min(limit, initial)
+            for day in days:
+                daily_flights = [
+                    flight
+                    for flight, flight_data in self.flight_data.items()
+                    if flight_data['day_departure'] == day
+                    and self._x_has_arc(flight, aircraft)
+                ]
+                daily_time = sum(
+                    self.flight_data[flight]['duration'] * m.x[flight, aircraft]
+                    for flight in daily_flights
+                )
+                daily_ub = sum(
+                    self.flight_data[flight]['duration']
+                    for flight in daily_flights
+                )
+                if previous_day is None:
+                    m.c13_exact_state.add(
+                        m.h[aircraft, day] == initial + daily_time
+                    )
+                else:
+                    reset = m.mega[aircraft, previous_day, check]
+                    reset_m = cumulative_ub
+                    m.c13_exact_state.add(
+                        m.h[aircraft, day]
+                        >= previous_state + daily_time - reset_m * reset
+                    )
+                    m.c13_exact_state.add(
+                        m.h[aircraft, day]
+                        <= previous_state + daily_time + reset_m * reset
+                    )
+                    m.c13_exact_state.add(m.h[aircraft, day] >= daily_time)
+                    m.c13_exact_state.add(
+                        m.h[aircraft, day]
+                        <= daily_time + reset_m * (1 - reset)
+                    )
+                cumulative_ub = min(limit, cumulative_ub + daily_ub)
+                previous_state = m.h[aircraft, day]
+                previous_day = day
     # ------------------------------------------------------------------
     # Constraint C13b – existing flight hours at start of horizon
     # The aircraft's accumulated hours since last check must be respected.
@@ -2164,6 +2220,22 @@ class LegacyCorrectedMILPScheduler(MILP_Sheduler):
         kwargs["use_paper_c13"] = False
         kwargs["use_strict_hour_state"] = True
         return super().build_model(**kwargs)
+
+
+class LegacyCorrectedStrengthenedMILPScheduler(LegacyCorrectedMILPScheduler):
+    """Corrected legacy formulation with equivalent implementation strengthening."""
+
+    FORMULATION_ID = "legacy_corrected_strengthened"
+    CHECK_LIST = ("A",)
+
+    def _add_exact_hour_state(self, model):
+        self._add_strengthened_exact_hour_state(model)
+
+    def build_model(self, **kwargs):
+        kwargs["use_overlap"] = False
+        model = super().build_model(**kwargs)
+        self._add_overlap(model, mode="clique")
+        return model
 
 
 # ----------------------------

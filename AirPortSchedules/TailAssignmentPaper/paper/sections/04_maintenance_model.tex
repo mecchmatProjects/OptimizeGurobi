@@ -276,6 +276,40 @@ $h_{jd}=h_{j,d-1}+v_{jd}$. If $y_{j,d-1}=1$, the reset inequalities give
 $h_{jd}=v_{jd}$. The upper bound then enforces the flight-hour threshold on
 every day, including the flights operated immediately before a night check.
 
+\subsection{Equivalent implementation strengthening}
+\label{subsec:corrected_legacy_strengthening}
+
+The exact-state formulation admits a smaller, tighter implementation without
+changing its integer feasible region. The strengthened implementation is
+type-A-only, matching the scope of this paper. Its state variable receives the
+threshold directly as a variable bound, $0\le h_{jd}\le T^A_{\max}$. The explicit copy of this upper bound
+in~\eqref{eq:c11_state_bound} is then unnecessary in the generated matrix.
+
+Define the aircraft-day upper bound
+\begin{equation}
+  \bar v_{jd}=\sum_{i\in\F:\,d_i=d,\,(i,j)\in\mathcal X}\tilde t_i
+  \label{eq:strengthened_daily_upper}
+\end{equation}
+and the reachable state bounds
+\begin{equation}
+  U_{j0}=\min\{T^A_{\max},\Phi^A_j\},\qquad
+  U_{jd}=\min\{T^A_{\max},U_{j,d-1}+\bar v_{jd}\}.
+  \label{eq:strengthened_state_upper}
+\end{equation}
+Because $h_{jd}\le U_{jd}$ is valid by induction, the reset linearization for
+day $d$ may use $U_{j,d-1}$ instead of the horizon-wide
+$T^A_{\max}$. This is particularly tighter near the beginning of the
+planning horizon.
+
+Finally, the strengthened implementation generates maximal interval-clique
+rows for flight overlap and omits the pairwise rows implied by those cliques.
+Every conflicting pair in an interval graph belongs to a clique, so this
+replacement preserves the integer feasible set while reducing duplicate
+rows. The implementation is
+\texttt{LegacyCorrectedStrengthenedMILPScheduler}; the original
+\texttt{LegacyCorrectedMILPScheduler} remains unchanged for reproduction of
+the four-method baseline.
+
 \subsection{Pre-horizon accumulated hours}
 \label{subsec:c11_pre_horizon}
 

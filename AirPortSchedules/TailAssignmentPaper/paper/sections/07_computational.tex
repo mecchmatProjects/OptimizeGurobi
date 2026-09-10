@@ -260,6 +260,40 @@ regression has the expected verdict: the paper and split rows accept the fixed
 violating pattern, whereas the corrected state rejects it. The clean
 regression is optimal under all four methods.
 
+\subsubsection{Strengthened corrected-legacy implementation}
+
+We separately evaluated the equivalent implementation strengthening from
+\Cref{subsec:corrected_legacy_strengthening}; it is not substituted into the
+four-method table above, so those baseline results remain reproducible. The
+comparison uses the same 12 A-only performance cases, three repetitions per
+case and implementation, unrestricted CPLEX~12.6, and a 60-second limit. All
+36 baseline/strengthened pairs have identical optimal objectives. The clean
+regression is also objective-matched, and both implementations reject the C13
+loophole instance as infeasible.
+
+\begin{table}[t]
+\centering\small
+\caption{Corrected-legacy implementation strengthening over 36 paired runs.
+Times are means in seconds.}
+\label{tab:corrected_strengthening}
+\begin{tabular}{lrrrrr}
+\toprule
+Implementation & Variables & Constraints & Build & CPU & Wall \\
+\midrule
+Corrected baseline & 14\,544.167 & 25\,261.417 & 0.698785 & 0.659484 & 1.557829 \\
+Corrected strengthened & 14\,544.167 & 15\,761.833 & 0.643380 & 0.624975 & 1.465910 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The strengthened implementation reduces the mean generated constraint count
+by 37.61\%, mean CPU time by 5.23\%, and mean wall time by 5.90\%. It is faster
+in 22 of 36 paired CPU measurements and 25 of 36 paired wall measurements.
+The variable count is unchanged because both compared implementations contain
+the same type-A state variables. These measurements support the
+strengthening as an implementation improvement, not as a new mathematical
+formulation.
+
 \subsubsection{Validation scope and required robustness checks}
 
 The A-only results are a controlled formulation comparison, not a final

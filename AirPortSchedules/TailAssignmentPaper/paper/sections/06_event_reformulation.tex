@@ -159,7 +159,7 @@ assignment, event, and prefix-state variables.
 \item[E5--E6: aircraft continuity and turn time (legacy C3--C4).] The
 corrected equipment-flow balance is applied to $x_{rj}$, including the initial
 aircraft position and the minimum turn time. The implementation is
-\texttt{\_add\_c23\_turn}.
+\texttt{e5\_e6\_continuity\_turn}.
 
 \item[E7: pairwise non-overlap (legacy C5).] For every temporally conflicting flight pair
 and aircraft, the builder adds
@@ -167,7 +167,7 @@ and aircraft, the builder adds
 x_{ij}+x_{\ell j}\leq1.
 \label{eq:ordered_c4_pairwise}
 \end{equation}
-These rows are constructed by \texttt{c4\_pairwise\_overlap}; in the current
+These rows are constructed by \texttt{e7\_pairwise\_overlap}; in the current
 ground-truth formulation they are the corrected C5 family.
 
 The current ground-truth Sections 01--04 do not define a separate clique
@@ -195,8 +195,8 @@ active maintenance events satisfy
 \leq \operatorname{mcap}_{a},
 \end{equation}
 where $\mathcal{I}(a,\theta)$ contains events whose maintenance intervals
-cover $\theta$. This is implemented by the timestamp-overlap component
-\texttt{c10\_event\_capacity}; it is the maintenance-capacity constraint that was not
+cover $r$. This is implemented by the E15 component
+\texttt{e15\_maintenance\_capacity}; it is the maintenance-capacity constraint that was not
 explicitly displayed earlier.
 
 \item[Auxiliary C11 event-count aggregation.] The binary day indicator is intentionally

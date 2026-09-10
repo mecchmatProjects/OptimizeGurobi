@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import time
 from typing import Any
 
@@ -45,7 +46,14 @@ class MilpCompactMethodAdapter(SchedulerMethod):
         t0 = time.perf_counter()
         m = LegacyEndpointSplitMILPScheduler(data_path)
         m.build_model(use_maintenance=True)
-        fallback_order = ["cplex_direct", "cplex_persistent", "cplex", "gurobi", "glpk", "cbc"]
+        executable = os.environ.get("TAP_PYOMO_SOLVER_EXECUTABLE")
+        if executable and executable.lower().endswith("cplexamp.exe"):
+            # cplexamp is an AMPL driver, not a generic executable that can be
+            # passed to unrelated Pyomo solver plugins. Avoid feeding it
+            # options such as -printingOptions, --tmlim, or -sec.
+            fallback_order = ["cplexamp"]
+        else:
+            fallback_order = ["cplex_direct", "cplex_persistent", "cplex", "gurobi", "glpk", "cbc"]
         # Keep deterministic fallback order; if caller passes one of these solvers,
         # place it first while preserving the remaining fallback sequence.
         if config.solver_name in fallback_order:
@@ -62,6 +70,7 @@ class MilpCompactMethodAdapter(SchedulerMethod):
                     solver_name=solver_name,
                     tee=False,
                     time_limit=config.time_limit_s,
+                    executable=executable if solver_name == "cplexamp" else None,
                 )
                 selected_solver = solver_name
                 break

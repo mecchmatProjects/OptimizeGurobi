@@ -76,6 +76,12 @@ class CompactAEventTests(unittest.TestCase):
         self.assertFalse(hasattr(model, "y"))
         self.assertFalse(hasattr(model, "w"))
         self.assertFalse(hasattr(model, "c13_event_day_cap"))
+        self.assertTrue(hasattr(model, "e4_coverage"))
+        self.assertTrue(hasattr(model, "e5_e6_continuity_turn"))
+        self.assertTrue(hasattr(model, "e7_pairwise_overlap"))
+        self.assertTrue(hasattr(model, "e8_event_assignment"))
+        self.assertTrue(hasattr(model, "e14_maintenance_block"))
+        self.assertTrue(hasattr(model, "e15_maintenance_capacity"))
 
     def test_ordered_model_aggregates_events_without_daily_cap(self):
         scheduler = OrderedAEventMILPScheduler(str(SOURCE))
@@ -88,13 +94,14 @@ class CompactAEventTests(unittest.TestCase):
             len(model.P) * len(model.D),
         )
         self.assertFalse(hasattr(model, "c13_event_day_cap"))
+        self.assertTrue(hasattr(model, "e15_maintenance_capacity"))
 
     def test_ordered_model_has_one_transition_block_per_flight_aircraft(self):
         scheduler = OrderedAEventMILPScheduler(str(SOURCE))
         model = scheduler.build_model()
 
         self.assertEqual(
-            len(list(model.event_hour_state)),
+            len(list(model.e9_e13_prefix_state)),
             7 * len(model.Q),
         )
 
@@ -112,7 +119,7 @@ class CompactAEventTests(unittest.TestCase):
             len(scheduler.flight_ids) * len(scheduler.aircraft_ids),
         )
         self.assertEqual(
-            len(list(model.event_hour_state)),
+            len(list(model.e9_e13_prefix_state)),
             expected,
         )
 

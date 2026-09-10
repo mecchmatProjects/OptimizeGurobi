@@ -139,6 +139,7 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
         self._add_c1_coverage(model)
         self._add_c23_turn(model)
         self._add_overlap(model, mode=overlap_mode)
+        self._rename_ordered_route_components(model)
         self._add_ordered_maintenance(
             model,
             aircraft_ordered_flights,
@@ -148,6 +149,20 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
         )
         return model
 
+    @staticmethod
+    def _rename_ordered_route_components(model):
+        """Expose the ordered formulation's route rows under E-family names."""
+        for old_name, new_name in (
+            ("c1", "e4_coverage"),
+            ("c23", "e5_e6_continuity_turn"),
+            ("c4_pairwise_overlap", "e7_pairwise_overlap"),
+            ("c5_clique_overlap", "e7_clique_strengthening"),
+        ):
+            component = getattr(model, old_name, None)
+            if component is not None:
+                model.del_component(old_name)
+                model.add_component(new_name, component)
+
     def _add_ordered_maintenance(
         self,
         model,
@@ -156,9 +171,9 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
         local_state_indexing=True,
         calendar_candidate_pruning=True,
     ):
-        model.c9_event_assignment = ConstraintList()
+        model.e8_event_assignment = ConstraintList()
         for flight, aircraft, check in model.Z:
-            model.c9_event_assignment.add(model.z[flight, aircraft, check] <= model.x[flight, aircraft])
+            model.e8_event_assignment.add(model.z[flight, aircraft, check] <= model.x[flight, aircraft])
 
         # C11 aggregation without a binary day indicator: multiple events on
         # one calendar day remain representable instead of being forbidden.
@@ -189,7 +204,7 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
                 if events:
                     model.event_type_exclusivity.add(sum(events) <= 1)
 
-        model.c8_event_block = ConstraintList()
+        model.e14_maintenance_block = ConstraintList()
         for trigger in self.maint_flight_ids:
             trigger_data = self.flight_data[trigger]
             for aircraft in self._x_aircrafts_for_flight(trigger):
@@ -207,40 +222,33 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
                                 + self.check_dur[check]
                                 + self.MIN_TURN
                             ):
-                                model.c8_event_block.add(
+                                model.e14_maintenance_block.add(
                                     model.x[following, aircraft]
                                     + model.z[trigger, aircraft, check]
                                     <= 1
                                 )
 
-        model.c10_event_capacity = ConstraintList()
+        model.e15_maintenance_capacity = ConstraintList()
         for airport in self.maint_airports:
             capacity = self.station_cap.get(airport, 0)
-            checkpoints = sorted(
-                {
-                    self.flight_data[flight]["arrivalTime"]
-                    for flight in self.maint_flight_ids
-                    if self.flight_data[flight]["destination"] == airport
-                }
-                | {
-                    self.flight_data[flight]["arrivalTime"] + self.check_dur[check]
-                    for flight in self.maint_flight_ids
-                    if self.flight_data[flight]["destination"] == airport
-                    for check in self.CHECK_LIST
-                }
-            )
-            for timestamp in checkpoints:
+            # E15 follows the paper's ordered-trigger indexing: each r is a
+            # possible immediate-start event time, and active event flights i
+            # are selected by the displayed [arrival(r), arrival(r)+delta_A)
+            # window over their departure timestamps.
+            for trigger in model.F:
+                trigger_arrival = self.flight_data[trigger]["arrivalTime"]
                 active = [
                     model.z[flight, aircraft, check]
                     for flight, aircraft, check in model.Z
                     if self.flight_data[flight]["destination"] == airport
-                    and self.flight_data[flight]["arrivalTime"] <= timestamp
-                    < self.flight_data[flight]["arrivalTime"] + self.check_dur[check]
+                    and trigger_arrival
+                    <= self.flight_data[flight]["departureTime"]
+                    < trigger_arrival + self.check_dur[check]
                 ]
                 if active:
-                    model.c10_event_capacity.add(sum(active) <= capacity)
+                    model.e15_maintenance_capacity.add(sum(active) <= capacity)
 
-        model.event_hour_state = ConstraintList()
+        model.e9_e13_prefix_state = ConstraintList()
         state_limit = {
             check: self.check_hrs[check] * 60.0 for check in self.HOUR_CHECKS
         }
@@ -259,7 +267,7 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
                             else model.q[position - 1, aircraft, check]
                         )
                         state = model.q[position, aircraft, check]
-                        model.event_hour_state.add(state == previous)
+                        model.e9_e13_prefix_state.add(state == previous)
                         continue
                     checked = sum(
                         model.z[flight, aircraft, reset_check]
@@ -288,23 +296,23 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
                         m_unassigned = coarse
                         m_threshold = coarse
 
-                    model.event_hour_state.add(state >= previous - m_eq * assigned)
-                    model.event_hour_state.add(state <= previous + m_eq * assigned)
-                    model.event_hour_state.add(
+                    model.e9_e13_prefix_state.add(state >= previous - m_eq * assigned)
+                    model.e9_e13_prefix_state.add(state <= previous + m_eq * assigned)
+                    model.e9_e13_prefix_state.add(
                         state >= previous + duration - m_flow * (1 - assigned) - m_flow * checked
                     )
-                    model.event_hour_state.add(
+                    model.e9_e13_prefix_state.add(
                         state <= previous + duration + m_flow * (1 - assigned) + m_flow * checked
                     )
-                    model.event_hour_state.add(
+                    model.e9_e13_prefix_state.add(
                         state <= threshold * (assigned - checked)
                         + m_unassigned * (1 - assigned)
                     )
-                    model.event_hour_state.add(
+                    model.e9_e13_prefix_state.add(
                         previous + duration
                         <= threshold + m_threshold * (1 - assigned)
                     )
-                    model.event_hour_state.add(state <= state_ub)
+                    model.e9_e13_prefix_state.add(state <= state_ub)
 
         if self.CALENDAR_CHECKS:
             self._add_ordered_calendar_limits(

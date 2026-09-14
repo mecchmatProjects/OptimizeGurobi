@@ -2357,8 +2357,9 @@ def _run_one_milp(fp, out_dir, stem, solver, tee, show_gantt, time_limit,
     )
     n_total    = len(list(m.F))
 
+    gap_text = f"{info['gap'] * 100:.2f}%" if info.get('gap') else '-'
     print(f"    [milp] status={info.get('status')}  obj={info.get('obj')}  "
-          f"gap={f"{info['gap']*100:.2f}%" if info.get('gap') else '-'}  cpu={cpu:.1f}s")
+          f"gap={gap_text}  cpu={cpu:.1f}s")
     print(f"          png->{gantt_out}")
     return {
         'stem': stem, 'mode': 'milp',

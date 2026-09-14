@@ -302,10 +302,7 @@ $T^A_{\max}$. This is particularly tighter near the beginning of the
 planning horizon.
 
 Finally, the strengthened implementation generates maximal interval-clique
-rows for flight overlap and omits the pairwise rows implied by those cliques.
-Every conflicting pair in an interval graph belongs to a clique, so this
-replacement preserves the integer feasible set while reducing duplicate
-rows. The implementation is
+rows for flight overlap. The implementation is
 \texttt{LegacyCorrectedStrengthenedMILPScheduler}; the original
 \texttt{LegacyCorrectedMILPScheduler} remains unchanged for reproduction of
 the four-method baseline.

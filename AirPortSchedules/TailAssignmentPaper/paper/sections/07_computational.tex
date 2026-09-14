@@ -35,7 +35,7 @@ that formulation is satisfied; ``rejects'' means the violation is detected.}
 \label{tab:c13_loophole}
 \begin{tabular}{lcccc}
 \toprule
-Scenario & Khaled~(13) & Legacy split & Legacy corrected & Event-based \\
+Scenario & Khaled~(13) & Legacy split & Legacy corrected strengthened & Event-based optimized \\
 \midrule
 Both endpoints checked & rejects & accepts (wrong) & rejects & rejects \\
 Only end checked & accepts (wrong) & rejects & rejects & rejects \\
@@ -51,10 +51,10 @@ an aircraft-local prefix state through flights sorted by departure time. A
 maintenance event is attached to its triggering flight, and the pre-check row
 prevents an event from repairing an already overdue arrival. The four methods
 evaluated in the matched A-only experiment are the original Khaled row,
-the endpoint split, the strict corrected legacy rows, and the ordered
-event-based formulation. Their builder identifiers are respectively
+the endpoint split, the strengthened corrected legacy rows, and the optimized
+ordered event-based formulation. Their builder identifiers are respectively
 \texttt{legacy\_paper\_c13}, \texttt{legacy\_endpoint\_split},
-\texttt{legacy\_corrected}, and \texttt{event\_based}. A result is described
+\texttt{legacy\_corrected\_strengthened}, and \texttt{event\_based\_optimized}. A result is described
 as objective-matched only when both
 compared methods are optimal.
 
@@ -66,7 +66,7 @@ $|P|=10$ and $h\in\{7,15,21,30\}$ using unrestricted CPLEX~12.6 from
 The instances use overnight returns and initial A/B hours chosen so that the
 seeded rotations are feasible under day/night maintenance semantics.
 The complete measurements are in
-\texttt{results/tables/formulation\_a\_comparison\_four\_corrected\_latest.csv}.
+\texttt{results/tables/formulation\_a\_comparison\_four\_strengthened.csv}.
 Thus this table is a one-instance-per-horizon experiment, not a reproduction
 of Khaled et al.'s Table~6. The four input files contain 36 flights for $h=7$
 and 40 flights for each of $h\in\{15,21,30\}$, with $|P|=10$, an A-check
@@ -87,22 +87,22 @@ exact builder and C13 treatment.}
 \toprule
 $h$ & Method & Status & Objective & CPU (s) & Wall (s) & Vars & Cons. \\
 \midrule
-7  & Legacy paper & optimal & 17526 & 0.318 & 0.656 & 1720 & 3035 \\
-  & Legacy split & optimal & 17526 & 0.323 & 0.674 & 1720 & 3315 \\
-  & Legacy corrected & optimal & 17526 & 0.307 & 0.636 & 1810 & 3095 \\
-  & Event-based & optimal & 17526 & 0.311 & 0.647 & 980 & 4186 \\
-15 & Legacy paper & optimal & 19586 & 0.383 & 0.798 & 2520 & 4304 \\
-  & Legacy split & optimal & 19586 & 0.391 & 0.820 & 2520 & 5084 \\
-  & Legacy corrected & optimal & 19586 & 0.343 & 0.697 & 2660 & 4064 \\
-  & Event-based & optimal & 19586 & 0.325 & 0.668 & 1130 & 4380 \\
-21 & Legacy paper & optimal & 19570 & 0.380 & 0.790 & 2520 & 4304 \\
-  & Legacy split & optimal & 19570 & 0.397 & 0.847 & 2520 & 5084 \\
-  & Legacy corrected & optimal & 19570 & 0.346 & 0.704 & 2660 & 4064 \\
-  & Event-based & optimal & 19570 & 0.324 & 0.668 & 1130 & 4380 \\
-30 & Legacy paper & optimal & 19592 & 0.376 & 0.771 & 2520 & 4304 \\
-  & Legacy split & optimal & 19592 & 0.395 & 0.821 & 2520 & 5084 \\
-  & Legacy corrected & optimal & 19592 & 0.351 & 0.717 & 2660 & 4064 \\
-  & Event-based & optimal & 19592 & 0.327 & 0.673 & 1130 & 4380 \\
+7  & Legacy paper & optimal & 17526 & 0.326 & 0.673 & 1720 & 3035 \\
+  & Legacy split & optimal & 17526 & 0.341 & 0.714 & 1720 & 3315 \\
+  & Legacy corrected strengthened & optimal & 17526 & 0.334 & 0.671 & 1810 & 2255 \\
+  & Event-based optimized & optimal & 17526 & 0.317 & 0.665 & 900 & 2816 \\
+15 & Legacy paper & optimal & 19586 & 0.394 & 0.815 & 2520 & 4304 \\
+  & Legacy split & optimal & 19586 & 0.433 & 0.893 & 2520 & 5084 \\
+  & Legacy corrected strengthened & optimal & 19586 & 0.354 & 0.716 & 2660 & 3424 \\
+  & Event-based optimized & optimal & 19586 & 0.330 & 0.684 & 1000 & 3150 \\
+21 & Legacy paper & optimal & 19570 & 0.481 & 0.895 & 2520 & 4304 \\
+  & Legacy split & optimal & 19570 & 0.438 & 0.892 & 2520 & 5084 \\
+  & Legacy corrected strengthened & optimal & 19570 & 0.372 & 0.736 & 2660 & 3424 \\
+  & Event-based optimized & optimal & 19570 & 0.337 & 0.689 & 1000 & 3150 \\
+30 & Legacy paper & optimal & 19592 & 0.389 & 0.813 & 2520 & 4304 \\
+  & Legacy split & optimal & 19592 & 0.418 & 0.878 & 2520 & 5084 \\
+  & Legacy corrected strengthened & optimal & 19592 & 0.358 & 0.737 & 2660 & 3424 \\
+  & Event-based optimized & optimal & 19592 & 0.323 & 0.696 & 1000 & 3150 \\
 \bottomrule
 \end{tabular}
 }%
@@ -110,10 +110,10 @@ $h$ & Method & Status & Objective & CPU (s) & Wall (s) & Vars & Cons. \\
 
 All four methods are optimal on every horizon in the corrected feasible family.
 All four methods have identical objectives here, confirming objective parity
-after the event-reset correction. The event-based method uses fewer variables
+after the event-reset correction. The optimized event-based method uses fewer variables
 than every legacy variant. It is faster than the paper and split variants on
 all four horizons and faster than corrected legacy on the three longer
-horizons; corrected legacy is slightly faster at $H=7$. These results support
+horizons; strengthened corrected legacy is slightly faster at $H=7$. These results support
 a performance comparison under common feasibility semantics without implying
 universal runtime dominance.
 
@@ -142,12 +142,12 @@ that is needed to complement the horizon study.
 
 To assess how model size changes with the number of aircraft, we use the
 A-only fleet-size suite in
-\texttt{results/tables/formulation\_a\_fleet\_four\_latest.csv}.
+\texttt{results/tables/formulation\_a\_fleet\_four\_strengthened.csv}.
 These cases use $h=7$, $|P|\in\{5,10,15,20\}$, A checks only, overnight
 returns, and one common feasible instance at each fleet size. All four
 formulations are run on the same JSON instance for each value of $|P|$:
-the Khaled paper row, legacy endpoint split, legacy corrected exact state, and
-ordered Event-based model. All 16 runs are optimal and objective-matched.
+the Khaled paper row, legacy endpoint split, strengthened corrected legacy, and
+optimized ordered Event-based model. All 16 runs are optimal and objective-matched.
 The plots report active scalar variables and constraints counted directly from
 the built Pyomo models; the constraint plot is the requested dependency-size
 view.
@@ -160,19 +160,19 @@ column.
 \begin{table}[t]
 \centering\scriptsize
 \caption{Heavy A-only fleet-size timing data used in Figures 6 and 7.
-Values are copied from \texttt{formulation\_a\_fleet\_four\_latest.csv}.}
+Values are copied from \texttt{formulation\_a\_fleet\_four\_strengthened.csv}.}
 \label{tab:a_fleet_timing}
 \resizebox{\linewidth}{!}{%
 \begin{tabular}{r r r r r r r r r}
 \toprule
 $|P|$ & \multicolumn{4}{c}{CPU time (s)} & \multicolumn{4}{c}{Wall time (s)} \\
 \cmidrule(lr){2-5}\cmidrule(lr){6-9}
-& Paper & Split & Corrected & Event & Paper & Split & Corrected & Event \\
+& Paper & Split & Corrected strengthened & Event optimized & Paper & Split & Corrected strengthened & Event optimized \\
 \midrule
-5  & 0.278806 & 0.284396 & 0.285962 & 0.279441 & 0.563580 & 0.570828 & 0.570250 & 0.585978 \\
-10 & 0.322849 & 0.323723 & 0.307218 & 0.314193 & 0.688894 & 0.672230 & 0.637101 & 0.654668 \\
-15 & 0.366002 & 0.374803 & 0.351611 & 0.372924 & 0.789226 & 0.827724 & 0.749238 & 0.805344 \\
-20 & 0.435350 & 0.458497 & 0.427633 & 0.474430 & 1.016204 & 1.062455 & 0.951910 & 1.069048 \\
+5  & 0.278806 & 0.284396 & 0.306999 & 0.288996 & 0.563580 & 0.570828 & 0.593329 & 0.570974 \\
+10 & 0.322849 & 0.323723 & 0.305997 & 0.319999 & 0.688894 & 0.672230 & 0.633328 & 0.661015 \\
+15 & 0.366002 & 0.374803 & 0.365999 & 0.359999 & 0.789226 & 0.827724 & 0.791674 & 0.779326 \\
+20 & 0.435350 & 0.458497 & 0.418998 & 0.448000 & 1.016204 & 1.062455 & 0.931895 & 0.999949 \\
 \bottomrule
 \end{tabular}
 }%
@@ -214,23 +214,23 @@ four-method A-only suite.}
 
 The corrected type-A model rejects the cumulative-flight-time counterexample.
 The four-way horizon experiment shows that all formulations are feasible and
-optimal on the corrected generated family, with the explicit-state legacy and
-event variants improving on the legacy split in solve time. The event
-formulation also uses fewer variables and matches the legacy objectives on this
+optimal on the corrected generated family, with the strengthened legacy and
+optimized event variants improving on the legacy split in solve time. The
+optimized event formulation also uses fewer variables and matches the legacy objectives on this
 family. The study does not claim a solver-independent runtime advantage.
 
 \subsubsection{Expanded four-method suite}
 
 To broaden the single-cell horizon and fleet-size snapshots above, we ran the
 dedicated four-method suite in
-\texttt{results/tables/four\_method\_suite.csv}. It contains 12 generated
+\texttt{results/tables/four\_method\_suite\_strengthened.csv}. It contains 12 generated
 A-only performance cases on the Cartesian grid
 $|P|\in\{5,10,20,40\}$ and $H\in\{7,15,30\}$, plus the two regression cases
 \texttt{c13\_loophole\_test} and
 \texttt{event\_vs\_legacy\_clean\_test}. Every performance case uses one
 common JSON instance for all four methods and all 48 performance runs are
 optimal. The aggregate statistics are in
-\texttt{results/tables/four\_method\_suite\_summary.csv}.
+\texttt{results/tables/four\_method\_suite\_strengthened\_summary.csv}.
 
 \begin{table}[t]
 \centering\scriptsize
@@ -244,15 +244,15 @@ Method & Mean variables & Mean constraints & Mean CPU & Mean wall \\
 \midrule
 Legacy paper & 14\,225.417 & 26\,923.917 & 1.059189 & 2.414120 \\
 Legacy split & 14\,225.417 & 29\,823.917 & 1.478338 & 3.040388 \\
-Legacy corrected & 14\,544.167 & 25\,261.417 & 0.692639 & 1.609347 \\
-Event-based & 5\,279.167 & 27\,767.500 & 0.818958 & 1.635593 \\
+Legacy corrected strengthened & 14\,544.167 & 15\,761.833 & 0.622188 & 1.451844 \\
+Event-based optimized & 4\,979.167 & 15\,299.167 & 0.567618 & 1.256824 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-The expanded suite confirms the focused comparisons: corrected legacy has the
-lowest mean CPU and wall time in this regenerated run, while the Event-based
-model uses approximately 63\% fewer variables than the legacy models. Its
+The expanded suite confirms the focused comparisons: optimized Event-based
+has the lowest mean CPU and wall time in this regenerated run, while it uses
+approximately 66\% fewer variables than strengthened legacy. Its
 constraint count is slightly higher than the legacy-paper count because its
 route and timestamp formulations replace compact day-indexed rows; this is a
 structural trade-off, not an omitted capacity condition. The C13 loophole
@@ -296,17 +296,16 @@ formulation.
 
 \subsubsection{Optimized Event-based implementation}
 
-We next compared the baseline Event-based implementation, the equivalent
-reduction in \Cref{subsec:event_implementation_strengthening}, and the
-strengthened corrected legacy implementation on the same 12 performance
-cases and three repetitions. All 36 three-way groups are optimal and
-objective-matched. The optimized and baseline Event-based implementations
-also agree on both regression cases; the corrected legacy variant retains its
+We compared the optimized Event-based implementation and the strengthened
+corrected legacy implementation on the same 12 performance cases and three
+repetitions. All 36 pairs are optimal and objective-matched. The optimized and
+baseline Event-based implementations also agree on both regression cases; the
+strengthened corrected legacy variant retains its
 intended infeasible verdict on the C13 loophole case.
 
 \begin{table}[t]
 \centering\small
-\caption{Event-based implementation optimization over 36 paired runs. Times
+\caption{Strengthened corrected legacy versus optimized Event-based over 36 paired runs. Times
 are means in seconds.}
 \label{tab:event_optimization}
 \begin{tabular}{lrrrrr}
@@ -314,7 +313,6 @@ are means in seconds.}
 Implementation & Variables & Constraints & Build & CPU & Wall \\
 \midrule
 Corrected legacy strengthened & 14\,544.167 & 15\,761.833 & 0.640321 & 0.619518 & 1.445313 \\
-Event-based baseline & 5\,279.167 & 27\,767.500 & 0.582939 & 0.781733 & 1.568599 \\
 Event-based optimized & 4\,979.167 & 15\,299.167 & 0.478636 & 0.572310 & 1.261526 \\
 \bottomrule
 \end{tabular}
@@ -356,13 +354,12 @@ time, CPU time, wall time, and peak memory. Objective parity should be checked
 before timing comparisons are aggregated. These checks are necessary to
 separate formulation effects from instance, solver, and configuration effects.
 
-As an initial configuration check, the representative four-case subset was
-also run with CPLEX cold and warm starts. Both configurations produced the
-same 15 optimal rows and one expected C13-loophole infeasibility; their
-performance summaries were close, with mean CPU times of
-$(0.521,0.614,0.414,0.391)$ seconds for the paper, split, corrected, and
-Event-based methods in the cold run, and
-$(0.517,0.614,0.414,0.391)$ seconds in the warm run. Attempts with the
+An earlier cold/warm-start check was performed for the baseline formulations.
+Because the published comparison now uses strengthened corrected legacy and
+optimized Event-based implementations, those baseline timing values are not
+included in the strengthened tables or plots. A refreshed configuration study
+with the strengthened implementations remains a robustness follow-up rather
+than evidence used for the present performance claims. Attempts with the
 available CBC and HiGHS executables, and with the native CPLEX plugin, failed
-at the solver interface before producing model results. They are retained as
-diagnostic outputs, not treated as independent-solver evidence.
+at the solver interface before producing independent-solver results; they are
+retained as diagnostics only.

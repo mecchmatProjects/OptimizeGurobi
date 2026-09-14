@@ -20,9 +20,9 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.compact_a_event_model import PaperEventBasedMILPScheduler
+from src.compact_a_event_model import OptimizedPaperEventBasedMILPScheduler
 from src.model import (
-    LegacyCorrectedMILPScheduler,
+    LegacyCorrectedStrengthenedMILPScheduler,
     LegacyEndpointSplitMILPScheduler,
     LegacyPaperC13MILPScheduler,
 )
@@ -30,8 +30,8 @@ from src.model import (
 FORMULATIONS = {
     "legacy_paper_c13": LegacyPaperC13MILPScheduler,
     "legacy_endpoint_split": LegacyEndpointSplitMILPScheduler,
-    "legacy_corrected": LegacyCorrectedMILPScheduler,
-    "event_based": PaperEventBasedMILPScheduler,
+    "legacy_corrected_strengthened": LegacyCorrectedStrengthenedMILPScheduler,
+    "event_based_optimized": OptimizedPaperEventBasedMILPScheduler,
 }
 
 

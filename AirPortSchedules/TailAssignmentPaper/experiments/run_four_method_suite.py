@@ -4,7 +4,8 @@ The suite is deliberately separate from canonical data/instances. It creates
 small regression cases plus a scalable feasible family, then evaluates the same
 JSON case with:
 
-    legacy_paper_c13, legacy_endpoint_split, legacy_corrected, event_based
+    legacy_paper_c13, legacy_endpoint_split,
+    legacy_corrected_strengthened, event_based_optimized
 
 Examples:
     python experiments/run_four_method_suite.py --generate
@@ -30,10 +31,10 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.compact_a_event_model import PaperEventBasedMILPScheduler
+from src.compact_a_event_model import OptimizedPaperEventBasedMILPScheduler
 from src.generate_feasible_instances import build_feasible_instance
 from src.model import (
-    LegacyCorrectedMILPScheduler,
+    LegacyCorrectedStrengthenedMILPScheduler,
     LegacyEndpointSplitMILPScheduler,
     LegacyPaperC13MILPScheduler,
 )
@@ -44,8 +45,8 @@ SUMMARY_PATH = ROOT / "results" / "tables" / "four_method_suite_summary.csv"
 FORMULATIONS = {
     "legacy_paper_c13": LegacyPaperC13MILPScheduler,
     "legacy_endpoint_split": LegacyEndpointSplitMILPScheduler,
-    "legacy_corrected": LegacyCorrectedMILPScheduler,
-    "event_based": PaperEventBasedMILPScheduler,
+    "legacy_corrected_strengthened": LegacyCorrectedStrengthenedMILPScheduler,
+    "event_based_optimized": OptimizedPaperEventBasedMILPScheduler,
 }
 DEFAULT_PERFORMANCE_GRID = [(p, h) for p in (5, 10, 20, 40) for h in (7, 15, 30)]
 EXTENDED_PERFORMANCE_GRID = [
@@ -226,8 +227,8 @@ def run_suite(solver: str, executable: str | None, limit: int,
         expected = {
             "legacy_paper_c13": "optimal",
             "legacy_endpoint_split": "optimal",
-            "legacy_corrected": "infeasible",
-            "event_based": "optimal",
+            "legacy_corrected_strengthened": "infeasible",
+            "event_based_optimized": "optimal",
         }
         if status_by_method == expected:
             print("C13 loophole regression passed: corrected model rejects the fixed violation.")

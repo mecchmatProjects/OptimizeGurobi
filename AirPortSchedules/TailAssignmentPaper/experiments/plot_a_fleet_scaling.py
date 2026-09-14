@@ -12,20 +12,20 @@ import matplotlib.pyplot as plt
 LABELS = {
     "legacy_paper_c13": "Legacy paper row",
     "legacy_endpoint_split": "Legacy endpoint split",
-    "legacy_corrected": "Legacy corrected",
-    "event_based": "Event-based",
+    "legacy_corrected_strengthened": "Legacy corrected strengthened",
+    "event_based_optimized": "Event-based optimized",
 }
 COLORS = {
     "legacy_paper_c13": "#7f1d1d",
     "legacy_endpoint_split": "#155e75",
-    "legacy_corrected": "#166534",
-    "event_based": "#b45309",
+    "legacy_corrected_strengthened": "#166534",
+    "event_based_optimized": "#b45309",
 }
 MARKERS = {
     "legacy_paper_c13": "v",
     "legacy_endpoint_split": "o",
-    "legacy_corrected": "^",
-    "event_based": "s",
+    "legacy_corrected_strengthened": "^",
+    "event_based_optimized": "s",
 }
 
 

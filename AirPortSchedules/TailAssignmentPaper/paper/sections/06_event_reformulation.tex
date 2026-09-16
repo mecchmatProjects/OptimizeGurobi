@@ -135,7 +135,7 @@ M(x_{r'j}-1) + \tD{j} \ge \tI{r} z_{rj}+\delta_A+\Delta t, \quad \forall (r',j)\
 \tI{r}\leq \tD{i}<\tI{r}+\delta_A\right\}.
 \end{equation}
 At every breakpoint, active maintenance occupancy satisfies
-\begin{equation}
+\begin{equation}\label{eq:E15_not_full}
 \sum_{(i,j)\in\mathcal{E}(a,r)}z_{i j}
 \leq \operatorname{mcap}_{a},
 \qquad \forall a\in \MA,\ r\in \mathcal{R}.
@@ -144,6 +144,18 @@ At every breakpoint, active maintenance occupancy satisfies
 
 This constraint ensures that the number of simultaneously active maintenance events at any airport 
 does not exceed the airport's maintenance capacity for every $r \in \mathcal{R}$.
+
+The constraints \ref{eq:E14} and \ref{eq:E15_not_full} enforce maintenance blocking and capacity limitations, however 
+they reduce the solution space by imposing additional restrictions on the feasible assignments of flights and maintenance events.
+
+Potentially, if the plain A instead of going directly to maintenance, waits and during this waiting period 
+another plane B arrives and occupies the maintenance slot, 
+the constraints will prevent the initial plane from being assigned to maintenance at that time, even if a delayed maintenance could be operationally feasible.
+
+
+
+
+
 
 
 \subsection{Complete E1--E15 inventory of the implemented A-only model}

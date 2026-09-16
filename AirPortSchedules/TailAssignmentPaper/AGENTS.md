@@ -94,6 +94,36 @@ python experiments/reproduce_tables.py --table 5 --quick --solver cplex
 python src/diagnostics.py --data data/instances/ABCD_all_checks_test.json --mode both
 ```
 
+### Large fleet / long horizon (control z-variable blow-up)
+
+Without a deferral cap, A/B check candidate days span the *entire remaining
+horizon* for every maintenance-eligible flight, which is why instances like
+30 aircraft / 14 days can reach ~475k `z` variables. Use
+`--max-hour-check-deferral-days` (cap the A/B deferral window) and
+`--only-checks` / `--disable-checks` (restrict active check types) to shrink
+the trigger domain without changing the feasible region:
+
+```powershell
+# Full model via src/model.py CLI
+python src/model.py --mode milp `
+  --data data/instances/DataCplex_density=1_p=30_h=14_test_0.json `
+  --solver cplexamp --executable "F:\Progs\IBM.ILOG.CPLEX.for.AMPL.v12.6-EAT\CPLEXamp.exe" `
+  --time-limit 500 `
+  --max-hour-check-deferral-days 3 `
+  --only-checks A
+
+# LP lower bound experiment harness (also exposes the deferral cap)
+python experiments/step4_lp_lower_bounds.py `
+  --input-dir data/instances/ --pattern "*p=30_h=14*.json" `
+  --solver highs --time-limit 120 `
+  --max-hour-check-deferral-days 3 --enabled-checks A `
+  --sparse-z --reachability
+```
+
+`step4_lp_lower_bounds.py`'s output CSV now includes a `z_vars` column
+(`scheduler.z_var_count`) so the effect of these flags is directly visible
+per run.
+
 ## Agent Task Prompts
 
 Located in `.github/prompts/`:

@@ -26,6 +26,11 @@ CLI
 --reachability          Drop deferred trigger days a station-departure rules out.
 --tight-c13-m          Use interval-specific C13 big-M bounds.
 --strong-conflicts     Disaggregate C8 into per-flight conflict rows.
+--max-hour-check-deferral-days N
+                       Cap A/B check deferral to N days past trigger arrival.
+                       This is the dominant lever for large z-variable counts
+                       on long-horizon, many-aircraft instances; unset, the
+                       candidate days span the whole remaining horizon.
 """
 
 import argparse
@@ -85,7 +90,7 @@ def solve_lp_lower_bound(instance_path, solver_name='highs', time_limit=30,
                           use_maintenance=True, executable=None,
                           enabled_checks=None, sparse_z=False,
                           reachability=False, tight_c13_m=False,
-                          strong_conflicts=False):
+                          strong_conflicts=False, max_deferral_days=None):
     """
     Compute LP relaxation lower bound for a TAP instance.
 
@@ -108,6 +113,11 @@ def solve_lp_lower_bound(instance_path, solver_name='highs', time_limit=30,
         feasible set; use these for large instances (long horizon, many
         maintenance-eligible flights) where the full trigger domain is too
         large to build in reasonable time.
+    max_deferral_days : int | None
+        Caps how many days an A/B (flight-hour) check may be deferred past
+        its trigger flight's arrival day. Unset, a trigger's candidate days
+        span the entire remaining horizon, which is the dominant source of
+        z-variable blow-up on long-horizon, many-aircraft instances.
 
     Returns
     -------
@@ -125,7 +135,11 @@ def solve_lp_lower_bound(instance_path, solver_name='highs', time_limit=30,
     try:
         # Build model
         log.info(f"Building model: {name}")
-        scheduler = MILP_Sheduler(instance_path, enabled_checks=enabled_checks)
+        scheduler = MILP_Sheduler(
+            instance_path,
+            enabled_checks=enabled_checks,
+            max_hour_check_deferral_days=max_deferral_days,
+        )
         scheduler.build_model(
             use_maintenance=use_maintenance,
             use_sparse_maint_aircraft_domain=sparse_z,
@@ -157,12 +171,13 @@ def solve_lp_lower_bound(instance_path, solver_name='highs', time_limit=30,
         if runtime is None:
             runtime = 0.0
 
-        log.info(f"  LP bound: {lp_bound}, status: {status}, time: {runtime:.1f}s")
+        log.info(f"  z_vars={scheduler.z_var_count}  LP bound: {lp_bound}, status: {status}, time: {runtime:.1f}s")
 
         return {
             'instance': name,
             'n_var': n_var,
             'n_con': n_con,
+            'z_vars': scheduler.z_var_count,
             'status': status,
             'lp_bound': lp_bound,
             'runtime_s': runtime
@@ -176,6 +191,7 @@ def solve_lp_lower_bound(instance_path, solver_name='highs', time_limit=30,
             'instance': name,
             'n_var': None,
             'n_con': None,
+            'z_vars': None,
             'status': 'error',
             'lp_bound': None,
             'runtime_s': None
@@ -211,6 +227,12 @@ def parse_args():
                         help="Interval-specific C13 big-M bounds.")
     parser.add_argument('--strong-conflicts', action='store_true',
                         help="Disaggregate C8 into per-flight conflict rows.")
+    parser.add_argument('--max-hour-check-deferral-days', type=int, default=None,
+                        help="Cap how far an A/B check may be deferred past its "
+                             "trigger flight's arrival day. Without this, a "
+                             "trigger's candidate days span the entire remaining "
+                             "horizon, which is the dominant cause of z-variable "
+                             "blow-up on long-horizon, many-aircraft instances.")
     return parser.parse_args()
 
 
@@ -258,6 +280,7 @@ def main():
                 reachability=args.reachability,
                 tight_c13_m=args.tight_c13_m,
                 strong_conflicts=args.strong_conflicts,
+                max_deferral_days=args.max_hour_check_deferral_days,
             )
             result['family'] = family
             result['formulation'] = formulation
@@ -268,7 +291,7 @@ def main():
         return
 
     fieldnames = ['instance', 'family', 'formulation', 'n_var', 'n_con',
-                  'status', 'lp_bound', 'runtime_s']
+                  'z_vars', 'status', 'lp_bound', 'runtime_s']
 
     with open(output_path, 'w', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)

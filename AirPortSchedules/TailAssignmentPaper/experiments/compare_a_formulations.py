@@ -134,7 +134,11 @@ def run_one(
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input-dir", default="data/feasible_instances_corrected")
-    parser.add_argument("--pattern", default="DataCplex_density=1_p=10_h=*_test_0.json")
+    parser.add_argument(
+        "--pattern",
+        default="DataCplex_density=1_p=*_h=*_test_0.json",
+        help="Instance glob; narrow it to pin one fleet size or one horizon.",
+    )
     parser.add_argument("--solver", default="cplexamp")
     parser.add_argument(
         "--executable",

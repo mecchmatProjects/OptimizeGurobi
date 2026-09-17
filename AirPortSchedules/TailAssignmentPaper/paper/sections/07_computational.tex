@@ -184,7 +184,7 @@ $|P|$ & \multicolumn{5}{c}{CPU time (s)} & \multicolumn{5}{c}{Wall time (s)} \\
 \cmidrule(lr){2-6}\cmidrule(lr){7-11}
 & Paper & Split & Corr.\ str. & Event opt. & Event flex & Paper & Split & Corr.\ str. & Event opt. & Event flex \\
 \midrule
-5  & 0.278000 & 0.280930 & 0.295999 & 0.278001 & 0.277000 & 0.566499 & 0.567444 & 0.577380 & 0.556042 & 0.559911 \\
+5  & 0.277999 & 0.280930 & 0.295999 & 0.278001 & 0.277000 & 0.566499 & 0.567444 & 0.577380 & 0.556042 & 0.559911 \\
 10 & 0.315000 & 0.324094 & 0.301004 & 0.295000 & 0.305999 & 0.671918 & 0.671779 & 0.618647 & 0.623758 & 0.650344 \\
 15 & 0.360000 & 0.373589 & 0.341005 & 0.344004 & 0.365001 & 0.781777 & 0.816900 & 0.726060 & 0.775208 & 0.825283 \\
 20 & 0.428001 & 0.453003 & 0.400817 & 0.428001 & 0.470004 & 1.040830 & 1.103436 & 0.881738 & 0.961937 & 1.124938 \\
@@ -359,7 +359,7 @@ performance cases with three repetitions each, using
 Because the variant is a relaxation, the benchmark asserts only that its
 objective never exceeds the immediate-start objective; in fact the two agree
 exactly on every case, so the extra freedom is not needed at the capacities of
-this instance family.
+this instance family. Table~\ref{tab:flexible_event} reports the aggregates.
 
 \begin{table}[t]
 \centering\small
@@ -370,22 +370,40 @@ paired runs. Times are means in seconds.}
 \toprule
 Implementation & Variables & Constraints & Build & CPU & Wall \\
 \midrule
-Event-based optimized & 4\,979.167 & 15\,299.167 & 0.500500 & 0.573329 & 1.281742 \\
-Event-based flexible & 6\,010.417 & 22\,649.583 & 0.611452 & 0.678226 & 1.553927 \\
+Event-based optimized & 4\,979.167 & 15\,299.167 & 0.527038 & 0.584489 & 1.302269 \\
+Event-based flexible & 6\,010.417 & 22\,649.583 & 0.627195 & 0.694412 & 1.593244 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 The flexible variant uses 20.71\% more variables and 48.04\% more constraints,
-with 18.30\% higher mean CPU and 21.24\% higher mean wall time. It is faster in
-only 4 of 36 paired CPU measurements and 3 of 36 paired wall measurements. The
-variable growth is the one continuous offset per admissible event predicted in
-\Cref{subsec:flex_complexity}; the larger row growth comes from two effects
-together, the widening of the blocking window from $\delta_A+\dt$ to
-$\delta_A+W+\dt$ and the disjunctive linearisation of the occupancy limit.
-The replacement of set-packing blocking rows by big-M rows also weakens the
-linear relaxation, which explains why the runtime penalty exceeds the size
-penalty in CPU terms.
+with 18.81\% higher mean CPU and 22.34\% higher mean wall time. It is faster in
+only 6 of 36 paired CPU measurements and 7 of 36 paired wall measurements.
+
+The composition of that growth deserves a precise statement, because it is not
+what one might assume. On every instance of this suite the immediate-start
+model generates \emph{no} maintenance-timing rows at all: the generated
+timetables use overnight returns, so no departure falls inside
+$[\tI{i_r},\tI{i_r}+\delta_A+\dt)$ and the E14 family is empty, while the
+station capacity of ten is never approached and the E15 family is empty as
+well. The flexible model inherits the second of these: its occupancy sweep
+proves the capacity limit redundant on all twelve cases, so
+\texttt{e15\_flex\_separation} and \texttt{e15\_flex\_maintenance\_capacity}
+contribute zero rows and no auxiliary binaries. The entire measured difference
+is therefore the deferral machinery itself, namely the window rows
+\eqref{eq:E16_flex_s_basic} and the widened blocking family
+\eqref{eq:E14_flex}, whose reach grows from $\delta_A+\dt$ to
+$\delta_A+W+\dt$ and so becomes non-empty where E14 was not. At $|P|=20$ and
+$H=15$, for instance, the two models share 11\,796 rows and the flexible model
+adds 1\,558 window rows and 2\,120 blocking rows.
+
+This also bounds what the experiment can claim. The suite measures the cost of
+\emph{carrying} deferrable timing, not the cost of \emph{using} it: the
+instances never force a deferral, and the objectives confirm it, since the two
+models agree exactly on every case. A family in which station capacity actually
+binds would be needed to measure the benefit side, and is identified as
+required future work in
+\Cref{subsec:robustness}.
 
 The practical reading is that flexibility should be enabled deliberately. On
 these instances maintenance capacity is never the binding resource, so the
@@ -396,6 +414,7 @@ slot immediately would otherwise be denied its check altogether; there the
 immediate-start model is infeasible and the flexible model is not.
 
 \subsubsection{Validation scope and required robustness checks}
+\label{subsec:robustness}
 
 The A-only results are a controlled formulation comparison, not a final
 performance claim. The current evidence uses one deterministic generated case

@@ -992,12 +992,11 @@ class MILP_Sheduler:
                         for d in self._z_days_for(i, c):
                             yield (i, j, d, c)
         m.Z = Set(dimen=4, initialize=_z_index_init)
-        print("DEBUG |FM| =", len(m.FM))
-        print("DEBUG |P| =", len(m.P))
-        print("DEBUG |D| =", len(m.D))
-        print("DEBUG |C| =", len(m.C))
-        print("DEBUG x vars =", self.x_var_count, flush=True)
-        print("DEBUG z vars =", self.z_var_count, flush=True)
+        logger.debug(
+            "Index sizes |FM|=%d |P|=%d |D|=%d |C|=%d x_vars=%d z_vars=%d",
+            len(m.FM), len(m.P), len(m.D), len(m.C),
+            self.x_var_count, self.z_var_count,
+        )
         m.z = Var(m.Z, domain=Binary, initialize=0)
         # y[j,d,c] = 1  iff aircraft j undergoes check c on day d
         m.y = Var(m.P, m.D, m.C, domain=Binary, initialize=0)

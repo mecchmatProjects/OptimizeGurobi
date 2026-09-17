@@ -1,11 +1,11 @@
-"""Generate and run a correctness/performance suite for all four A-only methods.
+"""Generate and run a correctness/performance suite for the A-only methods.
 
 The suite is deliberately separate from canonical data/instances. It creates
 small regression cases plus a scalable feasible family, then evaluates the same
 JSON case with:
 
     legacy_paper_c13, legacy_endpoint_split,
-    legacy_corrected_strengthened, event_based_optimized
+    legacy_corrected_strengthened, event_based_optimized, event_based_flex
 
 Examples:
     python experiments/run_four_method_suite.py --generate

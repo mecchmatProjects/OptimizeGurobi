@@ -113,19 +113,25 @@ minimum post-maintenance turn time.
 \paragraph{E14. Maintenance blocking (C8).}
 For an event $(r,j)$, define the incompatible following-flight set
 \begin{equation}
-F^{\mathrm{dep}}_{r}=\left\{\ell\in\F: \tD{\ell}<\tI{r}+\delta_A+\Delta t\right\}.
+F^{\mathrm{dep}}_{r}=\left\{\ell\in\F:\ \aD{\ell}=\aI{i_r},\ 
+  \tI{i_r}<\tD{\ell}<\tI{i_r}+\delta_A+\Delta t\right\}.
 \end{equation}
 If $z_{rj}=1$, every selected incompatible flight is blocked:
 \begin{equation}\label{eq:E14}
 x_{\ell j}+z_{rj}\leq1,
 \qquad \forall \ell\in F^{\mathrm{dep}}_{r},\ j\in\Pc.
 \end{equation}
-Only feasible $(\ell,j)$ assignment arcs are generated.
+Only feasible $(\ell,j)$ assignment arcs are generated. Restricting $\ell$ to departures from
+the station $\aI{i_r}$ where the check takes place loses nothing: by E5--E6 the aircraft cannot
+leave from anywhere else without first operating an intervening flight, which the same family
+already blocks.
 
 This constraint also can be rewritten in the next equivalent form:
 \begin{equation}\label{eq:E14_rewritten}
-M(x_{\ell j}-1) + \tD{\ell} \ge \tI{i_r} z_{rj}+\delta_A+\Delta t,
-\qquad \forall \ell\in\F,\ j\in\Pc,\ \tD{\ell}>\tI{i_r}.
+\begin{aligned}
+M(x_{\ell j}-1) + \tD{\ell} &\ge \tI{i_r} z_{rj}+\delta_A+\Delta t,\\
+&\quad \forall \ell\in\F,\ j\in\Pc,\ \tD{\ell}>\tI{i_r}.
+\end{aligned}
 \end{equation}
 
 
@@ -133,7 +139,7 @@ M(x_{\ell j}-1) + \tD{\ell} \ge \tI{i_r} z_{rj}+\delta_A+\Delta t,
  Define the active event set
 \begin{equation}
 \mathcal{E}(a,r)=\left\{(i,j):\aI{i}=a,\quad
-\tI{r}\leq \tD{i}<\tI{r}+\delta_A\right\}.
+\tI{i_r}\leq \tD{i}<\tI{i_r}+\delta_A\right\}.
 \end{equation}
 At every breakpoint, active maintenance occupancy satisfies
 \begin{equation}\label{eq:E15_not_full}
@@ -167,39 +173,56 @@ and $s_{rj}=\delta_A$ recovers the immediate-start behaviour of~\eqref{eq:E14}.
 In this case the constraints \ref{eq:E14} and \ref{eq:E15_not_full} turn into the next ones:
 
 \begin{equation}\label{eq:E14_flex}
-M(x_{\ell j}-1)+M(z_{rj}-1) + \tD{\ell} \ge \tI{i_r}+s_{rj}+\Delta t,
-\qquad \forall \ell\in\F,\ j\in\Pc,\ \tD{\ell}>\tI{i_r}.
+\begin{aligned}
+M(x_{\ell j}-1)+M(z_{rj}-1) + \tD{\ell} &\ge \tI{r}+s_{rj}+\Delta t,\\
+\forall \ell\in\F,\ j\in\Pc,\ \aD{\ell}=\aI{i_r}, \ell>r.
+\end{aligned}
 \end{equation}
 
 This constraint ensures that the completion time of a maintenance event for a given flight and aircraft combination is respected,
 taking into account the potential overlap with subsequent flights and the flexibility introduced by the variable $s_{rj}$.
 Compared with~\eqref{eq:E14} the blocked window is no longer a constant: an aircraft that defers its
 check stays on the ground until the deferred completion, which is the price paid for the extra freedom.
+Departures later than $\tI{i_r}+\delta_A+W+\Delta t$ are omitted because $s_{rj}$ cannot reach them.
 
 Additionally, the maintenance capacity constraint \ref{eq:E15_not_full} can be modified to account for the flexible start times.
 Writing $T_{rj}=\tI{i_r}+s_{rj}$ for the realised completion time, define the modified event set
 \begin{equation}
 \mathcal{Q}(a,r,j)=\left\{(i,j'):\aI{i}=a,\quad
-T_{rj} - \delta_A < T_{ij'} < T_{rj}+\delta_A\right\},
+s_{rj} - \delta_A < s_{ij'} \le s_{rj}\right\},
 \end{equation}
-that is, the events at airport $a$ whose maintenance windows~\eqref{eq:E16_flex_window} intersect
-that of $(r,j)$. Occupancy is then limited by
+that is, the events at airport $a$ that are in progress at the instant
+$s_{rj}-\delta_A$ when event $(r,j)$ begins. Occupancy is then limited by
 \begin{equation}\label{eq:E15_flex}
-\sum_{(i,j')\in\mathcal{Q}(a,r,j)}z_{i j'}
+\sum_{(i,j')\in\mathcal{Q}(a,r,j)}\hat{z}_{i j'}
 \leq \operatorname{mcap}_{a},
 \qquad \forall a\in \MA,\ r\in \mathcal{R},\ j\in\Pc .
 \end{equation}
-Because $\mathcal{Q}(a,r,j)$ depends on the decision variables, \eqref{eq:E15_flex} is linearised with
-one overlap indicator and one ordering indicator per potentially conflicting event pair; the
-construction is given in Section~\ref{subsec:flex_complexity}.
+Because every type-A window has the same length $\delta_A$, station occupancy attains its
+maximum at the start of some window, so imposing \eqref{eq:E15_flex} at the $|\mathcal{Q}|$
+window starts is equivalent to imposing it at every instant. The one-sided membership test is
+essential here: counting all events whose windows merely intersect that of $(r,j)$ would
+overstate occupancy, since two neighbours of $(r,j)$ need not overlap each other.
+Because $\mathcal{Q}(a,r,j)$ depends on the decision variables, \eqref{eq:E15_flex} is
+linearised with one membership indicator and one ordering indicator per ordered pair of
+potentially conflicting events; the construction is given in
+Section~\ref{subsec:flex_complexity}.
 
 We also need the basic condition on $s_{rj}$: the check can neither finish before the triggering
 flight has landed and the work has been performed, nor be postponed indefinitely. With
 $W$ the maximum admissible deferral,
 \begin{equation}\label{eq:E16_flex_s_basic}
-\delta_A\,z_{rj}\ \le\ s_{rj}\ \le\ (\delta_A+W)\,z_{rj},
-\qquad \forall r\in \mathcal{R},\ j\in \Pc .
+\delta_A\,\hat{z}_{rj}\ \le\ s_{rj}\ \le\ (\delta_A+W)\,\hat{z}_{rj},
+\qquad \forall r\in \mathcal{R},\ j\in \Pc ,
 \end{equation}
+and
+\begin{equation}\label{eq:E7_flex_s_basic}
+s_{rj}\ \le\ (\delta_A+W)\,z_{rj},
+\qquad \forall r\in \mathcal{R},\ j\in \Pc ,
+\end{equation}
+
+
+
 The right-hand inequality also forces $s_{rj}=0$ whenever no event is selected, which keeps
 \eqref{eq:E14_flex} inactive for non-events.
 
@@ -442,11 +465,13 @@ $\mathcal{B}$ of \eqref{eq:E14} is generated from the constant window
 $[\tI{i_r},\tI{i_r}+\delta_A+\Delta t)$, whereas \eqref{eq:E14_flex} must cover the widened
 window $[\tI{i_r},\tI{i_r}+\delta_A+W+\Delta t)$. Its size therefore grows with the deferral
 budget $W$, and the rows change from set-packing inequalities to big-M inequalities, which
-weakens the linear relaxation. Second, \eqref{eq:E15_flex} is linearised with one overlap
-indicator and one ordering indicator per potentially conflicting flight pair at a maintenance
-station, together with two disjunctive separation rows per pair and one capacity row per
-flight. Writing $\mathcal{K}_a$ for the set of such pairs at airport $a$, the capacity family
-is $O\bigl(\sum_a|\mathcal{K}_a|\bigr)$ rows and the same order of binary variables, against
+weakens the linear relaxation. Second, \eqref{eq:E15_flex} is linearised with one membership
+indicator $u_{ee'}$ and one ordering indicator per \emph{ordered} pair $(e,e')$ of events at a
+maintenance station, where $u_{ee'}=1$ whenever $T_{e'}\in(T_e-\delta_A,T_e]$. Two disjunctive
+rows per ordered pair force $u_{ee'}$ up when the membership holds, and one row per event
+bounds $\sum_{e'}u_{ee'}\le\operatorname{mcap}_a-1$ whenever $e$ is selected. Writing
+$\mathcal{K}_a$ for the set of such ordered pairs, the capacity family is
+$O\bigl(\sum_a|\mathcal{K}_a|\bigr)$ rows and the same order of binary variables, against
 $O(n_f)$ breakpoint rows and no new binaries in the immediate-start model. Third, a station
 whose windows can never exceed its capacity contributes nothing: the builder sweeps the
 half-open windows $[\tI{i_r},\tI{i_r}+\delta_A+W)$ and omits the whole family whenever the
@@ -458,14 +483,20 @@ makes the conflict graph complete and the capacity family quadratic; this is pre
 $W$ is kept finite. In the practical case, only events whose arrival times lie within
 $\delta_A+W$ of one another can conflict, so $|\mathcal{K}_a|$ is proportional to $n_m$ times
 the number of arrivals inside one deferral window, which is a timetable-dependent constant.
-With $W$ equal to one day, the measured cost on the matched grids of \Cref{sec:computational}
-is an increase of roughly one fifth in variables and one half in rows relative to the
-immediate-start implementation.
+On the generated family of \Cref{sec:computational} the sweep in fact discharges the capacity
+family entirely, so with $W$ equal to one day the measured cost reduces to the deferral
+machinery alone: an increase of roughly one fifth in variables and one half in rows relative
+to the immediate-start implementation.
 
-Finally, the variant is a relaxation. Fixing $s_{rj}=\delta_A z_{rj}$ satisfies
-\eqref{eq:E16_flex_s_basic}, reduces \eqref{eq:E14_flex} to \eqref{eq:E14_rewritten} and
-reduces \eqref{eq:E15_flex} to \eqref{eq:E15_not_full}; hence every solution of the
-immediate-start model is feasible for the flexible one, and its optimal value can only
-improve. The additional freedom is not free: an aircraft that defers a check is grounded
+Finally, the variant is a relaxation of the blocking requirement. Fixing
+$s_{rj}=\delta_A z_{rj}$ satisfies \eqref{eq:E16_flex_s_basic} and reduces
+\eqref{eq:E14_flex} to \eqref{eq:E14_rewritten}, so every schedule admitted by E14 is admitted
+by E14\_flex. For the capacity requirement the two families are not literal rewritings of one
+another: \eqref{eq:E15_not_full} tests the fixed breakpoints $\tI{i_r}$, whereas
+\eqref{eq:E15_flex} tests the realised window starts, which is the exact occupancy condition.
+On any instance where the occupancy sweep certifies that capacity cannot bind, both families
+are vacuous and the inclusion is unconditional; this is the case throughout
+\Cref{sec:computational}, where the two models return identical optima on every run.
+The additional freedom is not free: an aircraft that defers a check is grounded
 until the deferred completion, so the relaxation pays for station capacity with aircraft
 availability.

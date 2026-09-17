@@ -445,14 +445,21 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
         self._add_flexible_capacity(model, selected, duration, defer)
 
     def _add_flexible_capacity(self, model, selected, duration, defer):
-        """E15_flex: disjunctive occupancy rows, emitted only where capacity can bind."""
+        """E15_flex: exact occupancy rows, emitted only where capacity can bind.
+
+        All maintenance windows share the length ``delta_A``, so station occupancy
+        peaks at the start of some window.  Counting, for every event, the events
+        completing in ``(T - delta_A, T]`` therefore reproduces instantaneous
+        occupancy exactly; a symmetric ``|T - T'| < delta_A`` count would instead
+        over-state it, because neighbours of one event need not overlap each other.
+        """
         model.e15_flex_separation = ConstraintList()
         model.e15_flex_maintenance_capacity = ConstraintList()
 
-        conflict_pairs = []
-        conflicts = {}
-        capacity_by_flight = {}
         check = self.CHECK_LIST[0]
+        directed_pairs = []
+        neighbours = {}
+        capacity_by_flight = {}
         for airport in self.maint_airports:
             capacity = self.station_cap.get(airport, 0)
             flights = [
@@ -464,68 +471,63 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
                     for aircraft in self._x_aircrafts_for_flight(flight)
                 )
             ]
+            arrivals = {
+                flight: self.flight_data[flight]["arrivalTime"] for flight in flights
+            }
             windows = {
-                flight: (
-                    self.flight_data[flight]["arrivalTime"],
-                    self.flight_data[flight]["arrivalTime"] + duration + defer,
-                )
-                for flight in flights
+                flight: (arrival, arrival + duration + defer)
+                for flight, arrival in arrivals.items()
             }
             if _peak_concurrency(windows.values()) <= capacity:
                 continue
-            for outer, first in enumerate(flights):
-                for second in flights[outer + 1:]:
-                    low_a, high_a = windows[first]
-                    low_b, high_b = windows[second]
-                    if low_a < high_b and low_b < high_a:
-                        conflict_pairs.append((first, second))
-                        conflicts.setdefault(first, []).append(second)
-                        conflicts.setdefault(second, []).append(first)
+            for first in flights:
+                for second in flights:
+                    if first == second:
+                        continue
+                    reachable = (
+                        arrivals[second] + duration + defer > arrivals[first]
+                        and arrivals[second] <= arrivals[first] + defer
+                    )
+                    if reachable:
+                        directed_pairs.append((first, second))
+                        neighbours.setdefault(first, []).append(second)
             for flight in flights:
                 capacity_by_flight[flight] = capacity
 
-        if not conflict_pairs:
+        if not directed_pairs:
             return
 
-        model.SPAIR = Set(dimen=2, initialize=conflict_pairs, ordered=True)
-        model.flex_overlap = Var(model.SPAIR, domain=Binary, initialize=0)
+        model.SPAIR = Set(dimen=2, initialize=directed_pairs, ordered=True)
+        model.flex_active = Var(model.SPAIR, domain=Binary, initialize=0)
         model.flex_order = Var(model.SPAIR, domain=Binary, initialize=0)
 
         horizon_end = max(
             self.flight_data[flight]["arrivalTime"] for flight in self.flight_ids
         )
         big_m = horizon_end + 2.0 * (duration + defer)
+        epsilon = 1e-3
 
         def completion(flight):
             return self.flight_data[flight]["arrivalTime"] + model.sigma[flight]
 
-        for first, second in conflict_pairs:
-            overlap = model.flex_overlap[first, second]
+        for first, second in directed_pairs:
+            active = model.flex_active[first, second]
             order = model.flex_order[first, second]
-            slack = (
-                overlap
-                + (1 - selected[first])
-                + (1 - selected[second])
+            slack = active + (1 - selected[first]) + (1 - selected[second])
+            model.e15_flex_separation.add(
+                completion(first) - duration - completion(second)
+                >= -big_m * (order + slack)
             )
             model.e15_flex_separation.add(
                 completion(second) - completion(first)
-                >= duration - big_m * (order + slack)
+                >= epsilon - big_m * ((1 - order) + slack)
             )
-            model.e15_flex_separation.add(
-                completion(first) - completion(second)
-                >= duration - big_m * ((1 - order) + slack)
-            )
-            model.e15_flex_separation.add(overlap <= selected[first])
-            model.e15_flex_separation.add(overlap <= selected[second])
+            model.e15_flex_separation.add(active <= selected[first])
+            model.e15_flex_separation.add(active <= selected[second])
 
-        for flight, neighbours in conflicts.items():
+        for flight, others in neighbours.items():
             capacity = capacity_by_flight[flight]
-            terms = [
-                model.flex_overlap[flight, other]
-                if (flight, other) in model.SPAIR
-                else model.flex_overlap[other, flight]
-                for other in neighbours
-            ]
+            terms = [model.flex_active[flight, other] for other in others]
             model.e15_flex_maintenance_capacity.add(
                 sum(terms)
                 <= (capacity - 1) + len(terms) * (1 - selected[flight])

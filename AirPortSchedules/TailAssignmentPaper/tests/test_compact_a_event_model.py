@@ -12,6 +12,7 @@ if str(ROOT) not in sys.path:
 
 from src.compact_a_event_model import (
     CompactAEventMILPScheduler,
+    FlexiblePaperEventBasedMILPScheduler,
     OptimizedPaperEventBasedMILPScheduler,
     OrderedAEventMILPScheduler,
     OrderedABEventMILPScheduler,
@@ -132,6 +133,57 @@ class CompactAEventTests(unittest.TestCase):
             len(list(optimized.component_data_objects(Constraint, active=True))),
             len(list(baseline.component_data_objects(Constraint, active=True))),
         )
+
+    def test_flexible_model_replaces_immediate_timing_families(self):
+        scheduler = FlexiblePaperEventBasedMILPScheduler(str(SOURCE))
+        model = scheduler.build_model()
+
+        self.assertEqual(scheduler.FORMULATION_ID, "event_based_flex")
+        self.assertFalse(hasattr(model, "e14_maintenance_block"))
+        self.assertFalse(hasattr(model, "e15_maintenance_capacity"))
+        self.assertTrue(hasattr(model, "s"))
+        self.assertTrue(hasattr(model, "sigma"))
+        self.assertTrue(hasattr(model, "e14_flex_maintenance_block"))
+        self.assertTrue(hasattr(model, "e16_flex_completion_window"))
+
+    def test_flexible_model_keeps_e1_e13_rows_unchanged(self):
+        optimized = OptimizedPaperEventBasedMILPScheduler(str(SOURCE)).build_model()
+        flexible = FlexiblePaperEventBasedMILPScheduler(str(SOURCE)).build_model()
+
+        for family in (
+            "e4_coverage",
+            "e5_e6_continuity_turn",
+            "e7_clique_strengthening",
+            "e8_event_assignment",
+            "e9_e13_prefix_state",
+        ):
+            self.assertEqual(
+                len(list(getattr(flexible, family))),
+                len(list(getattr(optimized, family))),
+                family,
+            )
+        self.assertEqual(len(flexible.Z), len(optimized.Z))
+        self.assertEqual(len(flexible.Q), len(optimized.Q))
+
+    def test_flexible_offsets_span_the_deferral_window(self):
+        scheduler = FlexiblePaperEventBasedMILPScheduler(str(SOURCE))
+        model = scheduler.build_model()
+
+        expected_ub = scheduler.check_dur["A"] + scheduler.MAX_MAINT_DEFER
+        self.assertEqual(len(model.s), len(model.Z))
+        for offset in model.s.values():
+            self.assertEqual(offset.lb, 0.0)
+            self.assertEqual(offset.ub, expected_ub)
+
+    def test_baseline_event_models_keep_immediate_maintenance_timing(self):
+        for builder in (
+            OrderedAEventMILPScheduler,
+            OptimizedPaperEventBasedMILPScheduler,
+        ):
+            model = builder(str(SOURCE)).build_model()
+            self.assertTrue(hasattr(model, "e14_maintenance_block"), builder.__name__)
+            self.assertTrue(hasattr(model, "e15_maintenance_capacity"), builder.__name__)
+            self.assertFalse(hasattr(model, "s"), builder.__name__)
 
     def test_ordered_model_global_state_indexing_restores_full_q_shape(self):
         scheduler = OrderedAEventMILPScheduler(str(SOURCE))

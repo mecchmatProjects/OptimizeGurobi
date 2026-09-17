@@ -31,7 +31,10 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.compact_a_event_model import OptimizedPaperEventBasedMILPScheduler
+from src.compact_a_event_model import (
+    FlexiblePaperEventBasedMILPScheduler,
+    OptimizedPaperEventBasedMILPScheduler,
+)
 from src.generate_feasible_instances import build_feasible_instance
 from src.model import (
     LegacyCorrectedStrengthenedMILPScheduler,
@@ -47,6 +50,7 @@ FORMULATIONS = {
     "legacy_endpoint_split": LegacyEndpointSplitMILPScheduler,
     "legacy_corrected_strengthened": LegacyCorrectedStrengthenedMILPScheduler,
     "event_based_optimized": OptimizedPaperEventBasedMILPScheduler,
+    "event_based_flex": FlexiblePaperEventBasedMILPScheduler,
 }
 DEFAULT_PERFORMANCE_GRID = [(p, h) for p in (5, 10, 20, 40) for h in (7, 15, 30)]
 EXTENDED_PERFORMANCE_GRID = [
@@ -164,7 +168,9 @@ def run_case(path: Path, formulation: str, solver: str, executable: str | None, 
 
 
 def run_suite(solver: str, executable: str | None, limit: int,
-              configuration: str, warm_start: bool, pattern: str) -> None:
+              configuration: str, warm_start: bool, pattern: str,
+              formulations: list[str] | None = None, append: bool = False) -> None:
+    active = formulations or list(FORMULATIONS)
     paths = sorted(
         path for path in SUITE_DIR.glob(pattern) if path.name != "manifest.json"
     )
@@ -173,16 +179,31 @@ def run_suite(solver: str, executable: str | None, limit: int,
     rows = [
         run_case(path, formulation, solver, executable, limit, configuration, warm_start)
         for path in paths
-        for formulation in FORMULATIONS
+        for formulation in active
     ]
     RESULTS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    fieldnames = list(rows[0])
+    if append and RESULTS_PATH.exists():
+        with RESULTS_PATH.open(newline="", encoding="utf-8") as handle:
+            existing = [
+                row for row in csv.DictReader(handle)
+                if row["formulation"] not in set(active)
+            ]
+        for name in (existing[0] if existing else {}):
+            if name not in fieldnames:
+                fieldnames.append(name)
+        rows = [
+            {name: row.get(name, "") for name in fieldnames}
+            for row in existing + rows
+        ]
     with RESULTS_PATH.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer = csv.DictWriter(handle, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(rows)
 
+    present = [name for name in FORMULATIONS if any(row["formulation"] == name for row in rows)]
     summary_rows = []
-    for formulation in FORMULATIONS:
+    for formulation in present:
         method_rows = [row for row in rows if row["formulation"] == formulation]
         performance_rows = [
             row for row in method_rows if str(row["case"]).startswith("perf_")
@@ -211,24 +232,25 @@ def run_suite(solver: str, executable: str | None, limit: int,
         case_rows = [row for row in rows if row["case"] == case]
         optimal = [row for row in case_rows if row["status"] == "optimal"]
         objectives = {round(float(row["objective"]), 6) for row in optimal}
-        if len(optimal) == 4 and len(objectives) != 1:
+        if len(optimal) == len(present) and len(objectives) != 1:
             parity_failures.append((case, sorted(objectives)))
     print(f"Wrote {len(rows)} rows to {RESULTS_PATH}")
     print(f"Wrote formulation summary to {SUMMARY_PATH}")
     if parity_failures:
         print(f"Objective parity failures: {parity_failures}")
     else:
-        print("Objective parity passed for every case where all four methods were optimal.")
+        print(
+            f"Objective parity passed for every case where all {len(present)} "
+            "methods were optimal."
+        )
     loophole = [row for row in rows if row["case"] == "c13_loophole_test"]
     if loophole:
         status_by_method = {
             row["formulation"]: row["status"] for row in loophole
         }
         expected = {
-            "legacy_paper_c13": "optimal",
-            "legacy_endpoint_split": "optimal",
-            "legacy_corrected_strengthened": "infeasible",
-            "event_based_optimized": "optimal",
+            name: ("infeasible" if name == "legacy_corrected_strengthened" else "optimal")
+            for name in present
         }
         if status_by_method == expected:
             print("C13 loophole regression passed: corrected model rejects the fixed violation.")
@@ -258,6 +280,18 @@ def main() -> None:
         default="*.json",
         help="Case filename glob used during --run; manifest.json is always excluded.",
     )
+    parser.add_argument(
+        "--formulations",
+        nargs="+",
+        choices=sorted(FORMULATIONS),
+        default=None,
+        help="Restrict the run to a subset of methods.",
+    )
+    parser.add_argument(
+        "--append",
+        action="store_true",
+        help="Merge the run into an existing --output file, replacing only the methods run.",
+    )
     args = parser.parse_args()
     if not args.generate and not args.run:
         parser.error("choose --generate, --run, or both")
@@ -279,6 +313,8 @@ def main() -> None:
             args.configuration,
             args.warm_start,
             args.pattern,
+            args.formulations,
+            args.append,
         )
 
 

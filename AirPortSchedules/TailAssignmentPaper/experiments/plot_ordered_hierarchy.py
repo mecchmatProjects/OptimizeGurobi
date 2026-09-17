@@ -15,24 +15,28 @@ LABELS = {
     "legacy_endpoint_split": "Legacy endpoint split",
     "legacy_corrected_strengthened": "Legacy corrected strengthened",
     "event_based_optimized": "Event-based optimized",
+    "event_based_flex": "Event-based flexible",
 }
 COLORS = {
     "legacy_paper_c13": "#7f1d1d",
     "legacy_endpoint_split": "#155e75",
     "legacy_corrected_strengthened": "#166534",
     "event_based_optimized": "#b45309",
+    "event_based_flex": "#7c3aed",
 }
 LINESTYLES = {
     "legacy_paper_c13": "--",
     "legacy_endpoint_split": "-",
     "legacy_corrected_strengthened": "-",
     "event_based_optimized": "-",
+    "event_based_flex": "--",
 }
 MARKERS = {
     "legacy_paper_c13": "v",
     "legacy_endpoint_split": "o",
     "legacy_corrected_strengthened": "^",
     "event_based_optimized": "s",
+    "event_based_flex": "D",
 }
 
 

@@ -153,7 +153,39 @@ another plane B arrives and occupies the maintenance slot,
 the constraints will prevent the initial plane from being assigned to maintenance at that time, even if a delayed maintenance could be operationally feasible.
 
 
+To fix the issue of overly restrictive maintenance assignment due to simultaneous occupancy constraints, 
+we introduce another variable representing the flexible end time of maintenance events. 
+This variable allows the model to adjust the timing of maintenance dynamically, 
+ensuring that aircraft can be assigned to maintenance even if the initially preferred time slot is occupied. 
+The new variable can be denoted as $s_{rj}$, representing the start time of the maintenance event for flight $r$ and aircraft $j$.
 
+In this case the constraints \ref{eq:E14} and \ref{eq:E15_not_full} turn into the next ones:
+
+\begin{equation}\label{eq:E14_flex}
+M(x_{r'j}-1) + \tD{j} \ge \tI{r} z_{rj}+s_{rj}+\Delta t, \quad \forall (r',j)\in\F\times\Pc, \ r'>r.
+\end{equation}
+
+This constraint ensures that the start time of a maintenance event for a given flight and aircraft combination is respected, 
+taking into account the potential overlap with subsequent flights and the flexibility introduced by the variable $s_{rj}$.
+
+Additionally, the maintenance capacity constraint \ref{eq:E15_not_full} can be modified to account for the flexible start times:
+Define the modified event set
+\begin{equation}
+\mathcal{Q}(a,r)=\left\{(i,j):\aI{i}=a,\quad
+s_{rj} - \delta_A \leq \tD{i} < s_{rj}\right\}.
+\end{equation}
+
+\begin{equation}\label{eq:E15_flex}
+\sum_{(i,j)\in\mathcal{Q}(a,r)}z_{i j}
+\leq \operatorname{mcap}_{a},
+\qquad \forall a\in \MA,\ r\in \mathcal{R}.
+\label{eq:ordered_c10_capacity}
+\end{equation}
+
+We also need the basic condition on $s_{rj}$:
+\begin{equation}\label{eq:E16_flex_s_basic}
+s_{rj} \ge \tD{r} + \Delta t, \quad \forall r\in \mathcal{R},\ j\in \Pc.
+\end{equation}
 
 
 

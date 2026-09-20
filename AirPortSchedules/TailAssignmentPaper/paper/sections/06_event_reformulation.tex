@@ -163,41 +163,64 @@ To fix the issue of overly restrictive maintenance assignment due to simultaneou
 we introduce another variable representing the flexible completion time of maintenance events.
 This variable allows the model to adjust the timing of maintenance dynamically,
 ensuring that aircraft can be assigned to maintenance even if the initially preferred time slot is occupied.
-The new variable is denoted by $s_{rj}\ge0$ and measures the \emph{offset} from the arrival of the
-triggering flight $i_r$ to the completion of the check, so that the event occupies the interval
-\begin{equation}\label{eq:E16_flex_window}
-\bigl[\tI{i_r}+s_{rj}-\delta_A,\ \tI{i_r}+s_{rj}\bigr),
+The new variable is denoted by $s_{r}\ge0$ and measures the \emph{offset} from the arrival of the
+triggering flight $r=i_r$ to the completion of the check, so that the event occupies the interval
+\begin{equation}\label{eq:flex_window_for_E16}
+\bigl[\tI{r}+s_{r}-\delta_A,\ \tI{r}+s_{r}\bigr),
 \end{equation}
-and $s_{rj}=\delta_A$ recovers the immediate-start behaviour of~\eqref{eq:E14}.
+and $s_{r}=\delta_A$ means the immediate-start behaviour of~\eqref{eq:E14}.
 
 In this case the constraints \ref{eq:E14} and \ref{eq:E15_not_full} turn into the next ones:
 
 \begin{equation}\label{eq:E14_flex}
 \begin{aligned}
-M(x_{\ell j}-1)+M(z_{rj}-1) + \tD{\ell} &\ge \tI{r}+s_{rj}+\Delta t,\\
+M(x_{\ell j}-1)+M(z_{rj}-1) + \tD{\ell} &\ge \tI{r}+s_{r}+\Delta t,\\
 \forall \ell\in\F,\ j\in\Pc,\ \aD{\ell}=\aI{i_r}, \ell>r.
 \end{aligned}
 \end{equation}
 
 This constraint ensures that the completion time of a maintenance event for a given flight and aircraft combination is respected,
-taking into account the potential overlap with subsequent flights and the flexibility introduced by the variable $s_{rj}$.
+taking into account the potential overlap with subsequent flights and the flexibility introduced by the variable $s_{r}$.
 Compared with~\eqref{eq:E14} the blocked window is no longer a constant: an aircraft that defers its
 check stays on the ground until the deferred completion, which is the price paid for the extra freedom.
-Departures later than $\tI{i_r}+\delta_A+W+\Delta t$ are omitted because $s_{rj}$ cannot reach them.
+Departures later than $\tI{r}+\delta_A+W+\Delta t$ are omitted because $s_{r}$ cannot reach them.
 
 Additionally, the maintenance capacity constraint \ref{eq:E15_not_full} can be modified to account for the flexible start times.
-Writing $T_{rj}=\tI{i_r}+s_{rj}$ for the realised completion time, define the modified event set
+Define for every event $(r)$ at maintence airport $a$ the set of potentially conflicting events $R'_r$, i.e. such events 
+that have a plane arriving at airport $a$ and having an overlapping maintenance window before $\tD{r}+s_{r}$.
+It's easy to notice that the power of the set $R'_r$ is bounded by th enumber of planes $|\mathcal{P}|-1$, so we can 
+enumerate all potential conflicts explicitly as $R'_r = \{ r_j1, r_j2, \dots, r_j(|\mathcal{P}|-1)\}$.
+
+Define boolean variable $q_{r,j}$ that indicates whether event $(r_j)$ really intersects with the event at $r$. 
+
+Now, we can set the criteria for $q_{r,j}$ to correctly reflect the intersection status of events:
 \begin{equation}
-\mathcal{Q}(a,r,j)=\left\{(i,j'):\aI{i}=a,\quad
-s_{rj} - \delta_A < s_{ij'} \le s_{rj}\right\},
+q_{r,j} = 1 \iff \text{event } (r_j) \text{ overlaps with event } (r),
+\qquad \forall r\in \mathcal{R},\ j\in\Pc .
 \end{equation}
-that is, the events at airport $a$ that are in progress at the instant
-$s_{rj}-\delta_A$ when event $(r,j)$ begins. Occupancy is then limited by
-\begin{equation}\label{eq:E15_flex}
-\sum_{(i,j')\in\mathcal{Q}(a,r,j)}\hat{z}_{i j'}
-\leq \operatorname{mcap}_{a},
-\qquad \forall a\in \MA,\ r\in \mathcal{R},\ j\in\Pc .
+
+More explicitely, with help of the existing varibales:
+\begin{multline}\label{eq:E15_flex_s_sequence}
+s_{r_j} \leq s_{r} + M(1-z_{r_j,j}) + M_2(1-q_{r,j}),\\
+s_{r_j} \geq s_{r} - M(1-z_{r_j,j}) - M_2(1-q_{r,j}),\\
+s_{r_j} \leq M z_{r_j,j},\\
+s_{r_j} \leq M q_{r,j},\\
+s_{r_j} \geq 0,
+\qquad \forall r\in \mathcal{R},\ j\neq j_1\in\Pc .
+\end{multline}
+
+To have $q_{r,j}=1$, the events must overlap, only when $q_{r,j} = 1$ so another constraint is:
+\begin{equation}\label{eq:E16_flex_s_overlap}
+\tI{r_j} + s_{r_j} - \tI{r} - s_{r} \le \delta_A + M(1-q_{r,j}),
+\qquad \forall r\in \mathcal{R},\ j\in\Pc .
 \end{equation}
+
+And the overall capacity gives the next criterion: 
+\begin{equation}\label{eq:E17_flex_capacity}
+\sum_{r\in \mathcal{R'}_(r)} q_{r,j} \le C_a, 
+\qquad \forall r\in \mathcal{R},\ j\in\Pc .
+\end{equation}
+
 Because every type-A window has the same length $\delta_A$, station occupancy attains its
 maximum at the start of some window, so imposing \eqref{eq:E15_flex} at the $|\mathcal{Q}|$
 window starts is equivalent to imposing it at every instant. The one-sided membership test is
@@ -211,20 +234,27 @@ Section~\ref{subsec:flex_complexity}.
 We also need the basic condition on $s_{rj}$: the check can neither finish before the triggering
 flight has landed and the work has been performed, nor be postponed indefinitely. With
 $W$ the maximum admissible deferral,
-\begin{equation}\label{eq:E16_flex_s_basic}
+\begin{equation}\label{eq:E18_flex_s_basic}
 \delta_A\,\hat{z}_{rj} \ \le\ s_{rj}\ \le\ (\delta_A+W)\,\hat{z}_{rj},
 \qquad \forall r\in \mathcal{R},\ j\in \Pc ,
 \end{equation}
 and
-\begin{equation}\label{eq:E7_flex_s_basic}
+\begin{equation}\label{eq:E19_flex_z_basic}
 \hat{z}_{rj}\ \le\ z_{rj},
+\qquad \forall r\in \mathcal{R},\ j\in \Pc ,
+\end{equation}
+and
+\begin{equation}\label{eq:E20_flex_qz}
+\hat{z}_{rj}\ \ge\ q_{rj},
 \qquad \forall r\in \mathcal{R},\ j\in \Pc .
 \end{equation}
 
+Also we can set the condition that every flight that does not have $s_{rj}$ the plane remains on the airport:
+\begin{equation}\label{eq:E21_flex_s_airport}
+x_{r_1 j}\ \le\ M \hat{z}_{rj} + M_2 (1-z_{rj}),
+\qquad \forall r_1>r,\ r \in \mathcal{R},\ j\in \Pc .
+\end{equation}
 
-
-The right-hand inequality also forces $s_{rj}=0$ whenever no event is selected, which keeps
-\eqref{eq:E14_flex} inactive for non-events.
 
 
 

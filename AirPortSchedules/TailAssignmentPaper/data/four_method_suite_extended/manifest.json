@@ -1,0 +1,145 @@
+{
+  "description": "A-only four-method correctness and performance suite",
+  "methods": [
+    "legacy_paper_c13",
+    "legacy_endpoint_split",
+    "legacy_corrected_strengthened",
+    "event_based_optimized"
+  ],
+  "regression_cases": [
+    "c13_loophole_test.json",
+    "event_vs_legacy_clean_test.json"
+  ],
+  "performance_grid": [
+    {
+      "P": 10,
+      "H": 7,
+      "file": "perf_p=10_h=7.json"
+    },
+    {
+      "P": 10,
+      "H": 15,
+      "file": "perf_p=10_h=15.json"
+    },
+    {
+      "P": 10,
+      "H": 30,
+      "file": "perf_p=10_h=30.json"
+    },
+    {
+      "P": 10,
+      "H": 40,
+      "file": "perf_p=10_h=40.json"
+    },
+    {
+      "P": 10,
+      "H": 50,
+      "file": "perf_p=10_h=50.json"
+    },
+    {
+      "P": 20,
+      "H": 7,
+      "file": "perf_p=20_h=7.json"
+    },
+    {
+      "P": 20,
+      "H": 15,
+      "file": "perf_p=20_h=15.json"
+    },
+    {
+      "P": 20,
+      "H": 30,
+      "file": "perf_p=20_h=30.json"
+    },
+    {
+      "P": 20,
+      "H": 40,
+      "file": "perf_p=20_h=40.json"
+    },
+    {
+      "P": 20,
+      "H": 50,
+      "file": "perf_p=20_h=50.json"
+    },
+    {
+      "P": 30,
+      "H": 7,
+      "file": "perf_p=30_h=7.json"
+    },
+    {
+      "P": 30,
+      "H": 15,
+      "file": "perf_p=30_h=15.json"
+    },
+    {
+      "P": 30,
+      "H": 30,
+      "file": "perf_p=30_h=30.json"
+    },
+    {
+      "P": 30,
+      "H": 40,
+      "file": "perf_p=30_h=40.json"
+    },
+    {
+      "P": 30,
+      "H": 50,
+      "file": "perf_p=30_h=50.json"
+    },
+    {
+      "P": 40,
+      "H": 7,
+      "file": "perf_p=40_h=7.json"
+    },
+    {
+      "P": 40,
+      "H": 15,
+      "file": "perf_p=40_h=15.json"
+    },
+    {
+      "P": 40,
+      "H": 30,
+      "file": "perf_p=40_h=30.json"
+    },
+    {
+      "P": 40,
+      "H": 40,
+      "file": "perf_p=40_h=40.json"
+    },
+    {
+      "P": 40,
+      "H": 50,
+      "file": "perf_p=40_h=50.json"
+    },
+    {
+      "P": 50,
+      "H": 7,
+      "file": "perf_p=50_h=7.json"
+    },
+    {
+      "P": 50,
+      "H": 15,
+      "file": "perf_p=50_h=15.json"
+    },
+    {
+      "P": 50,
+      "H": 30,
+      "file": "perf_p=50_h=30.json"
+    },
+    {
+      "P": 50,
+      "H": 40,
+      "file": "perf_p=50_h=40.json"
+    },
+    {
+      "P": 50,
+      "H": 50,
+      "file": "perf_p=50_h=50.json"
+    }
+  ],
+  "notes": [
+    "Regression cases preserve the canonical inputs by copying them.",
+    "Performance cases are generated with overnight A maintenance and a common JSON input per cell.",
+    "Objective parity is checked only between optimal runs on the same case."
+  ]
+}

@@ -4,6 +4,7 @@ import sys
 import unittest
 from pathlib import Path
 
+from pyomo.core.expr.visitor import identify_variables
 from pyomo.environ import Constraint, Var
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -97,6 +98,63 @@ class CompactAEventTests(unittest.TestCase):
         )
         self.assertFalse(hasattr(model, "c13_event_day_cap"))
         self.assertTrue(hasattr(model, "e15_maintenance_capacity"))
+
+    def test_immediate_capacity_uses_arrival_started_event_windows(self):
+        scheduler = OrderedAEventMILPScheduler(str(SOURCE))
+        scheduler.station_cap["M"] = 1
+        scheduler.flight_data[1]["departureTime"] = 0.0
+        scheduler.flight_data[1]["arrivalTime"] = 100.0
+        scheduler.flight_data[2]["departureTime"] = 50.0
+        scheduler.flight_data[2]["arrivalTime"] = 110.0
+
+        model = scheduler.build_model()
+        actual_signatures = [
+            tuple(sorted(
+                variable.index()
+                for variable in identify_variables(row.body)
+                if variable.parent_component() is model.z
+            ))
+            for row in model.e15_maintenance_capacity.values()
+        ]
+        expected_signatures = []
+        for breakpoint_flight in scheduler.maint_flight_ids:
+            breakpoint = scheduler.flight_data[breakpoint_flight]["arrivalTime"]
+            signature = tuple(sorted(
+                event
+                for event in model.Z
+                if scheduler.flight_data[event[0]]["destination"] == "M"
+                and scheduler.flight_data[event[0]]["arrivalTime"] <= breakpoint
+                < scheduler.flight_data[event[0]]["arrivalTime"]
+                + scheduler.check_dur[event[2]]
+            ))
+            if signature:
+                expected_signatures.append(signature)
+
+        self.assertEqual(actual_signatures, expected_signatures)
+
+    def test_immediate_blocking_includes_departure_at_trigger_arrival(self):
+        scheduler = OrderedAEventMILPScheduler(str(SOURCE))
+        scheduler.flight_data[2]["departureTime"] = scheduler.flight_data[1]["arrivalTime"]
+
+        model = scheduler.build_model()
+        boundary_pairs = {
+            (
+                variable.index(),
+                event.index(),
+            )
+            for row in model.e14_maintenance_block.values()
+            for variable in identify_variables(row.body)
+            if variable.parent_component() is model.x
+            for event in identify_variables(row.body)
+            if event.parent_component() is model.z
+        }
+
+        self.assertTrue(
+            any(
+                assignment[0] == 2 and trigger[0] == 1 and assignment[1] == trigger[1]
+                for assignment, trigger in boundary_pairs
+            )
+        )
 
     def test_ordered_model_has_one_transition_block_per_flight_aircraft(self):
         scheduler = OrderedAEventMILPScheduler(str(SOURCE))

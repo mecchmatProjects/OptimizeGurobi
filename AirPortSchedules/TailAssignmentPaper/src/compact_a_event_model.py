@@ -324,20 +324,25 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
         model.e14_maintenance_block = ConstraintList()
         for trigger in self.maint_flight_ids:
             trigger_data = self.flight_data[trigger]
+            arrival = trigger_data["arrivalTime"]
+            candidate_end = arrival + max(
+                self.check_dur[check] for check in self.CHECK_LIST
+            ) + self.MIN_TURN
+            following_candidates = [
+                following
+                for following in self._dep_flights_by_airport[
+                    trigger_data["destination"]
+                ]
+                if arrival
+                <= self.flight_data[following]["departureTime"]
+                <= candidate_end
+            ]
             for aircraft in self._x_aircrafts_for_flight(trigger):
-                for following in self._f_dep_window(
-                    trigger_data["destination"],
-                    trigger_data["arrivalTime"],
-                    trigger_data["arrivalTime"] + max(
-                        self.check_dur[check] for check in self.CHECK_LIST
-                    ) + self.MIN_TURN,
-                ):
+                for following in following_candidates:
                     if self._x_has_arc(following, aircraft):
                         for check in self.CHECK_LIST:
                             if self.flight_data[following]["departureTime"] < (
-                                trigger_data["arrivalTime"]
-                                + self.check_dur[check]
-                                + self.MIN_TURN
+                                arrival + self.check_dur[check] + self.MIN_TURN
                             ):
                                 model.e14_maintenance_block.add(
                                     model.x[following, aircraft]
@@ -349,19 +354,16 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
         for airport in self.maint_airports:
             capacity = self.station_cap.get(airport, 0)
             emitted_capacity_rows = set()
-            # E15 follows the paper's ordered-trigger indexing: each r is a
-            # possible immediate-start event time, and active event flights i
-            # are selected by the displayed [arrival(r), arrival(r)+delta_A)
-            # window over their departure timestamps.
-            for trigger in model.F:
-                trigger_arrival = self.flight_data[trigger]["arrivalTime"]
+            # Maintenance starts when its triggering flight arrives.
+            for breakpoint_flight in self.maint_flight_ids:
+                breakpoint = self.flight_data[breakpoint_flight]["arrivalTime"]
                 active_indices = [
-                    (flight, aircraft, check)
-                    for flight, aircraft, check in model.Z
-                    if self.flight_data[flight]["destination"] == airport
-                    and trigger_arrival
-                    <= self.flight_data[flight]["departureTime"]
-                    < trigger_arrival + self.check_dur[check]
+                    (event_flight, aircraft, check)
+                    for event_flight, aircraft, check in model.Z
+                    if self.flight_data[event_flight]["destination"] == airport
+                    and self.flight_data[event_flight]["arrivalTime"]
+                    <= breakpoint
+                    < self.flight_data[event_flight]["arrivalTime"] + self.check_dur[check]
                 ]
                 if not active_indices:
                     continue

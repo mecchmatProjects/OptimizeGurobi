@@ -5,7 +5,7 @@ Two complementary tools:
   1. find_iis()          — CPLEX conflict refiner (IIS finder) + LP file export.
   2. deactivation_scan() — Systematically deactivate one constraint group at a
                            time and report whether the problem becomes feasible.
-                           Useful when CPLEX IIS is not available.
+                           Solver-independent, including Gurobi.
 
 Usage (command line):
   python diagnostics.py --data data/instances/ABCD_all_checks_test.json --mode iis
@@ -21,7 +21,7 @@ import argparse
 # Allow running from the project root or from src/
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from model import MILP_Sheduler
+from model import MILP_Sheduler, _resolve_solver_executable
 from pyomo.environ import Constraint
 
 
@@ -54,21 +54,28 @@ CONSTRAINT_GROUPS = [
 
 def find_iis(data_path: str,
              out_lp: str | None = None,
-             build_kwargs: dict | None = None) -> None:
+             build_kwargs: dict | None = None,
+             solver_name: str | None = None,
+             executable: str | None = None,
+             time_limit: int = 30) -> bool:
     """
-    Attempt to find the Irreducible Infeasible Subsystem (IIS) using CPLEX.
+    Attempt CPLEX conflict refinement; other solvers use the group scan.
 
-    Falls back to deactivation_scan() if the CPLEX conflict refiner is
-    not accessible via Pyomo.
+    Gurobi is not sent through CPLEX's conflict-refiner interface. Since this
+    tool does not invoke Gurobi's native IIS API, it uses deactivation_scan().
 
     Parameters
     ----------
     data_path   : Path to the JSON instance file.
     out_lp      : If given, write the model LP file to this path.
     build_kwargs: Extra kwargs forwarded to MILP_Sheduler.build_model().
+    solver_name : Solver used for IIS extraction or the fallback scan.
+    executable  : Optional solver executable; for Gurobi use its bundled Python.
+    time_limit  : Per-sub-problem limit used by the fallback scan.
     """
     if build_kwargs is None:
         build_kwargs = {}
+    solver_name = solver_name or os.environ.get('TAP_PYOMO_SOLVER', 'cplex_direct')
 
     print(f"\n{'='*60}")
     print(f"IIS Finder — {os.path.basename(data_path)}")
@@ -88,20 +95,42 @@ def find_iis(data_path: str,
         m.write(out_lp, format='lp')
         print(f"LP written to {out_lp}")
 
+    if 'cplex' not in solver_name.lower():
+        print(f"\nNative IIS extraction is not configured for {solver_name}; "
+              "using the solver-independent group scan.\n")
+        deactivation_scan(
+            data_path,
+            solver_name=solver_name,
+            executable=executable,
+            time_limit=time_limit,
+            build_kwargs=build_kwargs,
+        )
+        return True
+
     print("\nRunning CPLEX conflict refiner...")
     try:
         from pyomo.opt import SolverFactory
-        solver = SolverFactory(os.environ.get('TAP_PYOMO_SOLVER', 'cplex_direct'))
+        executable = _resolve_solver_executable(solver_name, executable)
+        solver = (SolverFactory(solver_name, executable=executable)
+                  if executable else SolverFactory(solver_name))
         if not solver.available():
             raise RuntimeError("CPLEX solver not available on PATH.")
         solver.options['conflict'] = 1
         solver.options['conflictdisplay'] = 2
         result = solver.solve(m, tee=True, symbolic_solver_labels=True)
         print(f"\nSolver status: {result.solver.termination_condition}")
+        return False
     except Exception as exc:
         print(f"IIS via CPLEX failed: {exc}")
         print("Falling back to constraint-group deactivation scan...\n")
-        deactivation_scan(data_path, build_kwargs=build_kwargs)
+        deactivation_scan(
+            data_path,
+            solver_name=solver_name,
+            executable=executable,
+            time_limit=time_limit,
+            build_kwargs=build_kwargs,
+        )
+        return True
 
 
 # ---------------------------------------------------------------------------
@@ -111,7 +140,8 @@ def find_iis(data_path: str,
 def deactivation_scan(data_path: str,
                       solver_name: str = 'cplex_direct',
                       time_limit: int = 30,
-                      build_kwargs: dict | None = None) -> dict:
+                      build_kwargs: dict | None = None,
+                      executable: str | None = None) -> dict:
     """
     For each constraint group in CONSTRAINT_GROUPS, deactivate it, solve
     the remaining problem, and report whether feasibility is achieved.
@@ -124,6 +154,7 @@ def deactivation_scan(data_path: str,
     solver_name : Solver to use for each sub-problem.
     time_limit  : Per-sub-problem time limit in seconds.
     build_kwargs: Extra kwargs forwarded to MILP_Sheduler.build_model().
+    executable  : Optional solver executable; auto-detected from GUROBI_HOME.
     """
     if build_kwargs is None:
         build_kwargs = {}
@@ -136,9 +167,11 @@ def deactivation_scan(data_path: str,
     print(f"\n  {'Group deactivated':40s}  {'Status':20s}  {'CPU':>6}")
     print(f"  {'-'*72}")
 
-    from pyomo.opt import SolverFactory, TerminationCondition
+    from pyomo.opt import SolverFactory
 
     results = {}
+    feasible_groups = []
+    executable = _resolve_solver_executable(solver_name, executable)
 
     for group in CONSTRAINT_GROUPS:
         # Rebuild model fresh each time (avoid state leakage)
@@ -153,28 +186,35 @@ def deactivation_scan(data_path: str,
 
         cg.deactivate()
 
-        solver = SolverFactory(solver_name)
-        solver.options['timelimit' if solver_name == 'cplex' else 'TimeLimit'] = time_limit
+        solver = (
+            SolverFactory(solver_name, executable=executable)
+            if executable else SolverFactory(solver_name)
+        )
+        option_name = 'timelimit' if 'cplex' in solver_name.lower() else 'TimeLimit'
+        solver.options[option_name] = time_limit
 
         t0 = time.time()
         try:
-            r = solver.solve(m, tee=False)
+            r = solver.solve(m, tee=False, load_solutions=False)
             tc = str(r.solver.termination_condition)
+            has_incumbent = len(getattr(r, 'solution', ())) > 0
         except Exception as e:
             tc = f'error: {e}'
+            has_incumbent = False
         cpu = time.time() - t0
 
         # Flag if dropping this group restored feasibility
-        flag = ' <-- FEASIBLE (this group caused infeasibility!)' \
-               if tc in ('optimal', 'feasible') else ''
+        feasible = tc in ('optimal', 'feasible') or has_incumbent
+        if feasible:
+            feasible_groups.append(group)
+        flag = ' <-- FEASIBLE (this group caused infeasibility!)' if feasible else ''
         print(f"  {'drop ' + group:40s}  {tc:20s}  {cpu:5.1f}s{flag}")
         results[group] = tc
 
     print()
     # Summary
-    guilty = [g for g, tc in results.items() if tc in ('optimal', 'feasible')]
-    if guilty:
-        print(f"Infeasibility traced to group(s): {guilty}")
+    if feasible_groups:
+        print(f"Infeasibility traced to group(s): {feasible_groups}")
     else:
         print("No single group removal restored feasibility. "
               "Infeasibility arises from interaction of multiple groups.")
@@ -191,7 +231,7 @@ def _parse_args():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Modes:
-  iis   -- CPLEX conflict refiner (falls back to scan if unavailable)
+    iis   -- CPLEX conflict refiner; other solvers use the group scan
   scan  -- Deactivate each constraint group and check feasibility
   both  -- Run IIS first, then scan
 
@@ -205,6 +245,8 @@ Examples:
     p.add_argument('--solver',   default=os.environ.get('TAP_PYOMO_SOLVER', 'cplex_direct'), help='Solver name (scan mode)')
     p.add_argument('--time-limit', type=int, default=30,
                    help='Time limit per sub-problem in scan mode (s)')
+    p.add_argument('--executable', default=os.environ.get('TAP_PYOMO_SOLVER_EXECUTABLE'),
+                   help='Explicit solver executable; Gurobi defaults to GUROBI_HOME Python')
     p.add_argument('--out-lp',   default=None,
                    help='Write LP file to this path (iis mode)')
     p.add_argument('--no-maintenance', dest='use_maintenance',
@@ -216,11 +258,20 @@ Examples:
 if __name__ == '__main__':
     args = _parse_args()
     bkw = dict(use_maintenance=args.use_maintenance)
+    scan_performed = False
 
     if args.mode in ('iis', 'both'):
-        find_iis(args.data, out_lp=args.out_lp, build_kwargs=bkw)
-    if args.mode in ('scan', 'both'):
+        scan_performed = find_iis(
+            args.data,
+            out_lp=args.out_lp,
+            build_kwargs=bkw,
+            solver_name=args.solver,
+            executable=args.executable,
+            time_limit=args.time_limit,
+        )
+    if args.mode in ('scan', 'both') and not scan_performed:
         deactivation_scan(args.data,
                           solver_name=args.solver,
                           time_limit=args.time_limit,
-                          build_kwargs=bkw)
+                          build_kwargs=bkw,
+                          executable=args.executable)

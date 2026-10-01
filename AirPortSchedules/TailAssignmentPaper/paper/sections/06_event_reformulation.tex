@@ -92,17 +92,17 @@ h_{rj}&\ge h_{r-1,j}-M_{rj}x_{rj},\\
 h_{rj}&\le h_{r-1,j}+M_{rj}x_{rj},\\
 h_{rj}&\ge h_{r-1,j}+p_{r}-M_{rj}(1-x_{rj})-M_{rj}z_{rj},\\
 h_{rj}&\le h_{r-1,j}+p_{r}+M_{rj}(1-x_{rj})+M_{rj}z_{rj},\\
-h_{rj}&\le T_F(1-z_{rj})
+h_{rj}&\le T_F(1-z_{rj}),\\
+h_{r-1,j}+p_r&\le T_F+M^{\mathrm{pre}}_{rj}(1-x_{rj})
 \label{eq:ordered_hour_transition}
 \end{align}
 The first two rows (E9--E10) carry the state at an unassigned position. The next two
 rows (E11--E12) impose accumulation for an assigned flight unless an event is selected.
-The final row (E13), together with the nonnegative state domain, gives the exact
-post-event state:
-$h_{rj}=0$ when $z_{rj}=1$, because the maintenance occurs after flight
-$i_r$. The final row together with (E3) bounds the state in all cases and prevents a maintenance event
-from repairing an arrival that already exceeds $T_F$. 
-The initial state is $h_{0j}=\Phi_j$.
+The first E13 row resets the post-event state to zero when $z_{rj}=1$. The second
+E13 row is the pre-event threshold guard: the flight cannot arrive over the
+flight-hour limit and then use the event to reset the state. Here
+$M^{\mathrm{pre}}_{rj}$ is sufficiently large to deactivate the guard when
+$x_{rj}=0$. The initial state is $h_{0j}=\Phi_j$.
 
 \subsection{Maintenance blocking and capacity constraints}
 
@@ -114,7 +114,7 @@ minimum post-maintenance turn time.
 For an event $(r,j)$, define the incompatible following-flight set
 \begin{equation}
 F^{\mathrm{dep}}_{r}=\left\{\ell\in\F:\ \aD{\ell}=\aI{i_r},\ 
-  \tI{i_r}<\tD{\ell}<\tI{i_r}+\delta_A+\Delta t\right\}.
+	\tI{i_r}\leq\tD{\ell}<\tI{i_r}+\delta_A+\Delta t\right\}.
 \end{equation}
 If $z_{rj}=1$, every selected incompatible flight is blocked:
 \begin{equation}\label{eq:E14}
@@ -126,30 +126,35 @@ the station $\aI{i_r}$ where the check takes place loses nothing: by E5--E6 the 
 leave from anywhere else without first operating an intervening flight, which the same family
 already blocks.
 
-This constraint also can be rewritten in the next equivalent form:
+For an admissible assignment arc, the same blocking condition can be written
+with an arc-specific big-$M$ value:
 \begin{equation}\label{eq:E14_rewritten}
 \begin{aligned}
-M(x_{\ell j}-1) + \tD{\ell} &\ge \tI{i_r} z_{rj}+\delta_A+\Delta t,\\
-&\quad \forall \ell\in\F,\ j\in\Pc,\ \tD{\ell}>\tI{i_r}.
+\tD{\ell}+M_{r\ell}(2-x_{\ell j}-z_{rj})
+&\ge \tI{i_r}+\delta_A+\Delta t,\\
+&\quad \forall r\in\mathcal{R}^{M},\ \ell\in\F,\ j\in\Pc,\\
+&\qquad (\ell,j)\text{ admissible},\ \aD{\ell}=\aI{i_r},\ \tD{\ell}\geq\tI{i_r}.
 \end{aligned}
 \end{equation}
 
 
 \paragraph{E15. Maintenance capacity (C10).}
- Define the active event set
+For each possible event start $\theta_r:=\tI{i_r}$, define the active event set
 \begin{equation}
-\mathcal{E}(a,r)=\left\{(i,j):\aI{i}=a,\quad
-\tI{i_r}\leq \tD{i}<\tI{i_r}+\delta_A\right\}.
+\mathcal{E}(a,\theta)=\left\{(q,j)\in\mathcal{Z}:\aI{i_q}=a,\quad
+\theta\leq \theta_q<\theta+\delta_A\right\},
+\qquad \theta_q:=\tI{i_q}.
 \end{equation}
-At every breakpoint, active maintenance occupancy satisfies
+At every possible event start, active maintenance occupancy satisfies
 \begin{equation}\label{eq:E15_not_full}
-\sum_{(i,j)\in\mathcal{E}(a,r)}z_{i j}
+\sum_{(q,j)\in\mathcal{E}(a,\theta_r)}z_{qj}
 \leq \operatorname{mcap}_{a},
-\qquad \forall a\in \MA,\ r\in \mathcal{R}.
+\qquad \forall a\in \MA,\ r\in\mathcal{R}^{M}.
 \end{equation}
 
-This constraint ensures that the number of simultaneously active maintenance events at any airport 
-does not exceed the airport's maintenance capacity for every $r \in \mathcal{R}$.
+Each event occupies the half-open interval
+$[\theta_q,\theta_q+\delta_A)$. Since all A-check windows have equal length,
+checking occupancy at every event start enforces capacity at every time.
 
 The constraints \ref{eq:E14} and \ref{eq:E15_not_full} enforce maintenance blocking and capacity limitations, however 
 they reduce the solution space by imposing additional restrictions on the feasible assignments of flights and maintenance events.
@@ -307,14 +312,14 @@ x_{\ell j}+z_{rj}\leq1.
 \end{equation}
 Only economically relevant timestamp conflicts are generated.
 
-\item[E15: maintenance capacity (legacy C10).] At every airport timestamp breakpoint, the
-active maintenance events satisfy
+\item[E15: maintenance capacity (legacy C10).] At every possible event-start
+timestamp, the active arrival-started maintenance events satisfy
 \begin{equation}
 \sum_{(r,j)\in\mathcal{E}(a,\theta)}z_{rj}
 \leq \operatorname{mcap}_{a},
 \end{equation}
-where $\mathcal{I}(a,\theta)$ contains events whose maintenance intervals
-cover $r$. This is implemented by the E15 component
+where $\mathcal{E}(a,\theta)$ contains events whose half-open intervals
+$[\theta_r,\theta_r+\delta_A)$ contain $\theta$. This is implemented by the E15 component
 \texttt{e15\_maintenance\_capacity}; it is the maintenance-capacity constraint that was not
 explicitly displayed earlier.
 

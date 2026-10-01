@@ -12,6 +12,16 @@ benchmark scripts are included in the companion repository. Every reported
 solution is checked independently by replaying the aircraft route and its
 maintenance counter.
 
+We also smoke-tested the Pyomo interface with Gurobi~11.0.3 on small feasible
+and infeasible models. On Windows, the \texttt{gurobi} shell interface runs
+through the Python interpreter bundled with Gurobi (discovered from
+\texttt{GUROBI\_HOME}), rather than through
+\texttt{gurobi\_cl.exe}. The infeasible case returns no incumbent and marks
+its problem bounds unavailable; the implementation preserves that
+termination status and omits schedule extraction. This is an interface check,
+not a benchmark comparison: all computational results and timing tables in
+this paper use CPLEX.
+
 \subsection{Cumulative-flight-time row verification}
 
 The original cumulative-flight-time row and the natural endpoint-split

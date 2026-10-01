@@ -4,6 +4,7 @@ import os
 import random
 import sys
 import logging
+import glob
 from venv import logger
 
 import pandas as pd
@@ -28,10 +29,29 @@ try:
     from pyomo.environ import (ConcreteModel, Set, Var, Objective, Constraint,
                                 ConstraintList, Binary, NonNegativeReals,
                                 minimize, value as pyo_value)
-    from pyomo.opt import SolverFactory, TerminationCondition
+    from pyomo.opt import SolverFactory
     PYOMO_AVAILABLE = True
 except ImportError:
     PYOMO_AVAILABLE = False
+
+
+def _resolve_solver_executable(solver_name, executable=None):
+    executable = executable or os.environ.get('TAP_PYOMO_SOLVER_EXECUTABLE')
+    if executable or solver_name.lower() != 'gurobi':
+        return executable
+
+    gurobi_home = os.environ.get('GUROBI_HOME')
+    if gurobi_home and os.path.isdir(gurobi_home):
+        runners = sorted(glob.glob(os.path.join(
+            gurobi_home, 'python*', 'bin', 'python.exe'
+        )), reverse=True)
+        for runner in runners:
+            api_dir = os.path.join(
+                os.path.dirname(os.path.dirname(runner)), 'lib', 'gurobipy'
+            )
+            if os.path.isdir(api_dir):
+                return runner
+    return None
 
 # ----------------------------
 # CORE SCHEDULER ENGINE
@@ -1798,13 +1818,13 @@ class MILP_Sheduler:
         """Invoke the solver on the built model.
 
         executable : str | None
-            Explicit path to the solver binary (e.g. an unrestricted CPLEX
-            build); overrides PATH lookup without changing os.environ.
+            Explicit solver executable. For Pyomo's ``gurobi`` shell interface,
+            use Gurobi's bundled Python executable, not ``gurobi_cl.exe``.
 
         Parameters
         ----------
         solver_name : str
-            Pyomo solver name ('cplex', 'cbc', 'glpk', …).
+            Pyomo solver name ('cplex', 'gurobi', 'cbc', 'glpk', …).
         tee : bool
             Stream solver log to stdout.
         out_path : str | None
@@ -1823,7 +1843,7 @@ class MILP_Sheduler:
             self.warm_start_from_heuristic()
 
         solver_name = solver_name or os.environ.get('TAP_PYOMO_SOLVER', 'cplex_direct')
-        executable = executable or os.environ.get('TAP_PYOMO_SOLVER_EXECUTABLE')
+        executable = _resolve_solver_executable(solver_name, executable)
         solver = SolverFactory(solver_name, executable=executable) if executable else SolverFactory(solver_name)
 
         if solver_options:
@@ -1854,7 +1874,9 @@ class MILP_Sheduler:
                 solver.options['TimeLimit'] = int(time_limit)
 
         try:
-            self.results = solver.solve(self.model, **_solve_kwargs)
+            self.results = solver.solve(
+                self.model, load_solutions=False, **_solve_kwargs
+            )
         except Exception as _exc:
             # CBC with timelimit kwarg may raise ApplicationError when the CBC
             # binary rejects '-sec'.  Retry without any time limit.
@@ -1865,7 +1887,9 @@ class MILP_Sheduler:
                     "re-solving without time limit.", stacklevel=2
                 )
                 _solve_kwargs.pop('timelimit')
-                self.results = solver.solve(self.model, **_solve_kwargs)
+                self.results = solver.solve(
+                    self.model, load_solutions=False, **_solve_kwargs
+                )
             else:
                 raise
 
@@ -1875,15 +1899,27 @@ class MILP_Sheduler:
 
         n_var  = len(list(m.component_data_objects(ctype=Var)))
         n_con  = len(list(m.component_data_objects(ctype=Constraint)))
-        lo     = getattr(res.problem, 'lower_bound', None)
-        hi     = getattr(res.problem, 'upper_bound', None)
-        gap    = abs(hi - lo) / abs(lo) if lo and hi and lo != 0 else None
+        try:
+            lo = float(getattr(res.problem, 'lower_bound', None))
+            hi = float(getattr(res.problem, 'upper_bound', None))
+        except (TypeError, ValueError):
+            gap = None
+        else:
+            gap = (
+                abs(hi - lo) / abs(lo)
+                if lo != 0 and math.isfinite(lo) and math.isfinite(hi)
+                else None
+            )
         cpu    = getattr(res.solver, 'time', None)
-        obj_v  = pyo_value(m.obj) if tc == TerminationCondition.optimal else None
+        has_solution = len(getattr(res, 'solution', ())) > 0
+        if has_solution:
+            m.solutions.load_from(res)
+        obj_v  = pyo_value(m.obj, exception=False) if has_solution else None
 
         summary = dict(
             formulation=self.FORMULATION_ID,
             status=str(tc),
+            has_solution=has_solution,
             n_vars=n_var,
             n_cons=n_con,
             gap=gap,
@@ -1911,6 +1947,20 @@ class MILP_Sheduler:
             _p(f"  Vars   : {summary['n_vars']}   Constraints: {summary['n_cons']}")
             _p(f"  Gap    : {g}   CPU: {t}")
             _p(f"  Obj    : {summary['obj']}")
+
+        has_solution = (
+            summary.get('has_solution')
+            if summary and 'has_solution' in summary
+            else pyo_value(m.obj, exception=False) is not None
+        )
+        if not has_solution:
+            _p("\nNo feasible incumbent was returned; schedule omitted.")
+            text = "\n".join(lines)
+            print(text)
+            if out_path:
+                with open(out_path, 'w', encoding='utf-8') as f:
+                    f.write(text)
+            return
 
         if hasattr(m, 'YE') and hasattr(m, 'ZE'):
             _p("  Event scaffold diagnostics:")
@@ -2367,7 +2417,8 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
     summary = opt.solve(solver_name=solver, tee=tee, out_path=out_txt,
                         time_limit=time_limit, warm_start=warm_start,
                         executable=executable)
-    opt.plot_gantt(save_path=gantt_path, show=show_gantt, fname=f'{out_txt[:-4]}_events.txt' if out_txt else None)
+    if summary['has_solution']:
+        opt.plot_gantt(save_path=gantt_path, show=show_gantt, fname=f'{out_txt[:-4]}_events.txt' if out_txt else None)
     return opt, summary
 
 
@@ -2431,7 +2482,7 @@ def _run_one_milp(fp, out_dir, stem, solver, tee, show_gantt, time_limit,
                   use_check_hierarchy=True, max_hour_check_deferral_days=None,
                   enabled_checks=None, use_event_maintenance=False,
                   use_event_bridge_strict=False,
-                  use_event_only_block_capacity=False):
+                  use_event_only_block_capacity=False, executable=None):
     """Run MILP on a single file; return metrics dict."""
     import time, os
     gantt_out = os.path.join(out_dir, f'{stem}_milp_gantt.png')
@@ -2452,6 +2503,7 @@ def _run_one_milp(fp, out_dir, stem, solver, tee, show_gantt, time_limit,
         use_event_maintenance=use_event_maintenance,
         use_event_bridge_strict=use_event_bridge_strict,
         use_event_only_block_capacity=use_event_only_block_capacity,
+        executable=executable,
     )
     cpu = time.time() - t0
 
@@ -2460,17 +2512,22 @@ def _run_one_milp(fp, out_dir, stem, solver, tee, show_gantt, time_limit,
     n_assigned = sum(
         1 for i in m.F for j in opt._x_aircrafts_for_flight(i)
         if pyo_value(m.x[i, j]) > 0.5
-    )
+    ) if info['has_solution'] else 0
     n_total    = len(list(m.F))
+    objective = info.get('obj')
+    gap = info.get('gap')
+    gap_text = f'{gap*100:.2f}%' if gap is not None else '-'
 
     print(f"    [milp] status={info.get('status')}  obj={info.get('obj')}  "
-          f"gap={f"{info['gap']*100:.2f}%" if info.get('gap') else '-'}  cpu={cpu:.1f}s")
-    print(f"          png->{gantt_out}")
+          f"gap={gap_text}  cpu={cpu:.1f}s")
+    if info['has_solution']:
+        print(f"          png->{gantt_out}")
     return {
         'stem': stem, 'mode': 'milp',
         'flights': n_total, 'assigned': n_assigned, 'unassigned': n_total - n_assigned,
-        'cost': round(info.get('obj') or 0, 2), 'obj': round(info.get('obj') or 0, 2),
-        'gap_%': round(info['gap'] * 100, 4) if info.get('gap') else None,
+        'cost': round(objective, 2) if objective is not None else None,
+        'obj': round(objective, 2) if objective is not None else None,
+        'gap_%': round(gap * 100, 4) if gap is not None else None,
         'status': info.get('status'), 'cpu_s': round(cpu, 2),
     }
 
@@ -2536,7 +2593,7 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
               use_check_hierarchy=True, max_hour_check_deferral_days=None,
               enabled_checks=None, use_event_maintenance=False,
               use_event_bridge_strict=False,
-              use_event_only_block_capacity=False):
+              use_event_only_block_capacity=False, executable=None):
     """Process every JSON file in *input_dir* and write results to *output_dir*.
 
     For each dataset the following files are created in output_dir::
@@ -2626,6 +2683,7 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
                                     use_event_maintenance=use_event_maintenance,
                                     use_event_bridge_strict=use_event_bridge_strict,
                                     use_event_only_block_capacity=use_event_only_block_capacity,
+                                    executable=executable,
                                     )
                 all_rows.append(row)
             except Exception as exc:
@@ -2730,6 +2788,8 @@ def main():
                         help='Output folder for batch mode  (default: Outputs)')
     parser.add_argument('--solver',      default=os.environ.get('TAP_PYOMO_SOLVER', 'cplex_direct'),
                         help='Pyomo solver name  (default: TAP_PYOMO_SOLVER or cplex_direct)')
+    parser.add_argument('--executable', default=os.environ.get('TAP_PYOMO_SOLVER_EXECUTABLE'),
+                        help='Explicit solver executable; Gurobi uses its bundled Python runner')
     parser.add_argument('--time-limit',  type=int, default=300,
                         help='Solver time limit in seconds for MILP  (default: 300)')
     parser.add_argument('--tee',         action='store_true',
@@ -2804,6 +2864,7 @@ def main():
                  use_event_maintenance=args.use_event_maintenance,
                  use_event_bridge_strict=args.use_event_bridge_strict,
                  use_event_only_block_capacity=args.use_event_only_block_capacity,
+                 executable=args.executable,
                  )
     else:  # batch
         run_batch(input_dir=args.input_dir,
@@ -2824,6 +2885,7 @@ def main():
                   use_event_maintenance=args.use_event_maintenance,
                   use_event_bridge_strict=args.use_event_bridge_strict,
                   use_event_only_block_capacity=args.use_event_only_block_capacity,
+                  executable=args.executable,
                   )
         
 

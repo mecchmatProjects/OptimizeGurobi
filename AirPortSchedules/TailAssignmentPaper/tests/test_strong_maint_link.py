@@ -11,6 +11,30 @@ from model import MILP_Sheduler, Scheduler
 SOURCE = ROOT / "data" / "feasible_family_smoke" / "A" / "DataCplex_density=0.5_p=4_h=7_test_0.json"
 
 
+def test_memory_efficient_formulation_is_default(tmp_path):
+    data = json.loads(SOURCE.read_text())
+    data["Cost_Matrix"][0][0] = 10000
+    fixture = tmp_path / "fast_defaults.json"
+    fixture.write_text(json.dumps(data))
+
+    default = MILP_Sheduler(str(fixture), enabled_checks=["C"])
+    default_model = default.build_model(allow_ferry=False)
+
+    alternative = MILP_Sheduler(str(fixture), enabled_checks=["C"])
+    alternative_model = alternative.build_model(
+        allow_ferry=False,
+        use_clique_overlap=False,
+        use_sparse_maint_aircraft_domain=False,
+        use_day_specific_maintenance_bounds=False,
+    )
+
+    assert default.use_sparse_maint_aircraft_domain
+    assert default.use_day_specific_maintenance_bounds
+    assert not default.use_global_maint_trigger
+    assert len(default_model.Z) < len(alternative_model.Z)
+    assert len(default_model.c_overlap) < len(alternative_model.c_overlap)
+
+
 def test_strong_maintenance_link_is_opt_in_and_handles_multi_day_windows(tmp_path):
     """The new link adds deferred-day rows without changing baseline defaults."""
     data = json.loads(SOURCE.read_text())
@@ -87,6 +111,34 @@ def test_sparse_maintenance_domain_removes_infeasible_aircraft_arcs(tmp_path):
         (flight, aircraft) in sparse_model.X
         for flight, aircraft, _, _ in sparse_model.Z
     )
+
+
+def test_global_maintenance_trigger_uses_aircraft_link_variables(tmp_path):
+    data = json.loads(SOURCE.read_text())
+    fixture = tmp_path / "global_trigger.json"
+    fixture.write_text(json.dumps(data))
+
+    baseline = MILP_Sheduler(str(fixture), enabled_checks=["C"])
+    baseline_model = baseline.build_model(
+        allow_ferry=False,
+        use_overlap=False,
+    )
+    global_trigger = MILP_Sheduler(str(fixture), enabled_checks=["C"])
+    global_model = global_trigger.build_model(
+        allow_ferry=False,
+        use_overlap=False,
+        use_global_maint_trigger=True,
+    )
+
+    assert global_model.Z.dimen == 3
+    assert global_model.W.dimen == 4
+    assert global_trigger.z_var_count == len(global_model.Z)
+    assert global_trigger.w_var_count == len(global_model.W)
+    assert global_trigger.z_var_count < baseline.z_var_count
+
+    c9_rows = [str(row.expr) for row in global_model.c9.values()]
+    assert any("w[" in row and "z[" in row for row in c9_rows)
+    assert any("w[" in row and "x[" in row for row in c9_rows)
 
 
 def test_instance_minimum_turn_overrides_legacy_default(tmp_path):

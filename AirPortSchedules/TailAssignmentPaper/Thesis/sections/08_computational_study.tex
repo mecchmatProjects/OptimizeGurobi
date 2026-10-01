@@ -179,6 +179,29 @@ origins and destinations do not guarantee exact equipment-flow feasibility. A
 heuristic schedule on such an instance must therefore not be described as proof
 that the integrated MILP is feasible.
 
+\subsection{30-day Khaled-scale classical routing runs}
+\label{subsec:khaled_30day_classical}
+
+To begin the 30-day scale comparison, the Long-family M-20, L-30, and X-40
+instances were run with the classical routing formulation: exact coverage,
+initial-position/equipment-flow continuity, and minimum turn time, with
+maintenance disabled. These inputs use zero-based flight identifiers; cost
+lookup was corrected to use each flight's actual row in the JSON cost matrix.
+A sparse bipartite path-cover construction produced a complete no-ferry
+assignment, which was checked against every active model constraint and passed
+to Gurobi as an incumbent start.
+
+Table~\ref{tab:khaled_30day_classical} reports 60-second runs. All three
+returned complete feasible incumbents, but none proved optimality within the
+budget. For M-20 and X-40, Gurobi's raw dual value was below the valid lower
+bound $\sum_i\min_j c_{ij}$ implied by exact flight coverage, so that raw value
+was rejected. The table reports the assignment-cost floor for those cases and
+the stronger consistent solver dual bound for L-30. These are bounded
+classical results, not reproductions of the paper's exact optimality claims;
+CPLEX runs with longer budgets remain necessary for a direct protocol match.
+
+\input{tables/khaled_30day_classical}
+
 The third family consists of constructive exact-feasible instances. A seeded
 aircraft rotation is generated first, validated with the maintenance timeline,
 and only then serialized to JSON. This family is the preferred basis for a fair

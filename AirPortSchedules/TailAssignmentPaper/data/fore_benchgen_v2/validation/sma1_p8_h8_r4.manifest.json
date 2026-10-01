@@ -1,0 +1,14 @@
+{
+  "sma1_p8_h8_r4.json": {
+    "bytes": 29678,
+    "sha256": "989f87b263f35c73e26395c133589021ec330f74c52d83be777f66170768d402"
+  },
+  "sma1_p8_h8_r4.solution.json": {
+    "bytes": 9526,
+    "sha256": "7c11224a5115d8935ff03ea6d270789ed23e8298f842dea2350aec18fd9e84f0"
+  },
+  "sma1_p8_h8_r4.validation.json": {
+    "bytes": 212,
+    "sha256": "9dec317bc1d4dd74bbe953dd5693da058cec896b47f34da5bc74e53bf55f0675"
+  }
+}

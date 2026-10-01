@@ -1,0 +1,18 @@
+{
+  "med1_p20_h8_r2.json": {
+    "bytes": 128760,
+    "sha256": "79c1446a91ffa2c8aff782c8111e8186d4349834102cfad192442a1493ae5a2e"
+  },
+  "med1_p20_h8_r2.solution.json": {
+    "bytes": 23991,
+    "sha256": "1caddf23bc095a9a0c8bcabd1b3a35135857dc9ff27ffe477e58ab5576b99d4e"
+  },
+  "med1_p20_h8_r2.validation.json": {
+    "bytes": 213,
+    "sha256": "dc002e9eefc4c96b206c6b089ca52c9f9efff88deedde8f7862d3cc3039b3af9"
+  },
+  "med1_p20_h8_r2.metrics.json": {
+    "bytes": 1812,
+    "sha256": "13ef2e6012a8a974b7c9d5d17cd70e57be1cccf9eb1722f77c689d6a565e8a5c"
+  }
+}

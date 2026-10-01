@@ -1,0 +1,61 @@
+{
+  "A_decision_freedom": {
+    "n_legs": 1560,
+    "connection_arcs": 835,
+    "connection_density": 0.5353,
+    "cross_tail_ratio": 0.0659,
+    "mean_bits_per_leg": 0.0,
+    "total_assignment_entropy_bits": 0.0,
+    "mean_candidate_tails": 1.0,
+    "sampled_legs": 500
+  },
+  "B_constraint_tightness": {
+    "peak_capacity_utilisation": 0.15,
+    "mean_capacity_utilisation": 0.062,
+    "occupied_station_days": 221,
+    "mean_peak_threshold_utilisation": 0.9509,
+    "mean_slack_ratio": 0.0491,
+    "slack_cv": 0.1448,
+    "maintenance_events": 274,
+    "event_mix": {
+      "A": 117,
+      "B": 76,
+      "C": 41,
+      "D": 40
+    },
+    "check_types_active": 4
+  },
+  "C_relaxation_hardness": {
+    "planted_solution_is_greedy_optimal": 0.2513,
+    "mean_top2_margin": 0.02275,
+    "mean_cost_spread": 0.3073,
+    "near_tie_rate": 0.225
+  },
+  "D_structure_symmetry": {
+    "station_degree_entropy_bits": 3.9964,
+    "station_degree_entropy_normalised": 0.9408,
+    "algebraic_connectivity": 8.0,
+    "n_stations": 19,
+    "interchangeable_tail_groups": 20,
+    "log10_symmetry_group_size": 0.0,
+    "eulerian_balanced_day_fraction": 1.0,
+    "eulerian_decomposing_day_fraction": 1.0,
+    "max_daily_imbalance": 0,
+    "distinct_overnight_stations_per_tail": 1.0
+  },
+  "composite": {
+    "subscores": {
+      "freedom_density": 0.1784,
+      "freedom_cross_tail": 0.1317,
+      "freedom_bits": 0.01,
+      "tightness_capacity": 0.15,
+      "tightness_threshold": 0.9509,
+      "hardness_cost_signal": 0.7487,
+      "hardness_ties": 1.0,
+      "structure_bottleneck": 0.5789,
+      "structure_balance": 1.0
+    },
+    "complexity_index": 0.2901,
+    "note": "geometric mean of subscores; a collapsed dimension drags the whole index down by design"
+  }
+}

@@ -144,37 +144,43 @@ non-overlap constraints for time-overlapping flights on the same aircraft,
 $x_{i_1j}+x_{i_2j}\le 1$.
 
 \paragraph{Corrected C1--C5 feasibility criterion.}
-Define $\mathcal{O_i}$ as the set of flight pairs that cannot be operated by one
-aircraft because their operating intervals, including the turn-time buffer,
-overlap:
+For each flight $i$, define its operating interval, including the required
+turn-time buffer, by
 \paragraph{Conflict-set definition.}
 \begin{equation}
-  \mathcal{O}=\left\{\{i'\}\}\subseteq\F:
-  [\tD{i},\tI{i}+\dt)\cap
-  [\tD{i'},\tI{i'}+\dt)\neq\varnothing\right\}.
+  I_i=[\tD{i},\tI{i}+\dt).
+\end{equation}
+The undirected conflict graph is $G=(\F,\mathcal{O})$, where its edge set is
+\begin{equation}
+  \mathcal{O}=\left\{\{i,\ell\}\subseteq\F:
+  i\neq\ell,\ I_i\cap I_\ell\neq\varnothing\right\},
   \label{eq:overlap_set}
 \end{equation}
-For every pair in this conflict set, impose
+and $\mathcal{O}_i=\{\ell\in\F:\{i,\ell\}\in\mathcal{O}\}$ is the set of
+flights conflicting with $i$. For every conflict edge and aircraft, impose
 
 \begin{equation}\label{eq:c4_overlap}
-  x_{i_1 j} + x_{i_2 j} \le 1,
-  \qquad \forall \{i_2\}\in\mathcal{O_{i_1}},\; \forall j\in\Pc. 
+  x_{ij} + x_{\ell j} \le 1,
+  \qquad \forall \{i,\ell\}\in\mathcal{O},\; \forall j\in\Pc.
 \end{equation}
 
-However, the better way to enforce non-overlap is to consider cliques of mutually overlapping flights, rather than just pairwise constraints.
-Define a clique as a set of flights that are pairwise overlapping. 
-Let $\mathcal{C_i}$ be the set of all maximal cliques in the conflict graph defined by $\mathcal{O_i}$, i.e.,
+The implementation can strengthen these pairwise inequalities by using maximal
+cliques of $G$. Let $\mathcal{K}$ be the set of all maximal cliques, defined by
 \begin{equation}
-  \mathcal{C_i}=\{C\subseteq\F: i' \in \mathcal{O_i} \text{ for all } i'\in C\}. 
+  \mathcal{K}=\left\{K\subseteq\F:
+  |K|\geq2,\ \{i,\ell\}\in\mathcal{O}\ \forall i\neq\ell\in K,
+  \text{ and no strict superset of }K\text{ has this property}\right\}.
 \end{equation}
-For each clique, impose the following constraint:
-\paragraph{C5 — Pairwise non-overlap clique.}
+For each maximal clique, impose the C5 inequality
 \begin{equation}\label{eq:c5_overlap}
-  \sum_{i\in C} x_{i j} \le 1,
-  \qquad \forall C\in\mathcal{C_i},\; \forall j\in\Pc.
+  \sum_{i\in K} x_{ij} \le 1,
+  \qquad \forall K\in\mathcal{K},\; \forall j\in\Pc.
 \end{equation}
-
-
+Every conflict edge is contained in a maximal clique, so the clique inequalities
+imply the pairwise inequalities for binary $x$. Conversely, a set of flights
+satisfying all pairwise inequalities contains at most one flight from each
+clique. Thus the two forms have the same integer feasible assignments, while
+the clique form can provide a stronger linear relaxation.
 
 The corrected core model is therefore
 \eqref{eq:c0}--\eqref{eq:c5_overlap}.
@@ -205,7 +211,8 @@ and instead of proving that any solution of C1--C4 defines correct
 feasibility, it proves that any feasible assignment flights satisfy C1-C4. 
 
 
-The corrected proposition and its accompanying proof look like the following:
+The corrected proposition follows by considering the flights assigned to each
+aircraft in chronological order.
 
 \begin{proposition}[Proposition~1]
   Any feasible solution to \eqref{eq:c0}--\eqref{eq:c5_overlap}
@@ -214,23 +221,25 @@ The corrected proposition and its accompanying proof look like the following:
 \end{proposition}
 
 \begin{proof}
-
-  Let's formally prove it by induction on the number of planes.
-  For the base case of one plane, any feasible assignment trivially satisfies the continuity and turn-time conditions:
-\begin{itemize}
-\item The single plane can start only for the airport it is assigned form the start, which is follows form the condition \ref{eq:c3}.
-Let's define this assigned flight as $f_1$, so the time of departure and arrival are $t_{\text{dep}}(f_1)$ and $t_{\text{arr}}(f_1)$, respectively.
-\item Any next $k$-th flight of this plane with time of departure $t_{\text{dep}}(f_k)$ must satisfy the turn-time condition $t_{\text{dep}}(f_k) \ge t_{\text{arr}}(f_{k-1}) + \tau$, where $\tau$ is the required turn time.
-This follows directly from the turn-time condition \eqref{eq:c2} and overlap constraints \eqref{eq:c4_overlap}.
-\end{itemize}
-  This completes the base case.
-
-  For the induction step, assume that any feasible assignment for $n-1$ planes satisfies the continuity and turn-time conditions. 
-  Consider a feasible assignment for $n$ planes. 
-  Select one plane and consider its sequence of assigned flights. 
-  By the same argument as in the base case, this plane's flights satisfy the continuity and turn-time conditions. 
-  Removing this plane from the assignment leaves a feasible assignment for the remaining $n-1$ planes, which by the induction hypothesis satisfies the continuity and turn-time conditions. Therefore, the entire assignment for $n$ planes satisfies the continuity and turn-time conditions.
-  This completes the induction step.
+Fix an aircraft $j$ and list its assigned flights in increasing departure-time
+order as $i_1,\ldots,i_m$. For each consecutive pair, the intervals
+$I_{i_k}$ and $I_{i_{k+1}}$ cannot intersect: otherwise
+$\{i_k,i_{k+1}\}\in\mathcal{O}$ and the C5 inequality would prohibit both
+flights from being assigned to $j$. Since the intervals are half-open and
+ordered by departure time, this gives
+\[
+  \tD{i_{k+1}}\geq \tI{i_k}+\dt,
+  \qquad k=1,\ldots,m-1.
+\]
+Thus the aircraft has the required turn time between every consecutive pair
+of its assigned flights. Constraints~\eqref{eq:c2}--\eqref{eq:c3} ensure that
+each assigned flight departs from an airport at which the aircraft is
+available: at a non-home airport, the cumulative balance requires a prior
+arrival with the required turn time; at the initial airport, the initial
+aircraft supplies the first available unit and the balance accounts for later
+returns and departures. Therefore the ordered flights form a continuous,
+turn-time-feasible route for aircraft $j$. Applying this argument to every
+aircraft proves the claim.
 \end{proof}
 
 

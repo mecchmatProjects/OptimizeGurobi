@@ -168,106 +168,133 @@ To fix the issue of overly restrictive maintenance assignment due to simultaneou
 we introduce another variable representing the flexible completion time of maintenance events.
 This variable allows the model to adjust the timing of maintenance dynamically,
 ensuring that aircraft can be assigned to maintenance even if the initially preferred time slot is occupied.
-The new variable is denoted by $s_{r}\ge0$ and measures the \emph{offset} from the arrival of the
-triggering flight $r=i_r$ to the completion of the check, so that the event occupies the interval
+Let $W$ be the maximum allowed waiting time between the triggering flight's
+arrival and the start of its A-check. We use a time grid of resolution $\tau$
+(one minute for the instances considered here); all timestamps, $\delta_A$,
+$W$, and maintenance offsets are multiples of $\tau$. For each admissible
+event $(r,j)$, let $s_{rj}$ be the offset from the arrival of $i_r$ to the
+completion of the check. Its maintenance interval is
 \begin{equation}\label{eq:flex_window_for_E16}
-\bigl[\tI{r}+s_{r}-\delta_A,\ \tI{r}+s_{r}\bigr),
+\left[\tI{i_r}+s_{rj}-\delta_A,\ \tI{i_r}+s_{rj}\right),
 \end{equation}
-and $s_{r}=\delta_A$ means the immediate-start behaviour of~\eqref{eq:E14}.
+so $s_{rj}=\delta_A$ gives immediate start and $s_{rj}-\delta_A$ is the
+deferral. Define $\mathcal{B}^{W}$ as the set of triples $(r,\ell,j)$ for
+which $(r,j)\in\mathcal{Z}$, $(\ell,j)$ is an admissible assignment arc,
+$\aD{\ell}=\aI{i_r}$, and
+$\tI{i_r}\leq\tD{\ell}<\tI{i_r}+\delta_A+W+\Delta t$.
 
-In this case the constraints \ref{eq:E14} and \ref{eq:E15_not_full} turn into the next ones:
-
+\paragraph{E14$_{\mathrm{flex}}$. Aircraft blocking.}
+If event $(r,j)$ is selected, aircraft $j$ cannot depart on a following flight
+until the check and post-maintenance turn time are complete:
 \begin{equation}\label{eq:E14_flex}
+\tD{\ell}+M_{r\ell}(2-x_{\ell j}-z_{rj})
+\geq \tI{i_r}+s_{rj}+\Delta t,
+\qquad \forall (r,\ell,j)\in\mathcal{B}^{W}.
+\end{equation}
+Here $M_{r\ell}$ is an event--flight-specific valid relaxation value; for
+example, it may be chosen no smaller than
+$\max\{0,\tI{i_r}+\delta_A+W+\Delta t-\tD{\ell}\}$.
+
+\paragraph{E15$_{\mathrm{flex}}$. Deferral bounds.}
+The event cannot finish before the A-check could be completed, and its start
+cannot be delayed by more than $W$:
+\begin{equation}\label{eq:E15_flex}
+\delta_A z_{rj}\leq s_{rj}\leq(\delta_A+W)z_{rj},
+\qquad s_{rj}\in\tau\mathbb{Z}_{+},\quad \forall (r,j)\in\mathcal{Z}.
+\end{equation}
+\label{eq:E16_flex_s_basic}
+Thus $s_{rj}=0$ when the event is not selected.
+
+\paragraph{E16$_{\mathrm{flex}}$. Realized event time.}
+By E4 and E8, at most one aircraft can be assigned an event after any one
+flight. Define the selected-event indicator $\zeta_r$, the realized offset
+$S_r$, and its completion time $T_r$ by
+\begin{equation}\label{eq:E16_flex}
+\zeta_r=\sum_{j:(r,j)\in\mathcal{Z}}z_{rj},\qquad
+S_r=\sum_{j:(r,j)\in\mathcal{Z}}s_{rj},\qquad
+T_r=\tI{i_r}+S_r,
+\qquad r\in\mathcal{R}^{M}.
+\end{equation}
+The explicit uniqueness row E21$_{\mathrm{flex}}$ below records the at-most-one
+property used by these aggregates.
+
+Let $\mathcal{W}$ contain the ordered pairs of event-trigger flights at the
+same maintenance airport, including every diagonal pair $(r,r)$. A pair may
+be omitted only if bounds on its possible event times prove the two maintenance
+intervals cannot overlap. For each distinct $(r,q)\in\mathcal{W}$, let
+$D_{rq}=T_q-T_r$. Binaries $u_{rq},v_{rq}\in\{0,1\}$ encode the two
+inclusive grid comparisons that characterize whether event $q$ is active at
+the start of event $r$. Let $u_{rq}=1$ exactly when $D_{rq}\leq0$ and
+$v_{rq}=1$ exactly when $D_{rq}\geq-\delta_A+\tau$. Since
+$T_r\in[\tI{i_r},\tI{i_r}+\delta_A+W]$, one valid pair-specific choice is
+$M_{rq}\geq\max\{|L_{rq}|,|U_{rq}|\}+\delta_A+\tau$, where
+$L_{rq}=\tI{i_q}-\tI{i_r}-(\delta_A+W)$ and
+$U_{rq}=\tI{i_q}-\tI{i_r}+\delta_A+W$. These comparisons are encoded by
+\begin{align}
+D_{rq}&\leq M_{rq}(1-u_{rq}), &
+D_{rq}&\geq \tau-M_{rq}u_{rq},
+\label{eq:E17_flex}\\
+D_{rq}&\geq-\delta_A+\tau-M_{rq}(1-v_{rq}), &
+D_{rq}&\leq-\delta_A+M_{rq}v_{rq},
+\label{eq:E18_flex}
+\end{align}
+for distinct $r,q$. The grid assumption makes the complements exact: if
+$D_{rq}>0$, then $D_{rq}\geq\tau$; if $D_{rq}\not\geq-\delta_A+\tau$,
+then $D_{rq}\leq-\delta_A$.
+
+\paragraph{E19$_{\mathrm{flex}}$. Active-at-start indicator.}
+For each ordered pair at the same airport, let $o_{rq}$ indicate that both
+events are selected and event $q$ is active when event $r$ begins, with
+$o_{rq}\in\{0,1\}$. For
+$r\neq q$, impose
+\begin{equation}\label{eq:E19_flex}
 \begin{aligned}
-M(x_{\ell j}-1)+M(z_{rj}-1) + \tD{\ell} &\ge \tI{r}+s_{r}+\Delta t,\\
-\forall \ell\in\F,\ j\in\Pc,\ \aD{\ell}=\aI{i_r}, \ell>r.
+o_{rq}&\leq\zeta_r, & o_{rq}&\leq\zeta_q,\\
+o_{rq}&\leq u_{rq}, & o_{rq}&\leq v_{rq},\\
+o_{rq}&\geq\zeta_r+\zeta_q+u_{rq}+v_{rq}-3.
 \end{aligned}
 \end{equation}
+For diagonal pairs set $o_{rr}=\zeta_r$. Consequently,
+$o_{rq}=1$ exactly when $\zeta_r=\zeta_q=1$ and
+$T_q\in[T_r-\delta_A+\tau,T_r]$, which is precisely the half-open interval
+overlap test at the start of event $r$ on the $\tau$-grid.
 
-This constraint ensures that the completion time of a maintenance event for a given flight and aircraft combination is respected,
-taking into account the potential overlap with subsequent flights and the flexibility introduced by the variable $s_{r}$.
-Compared with~\eqref{eq:E14} the blocked window is no longer a constant: an aircraft that defers its
-check stays on the ground until the deferred completion, which is the price paid for the extra freedom.
-Departures later than $\tI{r}+\delta_A+W+\Delta t$ are omitted because $s_{r}$ cannot reach them.
-
-Additionally, the maintenance capacity constraint \ref{eq:E15_not_full} can be modified to account for the flexible start times.
-Define for every event $(r)$ at maintence airport $a$ the set of potentially conflicting events $R'_r$, i.e. such events 
-that have a plane arriving at airport $a$ and having an overlapping maintenance window before $\tD{r}+s_{r}$.
-It's easy to notice that the power of the set $R'_r$ is bounded by th enumber of planes $|\mathcal{P}|-1$, so we can 
-enumerate all potential conflicts explicitly as $R'_r = \{ r_j1, r_j2, \dots, r_j(|\mathcal{P}|-1)\}$.
-
-Define boolean variable $q_{r,j}$ that indicates whether event $(r_j)$ really intersects with the event at $r$. 
-
-Now, we can set the criteria for $q_{r,j}$ to correctly reflect the intersection status of events:
-\begin{equation}
-q_{r,j} = 1 \iff \text{event } (r_j) \text{ overlaps with event } (r),
-\qquad \forall r\in \mathcal{R},\ j\in\Pc .
+\paragraph{E20$_{\mathrm{flex}}$. Station capacity.}
+All A-check intervals have equal duration, so maximum station occupancy is
+attained at the start of a selected event. At every such start, impose
+\begin{equation}\label{eq:E20_flex}
+\sum_{q:(r,q)\in\mathcal{W}}o_{rq}
+\leq \operatorname{mcap}_{\aI{i_r}}\,\zeta_r,
+\qquad r\in\mathcal{R}^{M},
 \end{equation}
+The self term $o_{rr}=\zeta_r$ counts the
+event whose start is being checked.
 
-More explicitely, with help of the existing varibales:
-\begin{multline}\label{eq:E15_flex_s_sequence}
-s_{r_j} \leq s_{r} + M(1-z_{r_j,j}) + M_2(1-q_{r,j}),\\
-s_{r_j} \geq s_{r} - M(1-z_{r_j,j}) - M_2(1-q_{r,j}),\\
-s_{r_j} \leq M z_{r_j,j},\\
-s_{r_j} \leq M q_{r,j},\\
-s_{r_j} \geq 0,
-\qquad \forall r\in \mathcal{R},\ j\neq j_1\in\Pc .
-\end{multline}
-
-To have $q_{r,j}=1$, the events must overlap, only when $q_{r,j} = 1$ so another constraint is:
-\begin{equation}\label{eq:E16_flex_s_overlap}
-\tI{r_j} + s_{r_j} - \tI{r} - s_{r} \le \delta_A + M(1-q_{r,j}),
-\qquad \forall r\in \mathcal{R},\ j\in\Pc .
+\paragraph{E21$_{\mathrm{flex}}$. Event uniqueness.}
+At most one aircraft can receive an event after a given triggering flight:
+\begin{equation}\label{eq:E21_flex}
+\sum_{j:(r,j)\in\mathcal{Z}}z_{rj}=\zeta_r\leq1,
+\qquad r\in\mathcal{R}^{M}.
 \end{equation}
+This row is implied by E4 and E8, but is stated explicitly to make the event
+aggregates in~\eqref{eq:E16_flex} unambiguous.
 
-And the overall capacity gives the next criterion: 
-\begin{equation}\label{eq:E17_flex_capacity}
-\sum_{r\in \mathcal{R'}_(r)} q_{r,j} \le C_a, 
-\qquad \forall r\in \mathcal{R},\ j\in\Pc .
-\end{equation}
-
-Because every type-A window has the same length $\delta_A$, station occupancy attains its
-maximum at the start of some window, so imposing \eqref{eq:E15_flex} at the $|\mathcal{Q}|$
-window starts is equivalent to imposing it at every instant. The one-sided membership test is
-essential here: counting all events whose windows merely intersect that of $(r,j)$ would
-overstate occupancy, since two neighbours of $(r,j)$ need not overlap each other.
-Because $\mathcal{Q}(a,r,j)$ depends on the decision variables, \eqref{eq:E15_flex} is
-linearised with one membership indicator and one ordering indicator per ordered pair of
-potentially conflicting events; the construction is given in
-Section~\ref{subsec:flex_complexity}.
-
-We also need the basic condition on $s_{rj}$: the check can neither finish before the triggering
-flight has landed and the work has been performed, nor be postponed indefinitely. With
-$W$ the maximum admissible deferral,
-\begin{equation}\label{eq:E18_flex_s_basic}
-\delta_A\,\hat{z}_{rj} \ \le\ s_{rj}\ \le\ (\delta_A+W)\,\hat{z}_{rj},
-\qquad \forall r\in \mathcal{R},\ j\in \Pc ,
-\end{equation}
-and
-\begin{equation}\label{eq:E19_flex_z_basic}
-\hat{z}_{rj}\ \le\ z_{rj},
-\qquad \forall r\in \mathcal{R},\ j\in \Pc ,
-\end{equation}
-and
-\begin{equation}\label{eq:E20_flex_qz}
-\hat{z}_{rj}\ \ge\ q_{rj},
-\qquad \forall r\in \mathcal{R},\ j\in \Pc .
-\end{equation}
-
-Also we can set the condition that every flight that does not have $s_{rj}$ the plane remains on the airport:
-\begin{equation}\label{eq:E21_flex_s_airport}
-x_{r_1 j}\ \le\ M \hat{z}_{rj} + M_2 (1-z_{rj}),
-\qquad \forall r_1>r,\ r \in \mathcal{R},\ j\in \Pc .
-\end{equation}
+The overlap rows are exact on the stated time grid; no binary is merely
+penalized toward indicating an overlap, and no capacity is inferred from a
+pairwise-neighbour count. Setting $s_{rj}=\delta_Az_{rj}$ recovers immediate
+maintenance timing, so E14$_{\mathrm{flex}}$--E20$_{\mathrm{flex}}$ reduce to
+E14--E15. The flexible formulation therefore contains the immediate-start
+feasible schedules and can only weakly improve their minimum assignment cost.
 
 
 
 
 
-\subsection{Complete E1--E16 inventory of the implemented A-only model}
+\subsection{Implemented E1--E15 model and flexible-start specification}
 
-The following list gives every event-family component constructed by the current
-ordered A-only builder. Legacy C labels are given only as cross-references.
+The following list gives the event-family components of the current immediate-start
+ordered A-only builder and separately identifies the optional flexible-start
+formulation. Legacy C labels are given only as cross-references.
 
 \begin{description}
 \item[E1--E3: variable domains.] The variables $x_{rj}$ and $z_{rj}$ are
@@ -323,13 +350,15 @@ $[\theta_r,\theta_r+\delta_A)$ contain $\theta$. This is implemented by the E15 
 \texttt{e15\_maintenance\_capacity}; it is the maintenance-capacity constraint that was not
 explicitly displayed earlier.
 
-\item[E14\_flex--E16\_flex: deferrable maintenance timing (optional variant).] Replacing
-E14--E15 by \eqref{eq:E14_flex}, \eqref{eq:E15_flex} and \eqref{eq:E16_flex_s_basic} turns the
-completion time into a decision. E1--E13 are untouched, so the variant differs from the
-immediate-start model only in how an event occupies its station and blocks its aircraft.
-It is implemented by \texttt{e14\_flex\_maintenance\_block},
-\texttt{e15\_flex\_separation}, \texttt{e15\_flex\_maintenance\_capacity} and
-\texttt{e16\_flex\_completion\_window}.
+\item[E14$_{\mathrm{flex}}$--E21$_{\mathrm{flex}}$: deferrable maintenance timing (optional variant).]
+The discrete-grid formulation in~\eqref{eq:E14_flex}--\eqref{eq:E21_flex}
+replaces immediate-start E14--E15 by aircraft blocking, bounded completion
+offsets, exact overlap indicators, and capacity rows at selected event starts.
+It retains E1--E13 and includes immediate-start schedules as the special case
+$s_{rj}=\delta_Az_{rj}$. The overlap comparison binaries are required because
+the active-event set depends on the selected completion times. An implementation
+of this specification must enforce both overlap comparisons and their conjunction;
+an unconstrained or one-directional overlap indicator does not enforce capacity.
 
 \item[Auxiliary C11 event-count aggregation.] The binary day indicator is intentionally
 not retained. Define the nonnegative integer event count $n_{jd}$ by
@@ -364,7 +393,7 @@ timestamp-capacity sums, which is smaller and equivalent for the A-only case.
 \subsection{Equivalent A-only implementation strengthening}
 \label{subsec:event_implementation_strengthening}
 
-The E1--E15 formulation also admits an equivalent reduced implementation.
+The immediate-start E1--E15 formulation also admits an equivalent reduced implementation.
 The daily event count in~\eqref{eq:ordered_c11_recovery} is not used by any
 E-constraint or by the objective, so it can be recovered after solution
 rather than represented by integer variables and equalities. With only one
@@ -383,9 +412,12 @@ integer feasible set is unchanged.
 The baseline implementation remains
 \texttt{PaperEventBasedMILPScheduler}. The equivalent reduced implementation
 is \texttt{OptimizedPaperEventBasedMILPScheduler}; keeping both classes makes
-the effect of implementation choices independently reproducible. The deferrable variant of
-Section~\ref{subsec:flex_complexity} is \texttt{FlexiblePaperEventBasedMILPScheduler}, which
-derives from the reduced implementation and overrides only the maintenance-timing families.
+the effect of implementation choices independently reproducible. The exact
+flexible-start mathematical specification is given by
+E14$_{\mathrm{flex}}$--E21$_{\mathrm{flex}}$. The existing
+\texttt{FlexiblePaperEventBasedMILPScheduler} prototype and its reported
+benchmark require implementation and revalidation against these exact overlap
+rows before they can be cited as computational results for this formulation.
 
 Table~\ref{tab:ordered_c1_c13} records the correspondence with the numbered
 day-indexed requirements. Some legacy rows disappear because their variables
@@ -408,7 +440,7 @@ C5 & Pairwise non-overlap & Pairwise overlap inequalities on $x$. \\
 C6--C7 & Maintenance variables $z,y$ & Event indicator $z_{rj}$; the daily indicator $y$ is not a primitive variable. \\
 C8 & Maintenance blocks later flights & Timestamp blocking using $\delta_A+\dt$; the flexible variant blocks until the deferred completion. \\
 C9 & Maintenance requires assignment & The event-assignment inequality above. \\
-C10 & Maintenance capacity & Direct timestamp-overlap capacity rows, equivalent to an airport occupancy state; disjunctive occupancy rows in the flexible variant. \\
+C10 & Maintenance capacity & Direct timestamp-overlap rows at event starts; exact grid-based overlap-indicator rows in the flexible variant. \\
 C11 & Aggregate events by aircraft and day & Integer event count $n_{jd}=\sum_{r:\,d(i_r)=d}z_{rj}$. \\
 C12 & Calendar-time spacing & Inactive for type-A-only maintenance in this paper. \\
 C13 & Paper cumulative-flight-time row & Replaced by the exact ordered prefix state. \\
@@ -485,53 +517,31 @@ model on matched horizon and fleet-size grids.
 \subsection{Complexity and model size of the flexible-start variant}
 \label{subsec:flex_complexity}
 
-The deferrable variant keeps E1--E13 verbatim and therefore inherits the variable bound
-$O(n_fn_p+n_mn_p)$ of the immediate-start model. On top of it,
-\eqref{eq:E16_flex_s_basic} introduces one continuous offset $s_{rj}$ per admissible event,
-that is at most $n_mn_p$ additional continuous variables, so the principal bound is unchanged.
-The implementation also carries one aggregated offset per maintenance-capable flight; this is
-legitimate because E4 assigns each flight to exactly one aircraft, so at most one $s_{r\cdot}$
 is nonzero and the aggregate equals the realised offset. The aggregation costs $n_m$ extra
-continuous variables and $n_m$ equalities, and it reduces the capacity linearisation below
-from event pairs to flight pairs.
+The flexible variant keeps E1--E13 verbatim. It adds one grid-valued offset
+$s_{rj}$ per admissible event, at most $n_mn_p$ such variables. The trigger-level
+quantities $\zeta_r$, $S_r$, and $T_r$ in~\eqref{eq:E16_flex} are linear
+expressions, not additional variables. The principal variable count therefore
+remains $O(n_fn_p+n_mn_p)$ before the capacity-comparison binaries are included.
 
-The constraint families change in three places. First, the blocking set
-$\mathcal{B}$ of \eqref{eq:E14} is generated from the constant window
-$[\tI{i_r},\tI{i_r}+\delta_A+\Delta t)$, whereas \eqref{eq:E14_flex} must cover the widened
-window $[\tI{i_r},\tI{i_r}+\delta_A+W+\Delta t)$. Its size therefore grows with the deferral
-budget $W$, and the rows change from set-packing inequalities to big-M inequalities, which
-weakens the linear relaxation. Second, \eqref{eq:E15_flex} is linearised with one membership
-indicator $u_{ee'}$ and one ordering indicator per \emph{ordered} pair $(e,e')$ of events at a
-maintenance station, where $u_{ee'}=1$ whenever $T_{e'}\in(T_e-\delta_A,T_e]$. Two disjunctive
-rows per ordered pair force $u_{ee'}$ up when the membership holds, and one row per event
-bounds $\sum_{e'}u_{ee'}\le\operatorname{mcap}_a-1$ whenever $e$ is selected. Writing
-$\mathcal{K}_a$ for the set of such ordered pairs, the capacity family is
-$O\bigl(\sum_a|\mathcal{K}_a|\bigr)$ rows and the same order of binary variables, against
-$O(n_f)$ breakpoint rows and no new binaries in the immediate-start model. Third, a station
-whose windows can never exceed its capacity contributes nothing: the builder sweeps the
-half-open windows $[\tI{i_r},\tI{i_r}+\delta_A+W)$ and omits the whole family whenever the
-peak potential concurrency does not exceed $\operatorname{mcap}_a$, because the inequality is
-then satisfied by every assignment.
+The E14$_{\mathrm{flex}}$ row set $\mathcal{B}^{W}$ spans the widened departure
+window $[\tI{i_r},\tI{i_r}+\delta_A+W+\Delta t)$, so its size grows with $W$;
+the rows use big-$M$ relaxation rather than the immediate-start set-packing
+form. For each ordered pair in $\mathcal{W}$, E17$_{\mathrm{flex}}$ and
+E18$_{\mathrm{flex}}$ use two binary comparisons, and
+E19$_{\mathrm{flex}}$ uses one overlap binary. E20$_{\mathrm{flex}}$ contributes
+one capacity row per possible trigger event, while E21$_{\mathrm{flex}}$ is
+implied by E4 and E8. Thus the added capacity model has $O(|\mathcal{W}|)$
+binaries and rows. Without pair pruning, $|\mathcal{W}|=O(n_m^2)$; a pair may
+be pruned only when its completion-time bounds prove that its windows cannot
+overlap. The grid resolution is essential to exactness: it replaces strict
+half-open interval comparisons by finite, inclusive integer comparisons.
 
-Two bounds follow. In the worst case $|\mathcal{K}_a|=O(n_m^2)$, so an unbounded deferral
-makes the conflict graph complete and the capacity family quadratic; this is precisely why
-$W$ is kept finite. In the practical case, only events whose arrival times lie within
-$\delta_A+W$ of one another can conflict, so $|\mathcal{K}_a|$ is proportional to $n_m$ times
-the number of arrivals inside one deferral window, which is a timetable-dependent constant.
-On the generated family of \Cref{sec:computational} the sweep in fact discharges the capacity
-family entirely, so with $W$ equal to one day the measured cost reduces to the deferral
-machinery alone: an increase of roughly one fifth in variables and one half in rows relative
-to the immediate-start implementation.
-
-Finally, the variant is a relaxation of the blocking requirement. Fixing
-$s_{rj}=\delta_A z_{rj}$ satisfies \eqref{eq:E16_flex_s_basic} and reduces
-\eqref{eq:E14_flex} to \eqref{eq:E14_rewritten}, so every schedule admitted by E14 is admitted
-by E14\_flex. For the capacity requirement the two families are not literal rewritings of one
-another: \eqref{eq:E15_not_full} tests the fixed breakpoints $\tI{i_r}$, whereas
-\eqref{eq:E15_flex} tests the realised window starts, which is the exact occupancy condition.
-On any instance where the occupancy sweep certifies that capacity cannot bind, both families
-are vacuous and the inclusion is unconditional; this is the case throughout
-\Cref{sec:computational}, where the two models return identical optima on every run.
-The additional freedom is not free: an aircraft that defers a check is grounded
-until the deferred completion, so the relaxation pays for station capacity with aircraft
-availability.
+Fixing $s_{rj}=\delta_Az_{rj}$ recovers the immediate-start maintenance
+intervals. E14$_{\mathrm{flex}}$ then reduces to E14, and the capacity rows
+check the same occupancy at each selected event start as
+\eqref{eq:E15_not_full}. Hence every immediate-start feasible schedule is
+feasible for the flexible formulation, and its optimal assignment cost can
+only be weakly lower. The aircraft remains grounded until the deferred check
+and post-maintenance turn time are complete; the additional freedom concerns
+maintenance timing, not flight operation while waiting.

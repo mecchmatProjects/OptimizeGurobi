@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 from pyomo.core.expr.visitor import identify_variables
-from pyomo.environ import Constraint, Var
+from pyomo.environ import Constraint, NonNegativeIntegers, Var, value
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -200,9 +200,18 @@ class CompactAEventTests(unittest.TestCase):
         self.assertFalse(hasattr(model, "e14_maintenance_block"))
         self.assertFalse(hasattr(model, "e15_maintenance_capacity"))
         self.assertTrue(hasattr(model, "s"))
-        self.assertTrue(hasattr(model, "sigma"))
+        self.assertTrue(hasattr(model, "s_ticks"))
+        self.assertTrue(hasattr(model, "event_selected"))
+        self.assertTrue(hasattr(model, "event_offset"))
+        self.assertTrue(hasattr(model, "event_completion"))
         self.assertTrue(hasattr(model, "e14_flex_maintenance_block"))
-        self.assertTrue(hasattr(model, "e16_flex_completion_window"))
+        self.assertTrue(hasattr(model, "e15_flex_completion_bounds"))
+        self.assertTrue(hasattr(model, "e17_flex_time_comparisons"))
+        self.assertTrue(hasattr(model, "e18_flex_time_comparisons"))
+        self.assertTrue(hasattr(model, "e19_flex_active_at_start"))
+        self.assertTrue(hasattr(model, "e20_flex_station_capacity"))
+        self.assertTrue(hasattr(model, "e21_flex_event_uniqueness"))
+        self.assertFalse(hasattr(model, "flex_order"))
 
     def test_flexible_model_keeps_e1_e13_rows_unchanged(self):
         optimized = OptimizedPaperEventBasedMILPScheduler(str(SOURCE)).build_model()
@@ -229,9 +238,122 @@ class CompactAEventTests(unittest.TestCase):
 
         expected_ub = scheduler.check_dur["A"] + scheduler.MAX_MAINT_DEFER
         self.assertEqual(len(model.s), len(model.Z))
-        for offset in model.s.values():
-            self.assertEqual(offset.lb, 0.0)
-            self.assertEqual(offset.ub, expected_ub)
+        self.assertEqual(len(model.s_ticks), len(model.Z))
+        for offset_ticks in model.s_ticks.values():
+            self.assertIs(offset_ticks.domain, NonNegativeIntegers)
+            self.assertEqual(offset_ticks.lb, 0)
+            self.assertEqual(offset_ticks.ub, expected_ub)
+        self.assertEqual(len(model.e15_flex_completion_bounds), 2 * len(model.Z))
+
+    def test_flexible_model_builds_exact_capacity_pairs(self):
+        scheduler = FlexiblePaperEventBasedMILPScheduler(str(SOURCE))
+        scheduler.station_cap["M"] = 1
+        model = scheduler.build_model()
+
+        self.assertGreater(len(model.FLEX_DISTINCT_PAIRS), 0)
+        self.assertEqual(
+            len(model.e17_flex_time_comparisons),
+            2 * len(model.FLEX_DISTINCT_PAIRS),
+        )
+        self.assertEqual(
+            len(model.e18_flex_time_comparisons),
+            2 * len(model.FLEX_DISTINCT_PAIRS),
+        )
+        self.assertEqual(
+            len(model.e20_flex_station_capacity),
+            len(model.FM),
+        )
+        self.assertEqual(
+            len(model.e21_flex_event_uniqueness),
+            len(model.FM),
+        )
+        self.assertTrue(
+            all((flight, flight) in model.FLEX_PAIRS for flight in model.FM)
+        )
+
+    def test_flexible_capacity_uses_half_open_event_start_occupancy(self):
+        scheduler = FlexiblePaperEventBasedMILPScheduler(str(SOURCE))
+        scheduler.station_cap["M"] = 1
+        model = scheduler.build_model()
+        first, second = min(
+            model.FLEX_DISTINCT_PAIRS,
+            key=lambda pair: abs(
+                scheduler.flight_data[pair[0]]["arrivalTime"]
+                - scheduler.flight_data[pair[1]]["arrivalTime"]
+            ),
+        )
+        reverse_pair = (second, first)
+        self.assertIn(reverse_pair, model.FLEX_DISTINCT_PAIRS)
+
+        first_key = next(key for key in model.Z if key[0] == first)
+        second_key = next(key for key in model.Z if key[0] == second)
+        first_arrival = scheduler.flight_data[first]["arrivalTime"]
+        second_arrival = scheduler.flight_data[second]["arrivalTime"]
+        duration = scheduler.check_dur["A"]
+        grid = scheduler.MAINTENANCE_TIME_GRID
+        fm_order = list(model.FM)
+
+        def set_events(completions):
+            for key in model.Z:
+                model.z[key].set_value(0)
+                model.s_ticks[key].set_value(0)
+            for flight, completion in completions.items():
+                key = first_key if flight == first else second_key
+                model.z[key].set_value(1)
+                offset_ticks = round(
+                    (completion - scheduler.flight_data[flight]["arrivalTime"])
+                    / grid
+                )
+                model.s_ticks[key].set_value(offset_ticks)
+
+            for pair in model.FLEX_DISTINCT_PAIRS:
+                r, q = pair
+                difference = value(
+                    model.event_completion[q] - model.event_completion[r]
+                )
+                before = int(difference <= 0)
+                in_window = int(difference >= -duration + grid)
+                model.flex_before[pair].set_value(before)
+                model.flex_in_window[pair].set_value(in_window)
+                event_r = value(model.event_selected[r] > 0.5)
+                event_q = value(model.event_selected[q] > 0.5)
+                model.flex_active_at_start[pair].set_value(
+                    int(event_r and event_q and before and in_window)
+                )
+            for flight in model.FM:
+                model.flex_active_at_start[flight, flight].set_value(
+                    int(value(model.event_selected[flight]) > 0.5)
+                )
+
+            for family in (
+                model.e17_flex_time_comparisons,
+                model.e18_flex_time_comparisons,
+                model.e19_flex_active_at_start,
+            ):
+                for constraint in family.values():
+                    body = value(constraint.body)
+                    if constraint.has_lb():
+                        self.assertGreaterEqual(body, value(constraint.lower) - 1e-8)
+                    if constraint.has_ub():
+                        self.assertLessEqual(body, value(constraint.upper) + 1e-8)
+
+        common_completion = max(first_arrival, second_arrival) + duration
+        set_events({first: common_completion, second: common_completion})
+        first_capacity_row = model.e20_flex_station_capacity[
+            fm_order.index(first) + 1
+        ]
+        self.assertGreater(value(first_capacity_row.body), 0.0)
+
+        set_events({first: common_completion, second: common_completion + duration})
+        self.assertLessEqual(value(first_capacity_row.body), 0.0)
+
+    def test_flexible_model_rejects_off_grid_timestamps(self):
+        scheduler = FlexiblePaperEventBasedMILPScheduler(str(SOURCE))
+        flight = scheduler.flight_ids[0]
+        scheduler.flight_data[flight]["arrivalTime"] += 0.5
+
+        with self.assertRaisesRegex(ValueError, "1-minute grid"):
+            scheduler.build_model()
 
     def test_baseline_event_models_keep_immediate_maintenance_timing(self):
         for builder in (

@@ -144,6 +144,9 @@ class LocalScheduler:
 
     def __init__(self, data: dict):
         self.data = data
+        self.active_families = set(
+            data.get("Maintenance_Families", ("A", "B", "C", "D"))
+        )
         self.flights = {
             int(fl[0]): {
                 "fid": int(fl[0]),
@@ -212,13 +215,13 @@ class LocalScheduler:
 
             days_now = curr_time / 1440.0
             needed = None
-            if d_off + days_now >= self.thresh_cd["D"]:
+            if "D" in self.active_families and d_off + days_now >= self.thresh_cd["D"]:
                 needed = "D"
-            elif c_off + days_now >= self.thresh_cd["C"]:
+            elif "C" in self.active_families and c_off + days_now >= self.thresh_cd["C"]:
                 needed = "C"
-            elif b + fl["dur"] >= self.thresh_ab["B"]:
+            elif "B" in self.active_families and b + fl["dur"] >= self.thresh_ab["B"]:
                 needed = "B"
-            elif a + fl["dur"] >= self.thresh_ab["A"]:
+            elif "A" in self.active_families and a + fl["dur"] >= self.thresh_ab["A"]:
                 needed = "A"
 
             if needed:

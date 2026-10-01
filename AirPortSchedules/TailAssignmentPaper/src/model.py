@@ -1043,19 +1043,22 @@ class MILP_Sheduler:
         """Minimize flight assignment cost plus maintenance-event cost.
 
         A multi-day check is represented by consecutive ``y`` occupancy
-        variables in the day-indexed model. Charge only the first occupied day
-        of each run, using the same duration-based event cost as the event
-        formulation; otherwise a horizon-truncated check would be
-        under-priced.
+        variables in the day-indexed model, so charge only the first occupied
+        day of its run. Checks lasting at most one day are separate daily events
+        and each selected ``y`` receives its event cost.
         """
         maint_cost = 100
-        # Keep legacy maintenance objective semantics during Phase-2 migration.
-        # Event-maintenance cost expression is tracked separately for parity
-        # checks but not activated in the objective until full linkage is in place.
+        # The migration scaffold retains its historical objective until its
+        # event-cost expression is fully linked. The corrected day-indexed
+        # objective charges each single-day check separately.
         maintenance_cost = sum(
             maint_cost
             * max(1, math.ceil(self.check_dur[c] / self.DAY_SHIFT))
-            * m.maintenance_start[j, d, c]
+            * (
+                m.maintenance_start[j, d, c]
+                if use_event_maintenance or self.check_dur_days[c] > 1
+                else m.y[j, d, c]
+            )
             for j in m.P
             for d in m.D
             for c in m.C

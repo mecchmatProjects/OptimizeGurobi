@@ -1,4 +1,4 @@
-"""Compare the four paper formulations for A checks only."""
+"""Compare the five paper formulations for A checks only."""
 
 from __future__ import annotations
 

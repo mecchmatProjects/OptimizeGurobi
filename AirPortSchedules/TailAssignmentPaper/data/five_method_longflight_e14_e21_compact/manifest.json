@@ -1,0 +1,54 @@
+{
+  "description": "A-only five-method correctness and performance suite",
+  "methods": [
+    "legacy_paper_c13",
+    "legacy_endpoint_split",
+    "legacy_corrected_strengthened",
+    "event_based_optimized",
+    "event_based_flex"
+  ],
+  "flights_per_aircraft": 8,
+  "spread_rotations": true,
+  "regression_cases": [
+    "c13_loophole_test.json",
+    "event_vs_legacy_clean_test.json"
+  ],
+  "performance_grid": [
+    {
+      "P": 5,
+      "H": 29,
+      "file": "perf_p=5_h=29.json"
+    },
+    {
+      "P": 5,
+      "H": 49,
+      "file": "perf_p=5_h=49.json"
+    },
+    {
+      "P": 10,
+      "H": 29,
+      "file": "perf_p=10_h=29.json"
+    },
+    {
+      "P": 10,
+      "H": 49,
+      "file": "perf_p=10_h=49.json"
+    },
+    {
+      "P": 15,
+      "H": 29,
+      "file": "perf_p=15_h=29.json"
+    },
+    {
+      "P": 15,
+      "H": 49,
+      "file": "perf_p=15_h=49.json"
+    }
+  ],
+  "notes": [
+    "Regression cases preserve the canonical inputs by copying them.",
+    "Performance cases are generated with overnight A maintenance and a common JSON input per cell.",
+    "Fixed-model objective parity is checked on optimal runs for each case.",
+    "The flexible-model objective is checked against the immediate-start relaxation bound."
+  ]
+}

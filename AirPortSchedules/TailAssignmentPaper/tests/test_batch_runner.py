@@ -7,9 +7,26 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from experiments import run_batch
+from src.generate_feasible_instances import build_feasible_instance
 
 
 class BatchRunnerTests(unittest.TestCase):
+    def test_spread_rotations_generate_longer_a_only_schedule(self):
+        data = build_feasible_instance(
+            density=1.0,
+            p=3,
+            h=15,
+            index=0,
+            flights_per_aircraft=4,
+            maintenance_families="A",
+            spread_rotations=True,
+        )
+
+        self.assertEqual(data["Maintenance_Families"], ["A"])
+        self.assertEqual(len(data["Flights"]), 24)
+        self.assertTrue(all(len(rotation) == 8 for rotation in data["_SeededRotation"].values()))
+        self.assertGreater(max(float(flight[4]) for flight in data["Flights"]), 14 * 1440)
+
     def test_solver_limit_status_is_detected(self):
         result = run_batch._classify_result(
             returncode=1,

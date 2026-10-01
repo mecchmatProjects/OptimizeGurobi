@@ -36,15 +36,18 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--input",
-        default="results/tables/formulation_a_fleet_four_latest.csv",
+        default="results/tables/five_method_longflight_e14_e21.csv",
     )
-    parser.add_argument("--output", default="paper/figures/ordered_a_cpu_vs_fleet.png")
+    parser.add_argument("--horizon", type=int, default=30)
+    parser.add_argument("--output", default="paper/figures/ordered_a_cpu_vs_fleet_e14_e21_h30.png")
     args = parser.parse_args()
 
     grouped: dict[str, list[dict[str, str]]] = defaultdict(list)
     with Path(args.input).open(newline="", encoding="utf-8") as handle:
         for row in csv.DictReader(handle):
-            if row["status"] == "optimal":
+            if row["status"] == "optimal" and (
+                args.horizon is None or int(row.get("H", -1)) == args.horizon
+            ):
                 grouped[row["formulation"]].append(row)
 
     figure, axis = plt.subplots(figsize=(7.0, 4.2), constrained_layout=True)

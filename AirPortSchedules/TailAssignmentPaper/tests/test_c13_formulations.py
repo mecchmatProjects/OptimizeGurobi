@@ -7,6 +7,8 @@ import sys
 import unittest
 from pathlib import Path
 
+from pyomo.environ import value
+
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -21,6 +23,35 @@ SOURCE = ROOT / "data" / "instances" / "ABCD_near_threshold_test.json"
 
 
 class C13FormulationTests(unittest.TestCase):
+    def test_consecutive_single_day_checks_are_charged_separately(self):
+        scheduler = LegacyCorrectedStrengthenedMILPScheduler(
+            str(SOURCE), enabled_checks=["A"]
+        )
+        model = scheduler.build_model()
+        self.assertEqual(scheduler.check_dur_days["A"], 0)
+
+        consecutive_days = [
+            (day, day + 1)
+            for day in sorted(model.D)
+            if day + 1 in model.D
+        ]
+        self.assertTrue(consecutive_days)
+        first_day, second_day = consecutive_days[0]
+        aircraft = next(iter(model.P))
+
+        for variable in model.x.values():
+            variable.set_value(0)
+        for variable in model.y.values():
+            variable.set_value(0)
+        for variable in model.maintenance_start.values():
+            variable.set_value(0)
+
+        model.y[aircraft, first_day, "A"].set_value(1)
+        model.y[aircraft, second_day, "A"].set_value(1)
+        model.maintenance_start[aircraft, first_day, "A"].set_value(1)
+
+        self.assertEqual(value(model.obj.expr), 2 * 100)
+
     def test_tight_c13_m_is_opt_in_and_interval_bounded(self):
         scheduler = MILP_Sheduler(str(SOURCE), enabled_checks=["A"])
         baseline = scheduler.build_model(

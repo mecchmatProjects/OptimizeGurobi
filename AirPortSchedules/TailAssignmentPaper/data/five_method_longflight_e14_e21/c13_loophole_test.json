@@ -1,0 +1,40 @@
+{
+    "_comment": [
+        "=== C13 SPLIT-FORM COUNTEREXAMPLE (matches paper Lemma lem:c13_split_limit) ===",
+        "1 aircraft, check type A only, T_A_max = 600 min (10h).",
+        "Flight 1: tiny day-1 trigger flight at M (duration 10 min) -> mega[0,1,'A']=1.",
+        "Flight 2: 600-min flight on day 2 (v2=600).",
+        "Flight 3: 600-min flight on day 4, arriving at M -> mega[0,4,'A']=1 (v4=600).",
+        "No check on days 2/3. Endpoint-split C13 relaxes both rows for window (1,4)",
+        "because BOTH endpoints (day 1 and day 4) carry a check, even though 1200",
+        "minutes are flown strictly between those two checks (v2+v4=1200 > 600).",
+        "See experiments/c13_loophole_validation.py for the numeric verification."
+    ],
+    "Aircrafts": [0],
+    "AIRCRAFT_INIT_POS": {"0": "M"},
+    "Flights": [
+        [1, "M", "M",   10.0,     20.0],
+        [2, "M", "M", 1450.0,   2050.0],
+        [3, "M", "M", 4330.0,   4930.0]
+    ],
+    "Cost_Matrix": [
+        [100.0],
+        [100.0],
+        [100.0]
+    ],
+    "Maintenance_Thresholds": {
+        "A": 600,
+        "B": 999999,
+        "C": 9999,
+        "D": 9999
+    },
+    "Maintenance_Durations": {
+        "A": 30,
+        "B": 30,
+        "C": 30,
+        "D": 30
+    },
+    "Station_Capacity": {
+        "M": 5
+    }
+}

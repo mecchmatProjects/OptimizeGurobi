@@ -10,6 +10,7 @@ from pyomo.environ import (
     Binary,
     ConcreteModel,
     ConstraintList,
+    Expression,
     NonNegativeReals,
     NonNegativeIntegers,
     Objective,
@@ -21,19 +22,6 @@ from pyomo.environ import (
 
 from .model import MILP_Sheduler
 from .event_model import EventMILPScheduler
-
-
-def _peak_concurrency(windows):
-    """Largest number of half-open windows that can be simultaneously active."""
-    deltas = []
-    for low, high in windows:
-        deltas.append((low, 1))
-        deltas.append((high, -1))
-    peak = current = 0
-    for _, step in sorted(deltas):
-        current += step
-        peak = max(peak, current)
-    return peak
 
 
 class CompactAEventMILPScheduler(EventMILPScheduler):
@@ -63,6 +51,7 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
     NATIVE_STATE_BOUNDS = False
     FLEXIBLE_MAINTENANCE = False
     MAX_MAINT_DEFER = 1440.0
+    MAINTENANCE_TIME_GRID = 1.0
 
     def build_model(
         self,
@@ -377,163 +366,217 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
                 )
 
     def _add_flexible_maintenance_timing(self, model):
-        """E14_flex-E16_flex: the maintenance completion offset is a decision.
+        """Build discrete-grid E14_flex-E21_flex constraints."""
+        def build_flexible_model():
+            """Build the discrete-grid E14_flex-E21_flex formulation."""
+            check = self.CHECK_LIST[0]
+            duration = float(self.check_dur[check])
+            defer = float(self.MAX_MAINT_DEFER)
+            grid = float(self.MAINTENANCE_TIME_GRID)
 
-        ``s[r, j]`` is the offset from the arrival of trigger flight ``i_r`` to the
-        completion of the type-A check, so the event occupies
-        ``[tI(i_r) + s - delta_A, tI(i_r) + s)``.  Deferral is capped by
-        :attr:`MAX_MAINT_DEFER` to keep the E15_flex conflict graph sparse.
-        """
-        check = self.CHECK_LIST[0]
-        duration = self.check_dur[check]
-        defer = float(self.MAX_MAINT_DEFER)
-        max_offset = duration + defer
+            def to_ticks(minutes, label):
+                scaled = float(minutes) / grid
+                rounded = round(scaled)
+                if abs(scaled - rounded) > 1e-8:
+                    raise ValueError(
+                        f"Flexible maintenance requires {label} to lie on the "
+                        f"{grid:g}-minute grid; got {minutes}."
+                    )
+                return int(rounded)
 
-        model.s = Var(model.Z, domain=NonNegativeReals, bounds=(0.0, max_offset), initialize=0)
+            duration_ticks = to_ticks(duration, "A-check duration")
+            defer_ticks = to_ticks(defer, "maximum deferral")
+            to_ticks(self.MIN_TURN, "minimum turn time")
+            for flight in self.flight_ids:
+                to_ticks(self.flight_data[flight]["departureTime"], "departure time")
+                to_ticks(self.flight_data[flight]["arrivalTime"], "arrival time")
 
-        # E4 assigns each flight to exactly one aircraft, so at most one s[r, *]
-        # is nonzero and the per-flight aggregate is the realised offset.
-        model.FM = Set(initialize=self.maint_flight_ids, ordered=True)
-        model.sigma = Var(model.FM, domain=NonNegativeReals, bounds=(0.0, max_offset), initialize=0)
-
-        events_by_flight = {
-            flight: [
-                (flight, aircraft, check)
-                for aircraft in self._x_aircrafts_for_flight(flight)
-                if (flight, aircraft, check) in model.Z
-            ]
-            for flight in self.maint_flight_ids
-        }
-        selected = {
-            flight: sum(model.z[key] for key in keys) if keys else 0
-            for flight, keys in events_by_flight.items()
-        }
-
-        model.e16_flex_completion_window = ConstraintList()
-        for flight, keys in events_by_flight.items():
-            for key in keys:
-                model.e16_flex_completion_window.add(model.s[key] >= duration * model.z[key])
-                model.e16_flex_completion_window.add(model.s[key] <= max_offset * model.z[key])
-            if keys:
-                model.e16_flex_completion_window.add(
-                    model.sigma[flight] == sum(model.s[key] for key in keys)
-                )
-            else:
-                model.e16_flex_completion_window.add(model.sigma[flight] == 0.0)
-
-        model.e14_flex_maintenance_block = ConstraintList()
-        for trigger in self.maint_flight_ids:
-            trigger_data = self.flight_data[trigger]
-            arrival = trigger_data["arrivalTime"]
-            block_limit = arrival + max_offset + self.MIN_TURN
-            candidates = self._f_dep_window(
-                trigger_data["destination"], arrival, block_limit
+            max_offset = duration + defer
+            model.FM = Set(
+                initialize=(
+                    flight
+                    for flight in self.maint_flight_ids
+                    if any(key[0] == flight for key in model.Z)
+                ),
+                ordered=True,
             )
-            for aircraft in self._x_aircrafts_for_flight(trigger):
-                key = (trigger, aircraft, check)
-                if key not in model.Z:
+            model.s_ticks = Var(
+                model.Z,
+                domain=NonNegativeIntegers,
+                bounds=(0, duration_ticks + defer_ticks),
+                initialize=0,
+            )
+            model.s = Expression(
+                model.Z,
+                rule=lambda m, flight, aircraft, candidate_check: (
+                    grid * m.s_ticks[flight, aircraft, candidate_check]
+                ),
+            )
+
+            keys_by_flight = {
+                flight: [key for key in model.Z if key[0] == flight]
+                for flight in model.FM
+            }
+            model.event_selected = Expression(
+                model.FM,
+                rule=lambda m, flight: sum(m.z[key] for key in keys_by_flight[flight]),
+            )
+            model.event_offset = Expression(
+                model.FM,
+                rule=lambda m, flight: sum(m.s[key] for key in keys_by_flight[flight]),
+            )
+            model.event_completion = Expression(
+                model.FM,
+                rule=lambda m, flight: (
+                    self.flight_data[flight]["arrivalTime"] + m.event_offset[flight]
+                ),
+            )
+
+            model.e14_flex_maintenance_block = ConstraintList()
+            for trigger in model.FM:
+                trigger_data = self.flight_data[trigger]
+                arrival = trigger_data["arrivalTime"]
+                block_limit = arrival + max_offset + self.MIN_TURN
+                following_flights = [
+                    flight
+                    for flight in self._dep_flights_by_airport[trigger_data["destination"]]
+                    if arrival <= self.flight_data[flight]["departureTime"] < block_limit
+                ]
+                for aircraft in self._x_aircrafts_for_flight(trigger):
+                    event_key = (trigger, aircraft, check)
+                    if event_key not in model.Z:
+                        continue
+                    for following in following_flights:
+                        if not self._x_has_arc(following, aircraft):
+                            continue
+                        departure = self.flight_data[following]["departureTime"]
+                        big_m = max(0.0, block_limit - departure)
+                        model.e14_flex_maintenance_block.add(
+                            departure + big_m
+                            * (2 - model.x[following, aircraft] - model.z[event_key])
+                            >= arrival + model.s[event_key] + self.MIN_TURN
+                        )
+
+            model.e15_flex_completion_bounds = ConstraintList()
+            for event_key in model.Z:
+                model.e15_flex_completion_bounds.add(
+                    model.s[event_key] >= duration * model.z[event_key]
+                )
+                model.e15_flex_completion_bounds.add(
+                    model.s[event_key] <= max_offset * model.z[event_key]
+                )
+
+            model.e21_flex_event_uniqueness = ConstraintList()
+            for flight in model.FM:
+                model.e21_flex_event_uniqueness.add(
+                    model.event_selected[flight] <= 1
+                )
+
+            _add_flexible_capacity(model, duration, defer, grid)
+
+        def _add_flexible_capacity(model, duration, defer, grid):
+            """Build exact selected-event overlap tests and station-capacity rows."""
+            possible_pairs = []
+            distinct_pairs = []
+            for airport in self.maint_airports:
+                flights = [
+                    flight
+                    for flight in model.FM
+                    if self.flight_data[flight]["destination"] == airport
+                ]
+                arrivals = {
+                    flight: self.flight_data[flight]["arrivalTime"] for flight in flights
+                }
+                for first in flights:
+                    possible_pairs.append((first, first))
+                    for second in flights:
+                        if first == second:
+                            continue
+                        difference = arrivals[second] - arrivals[first]
+                        earliest = difference - defer
+                        latest = difference + defer
+                        if earliest <= 0 and latest >= -duration + grid:
+                            possible_pairs.append((first, second))
+                            distinct_pairs.append((first, second))
+
+            model.FLEX_PAIRS = Set(dimen=2, initialize=possible_pairs, ordered=True)
+            model.FLEX_DISTINCT_PAIRS = Set(
+                dimen=2, initialize=distinct_pairs, ordered=True
+            )
+            model.flex_before = Var(
+                model.FLEX_DISTINCT_PAIRS, domain=Binary, initialize=0
+            )
+            model.flex_in_window = Var(
+                model.FLEX_DISTINCT_PAIRS, domain=Binary, initialize=0
+            )
+            model.flex_active_at_start = Var(
+                model.FLEX_PAIRS, domain=Binary, initialize=0
+            )
+
+            model.e17_flex_time_comparisons = ConstraintList()
+            model.e18_flex_time_comparisons = ConstraintList()
+            for first, second in model.FLEX_DISTINCT_PAIRS:
+                first_arrival = self.flight_data[first]["arrivalTime"]
+                second_arrival = self.flight_data[second]["arrivalTime"]
+                max_offset = duration + defer
+                difference_low = second_arrival - first_arrival - max_offset
+                difference_high = second_arrival + max_offset - first_arrival
+                big_m = max(abs(difference_low), abs(difference_high)) + duration + grid
+                difference = (
+                    model.event_completion[second] - model.event_completion[first]
+                )
+                before = model.flex_before[first, second]
+                in_window = model.flex_in_window[first, second]
+                model.e17_flex_time_comparisons.add(
+                    difference <= big_m * (1 - before)
+                )
+                model.e17_flex_time_comparisons.add(
+                    difference >= grid - big_m * before
+                )
+                model.e18_flex_time_comparisons.add(
+                    difference >= -duration + grid - big_m * (1 - in_window)
+                )
+                model.e18_flex_time_comparisons.add(
+                    difference <= -duration + big_m * in_window
+                )
+
+            model.e19_flex_active_at_start = ConstraintList()
+            for first, second in model.FLEX_PAIRS:
+                active = model.flex_active_at_start[first, second]
+                if first == second:
+                    model.e19_flex_active_at_start.add(
+                        active == model.event_selected[first]
+                    )
                     continue
-                for following in candidates:
-                    if not self._x_has_arc(following, aircraft):
-                        continue
-                    departure = self.flight_data[following]["departureTime"]
-                    model.e14_flex_maintenance_block.add(
-                        arrival + model.s[key] + self.MIN_TURN
-                        <= departure
-                        + block_limit
-                        * (2 - model.x[following, aircraft] - model.z[key])
-                    )
-
-        self._add_flexible_capacity(model, selected, duration, defer)
-
-    def _add_flexible_capacity(self, model, selected, duration, defer):
-        """E15_flex: exact occupancy rows, emitted only where capacity can bind.
-
-        All maintenance windows share the length ``delta_A``, so station occupancy
-        peaks at the start of some window.  Counting, for every event, the events
-        completing in ``(T - delta_A, T]`` therefore reproduces instantaneous
-        occupancy exactly; a symmetric ``|T - T'| < delta_A`` count would instead
-        over-state it, because neighbours of one event need not overlap each other.
-        """
-        model.e15_flex_separation = ConstraintList()
-        model.e15_flex_maintenance_capacity = ConstraintList()
-
-        check = self.CHECK_LIST[0]
-        directed_pairs = []
-        neighbours = {}
-        capacity_by_flight = {}
-        for airport in self.maint_airports:
-            capacity = self.station_cap.get(airport, 0)
-            flights = [
-                flight
-                for flight in self.maint_flight_ids
-                if self.flight_data[flight]["destination"] == airport
-                and any(
-                    (flight, aircraft, check) in model.Z
-                    for aircraft in self._x_aircrafts_for_flight(flight)
+                selected_first = model.event_selected[first]
+                selected_second = model.event_selected[second]
+                before = model.flex_before[first, second]
+                in_window = model.flex_in_window[first, second]
+                model.e19_flex_active_at_start.add(active <= selected_first)
+                model.e19_flex_active_at_start.add(active <= selected_second)
+                model.e19_flex_active_at_start.add(active <= before)
+                model.e19_flex_active_at_start.add(active <= in_window)
+                model.e19_flex_active_at_start.add(
+                    active >= selected_first + selected_second + before + in_window - 3
                 )
-            ]
-            arrivals = {
-                flight: self.flight_data[flight]["arrivalTime"] for flight in flights
-            }
-            windows = {
-                flight: (arrival, arrival + duration + defer)
-                for flight, arrival in arrivals.items()
-            }
-            if _peak_concurrency(windows.values()) <= capacity:
-                continue
-            for first in flights:
-                for second in flights:
-                    if first == second:
-                        continue
-                    reachable = (
-                        arrivals[second] + duration + defer > arrivals[first]
-                        and arrivals[second] <= arrivals[first] + defer
-                    )
-                    if reachable:
-                        directed_pairs.append((first, second))
-                        neighbours.setdefault(first, []).append(second)
-            for flight in flights:
-                capacity_by_flight[flight] = capacity
 
-        if not directed_pairs:
-            return
-
-        model.SPAIR = Set(dimen=2, initialize=directed_pairs, ordered=True)
-        model.flex_active = Var(model.SPAIR, domain=Binary, initialize=0)
-        model.flex_order = Var(model.SPAIR, domain=Binary, initialize=0)
-
-        horizon_end = max(
-            self.flight_data[flight]["arrivalTime"] for flight in self.flight_ids
-        )
-        big_m = horizon_end + 2.0 * (duration + defer)
-        epsilon = 1e-3
-
-        def completion(flight):
-            return self.flight_data[flight]["arrivalTime"] + model.sigma[flight]
-
-        for first, second in directed_pairs:
-            active = model.flex_active[first, second]
-            order = model.flex_order[first, second]
-            slack = active + (1 - selected[first]) + (1 - selected[second])
-            model.e15_flex_separation.add(
-                completion(first) - duration - completion(second)
-                >= -big_m * (order + slack)
-            )
-            model.e15_flex_separation.add(
-                completion(second) - completion(first)
-                >= epsilon - big_m * ((1 - order) + slack)
-            )
-            model.e15_flex_separation.add(active <= selected[first])
-            model.e15_flex_separation.add(active <= selected[second])
-
-        for flight, others in neighbours.items():
-            capacity = capacity_by_flight[flight]
-            terms = [model.flex_active[flight, other] for other in others]
-            model.e15_flex_maintenance_capacity.add(
-                sum(terms)
-                <= (capacity - 1) + len(terms) * (1 - selected[flight])
-            )
+            pairs_by_first = {}
+            for first, second in model.FLEX_PAIRS:
+                pairs_by_first.setdefault(first, []).append(second)
+            model.e20_flex_station_capacity = ConstraintList()
+            for first in model.FM:
+                airport = self.flight_data[first]["destination"]
+                if airport not in self.maint_airports:
+                    continue
+                capacity = self.station_cap.get(airport, 0)
+                terms = [
+                    model.flex_active_at_start[first, second]
+                    for second in pairs_by_first.get(first, ())
+                ]
+                model.e20_flex_station_capacity.add(
+                    sum(terms) <= capacity * model.event_selected[first]
+                )
+        build_flexible_model()
 
     def _add_ordered_calendar_limits(self, model, candidate_pruning=True):
         """Enforce C/D check deadlines directly on timestamped z events."""
@@ -662,15 +705,12 @@ class OptimizedPaperEventBasedMILPScheduler(OrderedAEventMILPScheduler):
 
 
 class FlexiblePaperEventBasedMILPScheduler(OptimizedPaperEventBasedMILPScheduler):
-    """E1-E13 with deferrable maintenance timing (E14_flex-E16_flex).
-
-    Setting every offset to ``delta_A`` reproduces the immediate-start model, so
-    this formulation is a relaxation of ``event_based_optimized``.
-    """
+    """E1-E13 with the discrete-grid E14_flex-E21_flex formulation."""
 
     FORMULATION_ID = "event_based_flex"
     FLEXIBLE_MAINTENANCE = True
     MAX_MAINT_DEFER = 1440.0
+    MAINTENANCE_TIME_GRID = 1.0
 
 
 class OrderedABEventMILPScheduler(OrderedHourEventMILPScheduler):

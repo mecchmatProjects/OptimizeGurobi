@@ -1,6 +1,6 @@
 """Plot A-only formulation timing versus horizon.
 
-Produces wall-time and CPU-time horizon plots for the four A-only formulations
+Produces wall-time and CPU-time horizon plots for the five A-only formulations
 from compare_a_formulations.py output.
 """
 
@@ -80,9 +80,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--input",
-        default="results/tables/four_method_suite_extended_strengthened.csv",
+        default="results/tables/five_method_longflight_final.csv",
     )
-    parser.add_argument("--fleet-size", type=int, default=20)
+    parser.add_argument("--fleet-size", type=int, default=10)
     parser.add_argument("--output-dir", default="paper/figures")
     args = parser.parse_args()
 
@@ -93,7 +93,7 @@ def main() -> None:
     ]
     for row in rows:
         match = re.match(r"perf_p=\d+_h=(\d+)$", row["case"])
-        if match:
+        if not row.get("H") and match:
             row["H"] = match.group(1)
     out = Path(args.output_dir)
     suffix = f"_extended_p{args.fleet_size}"

@@ -142,7 +142,7 @@ with an arc-specific big-$M$ value:
 For each possible event start $\theta_r:=\tI{i_r}$, define the active event set
 \begin{equation}
 \mathcal{E}(a,\theta)=\left\{(q,j)\in\mathcal{Z}:\aI{i_q}=a,\quad
-\theta\leq \theta_q<\theta+\delta_A\right\},
+\theta_q\leq \theta<\theta_q+\delta_A\right\},
 \qquad \theta_q:=\tI{i_q}.
 \end{equation}
 At every possible event start, active maintenance occupancy satisfies
@@ -413,11 +413,15 @@ The baseline implementation remains
 \texttt{PaperEventBasedMILPScheduler}. The equivalent reduced implementation
 is \texttt{OptimizedPaperEventBasedMILPScheduler}; keeping both classes makes
 the effect of implementation choices independently reproducible. The exact
-flexible-start mathematical specification is given by
-E14$_{\mathrm{flex}}$--E21$_{\mathrm{flex}}$. The existing
-\texttt{FlexiblePaperEventBasedMILPScheduler} prototype and its reported
-benchmark require implementation and revalidation against these exact overlap
-rows before they can be cited as computational results for this formulation.
+flexible-start formulation is implemented by
+\texttt{FlexiblePaperEventBasedMILPScheduler}: its integer-grid offset,
+comparison binaries, active-at-start indicators, and station-capacity rows
+correspond to E14$_{\mathrm{flex}}$--E21$_{\mathrm{flex}}$. The earlier
+benchmark numbers for the previous flex linearisation are not results for this
+formulation. The regenerated paired measurements are in
+\texttt{results/tables/flexible\_event\_benchmark\_e14\_e21.csv}; the section-07
+tables and figures still require refresh before those measurements are reported
+as paper results.
 
 Table~\ref{tab:ordered_c1_c13} records the correspondence with the numbered
 day-indexed requirements. Some legacy rows disappear because their variables
@@ -517,7 +521,6 @@ model on matched horizon and fleet-size grids.
 \subsection{Complexity and model size of the flexible-start variant}
 \label{subsec:flex_complexity}
 
-is nonzero and the aggregate equals the realised offset. The aggregation costs $n_m$ extra
 The flexible variant keeps E1--E13 verbatim. It adds one grid-valued offset
 $s_{rj}$ per admissible event, at most $n_mn_p$ such variables. The trigger-level
 quantities $\zeta_r$, $S_r$, and $T_r$ in~\eqref{eq:E16_flex} are linear

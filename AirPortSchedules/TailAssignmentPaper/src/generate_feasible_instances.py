@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import math
 from pathlib import Path
 import random
 
@@ -44,6 +45,7 @@ def build_feasible_instance(
     index: int,
     flights_per_aircraft: int | None = None,
     maintenance_families: str = "A",
+    spread_rotations: bool = False,
 ) -> dict:
     """Build a hub-and-spoke instance with maintenance slack baked into every
     rotation, so the seeded schedule is guaranteed maintenance-feasible
@@ -87,7 +89,12 @@ def build_feasible_instance(
         spoke = spoke_airports[aid]
         primary_family = active_families[aid % len(active_families)]
         primary_family_by_aircraft[aid] = primary_family
-        current_day = aid % max(1, h)
+        rotation_spacing = max(2, math.ceil(max(1, h - 1) / max(1, rotations)))
+        current_day = (
+            aid % rotation_spacing
+            if spread_rotations
+            else aid % max(1, h)
+        )
         if primary_family in {"C", "D"}:
             current_day = max(1, current_day)
         # Day spacing keeps per-aircraft rotations non-overlapping and leaves
@@ -139,7 +146,11 @@ def build_feasible_instance(
 
             # Advance to ensure day-based checks remain feasible while still
             # allowing them to trigger on longer horizons.
-            current_day += 2 if rot % 2 == 0 else 1
+            current_day += (
+                rotation_spacing
+                if spread_rotations
+                else 2 if rot % 2 == 0 else 1
+            )
             if current_day >= h:
                 break
 
@@ -171,6 +182,7 @@ def build_feasible_instance(
         "Flights": flights,
         "Maintenance_Thresholds": thresholds,
         "Maintenance_Durations": durations,
+        "Maintenance_Families": active_families,
         "Station_Capacity": station_capacity,
         "Initial_Checks": initial_checks,
         "Cost_Matrix": cost_matrix,
@@ -197,6 +209,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("h", nargs="?", type=int, default=7)
     parser.add_argument("count", nargs="?", type=int, default=1)
     parser.add_argument("--flights-per-aircraft", type=int, default=None)
+    parser.add_argument(
+        "--spread-rotations",
+        action="store_true",
+        help="Spread explicit seeded rotations across the horizon with non-overlapping spacing.",
+    )
     parser.add_argument(
         "--maintenance-families",
         choices=["A", "AB", "ABCD"],
@@ -233,6 +250,7 @@ def main() -> None:
             index,
             flights_per_aircraft=args.flights_per_aircraft,
             maintenance_families=args.maintenance_families,
+            spread_rotations=args.spread_rotations,
         )
         path = output_dir / output_name(args.density, args.p, args.h, index)
         with path.open("w", encoding="utf-8") as handle:

@@ -1,4 +1,4 @@
-"""Plot four A-only formulations against fleet size."""
+"""Plot five A-only formulations against fleet size."""
 
 from __future__ import annotations
 
@@ -51,18 +51,22 @@ def read_rows(path, horizon):
         )
     rows = [
         row for row in rows
-        if (match := re.match(r"perf_p=\d+_h=(\d+)$", row["case"]))
-        and int(match.group(1)) == horizon
+        if int(row.get("H") or re.match(r"perf_p=\d+_h=(\d+)$", row["case"]).group(1))
+        == horizon
     ]
     fleet_sizes = {int(row["P"]) for row in rows}
-    if fleet_sizes != {10, 20, 30, 40, 50}:
-        raise ValueError(f"Expected fleet sizes {{10, 20, 30, 40, 50}}, found {fleet_sizes}")
+    if len(fleet_sizes) < 2:
+        raise ValueError(f"Expected at least two fleet sizes, found {fleet_sizes}")
     return rows
 
 
 def plot_metric(rows, metric, ylabel, output):
     grouped = defaultdict(list)
     for row in rows:
+        if metric in {"cpu_s", "wall_s"} and row.get("status") != "optimal":
+            continue
+        if row.get(metric) in ("", None):
+            continue
         grouped[row["formulation"]].append(row)
     figure, axis = plt.subplots(figsize=(7.0, 4.4), constrained_layout=True)
     for formulation in LABELS:
@@ -89,7 +93,7 @@ def plot_metric(rows, metric, ylabel, output):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--input", default="results/tables/four_method_suite_extended_strengthened.csv")
+    parser.add_argument("--input", default="results/tables/five_method_longflight_final.csv")
     parser.add_argument("--horizon", type=int, default=30)
     parser.add_argument("--output-dir", default="paper/figures")
     args = parser.parse_args()

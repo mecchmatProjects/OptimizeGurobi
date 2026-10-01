@@ -1,0 +1,81 @@
+{
+  "description": "A-only four-method correctness and performance suite",
+  "methods": [
+    "legacy_paper_c13",
+    "legacy_endpoint_split",
+    "legacy_corrected_strengthened",
+    "event_based_optimized",
+    "event_based_flex"
+  ],
+  "regression_cases": [
+    "c13_loophole_test.json",
+    "event_vs_legacy_clean_test.json"
+  ],
+  "performance_grid": [
+    {
+      "P": 5,
+      "H": 7,
+      "file": "perf_p=5_h=7.json"
+    },
+    {
+      "P": 5,
+      "H": 15,
+      "file": "perf_p=5_h=15.json"
+    },
+    {
+      "P": 5,
+      "H": 30,
+      "file": "perf_p=5_h=30.json"
+    },
+    {
+      "P": 10,
+      "H": 7,
+      "file": "perf_p=10_h=7.json"
+    },
+    {
+      "P": 10,
+      "H": 15,
+      "file": "perf_p=10_h=15.json"
+    },
+    {
+      "P": 10,
+      "H": 30,
+      "file": "perf_p=10_h=30.json"
+    },
+    {
+      "P": 20,
+      "H": 7,
+      "file": "perf_p=20_h=7.json"
+    },
+    {
+      "P": 20,
+      "H": 15,
+      "file": "perf_p=20_h=15.json"
+    },
+    {
+      "P": 20,
+      "H": 30,
+      "file": "perf_p=20_h=30.json"
+    },
+    {
+      "P": 40,
+      "H": 7,
+      "file": "perf_p=40_h=7.json"
+    },
+    {
+      "P": 40,
+      "H": 15,
+      "file": "perf_p=40_h=15.json"
+    },
+    {
+      "P": 40,
+      "H": 30,
+      "file": "perf_p=40_h=30.json"
+    }
+  ],
+  "notes": [
+    "Regression cases preserve the canonical inputs by copying them.",
+    "Performance cases are generated with overnight A maintenance and a common JSON input per cell.",
+    "Objective parity is checked only between optimal runs on the same case."
+  ]
+}

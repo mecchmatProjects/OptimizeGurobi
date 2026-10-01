@@ -60,7 +60,11 @@ EXTENDED_PERFORMANCE_GRID = [
 ]
 
 
-def generate_suite(performance_grid) -> None:
+def generate_suite(
+    performance_grid,
+    flights_per_aircraft: int | None = None,
+    spread_rotations: bool = False,
+) -> None:
     SUITE_DIR.mkdir(parents=True, exist_ok=True)
     for path in SUITE_DIR.glob("*.json"):
         path.unlink()
@@ -78,14 +82,18 @@ def generate_suite(performance_grid) -> None:
             p=p,
             h=h,
             index=0,
+            flights_per_aircraft=flights_per_aircraft,
             maintenance_families="A",
+            spread_rotations=spread_rotations,
         )
         path = SUITE_DIR / f"perf_p={p}_h={h}.json"
         path.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
     manifest = {
-        "description": "A-only four-method correctness and performance suite",
+        "description": "A-only five-method correctness and performance suite",
         "methods": list(FORMULATIONS),
+        "flights_per_aircraft": flights_per_aircraft,
+        "spread_rotations": spread_rotations,
         "regression_cases": list(special_cases),
         "performance_grid": [
             {"P": p, "H": h, "file": f"perf_p={p}_h={h}.json"}
@@ -94,7 +102,8 @@ def generate_suite(performance_grid) -> None:
         "notes": [
             "Regression cases preserve the canonical inputs by copying them.",
             "Performance cases are generated with overnight A maintenance and a common JSON input per cell.",
-            "Objective parity is checked only between optimal runs on the same case.",
+            "Fixed-model objective parity is checked on optimal runs for each case.",
+            "The flexible-model objective is checked against the immediate-start relaxation bound.",
         ],
     }
     (SUITE_DIR / "manifest.json").write_text(
@@ -228,21 +237,47 @@ def run_suite(solver: str, executable: str | None, limit: int,
         writer.writerows(summary_rows)
 
     parity_failures = []
+    relaxation_unresolved = []
+    parity_formulations = {
+        "legacy_corrected_strengthened",
+        "event_based_optimized",
+    }
+    parity_formulations.intersection_update(present)
     for case in sorted({row["case"] for row in rows}):
         case_rows = [row for row in rows if row["case"] == case]
-        optimal = [row for row in case_rows if row["status"] == "optimal"]
-        objectives = {round(float(row["objective"]), 6) for row in optimal}
-        if len(optimal) == len(present) and len(objectives) != 1:
-            parity_failures.append((case, sorted(objectives)))
+        by_formulation = {row["formulation"]: row for row in case_rows}
+        fixed_rows = [by_formulation[name] for name in parity_formulations]
+        if fixed_rows and all(row["status"] == "optimal" for row in fixed_rows):
+            fixed_objectives = {
+                round(float(row["objective"]), 6) for row in fixed_rows
+            }
+            if len(fixed_objectives) != 1:
+                parity_failures.append((case, "fixed-objective mismatch", sorted(fixed_objectives)))
+        if "event_based_flex" in by_formulation and "event_based_optimized" in by_formulation:
+            flexible = by_formulation["event_based_flex"]
+            immediate = by_formulation["event_based_optimized"]
+            if immediate["status"] == "optimal" and flexible["status"] in {"infeasible", "ERROR"}:
+                parity_failures.append(
+                    (case, "flex lost an immediate-start feasible case", flexible["status"])
+                )
+            elif immediate["status"] == "optimal" and flexible["status"] != "optimal":
+                relaxation_unresolved.append((case, flexible["status"]))
+            elif (
+                flexible["status"] == "optimal"
+                and immediate["status"] == "optimal"
+                and float(flexible["objective"]) > float(immediate["objective"]) + 1e-6
+            ):
+                parity_failures.append(
+                    (case, "flex objective exceeds immediate-start", flexible["objective"], immediate["objective"])
+                )
     print(f"Wrote {len(rows)} rows to {RESULTS_PATH}")
     print(f"Wrote formulation summary to {SUMMARY_PATH}")
     if parity_failures:
-        print(f"Objective parity failures: {parity_failures}")
+        print(f"Objective comparison failures: {parity_failures}")
     else:
-        print(
-            f"Objective parity passed for every case where all {len(present)} "
-            "methods were optimal."
-        )
+        print("Fixed-formulation parity and flexible relaxation bound passed.")
+    if relaxation_unresolved:
+        print(f"Flexible relaxation bound unresolved for non-optimal runs: {relaxation_unresolved}")
     loophole = [row for row in rows if row["case"] == "c13_loophole_test"]
     if loophole:
         status_by_method = {
@@ -273,6 +308,10 @@ def main() -> None:
         action="store_true",
         help="Use P=10,20,30,40,50 and H=7,15,30,40,50.",
     )
+    parser.add_argument("--fleet-sizes", nargs="+", type=int, default=None)
+    parser.add_argument("--horizons", nargs="+", type=int, default=None)
+    parser.add_argument("--flights-per-aircraft", type=int, default=None)
+    parser.add_argument("--spread-rotations", action="store_true")
     parser.add_argument("--suite-dir", default=None)
     parser.add_argument("--output", default=None)
     parser.add_argument(
@@ -296,6 +335,14 @@ def main() -> None:
     if not args.generate and not args.run:
         parser.error("choose --generate, --run, or both")
     performance_grid = EXTENDED_PERFORMANCE_GRID if args.extended else DEFAULT_PERFORMANCE_GRID
+    if args.fleet_sizes is not None or args.horizons is not None:
+        default_p = sorted({p for p, _ in performance_grid})
+        default_h = sorted({h for _, h in performance_grid})
+        fleet_sizes = args.fleet_sizes or default_p
+        horizons = args.horizons or default_h
+        performance_grid = [
+            (p, h) for p in fleet_sizes for h in horizons
+        ]
     if args.suite_dir:
         SUITE_DIR = ROOT / args.suite_dir
     if args.output:
@@ -304,7 +351,11 @@ def main() -> None:
             f"{RESULTS_PATH.stem}_summary{RESULTS_PATH.suffix}"
         )
     if args.generate:
-        generate_suite(performance_grid)
+        generate_suite(
+            performance_grid,
+            flights_per_aircraft=args.flights_per_aircraft,
+            spread_rotations=args.spread_rotations,
+        )
     if args.run:
         run_suite(
             args.solver,

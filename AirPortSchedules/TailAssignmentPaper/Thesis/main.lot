@@ -4,30 +4,36 @@
 \contentsline {table}{\numberline {3.1}{\ignorespaces Notation for the compact ground-routing model.}}{13}{table.caption.12}%
 \contentsline {table}{\numberline {3.2}{\ignorespaces Six-flight timetable for the illustrative ground assignment.}}{17}{table.caption.13}%
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {4.1}{\ignorespaces Additional notation for the type-A maintenance model.}}{20}{table.caption.14}%
-\contentsline {table}{\numberline {4.2}{\ignorespaces Activation of the original and corrected C13 rows when $Y_{jdd'}^{\circ }=0$. ``Active'' means that $H_{jdd'}\leq T_{\max }^{A}$.}}{23}{table.caption.15}%
+\contentsline {table}{\numberline {4.1}{\ignorespaces Additional notation for the type-A maintenance model.}}{21}{table.caption.14}%
+\contentsline {table}{\numberline {4.2}{\ignorespaces Activation of the original and corrected C13 rows when $Y_{jdd'}^{\circ }=0$. ``Active'' means that $H_{jdd'}\leq T_{\max }^{A}$.}}{25}{table.caption.15}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {6.1}{\ignorespaces Average model size over the 20-instance feasible A family (A-check configuration, as solved).}}{37}{table.caption.16}%
-\contentsline {table}{\numberline {6.2}{\ignorespaces Exact MILP efficacy over the 20-instance feasible A family.}}{40}{table.caption.20}%
+\contentsline {table}{\numberline {6.1}{\ignorespaces Preliminary pairwise versus interval-clique overlap comparison across 30-day M/L/X classical models. Both variants use the same validated start and a 20-second Gurobi limit; none proves optimality.}}{38}{table.caption.16}%
+\contentsline {table}{\numberline {6.2}{\ignorespaces Average model size per tier: baseline versus combined strengthening.}}{41}{table.caption.17}%
+\contentsline {table}{\numberline {6.3}{\ignorespaces Exact-solve outcome per tier: proven optimality, residual MIP gap and runtime.}}{41}{table.caption.19}%
+\contentsline {table}{\numberline {6.4}{\ignorespaces Step~4 integrated LP relaxation results on the Long-family instances with Gurobi (10{,}000-second limit). A dash denotes an unavailable bound.}}{42}{table.caption.20}%
+\contentsline {table}{\numberline {6.5}{\ignorespaces Bound bracket under the combined formulation. The LP--incumbent gap is the integrality gap only when the incumbent is proven optimal; the residual gap is what remained unproved at termination. Heuristic coverage below 100\% means the heuristic cost is not a valid upper bound.}}{43}{table.caption.21}%
+\contentsline {table}{\numberline {6.6}{\ignorespaces Model-size scaling on the larger certified instances. The trigger domain shrinks throughout, but the constraint count can rise when pairwise maintenance conflicts are disaggregated over a large fleet.}}{44}{table.caption.24}%
+\contentsline {table}{\numberline {6.7}{\ignorespaces Certified integrated-model result for the 20-aircraft, 39-day regression instance.}}{45}{table.caption.25}%
 \addvspace {10\p@ }
 \addvspace {10\p@ }
-\contentsline {table}{\numberline {8.1}{\ignorespaces Provenance classes used for the computational results.}}{55}{table.caption.24}%
-\contentsline {table}{\numberline {8.2}{\ignorespaces Operational classification of computational instance difficulty.}}{58}{table.caption.25}%
-\contentsline {table}{\numberline {8.3}{\ignorespaces Scope and interpretation of the exact-feasible comparison reported in the archived computational section \texttt {prev/sections/07\_computational.tex}.}}{59}{table.caption.26}%
-\contentsline {table}{\numberline {8.4}{\ignorespaces Benchmark families and their scientific role.}}{59}{table.caption.27}%
-\contentsline {table}{\numberline {8.5}{\ignorespaces Measured LP relaxation bounds from the repository results \texttt {step4\_lp\_lower\_bounds.csv}. A blank status or bound indicates that the corresponding run ended in an error rather than a certified LP result.}}{60}{table.caption.28}%
-\contentsline {table}{\numberline {8.6}{\ignorespaces Curated hierarchy-suite MILP results from the stored HiGHS batch results. Runtime values belong to this backend and are not pooled with archived CPLEX measurements.}}{60}{table.caption.29}%
-\contentsline {table}{\numberline {8.7}{\ignorespaces Selected sensitivity results from \texttt {step5\_sensitivity\_analysis.csv}.}}{61}{table.caption.30}%
-\contentsline {table}{\numberline {8.8}{\ignorespaces Available targeted C13 evidence. ``Not available'' denotes a result that requires additional matched experiments.}}{62}{table.caption.31}%
-\contentsline {table}{\numberline {8.9}{\ignorespaces Independent validation of the Constraint~(13) loophole from \texttt {results/tables/c13/c13\_loophole\_validation.csv}.}}{63}{table.caption.32}%
-\contentsline {table}{\numberline {8.10}{\ignorespaces Measured method comparison on the capacity-bottleneck boundary instance from \texttt {oop\_all\_methods\_compare\_v2.csv}. Objective values are not comparable without the coverage column.}}{64}{table.caption.33}%
-\contentsline {table}{\numberline {8.11}{\ignorespaces Measured heuristic comparison on the no-maintenance control instance from \texttt {oop\_new\_methods\_smoke.csv}.}}{64}{table.caption.34}%
-\contentsline {table}{\numberline {8.12}{\ignorespaces Measured seven-heuristic tournament on the nine-instance exact-feasible family. Values are aggregated over instances; complete counts refer to schedules assigning all flights.}}{65}{table.caption.35}%
-\contentsline {table}{\numberline {8.13}{\ignorespaces Measured instance-level coverage in the nine-instance, seven-heuristic tournament. Each entry is assigned flights over total flights; therefore the table remains valid even when objective semantics differ.}}{66}{table.caption.36}%
-\contentsline {table}{\numberline {8.14}{\ignorespaces Measured decomposed-cost comparison for the same tournament. The integrated MILP reference includes its assignment cost and the 100-unit maintenance-event penalty. Heuristic totals include assignment, ferry, and maintenance-event costs from route replay. Because the two implementations do not enumerate exactly the same maintenance decisions, these values are reported descriptively rather than converted into universal optimality gaps.}}{66}{table.caption.37}%
-\contentsline {table}{\numberline {8.15}{\ignorespaces MILP-to-timeline semantic alignment on the nine exact-feasible instances. A validated row means that the MILP assignment, when ordered by departure time, replays successfully through the heuristic timeline oracle.}}{67}{table.caption.40}%
-\contentsline {table}{\numberline {8.16}{\ignorespaces Measured hard-versus-soft coverage comparison for Section~\ref {sec:computational_soft_coverage}. Secondary cost is $\DOTSB \sum@ \slimits@ c_{ij}x_{ij}+100\DOTSB \sum@ \slimits@ y_{jdc}$ and excludes the coverage reward term.}}{70}{table.caption.42}%
-\contentsline {table}{\numberline {8.17}{\ignorespaces Current commercial-CPLEX validation of the combined strengthening formulation on the 20-instance feasible A family.}}{71}{table.caption.43}%
-\contentsline {table}{\numberline {8.18}{\ignorespaces Aggregate path-versus-arc results from \texttt {step6\_arc\_vs\_path\_summary.csv}.}}{72}{table.caption.44}%
+\contentsline {table}{\numberline {8.1}{\ignorespaces Provenance classes used for the computational results.}}{59}{table.caption.27}%
+\contentsline {table}{\numberline {8.2}{\ignorespaces Time-limited classical routing runs on 30-day M/L/X Long-family instances. All reported incumbents cover every flight; optimality was not proved within the 60-second limit.}}{60}{table.caption.28}%
+\contentsline {table}{\numberline {8.3}{\ignorespaces Operational classification of computational instance difficulty.}}{63}{table.caption.29}%
+\contentsline {table}{\numberline {8.4}{\ignorespaces Scope and interpretation of the exact-feasible comparison reported in the archived computational section \texttt {prev/sections/07\_computational.tex}.}}{64}{table.caption.30}%
+\contentsline {table}{\numberline {8.5}{\ignorespaces Benchmark families and their scientific role.}}{64}{table.caption.31}%
+\contentsline {table}{\numberline {8.6}{\ignorespaces Measured LP relaxation bounds from the repository results \texttt {step4\_lp\_lower\_bounds.csv}. A blank status or bound indicates that the corresponding run ended in an error rather than a certified LP result.}}{65}{table.caption.32}%
+\contentsline {table}{\numberline {8.7}{\ignorespaces Curated hierarchy-suite MILP results from the stored HiGHS batch results. Runtime values belong to this backend and are not pooled with archived CPLEX measurements.}}{65}{table.caption.33}%
+\contentsline {table}{\numberline {8.8}{\ignorespaces Selected sensitivity results from \texttt {step5\_sensitivity\_analysis.csv}.}}{66}{table.caption.34}%
+\contentsline {table}{\numberline {8.9}{\ignorespaces Available targeted C13 evidence. ``Not available'' denotes a result that requires additional matched experiments.}}{68}{table.caption.35}%
+\contentsline {table}{\numberline {8.10}{\ignorespaces Independent validation of the Constraint~(13) loophole from \texttt {results/tables/c13/c13\_loophole\_validation.csv}.}}{68}{table.caption.36}%
+\contentsline {table}{\numberline {8.11}{\ignorespaces Measured method comparison on the capacity-bottleneck boundary instance from \texttt {oop\_all\_methods\_compare\_v2.csv}. Objective values are not comparable without the coverage column.}}{69}{table.caption.37}%
+\contentsline {table}{\numberline {8.12}{\ignorespaces Measured heuristic comparison on the no-maintenance control instance from \texttt {oop\_new\_methods\_smoke.csv}.}}{70}{table.caption.38}%
+\contentsline {table}{\numberline {8.13}{\ignorespaces Measured seven-heuristic tournament on the nine-instance exact-feasible family. Values are aggregated over instances; complete counts refer to schedules assigning all flights.}}{70}{table.caption.39}%
+\contentsline {table}{\numberline {8.14}{\ignorespaces Measured instance-level coverage in the nine-instance, seven-heuristic tournament. Each entry is assigned flights over total flights; therefore the table remains valid even when objective semantics differ.}}{71}{table.caption.40}%
+\contentsline {table}{\numberline {8.15}{\ignorespaces Measured decomposed-cost comparison for the same tournament. The integrated MILP reference includes its assignment cost and the 100-unit maintenance-event penalty. Heuristic totals include assignment, ferry, and maintenance-event costs from route replay. Because the two implementations do not enumerate exactly the same maintenance decisions, these values are reported descriptively rather than converted into universal optimality gaps.}}{72}{table.caption.41}%
+\contentsline {table}{\numberline {8.16}{\ignorespaces MILP-to-timeline semantic alignment on the nine exact-feasible instances. A validated row means that the MILP assignment, when ordered by departure time, replays successfully through the heuristic timeline oracle.}}{73}{table.caption.44}%
+\contentsline {table}{\numberline {8.17}{\ignorespaces Measured hard-versus-soft coverage comparison for Section~\ref {sec:computational_soft_coverage}. Secondary cost is $\DOTSB \sum@ \slimits@ c_{ij}x_{ij}+100\DOTSB \sum@ \slimits@ y_{jdc}$ and excludes the coverage reward term.}}{75}{table.caption.46}%
+\contentsline {table}{\numberline {8.18}{\ignorespaces Current commercial-CPLEX validation of the combined strengthening formulation on the 20-instance feasible A family.}}{76}{table.caption.47}%
+\contentsline {table}{\numberline {8.19}{\ignorespaces Aggregate path-versus-arc results from \texttt {step6\_arc\_vs\_path\_summary.csv}.}}{77}{table.caption.48}%
 \addvspace {10\p@ }

@@ -46,6 +46,7 @@ make teleportation feasible and T2 would then be incorrect.
 from __future__ import annotations
 
 import argparse
+import time
 import csv
 import logging
 import math
@@ -279,26 +280,22 @@ def solve_pruned_lp(instance_path: Path, *, solver_name: str, time_limit: int,
             z_built, scheduler.z_vars_after_prune,
         )
 
-    for var in model.component_data_objects(ctype=Var):
-        if var.domain == Binary:
-            var.domain = NonNegativeReals
-            var.bounds = (0, 1)
+    from solver_utils import relax_integrality, extract_bounds, termination_of, solve_and_load
+    relax_integrality(model)
 
     solver_kwargs = {"executable": str(executable)} if executable else {}
     solver = SolverFactory(solver_name, **solver_kwargs)
     apply_time_limit(solver, solver_name, time_limit)
     log.info("Solving LP (%s, %ss)", solver_name, time_limit)
-    results = solver.solve(model, tee=False)
+    started = time.perf_counter()
+    results, _loaded, _objective = solve_and_load(solver, model, tee=False)
 
     n_var = len(list(model.component_data_objects(ctype=Var)))
     n_con = len(list(model.component_data_objects(ctype=Constraint)))
-    status = str(results.solver.termination_condition)
-    lp_bound = (
-        pyo_value(model.obj)
-        if results.solver.termination_condition == TerminationCondition.optimal
-        else None
-    )
-    runtime = getattr(results.solver, "time", None) or 0.0
+    status = termination_of(results)
+    dual, _primal, _gap, _nodes = extract_bounds(results)
+    lp_bound = dual if status.lower() == 'optimal' else None
+    runtime = time.perf_counter() - started
     return {
         **sizes,
         "formulation": "integrated" if use_maintenance else "classical",
@@ -330,8 +327,9 @@ def parse_args() -> argparse.Namespace:
                         default="integrated")
     parser.add_argument("--enabled-checks", default="",
                         help="Comma-separated subset of A,B,C,D.")
-    parser.add_argument("--max-hour-check-deferral-days", type=int, default=None,
-                        help="RESTRICTIVE cap on A/B trigger windows. Off by default.")
+    from solver_utils import parse_deferral_days
+    parser.add_argument("--max-hour-check-deferral-days", type=parse_deferral_days, default=None,
+                        help="RESTRICTIVE cap; default none is unrestricted in this exact-pruning experiment.")
     parser.add_argument("--no-prune-x", action="store_true",
                         help="Disable T2 (still reports cost-sparse z for comparison).")
     parser.add_argument("--tight-c13-m", action="store_true")

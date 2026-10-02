@@ -29,21 +29,38 @@ CLI
 --max-hour-check-deferral-days N
                        Cap A/B check deferral to N days past trigger arrival.
                        This is the dominant lever for large z-variable counts
-                       on long-horizon, many-aircraft instances; unset, the
-                       candidate days span the whole remaining horizon.
+                       on long-horizon instances. Default 3; none means no cap.
 """
 
 import argparse
-import json
-import sys
-from pathlib import Path
-import csv
 import logging
+import sys
+import time
+from pathlib import Path
+
+from tqdm import tqdm
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)-8s %(message)s")
 log = logging.getLogger(__name__)
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / 'src'))
+
+from src.experiment_utils import (
+    ExperimentCSV,
+    experiment_metadata,
+    instance_paths,
+)
+from src.solver_utils import (
+    apply_time_limit,
+    extract_bounds,
+    finite,
+    parse_deferral_days,
+    relax_integrality,
+    solve_and_load,
+    termination_of,
+)
 
 DEFAULT_INSTANCES = [
     # Exact-feasible ABCD instances (10-54 flights, full maintenance A/B/C/D)
@@ -59,38 +76,12 @@ DEFAULT_INSTANCES = [
 ]
 
 
-def apply_time_limit(solver, solver_name, time_limit):
-    """Set the wall-clock limit using the option name each backend expects.
-
-    Pyomo solver plugins do not share one option name for the time budget,
-    so silently using the wrong key (e.g. 'TimeLimit' on CPLEX) is accepted
-    without error and simply never binds.
-    """
-    if not time_limit:
-        return
-    name = solver_name.lower()
-    config = getattr(solver, "config", None)
-    if config is not None and hasattr(config, "time_limit"):
-        config.time_limit = float(time_limit)
-        return
-    options = solver.options
-    if "cplex" in name:
-        options["timelimit"] = int(time_limit)
-    elif "gurobi" in name:
-        options["TimeLimit"] = int(time_limit)
-    elif "glpk" in name:
-        options["tmlim"] = int(time_limit)
-    elif "highs" in name:
-        options["time_limit"] = float(time_limit)
-    else:
-        options["TimeLimit"] = int(time_limit)
-
-
-def solve_lp_lower_bound(instance_path, solver_name='highs', time_limit=30,
+def solve_lp_lower_bound(instance_path, solver_name='cplex', time_limit=30,
                           use_maintenance=True, executable=None,
                           enabled_checks=None, sparse_z=False,
                           reachability=False, tight_c13_m=False,
-                          strong_conflicts=False, max_deferral_days=None):
+                          strong_conflicts=False, max_deferral_days=3,
+                          allow_ferry=True, tee=False):
     """
     Compute LP relaxation lower bound for a TAP instance.
 
@@ -108,14 +99,11 @@ def solve_lp_lower_bound(instance_path, solver_name='highs', time_limit=30,
         Restrict the active check types (e.g. ['A']); shrinks the maintenance
         trigger domain by a factor of |enabled_checks| / 4.
     sparse_z, reachability, tight_c13_m, strong_conflicts : bool
-        Strengthening/preprocessing flags from MILP_Sheduler.build_model that
-        shrink the trigger-variable domain without changing the formulation's
-        feasible set; use these for large instances (long horizon, many
-        maintenance-eligible flights) where the full trigger domain is too
-        large to build in reasonable time.
+        Model-building options. The station-wait reachability filter is an
+        experimental restriction, not formulation-equivalent preprocessing.
     max_deferral_days : int | None
         Caps how many days an A/B (flight-hour) check may be deferred past
-        its trigger flight's arrival day. Unset, a trigger's candidate days
+        its trigger flight's arrival day. Explicit None means candidate days
         span the entire remaining horizon, which is the dominant source of
         z-variable blow-up on long-horizon, many-aircraft instances.
 
@@ -123,14 +111,17 @@ def solve_lp_lower_bound(instance_path, solver_name='highs', time_limit=30,
     -------
     dict with keys: instance, n_var, n_con, status, lp_bound, runtime_s
     """
-    from pyomo.environ import (
-        Var, Constraint, Binary, NonNegativeReals, SolverFactory,
-        value as pyo_value, TerminationCondition
-    )
-    from model import MILP_Sheduler
+    from pyomo.environ import Constraint, SolverFactory, Var
+
+    from src.model import MILP_Sheduler
 
     instance_path = Path(instance_path)
     name = instance_path.stem
+    started = time.perf_counter()
+    row = {'instance': name, 'n_var': None, 'n_con': None, 'z_vars': None,
+           'status': 'error', 'lp_bound': None, 'runtime_s': None,
+           'max_deferral_days': max_deferral_days,
+           'restrictive_deferral': use_maintenance and max_deferral_days is not None, 'error': ''}
 
     try:
         # Build model
@@ -146,14 +137,17 @@ def solve_lp_lower_bound(instance_path, solver_name='highs', time_limit=30,
             use_maint_reachability=reachability,
             use_tight_c13_m=tight_c13_m,
             use_strong_maint_conflicts=strong_conflicts,
+            allow_ferry=allow_ferry,
         )
         model = scheduler.model
-
-        # Relax all Binary variables to Continuous [0, 1]
-        for var in model.component_data_objects(ctype=Var):
-            if var.domain == Binary:
-                var.domain = NonNegativeReals
-                var.bounds = (0, 1)
+        if model is None:
+            raise RuntimeError('Model construction returned no model.')
+        relax_integrality(model)
+        row.update(n_var=sum(1 for _ in model.component_data_objects(Var)),
+                   n_con=sum(1 for _ in model.component_data_objects(Constraint)),
+                   z_vars=scheduler.z_var_count, flights=len(scheduler.flight_ids),
+                   aircraft=len(scheduler.aircraft_ids), days=len(scheduler.days),
+                   build_s=time.perf_counter() - started)
 
         # Solve LP
         log.info(f"Solving LP relaxation ({solver_name}, {time_limit}s)")
@@ -161,44 +155,65 @@ def solve_lp_lower_bound(instance_path, solver_name='highs', time_limit=30,
         solver = SolverFactory(solver_name, **solver_kwargs)
         apply_time_limit(solver, solver_name, time_limit)
 
-        results = solver.solve(model, tee=False)
-
-        n_var = len(list(model.component_data_objects(ctype=Var)))
-        n_con = len(list(model.component_data_objects(ctype=Constraint)))
-        status = str(results.solver.termination_condition)
-        lp_bound = pyo_value(model.obj) if results.solver.termination_condition == TerminationCondition.optimal else None
-        runtime = getattr(results.solver, 'time', None)
-        if runtime is None:
-            runtime = 0.0
-
-        log.info(f"  z_vars={scheduler.z_var_count}  LP bound: {lp_bound}, status: {status}, time: {runtime:.1f}s")
-
-        return {
-            'instance': name,
-            'n_var': n_var,
-            'n_con': n_con,
-            'z_vars': scheduler.z_var_count,
-            'status': status,
-            'lp_bound': lp_bound,
-            'runtime_s': runtime
-        }
+        solve_started = time.perf_counter()
+        results, _loaded, _objective = solve_and_load(solver, model, tee=tee)
+        status = termination_of(results)
+        dual, primal, gap, nodes = extract_bounds(results)
+        row.update(status=status, lp_bound=dual if status.lower() == 'optimal' else None,
+                   dual_bound=dual, primal_bound=primal, mip_gap=gap, nodes=nodes,
+                   runtime_s=time.perf_counter() - solve_started)
+        log.info('  z_vars=%s LP bound=%s status=%s', row['z_vars'], row['lp_bound'], status)
 
     except Exception as e:
-        import traceback
-        log.error(f"Failed: {e}")
-        log.error(traceback.format_exc())
-        return {
-            'instance': name,
-            'n_var': None,
-            'n_con': None,
-            'z_vars': None,
-            'status': 'error',
-            'lp_bound': None,
-            'runtime_s': None
-        }
+        log.exception('Failed %s', name)
+        row['error'] = f'{type(e).__name__}: {e}'
+    row['wall_s'] = time.perf_counter() - started
+    return row
 
 
-def parse_args():
+def routing_feasibility_status(instance_path, solver_name='cplex', time_limit=60,
+                               executable=None, allow_ferry=True, return_details=False, **_kwargs):
+    row = solve_lp_lower_bound(instance_path, solver_name=solver_name,
+                               time_limit=time_limit, executable=executable,
+                               use_maintenance=False, allow_ferry=allow_ferry)
+    return row if return_details else row['status']
+
+
+def validate_lp_results(rows, reference=None, atol=1e-6, rtol=1e-8):
+    summary = {'violations': [], 'n_lower_bound_valid': 0, 'unavailable': 0,
+               'uncompared': 0}
+    reference = reference or {}
+    for row in rows:
+        if row.get('status', '').lower() != 'optimal':
+            summary['unavailable'] += 1
+            continue
+        bound = finite(row.get('lp_bound'))
+        if bound is None:
+            summary['violations'].append(f"{row.get('instance')}: non-finite optimal LP bound")
+            continue
+        key = (row.get('instance'), row.get('formulation'))
+        expected = reference.get(key, reference.get(row.get('instance')))
+        if isinstance(expected, dict):
+            config = expected.get('config', {})
+            comparable = {name: 'none' if val is None else str(val) for name, val in config.items()}
+            if any(str(row.get(name)) != val for name, val in comparable.items()):
+                summary['uncompared'] += 1
+                continue
+            expected = expected.get('objective')
+        elif row.get('restrictive_deferral') in (True, 'True', 'true'):
+            summary['uncompared'] += 1
+            continue
+        expected = finite(expected)
+        if expected is None:
+            summary['uncompared'] += 1
+        elif bound > expected + atol + rtol * abs(expected):
+            summary['violations'].append(f"{row.get('instance')}: LP {bound} > reference {expected}")
+        else:
+            summary['n_lower_bound_valid'] += 1
+    return summary
+
+
+def parse_args(argv=None):
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--input-dir', type=Path, default=None,
@@ -210,7 +225,7 @@ def parse_args():
                         default=Path("results/tables/step4_lp_lower_bounds.csv"),
                         help="Output CSV path, or a directory to write "
                              "step4_lp_lower_bounds.csv into.")
-    parser.add_argument('--solver', default='highs')
+    parser.add_argument('--solver', default='cplex')
     parser.add_argument('--executable', type=Path, default=None)
     parser.add_argument('--time-limit', type=int, default=30)
     parser.add_argument('--formulation', choices=('classical', 'integrated', 'both'),
@@ -227,23 +242,30 @@ def parse_args():
                         help="Interval-specific C13 big-M bounds.")
     parser.add_argument('--strong-conflicts', action='store_true',
                         help="Disaggregate C8 into per-flight conflict rows.")
-    parser.add_argument('--max-hour-check-deferral-days', type=int, default=None,
+    parser.add_argument('--max-hour-check-deferral-days', type=parse_deferral_days, default=3,
                         help="Cap how far an A/B check may be deferred past its "
                              "trigger flight's arrival day. Without this, a "
                              "trigger's candidate days span the entire remaining "
                              "horizon, which is the dominant cause of z-variable "
                              "blow-up on long-horizon, many-aircraft instances.")
-    return parser.parse_args()
+    parser.add_argument('--routing-preflight', action='store_true')
+    parser.add_argument('--include-routing-infeasible', action='store_true',
+                        help='Bypass preflight and record that provenance.')
+    parser.add_argument('--preflight-time-limit', type=int, default=60)
+    parser.add_argument('--tee', action='store_true')
+    parser.add_argument('--resume', action='store_true')
+    parser.add_argument('--overwrite', action='store_true')
+    return parser.parse_args(argv)
 
 
-def main():
+def main(argv=None):
     """Compute LP bounds for the requested instances."""
-    args = parse_args()
+    args = parse_args(argv)
 
     enabled_checks = [c.strip().upper() for c in args.enabled_checks.split(',') if c.strip()] or None
 
     if args.input_dir:
-        paths = sorted(args.input_dir.glob(args.pattern))
+        paths = instance_paths(args.input_dir, args.pattern)
         instances_to_solve = [(str(p), 'random-grid') for p in paths]
         if not instances_to_solve:
             log.warning(f"No instances matched {args.input_dir}/{args.pattern}")
@@ -258,55 +280,71 @@ def main():
     formulations = (['classical', 'integrated'] if args.formulation == 'both'
                     else [args.formulation])
 
-    results = []
-    for inst_path, family in instances_to_solve:
-        inst_path = Path(inst_path)
-
-        if not inst_path.exists():
-            log.warning(f"Instance not found: {inst_path}")
-            continue
-
-        log.info(f"\n=== {inst_path.name} ({family}) ===")
-
-        for formulation in formulations:
-            result = solve_lp_lower_bound(
-                inst_path,
-                solver_name=args.solver,
-                time_limit=args.time_limit,
-                use_maintenance=(formulation == 'integrated'),
-                executable=args.executable,
-                enabled_checks=enabled_checks,
-                sparse_z=args.sparse_z,
-                reachability=args.reachability,
-                tight_c13_m=args.tight_c13_m,
-                strong_conflicts=args.strong_conflicts,
-                max_deferral_days=args.max_hour_check_deferral_days,
-            )
-            result['family'] = family
-            result['formulation'] = formulation
-            results.append(result)
-
-    if not results:
-        log.warning("No results to write.")
-        return
-
-    fieldnames = ['instance', 'family', 'formulation', 'n_var', 'n_con',
-                  'z_vars', 'status', 'lp_bound', 'runtime_s']
-
-    with open(output_path, 'w', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
-        for row in results:
-            writer.writerow({k: row.get(k) for k in fieldnames})
-
-    log.info(f"\n\u2713 Wrote LP bounds to {output_path}")
-
-    successful = sum(1 for r in results if r['status'] == 'optimal')
-    log.info(f"\nSummary: {successful}/{len(results)} LP instances solved to optimality")
-
-    for r in results:
-        if r['status'] == 'optimal':
-            log.info(f"  {r['instance']:30s} {r['formulation']:12s} bound={r['lp_bound']:10.0f} vars={r['n_var']:6d} {r['runtime_s']:6.1f}s")
+    paths = [Path(path) for path, _family in instances_to_solve]
+    metadata = experiment_metadata(Path(__file__).resolve().parents[1], paths, vars(args))
+    fieldnames = ['instance', 'family', 'formulation', 'n_var', 'n_con', 'z_vars',
+                  'status', 'lp_bound', 'runtime_s', 'build_s', 'wall_s',
+                  'routing_status', 'preflight_s', 'total_wall_s', 'error',
+                  'max_deferral_days', 'restrictive_deferral', 'reused_preflight',
+                  'dual_bound', 'primal_bound', 'mip_gap', 'nodes']
+    with ExperimentCSV(output_path, fieldnames, metadata, args.resume, args.overwrite) as output, \
+            ExperimentCSV(output_path.with_suffix('.audit.csv'),
+                          ['instance', 'routing_status', 'preflight_s', 'action'],
+                          metadata, args.resume, args.overwrite) as audit:
+        completed = {(row['instance'], row['formulation']) for row in output.previous
+                     if row['status'] not in ('error', 'build-error')}
+        skipped = {row['instance'] for row in audit.previous if row['action'] == 'skipped'}
+        for inst_path, family in tqdm(instances_to_solve, desc='LP instances'):
+            inst_path = Path(inst_path)
+            if not inst_path.exists():
+                log.warning('Missing instance: %s', inst_path)
+                continue
+            if inst_path.stem in skipped:
+                continue
+            pending = [form for form in formulations if (inst_path.stem, form) not in completed]
+            if not pending:
+                continue
+            routing_status = 'included_without_preflight'
+            cached_preflight = None
+            preflight_started = time.perf_counter()
+            if args.routing_preflight and not args.include_routing_infeasible:
+                try:
+                    preflight = routing_feasibility_status(
+                        inst_path, solver_name=args.solver, executable=args.executable,
+                        time_limit=args.preflight_time_limit, return_details=True)
+                    if isinstance(preflight, dict):
+                        cached_preflight = preflight
+                        routing_status = preflight['status']
+                    else:
+                        routing_status = preflight
+                except Exception:
+                    log.exception('Preflight failed; retaining %s', inst_path.stem)
+                    routing_status = 'error'
+            preflight_s = time.perf_counter() - preflight_started
+            skip = routing_status.lower() == 'infeasible'
+            audit.write({'instance': inst_path.stem, 'routing_status': routing_status,
+                         'preflight_s': preflight_s, 'action': 'skipped' if skip else 'retained'})
+            if skip:
+                continue
+            for index, formulation in enumerate(pending):
+                reuse = formulation == 'classical' and cached_preflight is not None and routing_status.lower() == 'optimal'
+                if reuse and isinstance(cached_preflight, dict):
+                    result = cached_preflight.copy()
+                else:
+                    result = solve_lp_lower_bound(
+                        inst_path, solver_name=args.solver, time_limit=args.time_limit,
+                        use_maintenance=(formulation == 'integrated'), executable=args.executable,
+                        enabled_checks=enabled_checks, sparse_z=args.sparse_z,
+                        reachability=args.reachability, tight_c13_m=args.tight_c13_m,
+                        strong_conflicts=args.strong_conflicts,
+                        max_deferral_days=args.max_hour_check_deferral_days, tee=args.tee)
+                result.update(family=family, formulation=formulation, routing_status=routing_status,
+                              reused_preflight=reuse, preflight_s=preflight_s if index == 0 else 0,
+                              total_wall_s=(0 if reuse else result.get('wall_s', 0)) +
+                                            (preflight_s if index == 0 else 0))
+                output.write(result)
+    log.info('Wrote %s (with audit, metadata and log)', output_path)
+    return 0
 
 
 if __name__ == '__main__':

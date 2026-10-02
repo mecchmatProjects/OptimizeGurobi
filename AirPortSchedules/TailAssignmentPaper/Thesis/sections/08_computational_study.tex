@@ -29,9 +29,11 @@ reported comparisons; the computational conclusions therefore reflect the tested
 families and solver protocol rather than a broad probabilistic statement about
 out-of-sample airline operations. In particular, the strengthening result is
 framed as \emph{validated family evidence}: it supports the claim that the
-combined formulation improves the tested feasible family under the declared CPLEX
-configuration, without implying universal superiority across all instance classes
-or all airline schedules.
+combined formulation improves the tested feasible family under its declared
+solver configuration, without implying universal superiority across all instance
+classes or all airline schedules. \textit{The historical strengthening bounds in
+Chapter~\ref{ch:strengthening} use HiGHS; planned long-instance CPLEXamp runs
+do not replace these measurements until their raw outputs have been validated.}
 
 \section{Research questions and evaluation principles}
 \label{sec:computational_questions}
@@ -84,6 +86,13 @@ an instance can be regenerated from its density, fleet size, horizon, and test
 index. Subsequent comparisons should retain the same instance files and should
 not replace an archived result merely because a different solver backend
 produces a more convenient status.
+
+\textit{New Step 4 and bound-study outputs also record the effective deferral
+cap, model options, source and input hashes, solver version and environment.
+The default three-day cap is a restriction; explicit \texttt{none} removes it.
+Routing preflight is opt-in, and its end-to-end overhead must be included in
+performance comparisons. Long-instance results remain pending; no speedup or
+new optimality claim is inferred from the implementation alone.}
 
 For an exact run, the primary measurements are solver status, objective value,
 best bound, relative MIP gap, wall-clock time, explored nodes, number of model

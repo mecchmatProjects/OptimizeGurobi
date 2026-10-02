@@ -172,16 +172,20 @@ Several implementation changes also improve correctness and scalability:
     selected maintenance day without blocking every departure on the whole
     selected day. This avoids the previous over-constraint when hierarchy and
     deferred triggers interact.
-    \item A/B trigger domains use a conservative three-day default deferral cap;
-    an explicit option allows wider experimental domains. The cap is reported
-    because it changes the candidate domain.
+    \item \textit{A/B trigger domains retain the three-day default deferral
+    cap. The explicit option \texttt{--max-hour-check-deferral-days none}
+    restores the full remaining horizon. A finite cap restricts the feasible
+    set; capped runs are not formulation-equivalent to unrestricted runs.}
     \item Effective trigger-day and trigger-flight indexes are cached during
     model construction. The reported $z$ count is the actual instantiated
     Pyomo domain after sparse filtering.
-    \item The Step 4 harness performs a non-ferry C2--C3 routing preflight,
-    skips instances proven routing-infeasible, and records optimal, time-limit,
-    aborted, and error outcomes separately. A non-finite bound is reported as
-    unavailable rather than as a numerical lower bound.
+    \item \textit{The Step 4 harness offers an opt-in maintenance-free routing
+    LP preflight with the target routing and overlap semantics. Only proven
+    LP infeasibility permits skipping an instance; unknown outcomes, time
+    limits and errors retain it. This is a necessary-condition screen, not an
+    integer-feasibility certificate. Its performance benefit remains unmeasured
+    on the long instances. Audit rows include skipped instances and preflight
+    wall time. Non-finite bounds remain unavailable.}
 \end{enumerate}
 
 The C10 builder also skips empty station-day expressions instead of passing a
@@ -209,7 +213,9 @@ bound and an upper bound. The LP relaxation value is a valid lower bound on any
 integer-feasible schedule. During branch and bound, the solver also reports a
 dual bound. Any feasible incumbent is an upper bound. A heuristic cost is an
 upper bound only when it covers every flight; partial schedules are reported
-but excluded from the bracket.
+but excluded from the bracket. \textit{New bound-study runs additionally check
+the complete heuristic certificate against the target model constraints.
+Unrepresentable or failed certificates are reported as costs, not upper bounds.}
 
 For a dual bound $\underline{z}$ and incumbent $\bar z$, the residual gap is
 \begin{equation}
@@ -257,12 +263,21 @@ tier, baseline versus combined strengthening.}
 \section{Bound results}
 
 Table~\ref{tab:strength_bounds_summary} summarises the exact-solve outcome.
-On the Small tier the LP relaxation is integral for every instance. On the
-Medium tier the LP and MILP objectives also coincide to solver tolerance in the
-reported runs. The combined formulation therefore does not improve the LP
-objective on these families; its measured benefit is compactness and runtime.
+\textit{On the Small tier the LP and proven MILP objectives coincide for
+every tested instance; this is a zero objective gap, not a general proof of
+polyhedral integrality. On the Medium tier, instances r4 and r5 have positive
+LP--MILP gaps, approximately $0.373\%$ and $0.197\%$ of the MILP optimum.
+Baseline and combined LP bounds coincide on these instances. The zero residual
+MIP gaps in the summary table mean that the MILPs were solved to optimality,
+not that their relaxations were integral.}
 
 \input{tables/strength_bounds_summary}
+
+\textit{These are historical HiGHS measurements under the recorded experiment
+variants. The historical combined configuration included the experimental
+station-wait reachability restriction. The current combined runner excludes
+that filter; new CPLEXamp runs and unrestricted-deferral experiments must be
+reported separately rather than attributed retrospectively to these timings.}
 
 The regenerated results show the following average reductions:
 \begin{itemize}

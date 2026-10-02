@@ -4,6 +4,7 @@ import os
 import random
 import sys
 import logging
+import time
 from venv import logger
 
 import pandas as pd
@@ -27,8 +28,13 @@ try:
     from pyomo.environ import (ConcreteModel, Set, Var, Objective, Constraint,
                                 ConstraintList, Binary, NonNegativeReals,
                                 minimize, value as pyo_value)
-    from pyomo.contrib.solver.common.util import NoFeasibleSolutionError
-    from pyomo.opt import SolverFactory, TerminationCondition
+    from pyomo.opt import SolverFactory
+    try:
+        from .solver_utils import (parse_deferral_days, apply_time_limit, extract_bounds,
+                                   termination_of, solve_and_load)
+    except ImportError:
+        from solver_utils import (parse_deferral_days, apply_time_limit, extract_bounds,
+                                  termination_of, solve_and_load)
     PYOMO_AVAILABLE = True
 except ImportError:
     PYOMO_AVAILABLE = False
@@ -636,7 +642,7 @@ class MILP_Sheduler:
     }
 
     def __init__(self, data_path, maintenance_airports=None,
-                 max_hour_check_deferral_days=None, enabled_checks=None):
+                 max_hour_check_deferral_days=3, enabled_checks=None):
         """Load data from *data_path* and prepare all MILP index sets.
 
         Parameters
@@ -683,15 +689,7 @@ class MILP_Sheduler:
         self.data = raw
 
         logger.debug(f"Loaded data from {data_path}")
-        # Default to a conservative A/B deferral window.  Without a cap, the
-        # trigger domain can span the full remaining horizon for every eligible
-        # flight, which creates a large z-variable set and over-constrains dense
-        # instances even before the solver begins optimization.  Keep the
-        # explicit override available for experiments that intentionally want a
-        # wider domain.
-        self.max_hour_check_deferral_days = (
-            3 if max_hour_check_deferral_days is None else max_hour_check_deferral_days
-        )
+        self.max_hour_check_deferral_days = parse_deferral_days(max_hour_check_deferral_days)
         # ── Flights ──────────────────────────────────────────────────────────
         self.flight_ids  = []
         self.flight_data = {}
@@ -1152,7 +1150,7 @@ class MILP_Sheduler:
             check hierarchy, duration, day-spacing, hr-accumulation) are
             added.  Set to *False* to solve a pure flight-assignment model
             (no check scheduling) — dramatically fewer constraints, much
-            faster to solve, useful as an upper-bound / relaxation benchmark.
+            faster to solve, useful as a lower-bound relaxation benchmark.
         use_strong_maint_link : bool
             When *True*, use the strengthened sparse trigger-to-assignment
             link for every maintenance check type.  The default preserves
@@ -1187,6 +1185,7 @@ class MILP_Sheduler:
         """
         m = ConcreteModel()
         self.model = m
+        self.solution_loaded = False
         self.use_maintenance = bool(use_maintenance)
         self.use_global_maint_trigger = bool(use_global_maint_trigger)
         self.use_sparse_maint_aircraft_domain = bool(use_sparse_maint_aircraft_domain)
@@ -2103,7 +2102,7 @@ class MILP_Sheduler:
     # ------------------------------------------------------------------
 
     def solve(self, solver_name='cplex', tee=False, out_path=None,
-              time_limit=None, warm_start=False):
+              time_limit=None, warm_start=False, executable=None):
         """Invoke the solver on the built model.
 
         Parameters
@@ -2128,7 +2127,8 @@ class MILP_Sheduler:
             self.warm_start_from_heuristic()
 
         solver_name = solver_name or os.environ.get('TAP_PYOMO_SOLVER', 'cplex_direct')
-        solver = SolverFactory(solver_name)
+        solver_kwargs = {'executable': str(executable)} if executable else {}
+        solver = SolverFactory(solver_name, **solver_kwargs)
 
         # --- solver-specific time-limit options ---
         _sn = solver_name.lower()
@@ -2138,57 +2138,26 @@ class MILP_Sheduler:
             # ~265-408s for h=15+; cut generation further delays the first B&C
             # node.  Disable cuts so CPLEX branches immediately after root LP.
             solver.options['mip limits cutpasses'] = 0
-        if time_limit is not None:
-            if 'gurobi' in _sn:
-                solver.options['TimeLimit'] = int(time_limit)
-            elif 'cplex' in _sn:
-                solver.options['timelimit'] = int(time_limit)
-            elif 'cbc' in _sn:
-                # Pyomo's CBCSHELL hard-codes '-sec' which AMPL-style CBC 2.10+
-                # rejects; pass via timelimit kwarg (same underlying flag) and
-                # fall back to no-limit if it still fails.
-                _solve_kwargs['timelimit'] = int(time_limit)
-            elif 'glpk' in _sn:
-                solver.options['tmlim'] = int(time_limit)
-            else:  # generic fallback (highs, scip, …)
-                solver.options['TimeLimit'] = int(time_limit)
-
-        try:
-            self.results = solver.solve(self.model, **_solve_kwargs)
-        except NoFeasibleSolutionError:
-            self.results = solver.solve(
-                self.model,
-                load_solutions=False,
-                **_solve_kwargs,
-            )
-        except Exception as _exc:
-            # CBC with timelimit kwarg may raise when the selected binary or
-            # wrapper cannot enforce the requested limit. Never re-solve
-            # without a limit: fail fast to avoid silent unlimited runs.
-            if 'cbc' in _sn and 'timelimit' in _solve_kwargs:
-                raise RuntimeError(
-                    "[CBC] Failed to enforce time_limit. "
-                    "Aborting instead of re-solving without a limit. "
-                    "Use a CBC binary/wrapper that supports time limits or "
-                    "run without --time-limit if unlimited runtime is intended."
-                ) from _exc
-            else:
-                raise
+        apply_time_limit(solver, solver_name, time_limit)
+        self.solution_loaded = False
+        started = time.perf_counter()
+        self.results, self.solution_loaded, obj_v = solve_and_load(
+            solver, self.model, **_solve_kwargs)
 
         m   = self.model
         res = self.results
-        tc  = res.solver.termination_condition
+        tc  = termination_of(res)
 
         n_var  = len(list(m.component_data_objects(ctype=Var)))
         n_con  = len(list(m.component_data_objects(ctype=Constraint)))
-        lo     = getattr(res.problem, 'lower_bound', None)
-        hi     = getattr(res.problem, 'upper_bound', None)
-        gap    = abs(hi - lo) / abs(lo) if lo and hi and lo != 0 else None
-        cpu    = getattr(res.solver, 'time', None)
-        obj_v  = pyo_value(m.obj) if tc == TerminationCondition.optimal else None
+        lo, hi, gap, nodes = extract_bounds(res)
+        cpu = time.perf_counter() - started
 
         summary = dict(status=str(tc), n_vars=n_var, n_cons=n_con,
-                       gap=gap, cpu=cpu, obj=obj_v)
+                       gap=gap, cpu=cpu, obj=obj_v, dual_bound=lo,
+                       primal_bound=hi, nodes=nodes,
+                       solution_loaded=self.solution_loaded,
+                       has_incumbent=self.solution_loaded)
         self.print_report(out_path=out_path, summary=summary)
         return summary
 
@@ -2211,7 +2180,7 @@ class MILP_Sheduler:
             _p(f"  Gap    : {g}   CPU: {t}")
             _p(f"  Obj    : {summary['obj']}")
 
-        if not summary or summary.get('status') != str(TerminationCondition.optimal):
+        if not summary or not summary.get('solution_loaded'):
             report = '\n'.join(lines)
             print(report)
             if out_path:
@@ -2266,6 +2235,8 @@ class MILP_Sheduler:
 
         Compatible with the Gantt plotter used for the heuristic output.
         """
+        if not getattr(self, 'solution_loaded', False):
+            raise RuntimeError('No verified solver solution is loaded.')
         m = self.model
         events = []
         for j in m.P:
@@ -2325,10 +2296,13 @@ class MILP_Sheduler:
         show      : bool        Call plt.show() when True.
         fname     : str | None  Path to save event details; if None details are not saved.
         """
+        if not getattr(self, 'solution_loaded', False):
+            logger.warning('Skipping Gantt: no verified solver incumbent.')
+            return
         events    = self.get_events()
         aid_list  = sorted(self.aircraft_ids)
         _plot_gantt(events, aid_list, unassigned_ids=[], save_path=save_path,
-                    show=show, title='MILP Aircraft Schedule', fname=fname)
+                    show=show, title=f'MILP Aircraft Schedule ({termination_of(self.results)})', fname=fname)
 
 
 # ----------------------------
@@ -2370,6 +2344,9 @@ def _plot_gantt(events, aid_list, unassigned_flights=None, unassigned_ids=None,
             print(f"Skipping Gantt plot (matplotlib unavailable): {save_path}")
         return
 
+    for output in (save_path, fname):
+        if output:
+            os.makedirs(os.path.dirname(os.path.abspath(output)), exist_ok=True)
     colors = _GANTT_COLORS
     fig, ax = plt.subplots(figsize=(18, max(6, len(aid_list) * 0.6 + 2)))
 
@@ -2552,6 +2529,7 @@ def run_heuristic(data_path='data18h.json', csv_path='final_schedule.csv',
     if verbose:
         print(df.to_string())
     if csv_path:
+        os.makedirs(os.path.dirname(os.path.abspath(csv_path)), exist_ok=True)
         df.to_csv(csv_path, index=False)
         if verbose:
             print(f"\nTable saved -> {csv_path}")
@@ -2572,7 +2550,7 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
              use_check_hierarchy=True, use_sanity=False, use_overlap=True,
              use_clique_overlap=True,
              allow_ferry=True, use_maintenance=True, warm_start=True,
-             max_hour_check_deferral_days=None, enabled_checks=None,
+             max_hour_check_deferral_days=3, enabled_checks=None,
              use_paper_c13=False, use_strong_maint_link=False,
              use_sparse_maint_aircraft_domain=True,
              use_global_maint_trigger=False,
@@ -2580,7 +2558,8 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
              use_aircraft_routing_reachability=False,
              use_tight_c13_m=False,
              soft_coverage=False,
-             coverage_weight=1_000_000.0):
+             coverage_weight=1_000_000.0, executable=None,
+             use_maint_reachability=False, use_strong_maint_conflicts=False):
     """Build and solve the MILP model, then display results.
 
     Parameters
@@ -2589,8 +2568,7 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
     allow_ferry    : bool        When False, C2-C3 routing constraints omitted.
     use_maintenance: bool        When False, all maintenance constraints omitted
                                  (pure flight-assignment relaxation).
-    warm_start     : bool        When True (default), seed MILP x-variables with
-                                 the greedy heuristic solution before solving.
+    warm_start     : bool        Legacy tuning switch; heuristic seeding is a no-op.
     enabled_checks : list[str] | None
         Active maintenance check types to model (subset of A,B,C,D).
         None keeps all four checks active.
@@ -2607,6 +2585,8 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
         max_hour_check_deferral_days=max_hour_check_deferral_days,
         enabled_checks=enabled_checks,
     )
+    if out_txt:
+        os.makedirs(os.path.dirname(os.path.abspath(out_txt)), exist_ok=True)
     opt.build_model(use_day_spacing=use_day_spacing,
                     use_existing_hrs=use_existing_hrs,
                     use_check_hierarchy=use_check_hierarchy,
@@ -2621,11 +2601,13 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
                     use_day_specific_maintenance_bounds=use_day_specific_maintenance_bounds,
                     use_aircraft_routing_reachability=use_aircraft_routing_reachability,
                     use_tight_c13_m=use_tight_c13_m,
+                    use_maint_reachability=use_maint_reachability,
+                    use_strong_maint_conflicts=use_strong_maint_conflicts,
                     use_paper_c13=use_paper_c13,
                     soft_coverage=soft_coverage,
                     coverage_weight=coverage_weight)
     summary = opt.solve(solver_name=solver, tee=tee, out_path=out_txt,
-                        time_limit=time_limit, warm_start=warm_start)
+                        time_limit=time_limit, warm_start=warm_start, executable=executable)
     opt.plot_gantt(save_path=gantt_path, show=show_gantt, fname=f'{out_txt[:-4]}_events.txt' if out_txt else None)
     return opt, summary
 
@@ -2635,11 +2617,12 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
 # ----------------------------
 
 def _run_one_heuristic(fp, out_dir, stem, show_gantt, allow_ferry=True,
-                       heuristic='greedy+insertion'):
+                       heuristic='greedy+insertion', figure_dir='results/figures'):
     """Run heuristic on a single file; return metrics dict."""
     import time, os
     csv_out   = os.path.join(out_dir, f'{stem}_heu_schedule.csv')
-    gantt_out = os.path.join(out_dir, f'{stem}_heu_gantt.png')
+    os.makedirs(figure_dir, exist_ok=True)
+    gantt_out = os.path.join(figure_dir, f'{stem}_heu_gantt.png')
     txt_out   = os.path.join(out_dir, f'{stem}_heu_summary.txt')
     t0 = time.time()
     sc, ac_fids, unassigned = run_heuristic(
@@ -2688,17 +2671,20 @@ def _run_one_milp(fp, out_dir, stem, solver, tee, show_gantt, time_limit,
                   allow_ferry=True, use_maintenance=True,
                   use_overlap=True, use_clique_overlap=True,
                   use_sanity=False, warm_start=True,
-                  use_check_hierarchy=True, max_hour_check_deferral_days=None,
+                  use_check_hierarchy=True, max_hour_check_deferral_days=3,
                   enabled_checks=None, use_paper_c13=False,
                   use_strong_maint_link=False,
                   use_sparse_maint_aircraft_domain=True,
                   use_global_maint_trigger=False,
                   use_day_specific_maintenance_bounds=True,
                   use_aircraft_routing_reachability=False,
-                  use_tight_c13_m=False):
+                  use_tight_c13_m=False, executable=None,
+                  use_maint_reachability=False, use_strong_maint_conflicts=False,
+                  figure_dir='results/figures'):
     """Run MILP on a single file; return metrics dict."""
     import time, os
-    gantt_out = os.path.join(out_dir, f'{stem}_milp_gantt.png')
+    os.makedirs(figure_dir, exist_ok=True)
+    gantt_out = os.path.join(figure_dir, f'{stem}_milp_gantt.png')
     txt_out   = os.path.join(out_dir, f'{stem}_milp_summary.txt')
     t0 = time.time()
     opt, info = run_milp(
@@ -2721,6 +2707,8 @@ def _run_one_milp(fp, out_dir, stem, solver, tee, show_gantt, time_limit,
         use_day_specific_maintenance_bounds=use_day_specific_maintenance_bounds,
         use_aircraft_routing_reachability=use_aircraft_routing_reachability,
         use_tight_c13_m=use_tight_c13_m,
+        executable=executable, use_maint_reachability=use_maint_reachability,
+        use_strong_maint_conflicts=use_strong_maint_conflicts,
     )
     cpu = time.time() - t0
 
@@ -2729,7 +2717,7 @@ def _run_one_milp(fp, out_dir, stem, solver, tee, show_gantt, time_limit,
     n_assigned = sum(
         1 for i in m.F for j in opt._x_aircrafts_for_flight(i)
         if pyo_value(m.x[i, j]) > 0.5
-    )
+    ) if info.get('solution_loaded') else None
     n_total    = len(list(m.F))
 
     gap_text = f"{info['gap'] * 100:.2f}%" if info.get('gap') else '-'
@@ -2738,9 +2726,10 @@ def _run_one_milp(fp, out_dir, stem, solver, tee, show_gantt, time_limit,
     print(f"          png->{gantt_out}")
     return {
         'stem': stem, 'mode': 'milp',
-        'flights': n_total, 'assigned': n_assigned, 'unassigned': n_total - n_assigned,
-        'cost': round(info.get('obj') or 0, 2), 'obj': round(info.get('obj') or 0, 2),
-        'gap_%': round(info['gap'] * 100, 4) if info.get('gap') else None,
+        'flights': n_total, 'assigned': n_assigned,
+        'unassigned': n_total - n_assigned if n_assigned is not None else None,
+        'cost': info.get('obj'), 'obj': info.get('obj'),
+        'gap_%': round(info['gap'] * 100, 4) if info.get('gap') is not None else None,
         'status': info.get('status'), 'cpu_s': round(cpu, 2),
     }
 
@@ -2798,20 +2787,22 @@ def _plot_comparison(rows, out_dir):
     print(f"\n[batch] Comparison chart -> {cmp_path}")
 
 
-def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
+def run_batch(input_dir='Inputs', output_dir='results/tables', mode='both',
               solver='cplex', tee=False, show_gantt=False, time_limit=300,
               allow_ferry=True, heuristic='greedy+insertion',
               use_maintenance=True,
               use_overlap=True, use_clique_overlap=True,
               use_sanity=False, warm_start=True,
-              use_check_hierarchy=True, max_hour_check_deferral_days=None,
+              use_check_hierarchy=True, max_hour_check_deferral_days=3,
               enabled_checks=None, use_paper_c13=False,
               use_strong_maint_link=False,
               use_sparse_maint_aircraft_domain=True,
               use_global_maint_trigger=False,
               use_day_specific_maintenance_bounds=True,
               use_aircraft_routing_reachability=False,
-              use_tight_c13_m=False):
+              use_tight_c13_m=False, executable=None,
+              use_maint_reachability=False, use_strong_maint_conflicts=False,
+              figure_dir='results/figures'):
     """Process every JSON file in *input_dir* and write results to *output_dir*.
 
     For each dataset the following files are created in output_dir::
@@ -2845,6 +2836,7 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
     import os, glob, time
 
     os.makedirs(output_dir, exist_ok=True)
+    os.makedirs(figure_dir, exist_ok=True)
     json_files = sorted(glob.glob(os.path.join(input_dir, '*.json')))
     if not json_files:
         print(f"[batch] No JSON files found in '{input_dir}'"); return
@@ -2887,7 +2879,7 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
             try:
                 row = _run_one_heuristic(fp, output_dir, stem, show_gantt,
                                          allow_ferry=allow_ferry,
-                                         heuristic=heuristic)
+                                         heuristic=heuristic, figure_dir=figure_dir)
                 all_rows.append(row)
             except Exception as exc:
                 print(f"  ✗ [heuristic] {exc}")
@@ -2913,6 +2905,9 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
                                     use_day_specific_maintenance_bounds=use_day_specific_maintenance_bounds,
                                     use_aircraft_routing_reachability=use_aircraft_routing_reachability,
                                     use_tight_c13_m=use_tight_c13_m,
+                                    executable=executable, figure_dir=figure_dir,
+                                    use_maint_reachability=use_maint_reachability,
+                                    use_strong_maint_conflicts=use_strong_maint_conflicts,
                                     )
                 all_rows.append(row)
             except Exception as exc:
@@ -2934,7 +2929,7 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
 
         # Comparison chart (only when both modes ran)
         if mode == 'both':
-            _plot_comparison(all_rows, output_dir)
+            _plot_comparison(all_rows, figure_dir)
 
     return all_rows
 
@@ -3013,12 +3008,17 @@ def main():
                         help='JSON data file  (single-file modes)')
     parser.add_argument('--input-dir',   default='Inputs',
                         help='Input folder for batch mode  (default: Inputs)')
-    parser.add_argument('--output-dir',  default='Outputs',
+    parser.add_argument('--output-dir',  default='results/tables',
                         help='Output folder for batch mode  (default: Outputs)')
     parser.add_argument('--solver',      default=os.environ.get('TAP_PYOMO_SOLVER', 'cplex_direct'),
                         help='Pyomo solver name  (default: TAP_PYOMO_SOLVER or cplex_direct)')
     parser.add_argument('--time-limit',  type=int, default=300,
                         help='Solver time limit in seconds for MILP  (default: 300)')
+    parser.add_argument('--executable', default=None)
+    parser.add_argument('--figure-dir', default='results/figures')
+    parser.add_argument('--maint-reachability', action='store_true',
+                        help='Experimental restrictive station-wait filter, not exact preprocessing.')
+    parser.add_argument('--strong-conflicts', action='store_true')
     parser.add_argument('--tee',         action='store_true',
                         help='Stream solver log to stdout  (MILP modes)')
     parser.add_argument('--out',         default=None,
@@ -3066,9 +3066,9 @@ def main():
                         help='Do not seed MILP with heuristic solution (warm start OFF).')
     parser.add_argument('--no-check-hierarchy', dest='use_check_hierarchy', action='store_false',
                         help='Omit check hierarchy constraints from MILP.')
-    parser.add_argument('--max-hour-check-deferral-days', type=int, default=None,
+    parser.add_argument('--max-hour-check-deferral-days', type=parse_deferral_days, default=3,
                         help='Cap how many days after arrival an A/B check may be deferred. '
-                             'Use 0 for same-day only; default keeps the full horizon.')
+                             'Default 3; use none for unrestricted or 0 for same-day only.')
     parser.add_argument('--only-checks', nargs='+', default=None,
                         metavar='CHECK',
                         help='Enable only selected maintenance check types (A B C D). '
@@ -3114,6 +3114,9 @@ def main():
     elif args.mode == 'milp':
         run_milp(data_path=args.data,
                  solver=args.solver, tee=args.tee,
+                 executable=args.executable,
+                 use_maint_reachability=args.maint_reachability,
+                 use_strong_maint_conflicts=args.strong_conflicts,
                  time_limit=args.time_limit,
                  out_txt=args.out, gantt_path=args.gantt, show_gantt=args.show,
                  allow_ferry=args.allow_ferry,
@@ -3138,6 +3141,9 @@ def main():
     else:  # batch
         run_batch(input_dir=args.input_dir,
                   output_dir=args.output_dir,
+                  executable=args.executable, figure_dir=args.figure_dir,
+                  use_maint_reachability=args.maint_reachability,
+                  use_strong_maint_conflicts=args.strong_conflicts,
                   mode=args.batch_mode,
                   solver=args.solver, tee=args.tee,
                   heuristic=args.heuristic,

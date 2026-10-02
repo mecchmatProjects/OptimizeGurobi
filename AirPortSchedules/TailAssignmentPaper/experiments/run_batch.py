@@ -33,6 +33,7 @@ import fnmatch
 import json
 import os
 import subprocess
+import shlex
 import sys
 import time
 
@@ -68,13 +69,13 @@ def run_one(instance_path: str, mode: str, solver: str, time_limit: int,
             output_dir: str, extra_flags: list[str], method: str = '') -> dict:
     """Invoke src/model.py for a single instance and return result dict."""
     stem = os.path.splitext(os.path.basename(instance_path))[0]
-    out_prefix = os.path.join(output_dir, stem)
+    out_prefix = os.path.join(output_dir, f'{stem}_{mode}')
 
     cmd = [
         PYTHON, MODEL_SCRIPT,
         '--mode', mode,
         '--data', instance_path,
-        '--out', out_prefix,
+        '--out', out_prefix + ('.csv' if mode == 'heuristic' else '.txt'),
         '--no-show',
     ]
     if mode in ('milp', 'both'):
@@ -195,6 +196,18 @@ def run_one(instance_path: str, mode: str, solver: str, time_limit: int,
         classification = _classify_result(returncode, stdout, stderr)
         result.update(classification)
 
+    try:
+        with open(instance_path, encoding='utf-8') as handle:
+            data = json.load(handle)
+        result['P'] = len(data['Aircrafts'])
+        result['F'] = len(data['Flights'])
+        result['H'] = data.get('Parameters', {}).get('Target_Horizon_Days')
+        if result['H'] is None:
+            result['H'] = max(int(float(flight[4]) // 1440) + 1 for flight in data['Flights'])
+    except (OSError, ValueError, KeyError):
+        pass
+    result.update(vars=result.get('num_vars'), constraints=result.get('num_constraints'),
+                  nodes_max=None)
     return result
 
 
@@ -207,6 +220,7 @@ def write_summary(rows: list[dict], output_dir: str, label: str) -> str:
         'stem', 'method', 'mode', 'flights', 'assigned', 'unassigned',
         'status', 'objective', 'gap_pct', 'cpu_s', 'wall_s',
         'num_vars', 'num_constraints', 'returncode',
+        'P', 'H', 'F', 'vars', 'constraints', 'nodes_max',
     ]
     with open(out_path, 'w', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction='ignore')
@@ -240,11 +254,15 @@ def main():
                         help='Method label written to the method column (default: mode value)')
     parser.add_argument('--extra-flags', default='',
                         help='Extra flags forwarded verbatim to src/model.py')
+    parser.add_argument('--executable', default=None)
+    parser.add_argument('--figure-dir', default='results/figures')
     parser.add_argument('--dry-run', action='store_true',
                         help='Print commands without running them')
     args = parser.parse_args()
 
-    extra = [f for f in args.extra_flags.split() if f]
+    extra = [token.strip('"') for token in shlex.split(args.extra_flags, posix=False)]
+    if args.executable:
+        extra += ['--executable', args.executable]
     instances = find_instances(args.input_dir, args.pattern)
 
     if not instances:
@@ -266,8 +284,11 @@ def main():
                 continue
             print(f'  Running {os.path.basename(inst)}  mode={m} ...', end=' ',
                   flush=True)
+            stem = os.path.splitext(os.path.basename(inst))[0]
+            os.makedirs(args.figure_dir, exist_ok=True)
+            plot = os.path.join(args.figure_dir, f'{stem}_{m}_gantt.png')
             row = run_one(inst, m, args.solver, args.time_limit,
-                          args.output_dir, extra, method=args.method)
+                          args.output_dir, extra + ['--gantt', plot], method=args.method)
             rows.append(row)
             status = row.get('status', '?')
             obj = row.get('objective', '-')

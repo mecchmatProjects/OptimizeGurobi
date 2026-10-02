@@ -22,6 +22,7 @@ env/
 *.log
 *.nlp
 cplex.log
+*.xxx
 
 # Editor / OS
 .vscode/settings.json
@@ -36,6 +37,10 @@ results/tables/*.csv
 results/figures/*.png
 results/figures/*.pdf
 !results/reference/
+
+# Local validation outputs, not publication evidence
+results/tables/review_20261002/smoke*
+results/tables/review_20261002/historical*
 
 # LaTeX build artefacts
 paper/*.aux

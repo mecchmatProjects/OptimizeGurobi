@@ -19,94 +19,98 @@
 \contentsline {chapter}{\numberline {3}The Ground Routing Model}{11}{chapter.3}%
 \contentsline {section}{\numberline {3.1}Scope and modelling assumptions}{11}{section.3.1}%
 \contentsline {section}{\numberline {3.2}Sets, parameters, and cumulative flight sets}{12}{section.3.2}%
-\contentsline {section}{\numberline {3.3}Compact mixed-integer formulation}{12}{section.3.3}%
+\contentsline {section}{\numberline {3.3}Compact mixed-integer formulation}{13}{section.3.3}%
 \contentsline {subsection}{\numberline {3.3.1}C1: flight coverage}{13}{subsection.3.3.1}%
-\contentsline {subsection}{\numberline {3.3.2}C2: continuity at non-initial airports}{13}{subsection.3.3.2}%
+\contentsline {subsection}{\numberline {3.3.2}C2: continuity at non-initial airports}{14}{subsection.3.3.2}%
 \contentsline {subsection}{\numberline {3.3.3}C3: continuity at the initial airport}{14}{subsection.3.3.3}%
 \contentsline {section}{\numberline {3.4}Interpretation and validity of the balances}{14}{section.3.4}%
-\contentsline {section}{\numberline {3.5}Equal-time departure counterexample}{14}{section.3.5}%
+\contentsline {section}{\numberline {3.5}Equal-time departure counterexample}{15}{section.3.5}%
 \contentsline {section}{\numberline {3.6}Conflict graph and corrected feasibility model}{15}{section.3.6}%
 \contentsline {section}{\numberline {3.7}Model size and computational implications}{16}{section.3.7}%
-\contentsline {section}{\numberline {3.8}Illustrative non-cyclic assignment}{16}{section.3.8}%
+\contentsline {section}{\numberline {3.8}Illustrative non-cyclic assignment}{17}{section.3.8}%
 \contentsline {section}{\numberline {3.9}Chapter summary}{17}{section.3.9}%
-\contentsline {chapter}{\numberline {4}Maintenance-Extended Model and the Correction of Constraint (13)}{18}{chapter.4}%
-\contentsline {section}{\numberline {4.1}Scope and operational assumptions}{18}{section.4.1}%
-\contentsline {section}{\numberline {4.2}Sets, parameters, and auxiliary definitions}{19}{section.4.2}%
-\contentsline {section}{\numberline {4.3}Maintenance decision variables}{19}{section.4.3}%
-\contentsline {section}{\numberline {4.4}Extended objective function}{20}{section.4.4}%
-\contentsline {section}{\numberline {4.5}Maintenance-event feasibility}{21}{section.4.5}%
-\contentsline {subsection}{\numberline {4.5.1}C8: blocking subsequent same-day flights}{21}{subsection.4.5.1}%
-\contentsline {subsection}{\numberline {4.5.2}C9: coupling a check to its trigger flight}{21}{subsection.4.5.2}%
-\contentsline {subsection}{\numberline {4.5.3}C10: airport-day maintenance capacity}{21}{subsection.4.5.3}%
-\contentsline {subsection}{\numberline {4.5.4}C11 and C14: daily aggregation and uniqueness}{21}{subsection.4.5.4}%
-\contentsline {subsection}{\numberline {4.5.5}C12: maximum calendar spacing}{22}{subsection.4.5.5}%
-\contentsline {section}{\numberline {4.6}Original cumulative-hour constraint}{22}{section.4.6}%
-\contentsline {section}{\numberline {4.7}Corrected endpoint-anchored formulation}{23}{section.4.7}%
-\contentsline {section}{\numberline {4.8}Pre-horizon accumulated hours}{24}{section.4.8}%
-\contentsline {section}{\numberline {4.9}Choice of the big-$M$ coefficient}{24}{section.4.9}%
-\contentsline {section}{\numberline {4.10}Physical interpretation and model validity}{25}{section.4.10}%
-\contentsline {section}{\numberline {4.11}Complete single-type formulation and size}{25}{section.4.11}%
-\contentsline {chapter}{\numberline {5}Full A/B/C/D Maintenance Hierarchy}{27}{chapter.5}%
-\contentsline {section}{\numberline {5.1}Application representation of the hierarchy}{27}{section.5.1}%
-\contentsline {section}{\numberline {5.2}Check types and regulatory hierarchy}{28}{section.5.2}%
-\contentsline {section}{\numberline {5.3}Hierarchy constraints}{29}{section.5.3}%
-\contentsline {section}{\numberline {5.4}Flight-hour checks: types A and B}{30}{section.5.4}%
-\contentsline {subsection}{\numberline {5.4.1}Maximum-spacing requirement}{30}{subsection.5.4.1}%
-\contentsline {section}{\numberline {5.5}Calendar-day checks: types C and D}{31}{section.5.5}%
-\contentsline {section}{\numberline {5.6}Pre-horizon state accounting}{32}{section.5.6}%
-\contentsline {section}{\numberline {5.7}Model size and operational implications}{32}{section.5.7}%
-\contentsline {chapter}{\numberline {6}MILP Strengthening}{34}{chapter.6}%
-\contentsline {section}{\numberline {6.1}Research questions and baseline}{34}{section.6.1}%
-\contentsline {section}{\numberline {6.2}Strengthening methods}{35}{section.6.2}%
-\contentsline {subsection}{\numberline {6.2.1}Aircraft-compatible maintenance domains}{35}{subsection.6.2.1}%
-\contentsline {subsection}{\numberline {6.2.2}Deferred-trigger reachability}{35}{subsection.6.2.2}%
-\contentsline {subsection}{\numberline {6.2.3}Strong trigger linking}{35}{subsection.6.2.3}%
-\contentsline {subsection}{\numberline {6.2.4}Interval-specific C13 bounds}{35}{subsection.6.2.4}%
-\contentsline {subsection}{\numberline {6.2.5}Pairwise maintenance conflicts}{36}{subsection.6.2.5}%
-\contentsline {section}{\numberline {6.3}Combined formulation}{36}{section.6.3}%
-\contentsline {section}{\numberline {6.4}Correctness and implementation checks}{36}{section.6.4}%
-\contentsline {section}{\numberline {6.5}Benchmark design}{37}{section.6.5}%
-\contentsline {section}{\numberline {6.6}Model-size results}{37}{section.6.6}%
-\contentsline {section}{\numberline {6.7}LP-relaxation results}{38}{section.6.7}%
-\contentsline {section}{\numberline {6.8}MILP results}{40}{section.6.8}%
-\contentsline {section}{\numberline {6.9}Interpretation and limitations}{40}{section.6.9}%
-\contentsline {section}{\numberline {6.10}Reproducibility}{42}{section.6.10}%
-\contentsline {chapter}{\numberline {7}Heuristic Solution Methods}{43}{chapter.7}%
-\contentsline {section}{\numberline {7.1}Taxonomy of heuristic methods}{43}{section.7.1}%
-\contentsline {section}{\numberline {7.2}Shared feasibility oracle}{44}{section.7.2}%
-\contentsline {section}{\numberline {7.3}Greedy construction}{45}{section.7.3}%
-\contentsline {section}{\numberline {7.4}Insertion-based construction and repair}{46}{section.7.4}%
-\contentsline {section}{\numberline {7.5}Ferry and no-ferry variants}{46}{section.7.5}%
-\contentsline {section}{\numberline {7.6}Path-based and arc-based representations}{47}{section.7.6}%
-\contentsline {section}{\numberline {7.7}Modified Dijkstra heuristic}{48}{section.7.7}%
-\contentsline {section}{\numberline {7.8}Ant colony optimisation heuristic}{48}{section.7.8}%
-\contentsline {section}{\numberline {7.9}Application workflow and generated schedules}{49}{section.7.9}%
-\contentsline {section}{\numberline {7.10}Quality assessment and computational role}{50}{section.7.10}%
-\contentsline {chapter}{\numberline {8}Computational Study}{52}{chapter.8}%
-\contentsline {section}{\numberline {8.1}Scope and limitations}{52}{section.8.1}%
-\contentsline {section}{\numberline {8.2}Research questions and evaluation principles}{53}{section.8.2}%
-\contentsline {section}{\numberline {8.3}Software, hardware, and reproducibility protocol}{53}{section.8.3}%
-\contentsline {subsection}{\numberline {8.3.1}Execution protocol}{54}{subsection.8.3.1}%
-\contentsline {section}{\numberline {8.4}Benchmark families}{55}{section.8.4}%
-\contentsline {subsection}{\numberline {8.4.1}Data construction and instance classification}{56}{subsection.8.4.1}%
-\contentsline {subsection}{\numberline {8.4.2}Exact-feasible comparison and heuristic improvement}{57}{subsection.8.4.2}%
-\contentsline {section}{\numberline {8.5}Measured exact-model results}{59}{section.8.5}%
-\contentsline {subsection}{\numberline {8.5.1}Curated hierarchy-suite results}{60}{subsection.8.5.1}%
-\contentsline {subsection}{\numberline {8.5.2}Sensitivity to thresholds, durations, and capacity}{60}{subsection.8.5.2}%
-\contentsline {section}{\numberline {8.6}Constraint (13) and hierarchy validation}{61}{section.8.6}%
-\contentsline {subsection}{\numberline {8.6.1}Dedicated loophole validation}{63}{subsection.8.6.1}%
-\contentsline {section}{\numberline {8.7}Heuristic tournament}{63}{section.8.7}%
-\contentsline {section}{\numberline {8.8}Alternative soft-coverage formulation}{68}{section.8.8}%
-\contentsline {section}{\numberline {8.9}LP lower bounds and gap reporting}{69}{section.8.9}%
-\contentsline {section}{\numberline {8.10}Current commercial-CPLEX strengthening validation}{70}{section.8.10}%
-\contentsline {section}{\numberline {8.11}Path-based versus arc-based computation}{71}{section.8.11}%
-\contentsline {section}{\numberline {8.12}Extended comparison and reporting template}{73}{section.8.12}%
-\contentsline {section}{\numberline {8.13}Summary of measured evidence and remaining comparisons}{73}{section.8.13}%
-\contentsline {section}{\numberline {8.14}Threats to validity}{74}{section.8.14}%
-\contentsline {section}{\numberline {8.15}Directions for strengthening the exact formulation}{74}{section.8.15}%
-\contentsline {chapter}{\numberline {9}Conclusion}{76}{chapter.9}%
-\contentsline {paragraph}{Correction of the basic feasibility model.}{76}{section*.46}%
-\contentsline {paragraph}{Correction of Constraint~(13).}{76}{section*.47}%
-\contentsline {paragraph}{Full A/B/C/D hierarchy extension.}{77}{section*.48}%
-\contentsline {paragraph}{Heuristic methods and computational evaluation.}{77}{section*.49}%
-\contentsline {paragraph}{MILP strengthening and current CPLEX validation.}{77}{section*.50}%
+\contentsline {chapter}{\numberline {4}Maintenance-Extended Model and the Correction of Constraint (13)}{19}{chapter.4}%
+\contentsline {section}{\numberline {4.1}Scope and operational assumptions}{19}{section.4.1}%
+\contentsline {section}{\numberline {4.2}Sets, parameters, and auxiliary definitions}{20}{section.4.2}%
+\contentsline {section}{\numberline {4.3}Maintenance decision variables}{20}{section.4.3}%
+\contentsline {section}{\numberline {4.4}Extended objective function}{21}{section.4.4}%
+\contentsline {section}{\numberline {4.5}Maintenance-event feasibility}{22}{section.4.5}%
+\contentsline {subsection}{\numberline {4.5.1}C8: blocking subsequent same-day flights}{22}{subsection.4.5.1}%
+\contentsline {subsection}{\numberline {4.5.2}C9: coupling a check to its trigger flight}{22}{subsection.4.5.2}%
+\contentsline {subsection}{\numberline {4.5.3}C10: airport-day maintenance capacity}{22}{subsection.4.5.3}%
+\contentsline {subsection}{\numberline {4.5.4}C11 and C14: daily aggregation and uniqueness}{22}{subsection.4.5.4}%
+\contentsline {subsection}{\numberline {4.5.5}C12: maximum calendar spacing in the final hierarchy}{23}{subsection.4.5.5}%
+\contentsline {section}{\numberline {4.6}Original cumulative-hour constraint}{23}{section.4.6}%
+\contentsline {section}{\numberline {4.7}Corrected endpoint-anchored formulation}{24}{section.4.7}%
+\contentsline {section}{\numberline {4.8}Pre-horizon accumulated hours}{25}{section.4.8}%
+\contentsline {section}{\numberline {4.9}Choice of the big-$M$ coefficient}{26}{section.4.9}%
+\contentsline {section}{\numberline {4.10}Physical interpretation and model validity}{26}{section.4.10}%
+\contentsline {section}{\numberline {4.11}Complete single-type formulation and size}{27}{section.4.11}%
+\contentsline {chapter}{\numberline {5}Full A/B/C/D Maintenance Hierarchy}{28}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Application representation of the hierarchy}{28}{section.5.1}%
+\contentsline {section}{\numberline {5.2}Check types and regulatory hierarchy}{29}{section.5.2}%
+\contentsline {section}{\numberline {5.3}Hierarchy constraints}{30}{section.5.3}%
+\contentsline {section}{\numberline {5.4}Flight-hour checks: types A and B}{31}{section.5.4}%
+\contentsline {subsection}{\numberline {5.4.1}Implemented spacing regime}{31}{subsection.5.4.1}%
+\contentsline {section}{\numberline {5.5}Calendar-day checks: types C and D}{32}{section.5.5}%
+\contentsline {section}{\numberline {5.6}Pre-horizon state accounting}{33}{section.5.6}%
+\contentsline {section}{\numberline {5.7}Model size and operational implications}{33}{section.5.7}%
+\contentsline {chapter}{\numberline {6}MILP Strengthening}{35}{chapter.6}%
+\contentsline {section}{\numberline {6.1}Research questions and baseline}{35}{section.6.1}%
+\contentsline {section}{\numberline {6.2}Strengthening methods}{36}{section.6.2}%
+\contentsline {subsection}{\numberline {6.2.1}Aircraft-compatible maintenance domains}{36}{subsection.6.2.1}%
+\contentsline {subsection}{\numberline {6.2.2}Deferred-trigger reachability}{36}{subsection.6.2.2}%
+\contentsline {subsection}{\numberline {6.2.3}Strong trigger linking}{36}{subsection.6.2.3}%
+\contentsline {subsection}{\numberline {6.2.4}Interval-specific C13 bounds}{37}{subsection.6.2.4}%
+\contentsline {subsection}{\numberline {6.2.5}Pairwise maintenance conflicts}{37}{subsection.6.2.5}%
+\contentsline {subsection}{\numberline {6.2.6}Interval-clique overlap inequalities}{37}{subsection.6.2.6}%
+\contentsline {section}{\numberline {6.3}Combined formulation and implementation updates}{38}{section.6.3}%
+\contentsline {section}{\numberline {6.4}Correctness and implementation checks}{39}{section.6.4}%
+\contentsline {section}{\numberline {6.5}Bounding framework}{40}{section.6.5}%
+\contentsline {section}{\numberline {6.6}Benchmark design}{40}{section.6.6}%
+\contentsline {section}{\numberline {6.7}Model-size results}{40}{section.6.7}%
+\contentsline {section}{\numberline {6.8}Bound results}{41}{section.6.8}%
+\contentsline {subsection}{\numberline {6.8.1}Long-family integrated LP bounds}{42}{subsection.6.8.1}%
+\contentsline {section}{\numberline {6.9}Larger-model statistics}{43}{section.6.9}%
+\contentsline {section}{\numberline {6.10}Interpretation and limitations}{46}{section.6.10}%
+\contentsline {section}{\numberline {6.11}Reproducibility}{46}{section.6.11}%
+\contentsline {chapter}{\numberline {7}Heuristic Solution Methods}{47}{chapter.7}%
+\contentsline {section}{\numberline {7.1}Taxonomy of heuristic methods}{47}{section.7.1}%
+\contentsline {section}{\numberline {7.2}Shared feasibility oracle}{48}{section.7.2}%
+\contentsline {section}{\numberline {7.3}Greedy construction}{49}{section.7.3}%
+\contentsline {section}{\numberline {7.4}Insertion-based construction and repair}{50}{section.7.4}%
+\contentsline {section}{\numberline {7.5}Ferry and no-ferry variants}{50}{section.7.5}%
+\contentsline {section}{\numberline {7.6}Path-based and arc-based representations}{51}{section.7.6}%
+\contentsline {section}{\numberline {7.7}Modified Dijkstra heuristic}{52}{section.7.7}%
+\contentsline {section}{\numberline {7.8}Ant colony optimisation heuristic}{52}{section.7.8}%
+\contentsline {section}{\numberline {7.9}Application workflow and generated schedules}{53}{section.7.9}%
+\contentsline {section}{\numberline {7.10}Quality assessment and computational role}{54}{section.7.10}%
+\contentsline {chapter}{\numberline {8}Computational Study}{56}{chapter.8}%
+\contentsline {section}{\numberline {8.1}Scope and limitations}{56}{section.8.1}%
+\contentsline {section}{\numberline {8.2}Research questions and evaluation principles}{57}{section.8.2}%
+\contentsline {section}{\numberline {8.3}Software, hardware, and reproducibility protocol}{57}{section.8.3}%
+\contentsline {subsection}{\numberline {8.3.1}Execution protocol}{58}{subsection.8.3.1}%
+\contentsline {section}{\numberline {8.4}Benchmark families}{59}{section.8.4}%
+\contentsline {subsection}{\numberline {8.4.1}30-day Khaled-scale classical routing runs}{60}{subsection.8.4.1}%
+\contentsline {subsection}{\numberline {8.4.2}Data construction and instance classification}{61}{subsection.8.4.2}%
+\contentsline {subsection}{\numberline {8.4.3}Exact-feasible comparison and heuristic improvement}{63}{subsection.8.4.3}%
+\contentsline {section}{\numberline {8.5}Measured exact-model results}{64}{section.8.5}%
+\contentsline {subsection}{\numberline {8.5.1}Curated hierarchy-suite results}{65}{subsection.8.5.1}%
+\contentsline {subsection}{\numberline {8.5.2}Sensitivity to thresholds, durations, and capacity}{66}{subsection.8.5.2}%
+\contentsline {section}{\numberline {8.6}Constraint (13) and hierarchy validation}{66}{section.8.6}%
+\contentsline {subsection}{\numberline {8.6.1}Dedicated loophole validation}{68}{subsection.8.6.1}%
+\contentsline {section}{\numberline {8.7}Heuristic tournament}{68}{section.8.7}%
+\contentsline {section}{\numberline {8.8}Alternative soft-coverage formulation}{73}{section.8.8}%
+\contentsline {section}{\numberline {8.9}LP lower bounds and gap reporting}{75}{section.8.9}%
+\contentsline {section}{\numberline {8.10}Current commercial-CPLEX strengthening validation}{76}{section.8.10}%
+\contentsline {section}{\numberline {8.11}Path-based versus arc-based computation}{77}{section.8.11}%
+\contentsline {section}{\numberline {8.12}Extended comparison and reporting template}{77}{section.8.12}%
+\contentsline {section}{\numberline {8.13}Summary of measured evidence and remaining comparisons}{79}{section.8.13}%
+\contentsline {section}{\numberline {8.14}Threats to validity}{79}{section.8.14}%
+\contentsline {section}{\numberline {8.15}Directions for strengthening the exact formulation}{80}{section.8.15}%
+\contentsline {chapter}{\numberline {9}Conclusion}{81}{chapter.9}%
+\contentsline {paragraph}{Correction of the basic feasibility model.}{81}{section*.50}%
+\contentsline {paragraph}{Correction of Constraint~(13).}{81}{section*.51}%
+\contentsline {paragraph}{Full A/B/C/D hierarchy extension.}{82}{section*.52}%
+\contentsline {paragraph}{Heuristic methods and computational evaluation.}{82}{section*.53}%
+\contentsline {paragraph}{MILP strengthening and current CPLEX validation.}{82}{section*.54}%

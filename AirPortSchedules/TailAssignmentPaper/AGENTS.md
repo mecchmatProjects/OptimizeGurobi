@@ -70,8 +70,12 @@ toggle via `use_paper_c13=True/False`.
   Never write to `data/` or `src/`.
 - **Random seeds**: use `stable_seed(density, p, h, index)` in `src/generate_instances.py`
   for reproducibility.
-- **Constraint toggles**: All `MILP_Sheduler.build_model()` flags default to `True`.
-  To reproduce the *basic* model (C1–C4 only), pass `use_maintenance=False`.
+- **Constraint toggles**: Maintenance, routing C2-C3, overlap/clique, hierarchy,
+  capacity, sparse triggers and day-specific bounds are enabled by default.
+  Sanity, strong links/conflicts, global triggers, routing/maintenance
+  reachability, tight C13-M, paper C13 and soft coverage are opt-in.
+  Use `use_maintenance=False` for routing without maintenance; this alone
+  does not remove overlap constraints.
 
 ## How to Run (Quick Reference)
 
@@ -100,8 +104,12 @@ Without a deferral cap, A/B check candidate days span the *entire remaining
 horizon* for every maintenance-eligible flight, which is why instances like
 30 aircraft / 14 days can reach ~475k `z` variables. Use
 `--max-hour-check-deferral-days` (cap the A/B deferral window) and
-`--only-checks` / `--disable-checks` (restrict active check types) to shrink
-the trigger domain without changing the feasible region:
+`--only-checks` / `--disable-checks` to restrict active check types. The default
+deferral cap is three days; explicit `none` restores the unrestricted remaining
+horizon. A cap removes candidate schedules, and removing check types changes
+the maintenance requirements. Neither is an exact feasible-region-preserving
+reduction. The station-wait `--reachability`/`--maint-reachability` filter is
+also experimental and restrictive; omit it from equivalence comparisons.
 
 ```powershell
 # Full model via src/model.py CLI
@@ -117,12 +125,24 @@ python experiments/step4_lp_lower_bounds.py `
   --input-dir data/instances/ --pattern "*p=30_h=14*.json" `
   --solver highs --time-limit 120 `
   --max-hour-check-deferral-days 3 --enabled-checks A `
-  --sparse-z --reachability
+  --sparse-z --tight-c13-m
 ```
 
 `step4_lp_lower_bounds.py`'s output CSV now includes a `z_vars` column
 (`scheduler.z_var_count`) so the effect of these flags is directly visible
 per run.
+
+For unrestricted runs use `--max-hour-check-deferral-days none`. The Step 4
+`--routing-preflight` option checks a maintenance-free routing LP and skips only
+proven infeasible instances; it is off by default pending end-to-end timing
+evidence. `--include-routing-infeasible` bypasses it explicitly. CSV rows are
+flushed incrementally, with audit, metadata and log sidecars; `--resume` requires
+the same source, input hashes and settings. Full CPLEXamp long-run commands and
+the later thesis-update protocol are in `docs/REPRODUCIBILITY.md`, Section 13.
+
+`src/`, `experiments/` and `tests/` are authoritative. `Thesis/src/` and
+`Thesis/code/` are archived snapshots, not interchangeable live source trees.
+Do not import them for new experiments or overwrite divergent archived files.
 
 ## Agent Task Prompts
 

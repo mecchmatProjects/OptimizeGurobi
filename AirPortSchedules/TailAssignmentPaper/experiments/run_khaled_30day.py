@@ -15,6 +15,7 @@ import csv
 import math
 import sys
 import time
+import logging
 from pathlib import Path
 
 from pyomo.environ import Constraint, SolverFactory, Var, value
@@ -25,6 +26,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from model import MILP_Sheduler  # noqa: E402  # type: ignore[reportMissingImports]
+from solver_utils import apply_time_limit, extract_bounds, termination_of, solve_and_load
+from experiment_utils import ExperimentCSV, experiment_metadata, instance_paths
+from tqdm import tqdm
 
 DEFAULT_INSTANCES = [
     "md30_p20_h30_r1.json",
@@ -184,26 +188,38 @@ def run_instance(path, solver_name, executable, time_limit, overlap="none"):
     constraint_count = sum(
         1 for _ in model.component_data_objects(ctype=Constraint, active=True)
     )
-    assignment = build_routing_start(scheduler, model)
-    start_objective = value(model.obj)
+    assignment = {}
+    start_objective = None
+    start_error = ''
+    try:
+        assignment = build_routing_start(scheduler, model)
+        start_objective = value(model.obj)
+    except RuntimeError as exc:
+        start_error = str(exc)
+        for variable in model.component_data_objects(Var):
+            variable.set_value(None)
     trivial_bound = assignment_cost_lower_bound(path)
 
     solver_kwargs = {"executable": str(executable)} if executable else {}
     solver = SolverFactory(solver_name, **solver_kwargs)
+    apply_time_limit(solver, solver_name, time_limit)
     if "gurobi" in solver_name.lower():
         solver.options["TimeLimit"] = int(time_limit)
         solver.options["MIPFocus"] = 1
         solver.options["Heuristics"] = 0.25
         solver.options["Presolve"] = 2
-    elif "cplex" in solver_name.lower():
-        solver.options["timelimit"] = int(time_limit)
 
     solve_started = time.perf_counter()
-    result = solver.solve(model, tee=False, warmstart=True, load_solutions=False)
+    solve_kwargs = {'tee': False}
+    warmstart = bool(assignment) and solver.warm_start_capable()
+    if warmstart:
+        solve_kwargs['warmstart'] = True
+    result, _loaded, _objective = solve_and_load(solver, model, **solve_kwargs)
     solve_s = time.perf_counter() - solve_started
-    status = str(result.solver.termination_condition)
-    raw_dual = _finite(getattr(result.problem, "lower_bound", None))
-    primal = _finite(getattr(result.problem, "upper_bound", None))
+    status = termination_of(result)
+    raw_dual, solver_primal, _gap, nodes = extract_bounds(result)
+    candidates = [bound for bound in (solver_primal, start_objective) if bound is not None]
+    primal = min(candidates) if candidates else None
     proven_lower, consistent_raw_dual, gap = validated_bounds(
         raw_dual, primal, trivial_bound
     )
@@ -230,44 +246,78 @@ def run_instance(path, solver_name, executable, time_limit, overlap="none"):
         "primal_bound": primal,
         "relative_gap_pct": 100.0 * gap if gap is not None else None,
         "assignment_coverage": len(assignment) / len(scheduler.flight_ids),
+        'warmstart_submitted': warmstart, 'start_error': start_error,
+        'nodes': nodes, 'wall_s': time.perf_counter() - started,
+        'stem': Path(path).stem, 'P': len(scheduler.aircraft_ids),
+        'H': len(scheduler.days), 'F': len(scheduler.flight_ids),
+        'vars': variable_count, 'cpu_s': solve_s, 'objective': primal,
+        'gap_pct': 100 * gap if gap is not None else None,
     }
+
+
+def write_latex_table(source, destination):
+    with Path(source).open(newline='', encoding='utf-8') as handle:
+        rows = list(csv.DictReader(handle))
+    if not rows or any(row.get('status') in ('error', 'missing') for row in rows):
+        raise ValueError('Table requires non-error run rows; incomplete outcomes must be reviewed separately.')
+    if any(row.get('formulation') != 'classical_none_overlap' for row in rows):
+        raise ValueError('This table is for the paper-style classical model without overlap rows.')
+    def number(raw, decimals=0):
+        parsed = _finite(raw)
+        return '--' if parsed is None else f'{parsed:,.{decimals}f}'
+    lines = [r'\begin{table}[htbp]', r'\centering\small',
+             r'\caption{Classical routing results regenerated from the declared raw CSV. '
+             r'Finite upper bounds come from solver incumbents or validated complete routing starts; '
+             r'solve status and budget remain recorded in the source CSV.}',
+             r'\label{tab:khaled_30day_classical}', r'\begin{tabular}{lrrrrrrrr}',
+             r'\toprule', r'Instance & $P$ & $F$ & Variables & Constraints & Build (s) & '
+             r'Upper bound & Lower bound & Gap (\%) \\', r'\midrule']
+    for row in rows:
+        label = row['instance'].split('_')[0].replace('_', r'\_')
+        values = [label, number(row['aircraft']), number(row['flights']),
+                  number(row['variables']), number(row['constraints']), number(row['build_s'], 1),
+                  number(row['primal_bound'], 1), number(row['dual_bound'], 1),
+                  number(row['relative_gap_pct'], 2)]
+        lines.append(' & '.join(values) + r' \\')
+    lines.extend([r'\bottomrule', r'\end{tabular}', r'\end{table}'])
+    destination = Path(destination)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text('\n'.join(lines) + '\n', encoding='utf-8')
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input-dir", type=Path, default=ROOT / "data" / "Long_family")
-    parser.add_argument("--pattern", default="*.json")
-    parser.add_argument("--instances", nargs="*", default=DEFAULT_INSTANCES)
-    parser.add_argument("--solver", default="gurobi")
+    parser.add_argument("--pattern", default=None)
+    parser.add_argument("--instances", nargs="*", default=None)
+    parser.add_argument("--solver", default="cplex")
     parser.add_argument("--executable", type=Path,
-                        default=Path(r"C:\gurobi1103\win64\bin\gurobi.bat"))
+                        default=None)
     parser.add_argument("--time-limit", type=int, default=60)
     parser.add_argument("--overlap", choices=("none", "pairwise", "clique"),
                         default="none",
                         help="Supplemental conflict formulation; none matches the paper's compact routing core.")
     parser.add_argument("--output", type=Path,
                         default=ROOT / "results" / "tables" / "khaled_30day_classical.csv")
+    selection = parser.add_mutually_exclusive_group()
+    selection.add_argument('--quick', action='store_true', help='First selected instance only.')
+    selection.add_argument('--full', action='store_true', help='All selected instances.')
+    parser.add_argument('--resume', action='store_true')
+    parser.add_argument('--overwrite', action='store_true')
+    parser.add_argument('--table-csv', type=Path, help='Generate LaTeX only; do not run a solver.')
+    parser.add_argument('--latex-output', type=Path)
     args = parser.parse_args(argv)
-
-    paths = [args.input_dir / name for name in args.instances]
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    rows = []
-    for path in paths:
-        if not path.exists():
-            print(f"MISSING {path}", flush=True)
-            rows.append({"instance": path.stem, "status": "missing"})
-            continue
-        print(f"RUN {path.name}", flush=True)
-        try:
-            row = run_instance(
-                path, args.solver, args.executable, args.time_limit,
-                overlap=args.overlap,
-            )
-        except Exception as exc:
-            row = {"instance": path.stem, "status": "error",
-                   "error": f"{type(exc).__name__}: {exc}"}
-        rows.append(row)
-        print(row, flush=True)
+    if args.table_csv:
+        if not args.latex_output:
+            parser.error('--table-csv requires --latex-output.')
+        write_latex_table(args.table_csv, args.latex_output)
+        return
+    if args.instances is not None and args.pattern is not None:
+        parser.error('Choose --instances or --pattern, not both.')
+    paths = (instance_paths(args.input_dir, args.pattern) if args.pattern else
+             [args.input_dir / name for name in (args.instances or DEFAULT_INSTANCES)])
+    if args.quick:
+        paths = paths[:1]
 
     fields = [
         "instance", "aircraft", "flights", "horizon_days", "formulation",
@@ -276,11 +326,27 @@ def main(argv=None):
         "assignment_cost_lower_bound", "raw_solver_dual_bound",
         "dual_bound_consistent", "dual_bound", "primal_bound",
         "relative_gap_pct", "assignment_coverage", "error",
+        'warmstart_submitted', 'start_error', 'wall_s', 'nodes',
     ]
-    with args.output.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fields, extrasaction="ignore")
-        writer.writeheader()
-        writer.writerows(rows)
+    logging.basicConfig(level=logging.INFO)
+    metadata = experiment_metadata(ROOT, paths, vars(args))
+    with ExperimentCSV(args.output, fields, metadata, args.resume, args.overwrite) as output:
+        completed = {row['instance'] for row in output.previous
+                     if row['status'] not in ('error', 'missing')}
+        for path in tqdm(paths, desc='Classical instances'):
+            if path.stem in completed:
+                continue
+            if not path.exists():
+                row = {'instance': path.stem, 'status': 'missing'}
+            else:
+                try:
+                    row = run_instance(path, args.solver, args.executable,
+                                       args.time_limit, overlap=args.overlap)
+                except Exception as exc:
+                    row = {'instance': path.stem, 'status': 'error',
+                           'error': f'{type(exc).__name__}: {exc}'}
+            output.write(row)
+            logging.info('%s: %s', path.stem, row['status'])
     print(f"WROTE {args.output}")
 
 

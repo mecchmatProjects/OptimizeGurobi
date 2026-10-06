@@ -32,8 +32,10 @@ framed as \emph{validated family evidence}: it supports the claim that the
 combined formulation improves the tested feasible family under its declared
 solver configuration, without implying universal superiority across all instance
 classes or all airline schedules. \textit{The historical strengthening bounds in
-Chapter~\ref{ch:strengthening} use HiGHS; planned long-instance CPLEXamp runs
-do not replace these measurements until their raw outputs have been validated.}
+Chapter~\ref{ch:strengthening} use HiGHS. New CPLEX 12.9 LP evidence is reported
+under separate capped/uncapped protocols and does not retrospectively replace
+these historical measurements. The old 32-bit CPLEXamp memory failures are
+software/resource outcomes, not model infeasibility certificates.}
 
 \section{Research questions and evaluation principles}
 \label{sec:computational_questions}
@@ -91,8 +93,10 @@ produces a more convenient status.
 cap, model options, source and input hashes, solver version and environment.
 The default three-day cap is a restriction; explicit \texttt{none} removes it.
 Routing preflight is opt-in, and its end-to-end overhead must be included in
-performance comparisons. Long-instance results remain pending; no speedup or
-new optimality claim is inferred from the implementation alone.}
+performance comparisons. The completed 14- and 21-day LPs in
+Chapter~\ref{ch:strengthening} are not integer-optimality certificates. Later
+classical or integrated MILP results are included only with their saved statuses,
+bounds and raw provenance; no speedup follows from implementation alone.}
 
 For an exact run, the primary measurements are solver status, objective value,
 best bound, relative MIP gap, wall-clock time, explored nodes, number of model
@@ -191,25 +195,37 @@ that the integrated MILP is feasible.
 \subsection{30-day Khaled-scale classical routing runs}
 \label{subsec:khaled_30day_classical}
 
-To begin the 30-day scale comparison, the Long-family M-20, L-30, and X-40
-instances were run with the classical routing formulation: exact coverage,
-initial-position/equipment-flow continuity, and minimum turn time, with
-maintenance disabled. These inputs use zero-based flight identifiers; cost
-lookup was corrected to use each flight's actual row in the JSON cost matrix.
-A sparse bipartite path-cover construction produced a complete no-ferry
-assignment, which was checked against every active model constraint and passed
-to Gurobi as an incumbent start.
+\textit{The 30-day scale protocol uses the Long-family M-20, L-30 and X-40
+instances with exact coverage, equipment-flow continuity and minimum turn time,
+but without maintenance. These inputs use zero-based flight identifiers;
+cost lookup maps each identifier to its actual JSON cost-matrix row. The runner
+constructs a candidate no-ferry path cover and checks every active model row
+before attempting a supported solver warm start. A validated routing start is
+an upper bound for this classical model, not for the integrated maintenance
+model. Solver bounds below the analytical assignment-cost floor
+$\sum_i\min_j c_{ij}$ are not used as stronger certificates.}
 
-Table~\ref{tab:khaled_30day_classical} reports 60-second runs. All three
-returned complete feasible incumbents, but none proved optimality within the
-budget. For M-20 and X-40, Gurobi's raw dual value was below the valid lower
-bound $\sum_i\min_j c_{ij}$ implied by exact flight coverage, so that raw value
-was rejected. The table reports the assignment-cost floor for those cases and
-the stronger consistent solver dual bound for L-30. These are bounded
-classical results, not reproductions of the paper's exact optimality claims;
-CPLEX runs with longer budgets remain necessary for a direct protocol match.
+\textit{The earlier hand-entered 60-second Gurobi table remains excluded because
+its raw audit trail was not verified. The new CPLEX 12.9 study uses automatic
+threads and a 10{,}000-second native budget per case. All three records
+are now available: M-20, L-30 and X-40 reached the time limit with finite primal
+and dual bounds. M-20 and L-30 have residual gaps below $0.4\%$; X-40 has a
+$5.080\%$ gap. None is a proven optimum.
+Table~\ref{tab:khaled_30day_classical} is regenerated from the frozen
+CSV, with solver status and end-to-end wall time visible. Bound order, gap
+arithmetic and input hashes were checked before publication.}
 
 \input{tables/khaled_30day_classical}
+
+\textit{The published source is the frozen
+\path{results/tables/thesis_final_20261003/classical_h30_complete_rev3.csv}
+and its metadata sidecar. The completed batch source remains separately at
+\path{results/tables/thesis_final_20261003/classical_h30.csv}.
+The larger residual gap on X-40 limits conclusions about exact convergence
+at this scale. The paired integrated 30-day study remains unavailable;
+time-limited feasible results and missing results are not infeasibility
+certificates. These classical brackets are not integrated-maintenance bounds
+without a separate model-scope argument.}
 
 The third family consists of constructive exact-feasible instances. A seeded
 aircraft rotation is generated first, validated with the maintenance timeline,
@@ -1038,28 +1054,29 @@ solver error. For the 64-flight random-grid instance, the integrated LP bound
 is 827,659.026; the corresponding integer and complete-heuristic comparison is
 reserved for the full run.
 
-\section{Current commercial-CPLEX strengthening validation}
+\section{Archived commercial-CPLEX strengthening observations}
 \label{sec:computational_current_strengthening}
 
-The formulation-strengthening study of Chapter~\ref{ch:strengthening} was
-extended with a larger feasible family before the final computational claims
-were made. The family contains 20 constructive A-maintenance instances, each
+\textit{An archived experiment associated with the strengthening study uses
+20 constructive A-maintenance instances, each
 with 64 flights, 8 aircraft, and a 14-day horizon. Every seeded rotation was
 validated by the constructive timeline scheduler before serialization, so the
-family is suitable for a matched exact comparison rather than only structural
-model-size analysis.
+reported family is more informative than a build-only stress test. These CSVs
+are historical observations, not a fresh validation of the current code.}
 
-The baseline uses the default corrected model. The combined formulation enables
-aircraft-compatible maintenance domains, deferred-trigger reachability,
-interval-specific C13 bounds, pairwise maintenance conflicts, and strong
-trigger linking. All comparisons use the commercial CPLEX 12.6 AMPL driver,
-identical input files, and the same solver budget. LP variables are relaxed to
-$[0,1]$; MILP variables retain their binary domains.
+\textit{The archived baseline is the then-default split-C13 model. Its combined
+configuration enables aircraft-compatible maintenance domains, deferred-trigger
+reachability, interval-specific C13 bounds, pairwise maintenance conflicts and
+strong links. The records name the commercial CPLEX 12.6 AMPL driver, but do
+not carry the current source/input-hash sidecars. The reachability filter is
+restrictive. The historical LP procedure resets binary bounds to $[0,1]$;
+MILPs retain their binary domains. These records therefore do not independently
+establish equivalent feasible sets or an isolated strengthening effect.}
 
 \begin{table}[t]
 \centering\small
-\caption{Current commercial-CPLEX validation of the combined strengthening
-formulation on the 20-instance feasible A family.}
+\caption{Archived commercial-CPLEX measurements on the 20-instance A family.
+These are historical records with limited provenance and a restrictive combined configuration.}
 \label{tab:current_strengthening_cplex}
 \begin{tabular}{lrrrrr}
 \toprule
@@ -1073,15 +1090,14 @@ MILP & Combined & 20/20 & 0.8501 & 20/20 & 0/20 \\
 \end{tabular}
 \end{table}
 
-The combined formulation increased the LP lower bound by 196.0264 on every
-matched instance. Its average LP runtime was slightly higher, reflecting the
-cost of additional preprocessing and stronger rows. The exact MILP result is
-more decisive: all 20 combined runs reached optimality, all objectives matched
-the baseline, and mean runtime decreased by 15.8\%, from 1.0092 to 0.8501
-seconds. Thus, the updated CPLEX evidence supports a computational efficacy
-claim for the combined formulation on this validated feasible family, while
-not implying universal improvement for all maintenance profiles or random
-stress instances.
+\textit{The archived LP files record a 196.0264 objective difference, and the
+MILP files record equal objectives and the displayed timing averages. The
+reachability restriction and historical bound-reset policy prevent attributing
+the LP difference solely to equivalent strengthening. The short single-run
+timings likewise do not establish a statistically robust or universal speedup.
+These observations are retained for transparency but are not the finalization's
+primary current-performance certificate. Chapter~\ref{ch:strengthening}
+separates the verified contemporary LP evidence and historical HiGHS bounds.}
 
 The machine-readable results are stored in
 \texttt{results/tables/step7\_feasible\_large\_A\_cplexamp\_lp.csv},
@@ -1198,16 +1214,17 @@ from complete-schedule gap averages unless a common penalty is specified.
 The currently available evidence establishes five points. First, activating
 the hierarchy greatly increases the number of constraints and can create sharp
 feasibility transitions under threshold, duration, and capacity perturbations.
-Second, LP relaxations are fast and provide useful lower bounds even when the
-integer model is too difficult to certify. Third, the boundary method table
+\textit{Second, completed LP relaxations provide lower bounds, but their large
+instance runtimes can be substantial; no claim that all LPs are fast is made.}
+Third, the boundary method table
 shows that complete MILP solutions and partial heuristic costs must be compared
 with coverage explicitly. Fourth, the path/arc experiment provides reproducible
 evidence that representation choice affects runtime even when objectives match.
-Fifth, the current commercial-CPLEX validation on the 20-instance feasible
-A-family shows that the combined Step~7 formulation preserves every MILP
-objective and reduces mean exact-solve time by 15.8\%. This is the strongest
-current evidence for the formulation-strengthening claim, and its scope is
-restricted to the validated constructive family and declared CPLEX protocol.
+\textit{Fifth, the available strengthening records support compactness and
+family-specific timing observations, with explicit restrictions on solver,
+LP policy and feasible-region interpretation. The archived CPLEX records are
+not a replacement for a matched current-code certification. The incomplete
+30-day studies remain outside the numerical conclusions.}
 
 The complete comparative claims for the seven heuristics against one another
 and against MILP require the matched experiments described in

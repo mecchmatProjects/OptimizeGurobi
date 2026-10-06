@@ -642,7 +642,8 @@ class MILP_Sheduler:
     }
 
     def __init__(self, data_path, maintenance_airports=None,
-                 max_hour_check_deferral_days=3, enabled_checks=None):
+                 max_hour_check_deferral_days=3, enabled_checks=None,
+                 prepare_maintenance=True):
         """Load data from *data_path* and prepare all MILP index sets.
 
         Parameters
@@ -866,6 +867,26 @@ class MILP_Sheduler:
         ]
         logger.debug(f"Loaded maintenance-eligible flights: {self.maint_flight_ids}")
 
+        self._maintenance_prepared = False
+        self.z_days_by_flight_check = {}
+        self.z_flights_by_day_check = {}
+        self.z_var_count = 0
+        self.c8_same_day_block = {}
+        self.c8_escape = {}
+        self.c8_same_day_block_feasible = {}
+        self.c8_escape_feasible = {}
+        self.c8_check_day_departures_feasible = {}
+        if prepare_maintenance:
+            self._prepare_maintenance_domains()
+
+        self.model = None
+        self.results = None
+        self.logger = logging.getLogger(__name__)
+
+    def _prepare_maintenance_domains(self):
+        if self._maintenance_prepared:
+            return
+
         # Sparse z-domain cache.
         # A/B checks may start on any day from the trigger flight's arrival day
         # through the end of the horizon. C/D checks only need the consecutive
@@ -931,10 +952,7 @@ class MILP_Sheduler:
                         fid2 for fid2 in day_deps if self._x_has_arc(fid2, aid)
                     )
 
-        # Model and results (populated by build_model / solve)
-        self.model   = None
-        self.results = None
-        self.logger = logging.getLogger(__name__)
+        self._maintenance_prepared = True
 
     def _z_days_for(self, fid, check_type):
         key = (fid, check_type)
@@ -1010,6 +1028,8 @@ class MILP_Sheduler:
                 self.x_arcs_by_aircraft[aid].append(fid)
                 self.x_arcs_set.add((fid, aid))
 
+        if not self._maintenance_prepared:
+            return
         self.c8_same_day_block_feasible = {
             (fid, check_type, aid): tuple(
                 other for other in self.c8_same_day_block[(fid, check_type)]
@@ -1199,6 +1219,8 @@ class MILP_Sheduler:
         self.soft_coverage = bool(soft_coverage)
         self.coverage_weight = float(coverage_weight)
         self._restore_base_assignment_domains()
+        if self.use_maintenance:
+            self._prepare_maintenance_domains()
         if use_aircraft_routing_reachability:
             if not allow_ferry:
                 raise ValueError(

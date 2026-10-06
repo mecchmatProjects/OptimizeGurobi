@@ -1,0 +1,51 @@
+This thesis has examined the compact tail-assignment formulation from the perspectives of mathematical correctness, operational fidelity, and computational performance. The work proceeds from a systematic identification of two structural deficiencies in the original formulation of \citet{khaled2018compact} to a corrected and extended model that is both operationally valid and computationally tractable. All empirical claims in this thesis are limited to the project’s synthetic feasible-instance families and to the declared solver protocol; they are not presented as universal statements about all real airline schedules or all operational environments.
+
+\paragraph{Correction of the basic feasibility model.}
+The standard balance constraints of the compact formulation admit simultaneous-departure and temporal-overlap configurations that are physically impossible for a single aircraft. The corrected model appends pairwise conflict-exclusion constraints indexed by the set $\mathcal{O}$ of overlapping flight pairs, as defined in Chapter~\ref{ch:ground}, thereby restricting the feasible region to trajectories that are executable under turn-time requirements. This correction is a prerequisite for any maintenance model built on top of the assignment layer: without it, the maintenance constraints are evaluated over a distorted domain.
+
+\paragraph{Correction of Constraint~(13).}
+\textit{A central contribution is the diagnosis of the inactive-endpoint
+loophole in Constraint~(13), the cumulative flight-hour bound, and its treatment
+by the endpoint-anchored pair~\eqref{eq:c13a}--\eqref{eq:c13b} used in this
+project. The dedicated computational counterexample demonstrates a
+400-minute exposure violation under the original form and rejection under the
+split formulation. This is evidence about the tested endpoint configuration,
+not a global dominance proof over every endpoint combination or a complete
+certificate of regulatory correctness for arbitrary schedules. Model
+constraint satisfaction and independent operational replay must remain
+distinct validation layers. Chapter~\ref{ch:strengthening} separates these
+correctness checks from measured LP objective gaps.}
+
+\paragraph{Full A/B/C/D hierarchy extension.}
+The maintenance model is extended to the four-level regulatory hierarchy in Chapter~\ref{ch:hierarchy}, incorporating type-specific flight-hour thresholds, calendar-day spacing constraints, multi-day maintenance windows, the subsumption ordering $D \succ C \succ B \succ A$, and pre-horizon state accounting. The extension preserves the compact assignment structure while capturing the full regulatory framework governing airline maintenance operations.
+
+\paragraph{Heuristic methods and computational evaluation.}
+Chapter~\ref{ch:heuristics} presents seven executable heuristic modes --- greedy, insertion, greedy-plus-insertion, repair, bounded local search, a modified Dijkstra network search, and ant-colony optimisation --- all of which invoke a common timeline-feasibility oracle so that a valid route has the same meaning across methods. The computational study of Chapter~\ref{ch:experiments} demonstrates that exact optimisation is tractable on the small and medium exact-feasible instances, and that the bounded local search improves the greedy objective by a mean of 12.7\% on the 25-instance matrix. Consistent with the coverage-versus-cost distinction developed in that chapter, heuristic-to-MILP differences are reported descriptively rather than as universal optimality gaps, because the heuristic timeline and the integrated MILP do not enumerate identical maintenance and ferry decisions on every instance.
+
+\paragraph{MILP strengthening and current CPLEX validation.}
+\textit{Chapter~\ref{ch:strengthening} reports compactness and runtime evidence
+on 20 Small and five Medium HiGHS instances under the historical configurations.
+The LP and MILP objectives coincide on the Small tier, while two Medium
+instances have nonzero LP--MILP gaps. Baseline and combined LP bounds coincide
+on these families, so these data do not demonstrate an LP objective increase.
+The measured benefits are smaller trigger domains and lower mean exact-solve
+times on the declared families. The historical combined variant included a
+restrictive station-wait filter; the current runner excludes it. These results
+must not be treated as a universal proof of equivalent strengthening or solver
+superiority. New CPLEX 12.9 LP results are separately labelled by cap, thread
+policy and relaxation policy. Legacy unit-bound and bound-preserving LPs are
+not interchangeable. The dual-simplex pilot returned no certified bound within
+its budget, and no new algorithm speedup is claimed.}
+
+\textit{The available-data finalization includes the validated 14- and 21-day
+LP evidence and two audited classical 30-day cases. Both classical cases
+reached their time budgets with finite brackets and residual gaps below $0.4\%$;
+neither establishes proven optimality. The X-40 classical record and paired
+integrated 30-day MILP performance study remain unavailable at this revision's
+cutoff. Those omissions limit the scalability conclusions and are not model
+infeasibility results. Subsequent outputs from the ongoing solver batch require
+their own audit before inclusion.}
+
+\section*{Directions for future research}
+
+Several directions merit further investigation. First, the corrected compact model could be strengthened with additional valid inequalities derived from the structure of the maintenance hierarchy, potentially yielding tighter LP bounds and faster exact convergence on high-pressure instances. Second, integration with fleet-assignment or disruption-recovery decisions would extend the model to a more complete operational planning context. Third, decomposition methods such as Benders decomposition or Lagrangian relaxation could be applied to scale the exact formulation to larger instance families without sacrificing optimality guarantees. Finally, the heuristic framework could be augmented with adaptive or population-based meta-heuristics and evaluated on instances derived from real airline schedules to assess practical transferability beyond the parameterised benchmark suite.

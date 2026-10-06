@@ -40,7 +40,7 @@ from pathlib import Path
 
 from tqdm import tqdm
 
-logging.basicConfig(level=logging.INFO, format="%(levelname)-8s %(message)s")
+logging.basicConfig(level=logging.INFO, stream=sys.stdout, format="%(levelname)-8s %(message)s")
 log = logging.getLogger(__name__)
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -53,12 +53,16 @@ from src.experiment_utils import (
     instance_paths,
 )
 from src.solver_utils import (
+    apply_cplex_lp_method,
+    apply_threads,
     apply_time_limit,
+    completed_status,
     extract_bounds,
     finite,
     parse_deferral_days,
     relax_integrality,
     solve_and_load,
+    solver_details,
     termination_of,
 )
 
@@ -81,7 +85,9 @@ def solve_lp_lower_bound(instance_path, solver_name='cplex', time_limit=30,
                           enabled_checks=None, sparse_z=False,
                           reachability=False, tight_c13_m=False,
                           strong_conflicts=False, max_deferral_days=3,
-                          allow_ferry=True, tee=False):
+                          allow_ferry=True, tee=False, threads=None,
+                          feasibility_only=False, lp_relaxation='preserve-bounds',
+                          lp_method=None, barrier_no_crossover=False):
     """
     Compute LP relaxation lower bound for a TAP instance.
 
@@ -111,6 +117,7 @@ def solve_lp_lower_bound(instance_path, solver_name='cplex', time_limit=30,
     -------
     dict with keys: instance, n_var, n_con, status, lp_bound, runtime_s
     """
+    from pyomo.core.base.objective import ObjectiveData
     from pyomo.environ import Constraint, SolverFactory, Var
 
     from src.model import MILP_Sheduler
@@ -121,7 +128,10 @@ def solve_lp_lower_bound(instance_path, solver_name='cplex', time_limit=30,
     row = {'instance': name, 'n_var': None, 'n_con': None, 'z_vars': None,
            'status': 'error', 'lp_bound': None, 'runtime_s': None,
            'max_deferral_days': max_deferral_days,
-           'restrictive_deferral': use_maintenance and max_deferral_days is not None, 'error': ''}
+           'restrictive_deferral': use_maintenance and max_deferral_days is not None,
+           'feasibility_only': feasibility_only, 'lp_relaxation': lp_relaxation,
+           'lp_method': lp_method or 'solver-default',
+           'barrier_no_crossover': barrier_no_crossover, 'error': ''}
 
     try:
         # Build model
@@ -130,6 +140,7 @@ def solve_lp_lower_bound(instance_path, solver_name='cplex', time_limit=30,
             instance_path,
             enabled_checks=enabled_checks,
             max_hour_check_deferral_days=max_deferral_days,
+            prepare_maintenance=use_maintenance,
         )
         scheduler.build_model(
             use_maintenance=use_maintenance,
@@ -142,7 +153,14 @@ def solve_lp_lower_bound(instance_path, solver_name='cplex', time_limit=30,
         model = scheduler.model
         if model is None:
             raise RuntimeError('Model construction returned no model.')
-        relax_integrality(model)
+        if feasibility_only:
+            objective = model.obj
+            if not isinstance(objective, ObjectiveData):
+                raise RuntimeError('Routing preflight requires a scalar objective.')
+            objective.set_value(0)
+        if lp_relaxation not in ('preserve-bounds', 'legacy-unit-bounds'):
+            raise ValueError('Unknown LP relaxation policy.')
+        relax_integrality(model, legacy_unit_bounds=lp_relaxation == 'legacy-unit-bounds')
         row.update(n_var=sum(1 for _ in model.component_data_objects(Var)),
                    n_con=sum(1 for _ in model.component_data_objects(Constraint)),
                    z_vars=scheduler.z_var_count, flights=len(scheduler.flight_ids),
@@ -154,14 +172,22 @@ def solve_lp_lower_bound(instance_path, solver_name='cplex', time_limit=30,
         solver_kwargs = {"executable": str(executable)} if executable else {}
         solver = SolverFactory(solver_name, **solver_kwargs)
         apply_time_limit(solver, solver_name, time_limit)
+        apply_threads(solver, solver_name, threads)
+        apply_cplex_lp_method(solver, solver_name, lp_method, barrier_no_crossover)
 
         solve_started = time.perf_counter()
-        results, _loaded, _objective = solve_and_load(solver, model, tee=tee)
+        results, _loaded, _objective = solve_and_load(solver, model, tee=tee,
+                                 load_solution=False)
         status = termination_of(results)
+        row.update(solver_details(results, solver))
         dual, primal, gap, nodes = extract_bounds(results)
         row.update(status=status, lp_bound=dual if status.lower() == 'optimal' else None,
                    dual_bound=dual, primal_bound=primal, mip_gap=gap, nodes=nodes,
-                   runtime_s=time.perf_counter() - solve_started)
+                   runtime_s=time.perf_counter() - solve_started,
+                   solver_reported_s=finite(getattr(getattr(results, 'solver', None), 'time', None)))
+        if not completed_status(status):
+            row.update(lp_bound=None, dual_bound=None, primal_bound=None,
+                       error=f"Solver failure: {status}; {row['solver_message']}")
         log.info('  z_vars=%s LP bound=%s status=%s', row['z_vars'], row['lp_bound'], status)
 
     except Exception as e:
@@ -172,10 +198,15 @@ def solve_lp_lower_bound(instance_path, solver_name='cplex', time_limit=30,
 
 
 def routing_feasibility_status(instance_path, solver_name='cplex', time_limit=60,
-                               executable=None, allow_ferry=True, return_details=False, **_kwargs):
+                               executable=None, allow_ferry=True, return_details=False,
+                               threads=None, optimize_cost=False,
+                               lp_relaxation='preserve-bounds', lp_method=None,
+                               barrier_no_crossover=False, **_kwargs):
     row = solve_lp_lower_bound(instance_path, solver_name=solver_name,
                                time_limit=time_limit, executable=executable,
-                               use_maintenance=False, allow_ferry=allow_ferry)
+                               use_maintenance=False, allow_ferry=allow_ferry, threads=threads,
+                               feasibility_only=not optimize_cost, lp_relaxation=lp_relaxation,
+                               lp_method=lp_method, barrier_no_crossover=barrier_no_crossover)
     return row if return_details else row['status']
 
 
@@ -253,9 +284,22 @@ def parse_args(argv=None):
                         help='Bypass preflight and record that provenance.')
     parser.add_argument('--preflight-time-limit', type=int, default=60)
     parser.add_argument('--tee', action='store_true')
+    parser.add_argument('--threads', type=int, default=None)
+    parser.add_argument('--lp-relaxation', choices=('preserve-bounds', 'legacy-unit-bounds'),
+                        default='preserve-bounds',
+                        help='Legacy mode reproduces 828d3f0: resets binary bounds to [0,1], yielding a weaker LP.')
+    parser.add_argument('--lp-method', choices=('auto', 'primal', 'dual', 'barrier', 'concurrent'),
+                        default=None, help='CPLEX LP algorithm; omission preserves backend defaults.')
+    parser.add_argument('--barrier-no-crossover', action='store_true',
+                        help='Skip barrier crossover for bound-only LP runs; requires --lp-method barrier.')
     parser.add_argument('--resume', action='store_true')
     parser.add_argument('--overwrite', action='store_true')
-    return parser.parse_args(argv)
+    args = parser.parse_args(argv)
+    if (args.lp_method or args.barrier_no_crossover) and args.solver.lower() != 'cplex':
+        parser.error('LP algorithm controls require --solver cplex.')
+    if args.barrier_no_crossover and args.lp_method != 'barrier':
+        parser.error('--barrier-no-crossover requires --lp-method barrier.')
+    return args
 
 
 def main(argv=None):
@@ -286,15 +330,18 @@ def main(argv=None):
                   'status', 'lp_bound', 'runtime_s', 'build_s', 'wall_s',
                   'routing_status', 'preflight_s', 'total_wall_s', 'error',
                   'max_deferral_days', 'restrictive_deferral', 'reused_preflight',
-                  'dual_bound', 'primal_bound', 'mip_gap', 'nodes']
+                  'dual_bound', 'primal_bound', 'mip_gap', 'nodes',
+                  'solver_message', 'solver_return_code', 'solver_reported_s', 'lp_relaxation',
+                  'lp_method', 'barrier_no_crossover']
+    failure_count = 0
     with ExperimentCSV(output_path, fieldnames, metadata, args.resume, args.overwrite) as output, \
             ExperimentCSV(output_path.with_suffix('.audit.csv'),
                           ['instance', 'routing_status', 'preflight_s', 'action'],
                           metadata, args.resume, args.overwrite) as audit:
         completed = {(row['instance'], row['formulation']) for row in output.previous
-                     if row['status'] not in ('error', 'build-error')}
+                     if completed_status(row['status'])}
         skipped = {row['instance'] for row in audit.previous if row['action'] == 'skipped'}
-        for inst_path, family in tqdm(instances_to_solve, desc='LP instances'):
+        for inst_path, family in tqdm(instances_to_solve, desc='LP instances', file=sys.stdout):
             inst_path = Path(inst_path)
             if not inst_path.exists():
                 log.warning('Missing instance: %s', inst_path)
@@ -311,7 +358,10 @@ def main(argv=None):
                 try:
                     preflight = routing_feasibility_status(
                         inst_path, solver_name=args.solver, executable=args.executable,
-                        time_limit=args.preflight_time_limit, return_details=True)
+                        time_limit=args.preflight_time_limit, return_details=True,
+                        threads=args.threads, optimize_cost='classical' in pending,
+                        lp_relaxation=args.lp_relaxation, lp_method=args.lp_method,
+                        barrier_no_crossover=args.barrier_no_crossover)
                     if isinstance(preflight, dict):
                         cached_preflight = preflight
                         routing_status = preflight['status']
@@ -327,7 +377,9 @@ def main(argv=None):
             if skip:
                 continue
             for index, formulation in enumerate(pending):
-                reuse = formulation == 'classical' and cached_preflight is not None and routing_status.lower() == 'optimal'
+                reuse = (formulation == 'classical' and cached_preflight is not None
+                         and not cached_preflight.get('feasibility_only', False)
+                         and routing_status.lower() == 'optimal')
                 if reuse and isinstance(cached_preflight, dict):
                     result = cached_preflight.copy()
                 else:
@@ -337,15 +389,19 @@ def main(argv=None):
                         enabled_checks=enabled_checks, sparse_z=args.sparse_z,
                         reachability=args.reachability, tight_c13_m=args.tight_c13_m,
                         strong_conflicts=args.strong_conflicts,
-                        max_deferral_days=args.max_hour_check_deferral_days, tee=args.tee)
+                        max_deferral_days=args.max_hour_check_deferral_days, tee=args.tee,
+                        threads=args.threads, lp_relaxation=args.lp_relaxation,
+                        lp_method=args.lp_method, barrier_no_crossover=args.barrier_no_crossover)
                 result.update(family=family, formulation=formulation, routing_status=routing_status,
                               reused_preflight=reuse, preflight_s=preflight_s if index == 0 else 0,
                               total_wall_s=(0 if reuse else result.get('wall_s', 0)) +
                                             (preflight_s if index == 0 else 0))
                 output.write(result)
+                if not completed_status(result['status']):
+                    failure_count += 1
     log.info('Wrote %s (with audit, metadata and log)', output_path)
-    return 0
+    return 1 if failure_count else 0
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

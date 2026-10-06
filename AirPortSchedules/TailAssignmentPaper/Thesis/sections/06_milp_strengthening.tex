@@ -140,10 +140,11 @@ The pairwise option remains available for controlled comparisons.
 
 \section{Combined formulation and implementation updates}
 
-The combined experimental variant enables sparse aircraft-compatible domains,
-optional reachability filtering, strong trigger linking, interval-specific C13
-bounds, and pairwise maintenance conflicts. The certified results below use
-sparse domains and tight C13 bounds, but disable reachability.
+\textit{The current combined runner enables sparse aircraft-compatible domains,
+strong trigger linking, interval-specific C13 bounds and pairwise maintenance
+conflicts, with station-wait reachability disabled. Historical results below
+retain their recorded configurations, including any restrictive filters, and
+are not retrospectively relabelled as measurements of the current runner.}
 
 The main MILP API exposes \texttt{--sparse-z},
 \texttt{--day-specific-maintenance-bounds},
@@ -204,7 +205,9 @@ coverage. Test counts are reported by the test run rather than fixed here.
 
 Structural tests are necessary but not sufficient. The performance comparison
 therefore checks that baseline and optimized configurations preserve the same
-objective on feasible instances.
+objective on feasible instances. \textit{Objective agreement on selected
+instances is not a proof of feasible-region equivalence; configuration
+restrictions and independent schedule validation remain relevant.}
 
 \section{Bounding framework}
 
@@ -276,7 +279,7 @@ not that their relaxations were integral.}
 \textit{These are historical HiGHS measurements under the recorded experiment
 variants. The historical combined configuration included the experimental
 station-wait reachability restriction. The current combined runner excludes
-that filter; new CPLEXamp runs and unrestricted-deferral experiments must be
+that filter; new CPLEX 12.9 runs and unrestricted-deferral experiments must be
 reported separately rather than attributed retrospectively to these timings.}
 
 The regenerated results show the following average reductions:
@@ -289,48 +292,43 @@ The regenerated results show the following average reductions:
 
 \subsection{Long-family integrated LP bounds}
 
-A supplementary Step~4 run evaluated the integrated LP relaxation on ten
-Long-family instances with Gurobi and a 10{,}000-second limit per LP. All
-maintenance check types were active. The run used the full aircraft trigger
-domain (\texttt{--sparse-z} was not enabled), the default three-day A/B
-deferral cap, day-specific maintenance-state bounds, and clique overlap. Nine
-LPs solved to optimality; the X-40, 30-day LP reached the time limit without a
-finite reported bound. Routing preflight was bypassed for this run, so these
-rows are supplementary LP results rather than independently routing-screened
-or integer-feasibility certificates. Solver times below are the LP runtimes
-reported by Step~4, not model-construction times. The raw results are stored in
-\texttt{results/tables/step4\_lp\_lower\_bounds.csv}. The final reported time
-can slightly exceed the configured limit during termination; this occurred on
-the X-40, 30-day run.
+\textit{The previous hand-entered ten-instance Gurobi table is withdrawn from
+the current evidence set: the CSV at its cited path does not substantiate those
+statuses and timings. The validated replacement uses CPLEX 12.9 and canonical
+Long-family inputs. Tables~\ref{tab:validated_lp_1} and
+\ref{tab:validated_lp_2} are generated directly from the completed raw CSVs and
+their metadata, with all four maintenance checks active.}
 
-\begin{table}[htbp]
-\centering\small
-\caption{Step~4 integrated LP relaxation results on the Long-family instances
-with Gurobi (10{,}000-second limit). A dash denotes an unavailable bound.}
-\label{tab:step4_long_family_lp}
-\begin{tabular}{l r r r r l r}
-\toprule
-Instance & $|P|$ & $|H|$ & $z$ vars & LP bound & Status & LP time (s) \\
-\midrule
-\texttt{ld07\_p30\_h7\_r1}  & 30 &  7 &  39{,}330 &   315{,}864.3 & optimal &      2.2 \\
-\texttt{ld07\_p30\_h14\_r1} & 30 & 14 &  93{,}690 &   626{,}010.7 & optimal &     46.0 \\
-\texttt{ld21\_p30\_h21\_r1} & 30 & 21 & 184{,}860 & 1{,}082{,}558.4 & optimal &    561.9 \\
-\texttt{ld30\_p30\_h30\_r1} & 30 & 30 & 286{,}710 & 1{,}638{,}702.9 & optimal &  3{,}305.6 \\
-\texttt{md14\_p20\_h14\_r1} & 20 & 14 &  42{,}700 &   416{,}628.0 & optimal &     19.8 \\
-\texttt{md30\_p20\_h30\_r1} & 20 & 30 & 123{,}620 & 1{,}089{,}152.3 & optimal &    654.4 \\
-\texttt{xd07\_p40\_h7\_r1}  & 40 &  7 &  64{,}440 &   414{,}854.9 & optimal &      1.7 \\
-\texttt{xd14\_p40\_h14\_r1} & 40 & 14 & 150{,}400 &   842{,}027.5 & optimal &     72.8 \\
-\texttt{xd21\_p40\_h21\_r1} & 40 & 21 & 304{,}720 & 1{,}451{,}428.8 & optimal &    727.6 \\
-\texttt{xd30\_p40\_h30\_r1} & 40 & 30 & 498{,}680 &              -- & time limit & 10{,}029.8 \\
-\bottomrule
-\end{tabular}
-\end{table}
+\input{tables/validated_lp_1}
+\input{tables/validated_lp_2}
 
-The integrated LP bound is not an integer-feasibility or optimality result for
-the MILP. The X-40, 30-day row supplies no numerical bound and must not be used
-in bound-gap calculations. The 20- and 30-day results demonstrate the scaling
-cost of the full maintenance trigger domain: the M-20, 30-day case has
-123{,}620 $z$ variables, while the X-40, 30-day case has 498{,}680.
+\textit{The 14-day study is unrestricted in A/B deferral and uses four threads.
+Its historical sidecar predates the named LP-policy flag, so the table explicitly
+marks that field as unrecorded rather than inferring a complete reproducibility
+contract. The 21-day study explicitly uses a three-day cap, automatic CPLEX
+threads, and the legacy unit-bound relaxation. They are separate protocols,
+not paired measurements of one formulation. The legacy relaxation reopens
+binary zero bounds to $[0,1]$; its optimum is a valid lower bound but does not
+equal the standard bound-preserving relaxation in general. No LP optimum alone
+certifies integer feasibility or a maintenance-feasible upper bound.}
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.95\textwidth]{figures/validated_lp_runtime.png}
+    \caption{Recorded end-to-end integrated LP runtimes for the two separately
+    labelled CPLEX protocols. Bars are not a cross-protocol speedup comparison.}
+    \label{fig:validated_lp_runtime}
+\end{figure}
+
+\textit{The source manifest and derived summary are retained in
+\texttt{results/tables/thesis\_final\_20261003/lp\_evidence.csv} and its
+manifest sidecar. The attempted dual-simplex pilot on the 21-day L-30 case used
+a 600-second native budget and returned no certified bound. It is retained as
+an unavailable tuning outcome, not as a speedup or infeasibility certificate.
+Automatic CPLEX settings remain the production choice because they already
+produced the completed 21-day optima; this does not establish global superiority
+over other LP algorithms. Further 30-day results are reported only after their
+raw records are available and validated.}
 
 Table~\ref{tab:strength_bounds_bracket} and Figure~\ref{fig:strength_bounds_bracket}
 show the per-instance bracket for the solved Medium tier. The shaded band runs

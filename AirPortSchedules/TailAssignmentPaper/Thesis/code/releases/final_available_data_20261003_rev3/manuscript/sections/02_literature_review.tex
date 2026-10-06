@@ -1,0 +1,318 @@
+%%==========================================================================
+\section{Literature Review}
+\label{sec:literature}
+%%==========================================================================
+
+The problems studied in this thesis lie in four related classes:
+\begin{itemize}
+	\item fleet assignment: selection of an aircraft type for each flight;
+	\item aircraft routing: construction of maintenance-feasible sequences for a homogeneous fleet;
+	\item tail assignment: allocation of individual aircraft, with their own locations and maintenance states, to those sequences; and
+	\item maintenance planning: scheduling checks and the tasks performed during them.
+\end{itemize}
+This distinction matters because models from these streams cannot be compared solely by instance size or solution
+time. They differ in decision scope, maintenance semantics, planning horizon,
+and treatment of uncertainty \citep{gopalan1998mathematical,
+barnhart2003applications, lacasse2010aircraft}. 
+
+The following sections review these four problem classes together with integrated airline planning, robustness and operational uncertainty, and heuristic solution methods.
+The review concludes with a discussion of the research gap addressed by this thesis.
+
+\subsection{Aircraft routing and tail-assignment formulations}
+
+Early network formulations represent aircraft movement as flow through airport
+and time events. The multi-commodity model of \citet{levin1971scheduling}
+tracks each aircraft separately, while the time-space network of
+\citet{hane1995fleet} provides a natural representation of flight, ground, and
+overnight arcs. Maintenance opportunities can then be embedded in feasible
+rotations \citep{clarke1996maintenance, clarke1997aircraft}. These models make
+physical continuity explicit, but aircraft-specific connection variables grow
+rapidly with the number of feasible flight pairs.
+
+Route-based formulations instead associate variables with complete feasible
+flight strings. The flight-string model of \citet{barnhart1998flight} exploits
+this structure through column generation. Such formulations can express
+detailed route feasibility in the pricing problem, but their implementation is
+substantially more involved than a directly solved compact MILP. Decomposition
+methods offer a related trade-off: they separate coupled decisions to obtain
+tractable subproblems, as illustrated by Benders approaches to aircraft routing
+and crew scheduling \citep{cordeau2001benders, mercier2005computational}.
+
+Compact formulations avoid explicit route enumeration. The lifted daily
+maintenance-routing model of \citet{haouari2012lifted}, for example, strengthens
+a compact nonlinear formulation through reformulation and linearisation.
+\citet{khaled2018compact} pursue a different compact representation in which
+binary variables assign flights directly to individual aircraft and aggregate
+time-balance constraints impose route continuity without connection-arc
+variables. Its small variable count and direct solvability make it the closest
+baseline for this thesis. Compactness, however, transfers more logical work to
+aggregate constraints; consequently, corner cases and conditional maintenance
+bounds require particularly careful verification.
+
+The daily model of \citet{maher2018daily} is an important operational
+counterpoint. It assigns aircraft to one-day lines of flight, enforces current
+maintenance needs, and uses look-ahead constraints for the following two days.
+Exact and heuristic procedures can modify lines of flight to reduce maintenance
+misalignment under day-to-day perturbations. That work addresses operational
+flexibility around a supplied route plan, whereas the present thesis audits and
+extends a deterministic compact assignment formulation over its full planning
+horizon. The two approaches are therefore complementary rather than direct
+competitors.
+
+
+
+\subsection{Mathematical programming formulations}
+
+Three main modelling paradigms underlie TAP research:
+
+\paragraph{Set partitioning / column generation.}
+The non-compact formulation enumerates \emph{strings} (feasible flight
+sequences per aircraft) as 0--1 variables.  Because the number of strings is
+exponential, column generation is required
+\citep{lavoie1988new, minoux1984column, barnhart1998flight, sarac2006branch}.
+Combining column generation with branch-and-bound (\emph{branch-and-price})
+gives exact solutions but at significant algorithmic overhead.  Robust
+extensions appear in \citet{borndorfer2010robust} and
+\citet{froyland2013recoverable}.
+
+\paragraph{Multi-commodity flow.}
+\citet{levin1971scheduling} introduced the compact multi-commodity flow
+formulation with $O(n_f^2 n_p)$ binary variables.  This remains the standard
+benchmark for compact models and is the primary comparison point in
+\citet{khaled2018compact}.
+
+\paragraph{Time-space networks.}
+\citet{hane1995fleet} proposed the time-space network for the \emph{fleet
+assignment problem}.  Nodes represent airport--time events; arcs encode
+ground waits, flights, and overnight stays.  Extensions to aircraft routing
+appear in \citet{clarke1996maintenance}.  Preprocessing by node aggregation
+and island isolation reduces model size
+\citep{hane1995fleet, sherali2006airline}.  Daily and weekly maintenance
+routing variants are studied in \citet{liang2011new} and
+\citet{liang2012network}; the latter also integrates fleet assignment
+decisions, but only approximate solutions are obtained via variable fixing.
+
+\paragraph{Nonlinear / lifted formulations.}
+\citet{haouari2012lifted} present a compact formulation with nonlinear
+constraints that are linearised via the Reformulation--Linearisation Technique
+(RLT).  The largest instances solved involve 344 flights, an order of magnitude
+below the instances handled by the model of \citet{khaled2018compact}.
+
+\subsection{MILP alternatives to the Khaled compact model}
+
+Beyond the compact binary assignment model of \citet{khaled2018compact},
+several mixed-integer alternatives are relevant for exact TAP modelling and
+large-scale implementation:
+\begin{itemize}
+	\item \textbf{Arc-flow MILP (time-indexed or event-indexed):} decision
+	variables are attached to feasible flight-connection arcs instead of flight--aircraft
+	assignment pairs, often yielding stronger network-structure constraints
+	\citep{levin1971scheduling, hane1995fleet, sherali2006airline}.
+	\item \textbf{Route-based master MILP (set partitioning):} aircraft duties are
+	represented as columns in a master MILP, typically solved with
+	branch-and-price; this is exact but algorithmically heavier
+	\citep{barnhart1998flight, sarac2006branch, klabjan2005large}.
+	\item \textbf{Decomposed MILP frameworks:} Benders- or
+	Dantzig--Wolfe-style decompositions separate assignment/routing from
+	maintenance-resource feasibility, improving scalability on larger fleets
+	\citep{cordeau2001benders, mercier2005computational, desaulniers1997daily}.
+	\item \textbf{Two-stage or rolling-horizon MILP:} first assign flights, then
+	repair/optimize maintenance and turnaround feasibility in a second MILP,
+	trading global optimality for tractable runtime
+	\citep{clarke1996maintenance, liang2011new, liang2012network}.
+	\item \textbf{Robust/scenario MILP variants:} delay and disruption uncertainty
+	is modelled through multiple scenarios with non-anticipativity-style linking
+	constraints, producing schedules that are less brittle operationally
+	\citep{borndorfer2010robust, froyland2013recoverable}.
+\end{itemize}
+
+In this taxonomy, the Khaled model is best viewed as a compact, directly
+solvable baseline that is simple to implement and benchmark, while the
+alternatives above trade model size, decomposition complexity, and robustness
+for stronger scalability or richer operational realism.
+
+\subsection{Formulation strengthening and maintenance-aware cuts}
+
+The scalability of a compact aircraft-routing MILP depends not only on the
+number of variables, but also on the strength of its linear relaxation. A
+promising direction is therefore to remove infeasible flight, ground, and
+maintenance transitions before model construction by means of forward and
+backward reachability analysis. Such graph reduction decreases the number of
+candidate arcs and prevents the MILP from assigning variables to transitions
+that cannot participate in any complete aircraft route. For the remaining
+network, maintenance-window and interval-cover inequalities can enforce that a
+qualifying check is reachable before a usage threshold is exceeded. Trigger,
+maintenance-start, and maintenance-arc variables should likewise be linked
+through disaggregated equalities or strong upper bounds, rather than through a
+single weak big-$M$ implication. These measures complement the correction of
+Constraint~(13) developed in this thesis: the correction repairs the endpoint
+logic of the cumulative-hour bound, whereas reachability and linking cuts
+strengthen the surrounding routing--maintenance relaxation.
+
+Related operational maintenance-routing research provides evidence for this
+direction. Al-Thani et al.~\citep{althani2016oamrp} combine graph reduction,
+valid inequalities, and an optimisation-based heuristic for the operational
+aircraft maintenance routing problem. Their results support the use of
+problem-specific preprocessing and inequalities in place of relying solely on
+generic solver cuts. The daily tail-assignment model of Maher et
+al.~\citep{maher2018daily} provides a complementary perspective: look-ahead
+maintenance constraints anticipate future maintenance misalignment instead of
+checking only the current day. This principle is particularly relevant for
+long planning horizons, where rolling-window or look-ahead inequalities can
+limit choices that appear feasible locally but make later maintenance coverage
+impossible. Reinforcement-learning research on aircraft maintenance routing
+also illustrates the value of representing future route feasibility in the
+decision state rather than evaluating only immediate assignment cost
+\citep{ruan2021reinforcement}.
+
+For the present thesis, these studies motivate a conservative strengthening
+agenda: first apply reachability preprocessing and explicit no-flight-during-
+maintenance conflicts; then add tail- and check-specific cumulative-utilisation
+cuts, maintenance-window cover inequalities, station--day capacity cuts, and
+strong trigger--start--arc linking. More elaborate rolling-window cuts,
+symmetry breaking for identical tails, and lazy combinatorial Benders cuts are
+promising extensions for longer horizons, but they require additional
+implementation and validation beyond the corrected compact formulation studied
+here.
+
+
+\subsection{Integrated airline planning}
+
+Sequential airline planning can propagate poor or infeasible decisions from
+fleet assignment to routing and then to crew planning. \citet{shao2017integrated}
+integrate fleet assignment, aircraft routing, and crew pairing in a single
+framework and solve it using Benders decomposition with acceleration
+strategies. Their results demonstrate the value of preserving cross-stage
+dependencies, but also show why decomposition is needed once fleet, route, and
+crew decisions are combined.
+
+At a narrower integration level, \citet{mirjafari2020integrated} jointly model
+maintenance routing and crew scheduling, including aircraft replacement,
+deadheading, night-flight allocation, and flight-hour maintenance thresholds.
+They compare Lagrangian relaxation and particle swarm optimisation, with the
+relaxation producing solutions closer to the small-instance optimum. These
+integrated models establish that routing decisions interact with downstream
+resources. They do not, however, provide a like-for-like test of the compact
+tail-assignment constraints studied here, because their variables, objectives,
+and resource constraints cover a broader planning problem.
+
+\subsection{Robustness and operational uncertainty}
+
+Deterministic cost-optimal routes can be fragile when delays propagate through
+tight aircraft connections. Recoverable-robust tail assignment explicitly
+balances planned performance with the ability to repair a disrupted schedule
+\citep{froyland2013recoverable}. A simulation-optimisation line of work instead
+uses stochastic evaluation to place connection buffers and retime flights. The
+initial particle-swarm and Monte Carlo framework of
+\citet{benahmed2015simulation} was developed into the weekly hybrid model of
+\citet{benahmed2017hybrid}. The latter combines a linearised maintenance-routing
+model with simulation-based retiming and reports substantial improvements in
+on-time performance and propagated delay on airline data.
+
+These studies reveal a limitation of the present thesis: the corrected model
+establishes deterministic physical and maintenance feasibility, but it does not
+by itself guarantee resilience to stochastic delays. Robust retiming, recourse,
+and scenario-based evaluation are therefore complementary extensions, not
+features that can be inferred from a feasible deterministic schedule.
+
+\subsection{Maintenance planning at different decision levels}
+
+Aircraft maintenance enters the literature at three levels that should not be
+conflated. First, routing models ensure that an aircraft reaches an eligible
+station before a usage limit is exceeded. Second, long-term check scheduling
+selects dates and capacities for maintenance packages. Third, task allocation
+assigns individual inspection and repair tasks to those checks. The present
+thesis operates mainly at the first level, while using a stylised hierarchy to
+represent interactions among check categories.
+
+At the long-term level, \citet{deng2020maintenance} use dynamic programming to
+coordinate A- and C-check schedules for a heterogeneous fleet while accounting
+for aircraft status and maintenance capacity. Their airline case study reports
+fewer checks and higher aircraft availability than current practice. At the
+task level, \citet{witteman2021binpacking} formulate repeated maintenance-task
+allocation as a time-constrained variable-sized bin-packing problem. Their
+worst-fit-decreasing heuristic obtains small gaps to an exact method while
+responding quickly enough for repeated replanning. \citet{deng2021dss} then
+integrate check scheduling, task allocation, and shift planning in a decision
+support system and demonstrate improvements on airline cases.
+
+This evidence also requires more precise terminology than a simple statement
+that four checks are universally mandated. Letter checks are practical packages
+whose content and intervals depend on the approved maintenance programme,
+aircraft type, utilisation, and operator. The supplied maintenance studies note
+that B-check tasks are often absorbed into successive A-checks and that some
+operators combine D-check work with heavy C-checks
+\citep{deng2020maintenance, witteman2021binpacking, deng2021dss}. Accordingly,
+the A/B/C/D structure in Chapter~\ref{ch:hierarchy} is a modelling abstraction
+for nested usage limits and counter resets. It is not a claim that every
+operator implements four separate maintenance events.
+
+For this thesis, the maintenance-planning literature has two further
+implications. Check feasibility depends on both utilisation counters, such as
+flight hours and cycles, and calendar limits; and an aircraft's state before the
+planning horizon cannot be discarded. Conversely, a routing-level model that
+places a check does not solve hangar capacity, task packaging, workforce, or
+shift planning. Those resource layers remain outside the present formulation.
+
+
+\subsection{Heuristic solution methods and cross-domain transfer}
+
+Constructive and local-search methods are operationally useful when exact
+solution times are incompatible with replanning. \citet{gronkvist2005tail}
+develops tail-assignment heuristics in this setting. 
+The original work targets a train application rather than flights, but the principles are transferable. The algorithm:
+represent movement and waiting in an acyclic space-time network, select locomotives in a
+cost-based order, repeatedly solve a least-cost path problem, update arc costs
+after assignment, and terminate a path when a maintenance limit becomes due. The algorithmic principles
+are applicable to aircraft because time also gives the routing network a natural
+topological order.
+
+This transfer must preserve aircraft-specific feasibility. Airport continuity,
+turnaround time, aircraft eligibility, and all maintenance counters have to be
+encoded in nodes, arcs, or state labels before a shortest-path solution is a
+valid tail route. Dijkstra's shortest-path method provides the basic path engine
+\citep{dijkstra1959note}; ant colony optimisation provides a population-based
+alternative for exploring assignment sequences \citep{dorigo1996ant,
+dorigo2004ant}. In this thesis these methods are benchmarked as constructive
+alternatives to the compact MILP, not treated as evidence of optimality.
+
+
+
+\subsection{Comparison scope and fairness}
+
+For an empirical comparison to be methodologically fair, competing models
+should be evaluated under a common instance family, objective definition,
+maintenance semantics, and solver-budget protocol.  In TAP, this condition is
+often not met across compact MILP, branch-and-price, Benders-decomposed, and
+robust/scenario formulations because these approaches typically optimize
+different decision scopes or uncertainty assumptions.  Accordingly, this thesis
+uses \citet{khaled2018compact} as the direct compact baseline for
+instance-matched comparisons, and treats other MILP families as complementary
+reference paradigms rather than strict one-to-one benchmarks.
+
+
+
+\subsection{Research gap and position of the thesis}
+
+The reviewed literature offers sophisticated solutions for route generation,
+integrated airline planning, robust retiming, long-term check scheduling, and
+maintenance-task allocation. Less attention is paid to auditing the logical
+correctness of a compact published formulation before extending or benchmarking
+it. This thesis addresses that narrower but foundational gap using
+\citet{khaled2018compact} as the direct baseline.
+
+The contribution is positioned in four parts. First, the aggregate ground-flow
+conditions are tested against simultaneous and overlapping flight patterns, and
+explicit non-overlap conditions are introduced where needed. Second, the
+conditional cumulative-hour logic of Constraint~(13) is analysed and replaced
+by two endpoint-anchored inequalities. Third, the maintenance state is extended
+to multiple nested check categories, including pre-horizon usage, while clearly
+remaining at routing level rather than modelling maintenance tasks or workforce.
+Fourth, exact and heuristic methods are evaluated on common generated instances
+under the same objective and feasibility checks.
+
+This scope supports a controlled claim: the thesis improves the correctness and
+maintenance coverage of one compact TAP formulation and evaluates practical
+solution alternatives for that formulation. It does not claim to supersede
+route-based, decomposition, robust, or maintenance-resource models, whose
+broader decision scopes answer different operational questions.

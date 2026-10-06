@@ -68,49 +68,49 @@
 \contentsline {section}{\numberline {6.4}Correctness and implementation checks}{39}{section.6.4}%
 \contentsline {section}{\numberline {6.5}Bounding framework}{40}{section.6.5}%
 \contentsline {section}{\numberline {6.6}Benchmark design}{40}{section.6.6}%
-\contentsline {section}{\numberline {6.7}Model-size results}{40}{section.6.7}%
+\contentsline {section}{\numberline {6.7}Model-size results}{41}{section.6.7}%
 \contentsline {section}{\numberline {6.8}Bound results}{41}{section.6.8}%
 \contentsline {subsection}{\numberline {6.8.1}Long-family integrated LP bounds}{42}{subsection.6.8.1}%
 \contentsline {section}{\numberline {6.9}Larger-model statistics}{43}{section.6.9}%
 \contentsline {section}{\numberline {6.10}Interpretation and limitations}{46}{section.6.10}%
 \contentsline {section}{\numberline {6.11}Reproducibility}{46}{section.6.11}%
-\contentsline {chapter}{\numberline {7}Heuristic Solution Methods}{47}{chapter.7}%
-\contentsline {section}{\numberline {7.1}Taxonomy of heuristic methods}{47}{section.7.1}%
-\contentsline {section}{\numberline {7.2}Shared feasibility oracle}{48}{section.7.2}%
-\contentsline {section}{\numberline {7.3}Greedy construction}{49}{section.7.3}%
-\contentsline {section}{\numberline {7.4}Insertion-based construction and repair}{50}{section.7.4}%
-\contentsline {section}{\numberline {7.5}Ferry and no-ferry variants}{50}{section.7.5}%
-\contentsline {section}{\numberline {7.6}Path-based and arc-based representations}{51}{section.7.6}%
-\contentsline {section}{\numberline {7.7}Modified Dijkstra heuristic}{52}{section.7.7}%
-\contentsline {section}{\numberline {7.8}Ant colony optimisation heuristic}{52}{section.7.8}%
-\contentsline {section}{\numberline {7.9}Application workflow and generated schedules}{53}{section.7.9}%
-\contentsline {section}{\numberline {7.10}Quality assessment and computational role}{54}{section.7.10}%
-\contentsline {chapter}{\numberline {8}Computational Study}{56}{chapter.8}%
-\contentsline {section}{\numberline {8.1}Scope and limitations}{56}{section.8.1}%
-\contentsline {section}{\numberline {8.2}Research questions and evaluation principles}{57}{section.8.2}%
-\contentsline {section}{\numberline {8.3}Software, hardware, and reproducibility protocol}{57}{section.8.3}%
-\contentsline {subsection}{\numberline {8.3.1}Execution protocol}{58}{subsection.8.3.1}%
-\contentsline {section}{\numberline {8.4}Benchmark families}{59}{section.8.4}%
-\contentsline {subsection}{\numberline {8.4.1}30-day Khaled-scale classical routing runs}{60}{subsection.8.4.1}%
-\contentsline {subsection}{\numberline {8.4.2}Data construction and instance classification}{61}{subsection.8.4.2}%
-\contentsline {subsection}{\numberline {8.4.3}Exact-feasible comparison and heuristic improvement}{63}{subsection.8.4.3}%
-\contentsline {section}{\numberline {8.5}Measured exact-model results}{64}{section.8.5}%
-\contentsline {subsection}{\numberline {8.5.1}Curated hierarchy-suite results}{65}{subsection.8.5.1}%
-\contentsline {subsection}{\numberline {8.5.2}Sensitivity to thresholds, durations, and capacity}{66}{subsection.8.5.2}%
-\contentsline {section}{\numberline {8.6}Constraint (13) and hierarchy validation}{66}{section.8.6}%
-\contentsline {subsection}{\numberline {8.6.1}Dedicated loophole validation}{68}{subsection.8.6.1}%
-\contentsline {section}{\numberline {8.7}Heuristic tournament}{68}{section.8.7}%
-\contentsline {section}{\numberline {8.8}Alternative soft-coverage formulation}{73}{section.8.8}%
-\contentsline {section}{\numberline {8.9}LP lower bounds and gap reporting}{75}{section.8.9}%
-\contentsline {section}{\numberline {8.10}Current commercial-CPLEX strengthening validation}{76}{section.8.10}%
-\contentsline {section}{\numberline {8.11}Path-based versus arc-based computation}{77}{section.8.11}%
-\contentsline {section}{\numberline {8.12}Extended comparison and reporting template}{77}{section.8.12}%
-\contentsline {section}{\numberline {8.13}Summary of measured evidence and remaining comparisons}{79}{section.8.13}%
-\contentsline {section}{\numberline {8.14}Threats to validity}{79}{section.8.14}%
-\contentsline {section}{\numberline {8.15}Directions for strengthening the exact formulation}{80}{section.8.15}%
-\contentsline {chapter}{\numberline {9}Conclusion}{81}{chapter.9}%
-\contentsline {paragraph}{Correction of the basic feasibility model.}{81}{section*.50}%
-\contentsline {paragraph}{Correction of Constraint~(13).}{81}{section*.51}%
-\contentsline {paragraph}{Full A/B/C/D hierarchy extension.}{82}{section*.52}%
-\contentsline {paragraph}{Heuristic methods and computational evaluation.}{82}{section*.53}%
-\contentsline {paragraph}{MILP strengthening and current CPLEX validation.}{82}{section*.54}%
+\contentsline {chapter}{\numberline {7}Heuristic Solution Methods}{48}{chapter.7}%
+\contentsline {section}{\numberline {7.1}Taxonomy of heuristic methods}{48}{section.7.1}%
+\contentsline {section}{\numberline {7.2}Shared feasibility oracle}{49}{section.7.2}%
+\contentsline {section}{\numberline {7.3}Greedy construction}{50}{section.7.3}%
+\contentsline {section}{\numberline {7.4}Insertion-based construction and repair}{51}{section.7.4}%
+\contentsline {section}{\numberline {7.5}Ferry and no-ferry variants}{51}{section.7.5}%
+\contentsline {section}{\numberline {7.6}Path-based and arc-based representations}{52}{section.7.6}%
+\contentsline {section}{\numberline {7.7}Modified Dijkstra heuristic}{53}{section.7.7}%
+\contentsline {section}{\numberline {7.8}Ant colony optimisation heuristic}{53}{section.7.8}%
+\contentsline {section}{\numberline {7.9}Application workflow and generated schedules}{54}{section.7.9}%
+\contentsline {section}{\numberline {7.10}Quality assessment and computational role}{55}{section.7.10}%
+\contentsline {chapter}{\numberline {8}Computational Study}{57}{chapter.8}%
+\contentsline {section}{\numberline {8.1}Scope and limitations}{57}{section.8.1}%
+\contentsline {section}{\numberline {8.2}Research questions and evaluation principles}{58}{section.8.2}%
+\contentsline {section}{\numberline {8.3}Software, hardware, and reproducibility protocol}{58}{section.8.3}%
+\contentsline {subsection}{\numberline {8.3.1}Execution protocol}{59}{subsection.8.3.1}%
+\contentsline {section}{\numberline {8.4}Benchmark families}{61}{section.8.4}%
+\contentsline {subsection}{\numberline {8.4.1}30-day Khaled-scale classical routing runs}{61}{subsection.8.4.1}%
+\contentsline {subsection}{\numberline {8.4.2}Data construction and instance classification}{62}{subsection.8.4.2}%
+\contentsline {subsection}{\numberline {8.4.3}Exact-feasible comparison and heuristic improvement}{64}{subsection.8.4.3}%
+\contentsline {section}{\numberline {8.5}Measured exact-model results}{65}{section.8.5}%
+\contentsline {subsection}{\numberline {8.5.1}Curated hierarchy-suite results}{66}{subsection.8.5.1}%
+\contentsline {subsection}{\numberline {8.5.2}Sensitivity to thresholds, durations, and capacity}{67}{subsection.8.5.2}%
+\contentsline {section}{\numberline {8.6}Constraint (13) and hierarchy validation}{68}{section.8.6}%
+\contentsline {subsection}{\numberline {8.6.1}Dedicated loophole validation}{69}{subsection.8.6.1}%
+\contentsline {section}{\numberline {8.7}Heuristic tournament}{70}{section.8.7}%
+\contentsline {section}{\numberline {8.8}Alternative soft-coverage formulation}{74}{section.8.8}%
+\contentsline {section}{\numberline {8.9}LP lower bounds and gap reporting}{76}{section.8.9}%
+\contentsline {section}{\numberline {8.10}Archived commercial-CPLEX strengthening observations}{77}{section.8.10}%
+\contentsline {section}{\numberline {8.11}Path-based versus arc-based computation}{78}{section.8.11}%
+\contentsline {section}{\numberline {8.12}Extended comparison and reporting template}{79}{section.8.12}%
+\contentsline {section}{\numberline {8.13}Summary of measured evidence and remaining comparisons}{80}{section.8.13}%
+\contentsline {section}{\numberline {8.14}Threats to validity}{80}{section.8.14}%
+\contentsline {section}{\numberline {8.15}Directions for strengthening the exact formulation}{81}{section.8.15}%
+\contentsline {chapter}{\numberline {9}Conclusion}{82}{chapter.9}%
+\contentsline {paragraph}{Correction of the basic feasibility model.}{82}{section*.52}%
+\contentsline {paragraph}{Correction of Constraint~(13).}{82}{section*.53}%
+\contentsline {paragraph}{Full A/B/C/D hierarchy extension.}{83}{section*.54}%
+\contentsline {paragraph}{Heuristic methods and computational evaluation.}{83}{section*.55}%
+\contentsline {paragraph}{MILP strengthening and current CPLEX validation.}{83}{section*.56}%

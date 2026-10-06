@@ -1,0 +1,17 @@
+\begin{table}[htbp]
+\centering\small
+\caption{Preliminary pairwise versus interval-clique overlap comparison across 30-day M/L/X classical models. Both variants use the same validated start and a 20-second Gurobi limit; none proves optimality.}
+\label{tab:strength_overlap_m20}
+\begin{tabular}{llrrrrrr}
+\toprule
+Tier & Formulation & Constraints & Build (s) & Incumbent & Valid lower bound & Gap (\%) & $z$ variables \\
+\midrule
+M-20 & Pairwise & 170,460 & 4.40 & 1,160,575.8 & 1,014,693.0 & 12.57 & 0 \\
+M-20 & Cliques & 23,480 & 3.00 & 1,160,575.8 & 1,014,693.0 & 12.57 & 0 \\
+L-30 & Pairwise & 582,030 & 11.62 & 1,745,535.1 & 1,511,232.3 & 13.42 & 0 \\
+L-30 & Cliques & 50,730 & 7.87 & 1,745,535.1 & 1,511,232.3 & 13.42 & 0 \\
+X-40 & Pairwise & 1,330,920 & 21.23 & 2,309,321.6 & 2,010,885.6 & 12.92 & 0 \\
+X-40 & Cliques & 88,240 & 12.22 & 2,310,431.0 & 2,010,885.6 & 12.96 & 0 \\
+\bottomrule
+\end{tabular}
+\end{table}

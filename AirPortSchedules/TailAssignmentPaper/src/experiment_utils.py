@@ -47,7 +47,8 @@ def experiment_metadata(root, paths, config):
         'python': platform.python_version(), 'pyomo': pyomo.__version__,
         'platform': platform.platform(),
         'processor': platform.processor(), 'cpu_count': os.cpu_count(),
-        'solver_version': solver_version, 'threads': 'solver default',
+        'solver_version': solver_version,
+        'threads': config.get('threads') if config.get('threads') is not None else 'solver default',
         'inputs': {str(path.resolve()): hashlib.sha256(path.read_bytes()).hexdigest()
                    for path in paths if path.exists()},
         'config': {key: str(value) if isinstance(value, Path) else value

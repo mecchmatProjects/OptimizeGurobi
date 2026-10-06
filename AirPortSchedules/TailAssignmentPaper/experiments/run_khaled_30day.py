@@ -11,6 +11,8 @@ prove) optimality under the requested time limit.
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import csv
 import math
 import sys
@@ -26,7 +28,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from model import MILP_Sheduler  # noqa: E402  # type: ignore[reportMissingImports]
-from solver_utils import apply_time_limit, extract_bounds, termination_of, solve_and_load
+from solver_utils import (apply_time_limit, extract_bounds, termination_of, solve_and_load,
+                          apply_threads, completed_status, solver_details)
 from experiment_utils import ExperimentCSV, experiment_metadata, instance_paths
 from tqdm import tqdm
 
@@ -172,9 +175,9 @@ def validated_bounds(raw_dual, primal, assignment_floor):
     return lower, consistent, gap
 
 
-def run_instance(path, solver_name, executable, time_limit, overlap="none"):
+def run_instance(path, solver_name, executable, time_limit, overlap="none", threads=None):
     started = time.perf_counter()
-    scheduler = MILP_Sheduler(path)
+    scheduler = MILP_Sheduler(path, prepare_maintenance=False)
     model = scheduler.build_model(
         use_maintenance=False,
         allow_ferry=True,
@@ -203,6 +206,7 @@ def run_instance(path, solver_name, executable, time_limit, overlap="none"):
     solver_kwargs = {"executable": str(executable)} if executable else {}
     solver = SolverFactory(solver_name, **solver_kwargs)
     apply_time_limit(solver, solver_name, time_limit)
+    apply_threads(solver, solver_name, threads)
     if "gurobi" in solver_name.lower():
         solver.options["TimeLimit"] = int(time_limit)
         solver.options["MIPFocus"] = 1
@@ -217,14 +221,20 @@ def run_instance(path, solver_name, executable, time_limit, overlap="none"):
     result, _loaded, _objective = solve_and_load(solver, model, **solve_kwargs)
     solve_s = time.perf_counter() - solve_started
     status = termination_of(result)
+    details = solver_details(result, solver)
     raw_dual, solver_primal, _gap, nodes = extract_bounds(result)
     candidates = [bound for bound in (solver_primal, start_objective) if bound is not None]
     primal = min(candidates) if candidates else None
+    if not completed_status(status):
+        raw_dual = None
+        primal = start_objective
     proven_lower, consistent_raw_dual, gap = validated_bounds(
         raw_dual, primal, trivial_bound
     )
 
     return {
+        **details,
+        'error': '' if completed_status(status) else f"Solver failure: {status}; {details['solver_message']}",
         "instance": Path(path).stem,
         "aircraft": len(scheduler.aircraft_ids),
         "flights": len(scheduler.flight_ids),
@@ -262,22 +272,48 @@ def write_latex_table(source, destination):
         raise ValueError('Table requires non-error run rows; incomplete outcomes must be reviewed separately.')
     if any(row.get('formulation') != 'classical_none_overlap' for row in rows):
         raise ValueError('This table is for the paper-style classical model without overlap rows.')
+    if len({row['instance'] for row in rows}) != len(rows):
+        raise ValueError('Duplicate classical attempts must be reviewed separately.')
+    metadata_path = Path(source).with_suffix('.metadata.json')
+    if not metadata_path.exists():
+        raise ValueError('Classical table requires its provenance sidecar.')
+    metadata = json.loads(metadata_path.read_text(encoding='utf-8'))
+    config = metadata.get('config', {})
+    planned = len(config.get('instances') or metadata.get('inputs', {})) or len(rows)
+    missing = max(0, planned - len(rows))
+    for row in rows:
+        upper, lower = _finite(row.get('primal_bound')), _finite(row.get('dual_bound'))
+        if not completed_status(row.get('status')) or upper is None or lower is None:
+            raise ValueError(f"No validated finite bracket for {row['instance']}.")
+        if lower > upper + 1e-6 * max(1, abs(upper)):
+            raise ValueError(f"Inconsistent bounds for {row['instance']}.")
+        gap = _finite(row.get('relative_gap_pct'))
+        expected_gap = 100 * max(0, upper - lower) / abs(upper) if upper else 0
+        if gap is None or abs(gap - expected_gap) > 1e-5:
+            raise ValueError(f"Gap mismatch for {row['instance']}.")
+    for filename, expected in metadata.get('inputs', {}).items():
+        path = Path(filename)
+        if not path.exists() or hashlib.sha256(path.read_bytes()).hexdigest() != expected:
+            raise ValueError(f'Input provenance mismatch: {filename}')
     def number(raw, decimals=0):
         parsed = _finite(raw)
         return '--' if parsed is None else f'{parsed:,.{decimals}f}'
-    lines = [r'\begin{table}[htbp]', r'\centering\small',
-             r'\caption{Classical routing results regenerated from the declared raw CSV. '
-             r'Finite upper bounds come from solver incumbents or validated complete routing starts; '
-             r'solve status and budget remain recorded in the source CSV.}',
-             r'\label{tab:khaled_30day_classical}', r'\begin{tabular}{lrrrrrrrr}',
-             r'\toprule', r'Instance & $P$ & $F$ & Variables & Constraints & Build (s) & '
-             r'Upper bound & Lower bound & Gap (\%) \\', r'\midrule']
+    budget = config.get('time_limit', 'unrecorded')
+    lines = [r'\begin{table}[htbp]', r'\centering\scriptsize',
+             r'\setlength{\tabcolsep}{3pt}',
+             rf'\caption{{Classical routing evidence from {len(rows)} saved records out of {planned} planned cases '
+             rf'({missing} without a saved row). Native budget: {budget} seconds per case. '
+             r'Finite brackets do not imply proven optimality; status and end-to-end time are shown.}',
+             r'\label{tab:khaled_30day_classical}', r'\begin{tabular}{lrrrrrrrrl}',
+             r'\toprule', r'Instance & $P$ & $F$ & Vars & Rows & '
+             r'Upper bound & Lower bound & Gap (\%) & Total (s) & Status \\', r'\midrule']
     for row in rows:
         label = row['instance'].split('_')[0].replace('_', r'\_')
         values = [label, number(row['aircraft']), number(row['flights']),
-                  number(row['variables']), number(row['constraints']), number(row['build_s'], 1),
+                  number(row['variables']), number(row['constraints']),
                   number(row['primal_bound'], 1), number(row['dual_bound'], 1),
-                  number(row['relative_gap_pct'], 2)]
+                  number(row['relative_gap_pct'], 3), number(row.get('wall_s'), 1),
+                  'time limit' if row['status'] == 'maxTimeLimit' else row['status']]
         lines.append(' & '.join(values) + r' \\')
     lines.extend([r'\bottomrule', r'\end{tabular}', r'\end{table}'])
     destination = Path(destination)
@@ -304,6 +340,8 @@ def main(argv=None):
     selection.add_argument('--full', action='store_true', help='All selected instances.')
     parser.add_argument('--resume', action='store_true')
     parser.add_argument('--overwrite', action='store_true')
+    parser.add_argument('--threads', type=int, default=None)
+    parser.add_argument('--continue-on-solver-error', action='store_true')
     parser.add_argument('--table-csv', type=Path, help='Generate LaTeX only; do not run a solver.')
     parser.add_argument('--latex-output', type=Path)
     args = parser.parse_args(argv)
@@ -327,13 +365,14 @@ def main(argv=None):
         "dual_bound_consistent", "dual_bound", "primal_bound",
         "relative_gap_pct", "assignment_coverage", "error",
         'warmstart_submitted', 'start_error', 'wall_s', 'nodes',
+        'solver_message', 'solver_return_code',
     ]
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.INFO, stream=sys.stdout)
     metadata = experiment_metadata(ROOT, paths, vars(args))
     with ExperimentCSV(args.output, fields, metadata, args.resume, args.overwrite) as output:
         completed = {row['instance'] for row in output.previous
-                     if row['status'] not in ('error', 'missing')}
-        for path in tqdm(paths, desc='Classical instances'):
+                     if completed_status(row['status'])}
+        for path in tqdm(paths, desc='Classical instances', file=sys.stdout):
             if path.stem in completed:
                 continue
             if not path.exists():
@@ -341,14 +380,18 @@ def main(argv=None):
             else:
                 try:
                     row = run_instance(path, args.solver, args.executable,
-                                       args.time_limit, overlap=args.overlap)
+                                       args.time_limit, overlap=args.overlap, threads=args.threads)
                 except Exception as exc:
                     row = {'instance': path.stem, 'status': 'error',
                            'error': f'{type(exc).__name__}: {exc}'}
             output.write(row)
             logging.info('%s: %s', path.stem, row['status'])
+            if not completed_status(row['status']) and not args.continue_on_solver_error:
+                logging.error('%s', row.get('error', 'missing input'))
+                return 1
     print(f"WROTE {args.output}")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

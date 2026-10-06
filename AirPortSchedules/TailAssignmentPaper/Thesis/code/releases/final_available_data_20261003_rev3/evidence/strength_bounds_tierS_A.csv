@@ -1,0 +1,101 @@
+instance,variant,mode,flights,aircraft,days,variables,constraints,z_variables,build_s,solver,time_limit_s,status,objective,dual_bound,primal_bound,mip_gap,nodes,runtime_s,coverage,error
+DataCplex_density=0.65_p=8_h=14_test_0,heuristic:greedy+insertion,heuristic,64,8,,,,,,none,,partial,43104.0,,,,,0.030739,0.84375,10 unassigned
+DataCplex_density=0.65_p=8_h=14_test_0,baseline,lp,64,8,14,2896,6598,2048,0.220652,highs,300,optimal,29738.0,29738.0,29738.0,0.0,,0.805832,,
+DataCplex_density=0.65_p=8_h=14_test_0,baseline,milp,64,8,14,2896,6598,2048,0.240384,highs,300,optimal,29738.0,29738.0,29738.0,0.0,,1.643593,,
+DataCplex_density=0.65_p=8_h=14_test_0,combined,lp,64,8,14,1104,3269,256,0.222091,highs,300,optimal,29738.0,29738.0,29738.0,0.0,,0.38848,,
+DataCplex_density=0.65_p=8_h=14_test_0,combined,milp,64,8,14,1104,3269,256,0.212861,highs,300,optimal,29738.0,29738.0,29738.0,0.0,,0.977592,,
+DataCplex_density=0.65_p=8_h=14_test_1,heuristic:greedy+insertion,heuristic,64,8,,,,,,none,,partial,43086.0,,,,,0.029663,0.84375,10 unassigned
+DataCplex_density=0.65_p=8_h=14_test_1,baseline,lp,64,8,14,2896,6598,2048,0.2658,highs,300,optimal,29736.0,29736.0,29736.0,0.0,,0.736453,,
+DataCplex_density=0.65_p=8_h=14_test_1,baseline,milp,64,8,14,2896,6598,2048,0.239234,highs,300,optimal,29736.0,29736.0,29736.0,0.0,,1.68444,,
+DataCplex_density=0.65_p=8_h=14_test_1,combined,lp,64,8,14,1104,3269,256,0.236687,highs,300,optimal,29736.0,29736.0,29736.0,0.0,,0.422045,,
+DataCplex_density=0.65_p=8_h=14_test_1,combined,milp,64,8,14,1104,3269,256,0.216716,highs,300,optimal,29736.0,29736.0,29736.0,0.0,,1.001771,,
+DataCplex_density=0.65_p=8_h=14_test_10,heuristic:greedy+insertion,heuristic,64,8,,,,,,none,,partial,43071.0,,,,,0.029704,0.84375,10 unassigned
+DataCplex_density=0.65_p=8_h=14_test_10,baseline,lp,64,8,14,2896,6598,2048,0.232069,highs,300,optimal,29774.0,29774.0,29774.0,0.0,,0.789025,,
+DataCplex_density=0.65_p=8_h=14_test_10,baseline,milp,64,8,14,2896,6598,2048,0.243967,highs,300,optimal,29774.0,29774.0,29774.0,0.0,,1.652505,,
+DataCplex_density=0.65_p=8_h=14_test_10,combined,lp,64,8,14,1104,3269,256,0.223547,highs,300,optimal,29774.0,29774.0,29774.0,0.0,,0.390313,,
+DataCplex_density=0.65_p=8_h=14_test_10,combined,milp,64,8,14,1104,3269,256,0.218257,highs,300,optimal,29774.0,29774.0,29774.0,0.0,,0.99136,,
+DataCplex_density=0.65_p=8_h=14_test_11,heuristic:greedy+insertion,heuristic,64,8,,,,,,none,,partial,43134.0,,,,,0.036247,0.84375,10 unassigned
+DataCplex_density=0.65_p=8_h=14_test_11,baseline,lp,64,8,14,2896,6598,2048,0.263565,highs,300,optimal,29774.0,29774.0,29774.0,0.0,,0.730274,,
+DataCplex_density=0.65_p=8_h=14_test_11,baseline,milp,64,8,14,2896,6598,2048,0.236953,highs,300,optimal,29774.0,29774.0,29774.0,0.0,,1.703434,,
+DataCplex_density=0.65_p=8_h=14_test_11,combined,lp,64,8,14,1104,3269,256,0.227517,highs,300,optimal,29774.0,29774.0,29774.0,0.0,,0.385135,,
+DataCplex_density=0.65_p=8_h=14_test_11,combined,milp,64,8,14,1104,3269,256,0.215427,highs,300,optimal,29774.0,29774.0,29774.0,0.0,,0.991331,,
+DataCplex_density=0.65_p=8_h=14_test_12,heuristic:greedy+insertion,heuristic,64,8,,,,,,none,,partial,43108.0,,,,,0.036853,0.84375,10 unassigned
+DataCplex_density=0.65_p=8_h=14_test_12,baseline,lp,64,8,14,2896,6598,2048,0.230742,highs,300,optimal,29799.0,29799.0,29799.0,0.0,,0.785673,,
+DataCplex_density=0.65_p=8_h=14_test_12,baseline,milp,64,8,14,2896,6598,2048,0.245196,highs,300,optimal,29799.0,29799.0,29799.0,0.0,,1.661598,,
+DataCplex_density=0.65_p=8_h=14_test_12,combined,lp,64,8,14,1104,3269,256,0.223198,highs,300,optimal,29799.0,29799.0,29799.0,0.0,,0.389603,,
+DataCplex_density=0.65_p=8_h=14_test_12,combined,milp,64,8,14,1104,3269,256,0.214034,highs,300,optimal,29799.0,29799.0,29799.0,0.0,,1.018904,,
+DataCplex_density=0.65_p=8_h=14_test_13,heuristic:greedy+insertion,heuristic,64,8,,,,,,none,,partial,43099.0,,,,,0.036175,0.84375,10 unassigned
+DataCplex_density=0.65_p=8_h=14_test_13,baseline,lp,64,8,14,2896,6598,2048,0.266215,highs,300,optimal,29769.0,29769.0,29769.0,0.0,,0.738087,,
+DataCplex_density=0.65_p=8_h=14_test_13,baseline,milp,64,8,14,2896,6598,2048,0.27893,highs,300,optimal,29769.0,29769.0,29769.0,0.0,,1.64481,,
+DataCplex_density=0.65_p=8_h=14_test_13,combined,lp,64,8,14,1104,3269,256,0.235763,highs,300,optimal,29769.0,29769.0,29769.0,0.0,,0.384469,,
+DataCplex_density=0.65_p=8_h=14_test_13,combined,milp,64,8,14,1104,3269,256,0.217824,highs,300,optimal,29769.0,29769.0,29769.0,0.0,,0.979131,,
+DataCplex_density=0.65_p=8_h=14_test_14,heuristic:greedy+insertion,heuristic,64,8,,,,,,none,,partial,43104.0,,,,,0.037783,0.84375,10 unassigned
+DataCplex_density=0.65_p=8_h=14_test_14,baseline,lp,64,8,14,2896,6598,2048,0.242685,highs,300,optimal,29746.0,29746.0,29746.0,0.0,,0.831246,,
+DataCplex_density=0.65_p=8_h=14_test_14,baseline,milp,64,8,14,2896,6598,2048,0.247298,highs,300,optimal,29746.0,29746.0,29746.0,0.0,,1.69324,,
+DataCplex_density=0.65_p=8_h=14_test_14,combined,lp,64,8,14,1104,3269,256,0.222499,highs,300,optimal,29746.0,29746.0,29746.0,0.0,,0.396425,,
+DataCplex_density=0.65_p=8_h=14_test_14,combined,milp,64,8,14,1104,3269,256,0.215955,highs,300,optimal,29746.0,29746.0,29746.0,0.0,,1.034436,,
+DataCplex_density=0.65_p=8_h=14_test_15,heuristic:greedy+insertion,heuristic,64,8,,,,,,none,,partial,43123.0,,,,,0.036425,0.84375,10 unassigned
+DataCplex_density=0.65_p=8_h=14_test_15,baseline,lp,64,8,14,2896,6598,2048,0.23393,highs,300,optimal,29767.0,29767.0,29767.0,0.0,,0.790247,,
+DataCplex_density=0.65_p=8_h=14_test_15,baseline,milp,64,8,14,2896,6598,2048,0.275287,highs,300,optimal,29767.0,29767.0,29767.0,0.0,,1.671202,,
+DataCplex_density=0.65_p=8_h=14_test_15,combined,lp,64,8,14,1104,3269,256,0.222675,highs,300,optimal,29767.0,29767.0,29767.0,0.0,,0.396455,,
+DataCplex_density=0.65_p=8_h=14_test_15,combined,milp,64,8,14,1104,3269,256,0.222209,highs,300,optimal,29767.0,29767.0,29767.0,0.0,,0.992265,,
+DataCplex_density=0.65_p=8_h=14_test_16,heuristic:greedy+insertion,heuristic,64,8,,,,,,none,,partial,43121.0,,,,,0.037042,0.84375,10 unassigned
+DataCplex_density=0.65_p=8_h=14_test_16,baseline,lp,64,8,14,2896,6598,2048,0.242454,highs,300,optimal,29750.0,29750.0,29750.0,0.0,,0.823211,,
+DataCplex_density=0.65_p=8_h=14_test_16,baseline,milp,64,8,14,2896,6598,2048,0.246203,highs,300,optimal,29750.0,29750.0,29750.0,0.0,,1.701383,,
+DataCplex_density=0.65_p=8_h=14_test_16,combined,lp,64,8,14,1104,3269,256,0.221884,highs,300,optimal,29750.0,29750.0,29750.0,0.0,,0.399983,,
+DataCplex_density=0.65_p=8_h=14_test_16,combined,milp,64,8,14,1104,3269,256,0.214412,highs,300,optimal,29750.0,29750.0,29750.0,0.0,,1.041971,,
+DataCplex_density=0.65_p=8_h=14_test_17,heuristic:greedy+insertion,heuristic,64,8,,,,,,none,,partial,43103.0,,,,,0.037204,0.84375,10 unassigned
+DataCplex_density=0.65_p=8_h=14_test_17,baseline,lp,64,8,14,2896,6598,2048,0.236333,highs,300,optimal,29716.0,29716.0,29716.0,0.0,,0.818772,,
+DataCplex_density=0.65_p=8_h=14_test_17,baseline,milp,64,8,14,2896,6598,2048,0.279792,highs,300,optimal,29716.0,29716.0,29716.0,0.0,,1.687522,,
+DataCplex_density=0.65_p=8_h=14_test_17,combined,lp,64,8,14,1104,3269,256,0.224294,highs,300,optimal,29716.0,29716.0,29716.0,0.0,,0.394796,,
+DataCplex_density=0.65_p=8_h=14_test_17,combined,milp,64,8,14,1104,3269,256,0.223194,highs,300,optimal,29716.0,29716.0,29716.0,0.0,,1.023007,,
+DataCplex_density=0.65_p=8_h=14_test_18,heuristic:greedy+insertion,heuristic,64,8,,,,,,none,,partial,43115.0,,,,,0.038217,0.84375,10 unassigned
+DataCplex_density=0.65_p=8_h=14_test_18,baseline,lp,64,8,14,2896,6598,2048,0.279233,highs,300,optimal,29729.0,29729.0,29729.0,0.0,,0.77612,,
+DataCplex_density=0.65_p=8_h=14_test_18,baseline,milp,64,8,14,2896,6598,2048,0.241361,highs,300,optimal,29729.0,29729.0,29729.0,0.0,,1.67188,,
+DataCplex_density=0.65_p=8_h=14_test_18,combined,lp,64,8,14,1104,3269,256,0.222597,highs,300,optimal,29729.0,29729.0,29729.0,0.0,,0.431253,,
+DataCplex_density=0.65_p=8_h=14_test_18,combined,milp,64,8,14,1104,3269,256,0.219974,highs,300,optimal,29729.0,29729.0,29729.0,0.0,,0.991008,,
+DataCplex_density=0.65_p=8_h=14_test_19,heuristic:greedy+insertion,heuristic,64,8,,,,,,none,,partial,43086.0,,,,,0.036239,0.84375,10 unassigned
+DataCplex_density=0.65_p=8_h=14_test_19,baseline,lp,64,8,14,2896,6598,2048,0.231787,highs,300,optimal,29763.0,29763.0,29763.0,0.0,,0.76461,,
+DataCplex_density=0.65_p=8_h=14_test_19,baseline,milp,64,8,14,2896,6598,2048,0.272955,highs,300,optimal,29763.0,29763.0,29763.0,0.0,,1.665999,,
+DataCplex_density=0.65_p=8_h=14_test_19,combined,lp,64,8,14,1104,3269,256,0.22246,highs,300,optimal,29763.0,29763.0,29763.0,0.0,,0.399514,,
+DataCplex_density=0.65_p=8_h=14_test_19,combined,milp,64,8,14,1104,3269,256,0.215438,highs,300,optimal,29763.0,29763.0,29763.0,0.0,,1.004264,,
+DataCplex_density=0.65_p=8_h=14_test_2,heuristic:greedy+insertion,heuristic,64,8,,,,,,none,,partial,43115.0,,,,,0.036834,0.84375,10 unassigned
+DataCplex_density=0.65_p=8_h=14_test_2,baseline,lp,64,8,14,2896,6598,2048,0.28998,highs,300,optimal,29776.0,29776.0,29776.0,0.0,,0.773985,,
+DataCplex_density=0.65_p=8_h=14_test_2,baseline,milp,64,8,14,2896,6598,2048,0.244643,highs,300,optimal,29776.0,29776.0,29776.0,0.0,,1.724061,,
+DataCplex_density=0.65_p=8_h=14_test_2,combined,lp,64,8,14,1104,3269,256,0.166704,highs,300,optimal,29776.0,29776.0,29776.0,0.0,,0.458752,,
+DataCplex_density=0.65_p=8_h=14_test_2,combined,milp,64,8,14,1104,3269,256,0.223709,highs,300,optimal,29776.0,29776.0,29776.0,0.0,,1.029989,,
+DataCplex_density=0.65_p=8_h=14_test_3,heuristic:greedy+insertion,heuristic,64,8,,,,,,none,,partial,43099.0,,,,,0.041062,0.84375,10 unassigned
+DataCplex_density=0.65_p=8_h=14_test_3,baseline,lp,64,8,14,2896,6598,2048,0.233917,highs,300,optimal,29744.0,29744.0,29744.0,0.0,,0.766325,,
+DataCplex_density=0.65_p=8_h=14_test_3,baseline,milp,64,8,14,2896,6598,2048,0.280035,highs,300,optimal,29744.0,29744.0,29744.0,0.0,,1.693113,,
+DataCplex_density=0.65_p=8_h=14_test_3,combined,lp,64,8,14,1104,3269,256,0.223578,highs,300,optimal,29744.0,29744.0,29744.0,0.0,,0.414896,,
+DataCplex_density=0.65_p=8_h=14_test_3,combined,milp,64,8,14,1104,3269,256,0.216063,highs,300,optimal,29744.0,29744.0,29744.0,0.0,,0.962732,,
+DataCplex_density=0.65_p=8_h=14_test_4,heuristic:greedy+insertion,heuristic,64,8,,,,,,none,,partial,43116.0,,,,,0.037151,0.84375,10 unassigned
+DataCplex_density=0.65_p=8_h=14_test_4,baseline,lp,64,8,14,2896,6598,2048,0.332934,highs,300,optimal,29777.0,29777.0,29777.0,0.0,,0.774467,,
+DataCplex_density=0.65_p=8_h=14_test_4,baseline,milp,64,8,14,2896,6598,2048,0.240975,highs,300,optimal,29777.0,29777.0,29777.0,0.0,,1.70736,,
+DataCplex_density=0.65_p=8_h=14_test_4,combined,lp,64,8,14,1104,3269,256,0.231089,highs,300,optimal,29777.0,29777.0,29777.0,0.0,,0.388523,,
+DataCplex_density=0.65_p=8_h=14_test_4,combined,milp,64,8,14,1104,3269,256,0.217845,highs,300,optimal,29777.0,29777.0,29777.0,0.0,,1.005273,,
+DataCplex_density=0.65_p=8_h=14_test_5,heuristic:greedy+insertion,heuristic,64,8,,,,,,none,,partial,43132.0,,,,,0.035981,0.84375,10 unassigned
+DataCplex_density=0.65_p=8_h=14_test_5,baseline,lp,64,8,14,2896,6598,2048,0.232359,highs,300,optimal,29730.0,29730.0,29730.0,0.0,,0.769495,,
+DataCplex_density=0.65_p=8_h=14_test_5,baseline,milp,64,8,14,2896,6598,2048,0.277872,highs,300,optimal,29730.0,29730.0,29730.0,0.0,,1.702328,,
+DataCplex_density=0.65_p=8_h=14_test_5,combined,lp,64,8,14,1104,3269,256,0.226007,highs,300,optimal,29730.0,29730.0,29730.0,0.0,,0.404553,,
+DataCplex_density=0.65_p=8_h=14_test_5,combined,milp,64,8,14,1104,3269,256,0.21842,highs,300,optimal,29730.0,29730.0,29730.0,0.0,,0.996688,,
+DataCplex_density=0.65_p=8_h=14_test_6,heuristic:greedy+insertion,heuristic,64,8,,,,,,none,,partial,43165.0,,,,,0.036763,0.84375,10 unassigned
+DataCplex_density=0.65_p=8_h=14_test_6,baseline,lp,64,8,14,2896,6598,2048,0.270605,highs,300,optimal,29797.0,29797.0,29797.0,0.0,,0.777812,,
+DataCplex_density=0.65_p=8_h=14_test_6,baseline,milp,64,8,14,2896,6598,2048,0.248405,highs,300,optimal,29797.0,29797.0,29797.0,0.0,,1.720033,,
+DataCplex_density=0.65_p=8_h=14_test_6,combined,lp,64,8,14,1104,3269,256,0.234027,highs,300,optimal,29797.0,29797.0,29797.0,0.0,,0.396286,,
+DataCplex_density=0.65_p=8_h=14_test_6,combined,milp,64,8,14,1104,3269,256,0.218832,highs,300,optimal,29797.0,29797.0,29797.0,0.0,,0.996297,,
+DataCplex_density=0.65_p=8_h=14_test_7,heuristic:greedy+insertion,heuristic,64,8,,,,,,none,,partial,43110.0,,,,,0.03602,0.84375,10 unassigned
+DataCplex_density=0.65_p=8_h=14_test_7,baseline,lp,64,8,14,2896,6598,2048,0.233066,highs,300,optimal,29759.0,29759.0,29759.0,0.0,,0.817975,,
+DataCplex_density=0.65_p=8_h=14_test_7,baseline,milp,64,8,14,2896,6598,2048,0.241593,highs,300,optimal,29759.0,29759.0,29759.0,0.0,,1.682335,,
+DataCplex_density=0.65_p=8_h=14_test_7,combined,lp,64,8,14,1104,3269,256,0.226371,highs,300,optimal,29759.0,29759.0,29759.0,0.0,,0.393614,,
+DataCplex_density=0.65_p=8_h=14_test_7,combined,milp,64,8,14,1104,3269,256,0.213648,highs,300,optimal,29759.0,29759.0,29759.0,0.0,,0.998616,,
+DataCplex_density=0.65_p=8_h=14_test_8,heuristic:greedy+insertion,heuristic,64,8,,,,,,none,,partial,43106.0,,,,,0.036836,0.84375,10 unassigned
+DataCplex_density=0.65_p=8_h=14_test_8,baseline,lp,64,8,14,2896,6598,2048,0.270708,highs,300,optimal,29771.0,29771.0,29771.0,0.0,,0.76654,,
+DataCplex_density=0.65_p=8_h=14_test_8,baseline,milp,64,8,14,2896,6598,2048,0.256088,highs,300,optimal,29771.0,29771.0,29771.0,0.0,,1.716396,,
+DataCplex_density=0.65_p=8_h=14_test_8,combined,lp,64,8,14,1104,3269,256,0.2278,highs,300,optimal,29771.0,29771.0,29771.0,0.0,,0.389954,,
+DataCplex_density=0.65_p=8_h=14_test_8,combined,milp,64,8,14,1104,3269,256,0.219114,highs,300,optimal,29771.0,29771.0,29771.0,0.0,,0.973014,,
+DataCplex_density=0.65_p=8_h=14_test_9,heuristic:greedy+insertion,heuristic,64,8,,,,,,none,,partial,43147.0,,,,,0.036575,0.84375,10 unassigned
+DataCplex_density=0.65_p=8_h=14_test_9,baseline,lp,64,8,14,2896,6598,2048,0.232521,highs,300,optimal,29784.0,29784.0,29784.0,0.0,,0.81214,,
+DataCplex_density=0.65_p=8_h=14_test_9,baseline,milp,64,8,14,2896,6598,2048,0.245,highs,300,optimal,29784.0,29784.0,29784.0,0.0,,1.675618,,
+DataCplex_density=0.65_p=8_h=14_test_9,combined,lp,64,8,14,1104,3269,256,0.225652,highs,300,optimal,29784.0,29784.0,29784.0,0.0,,0.399367,,
+DataCplex_density=0.65_p=8_h=14_test_9,combined,milp,64,8,14,1104,3269,256,0.216669,highs,300,optimal,29784.0,29784.0,29784.0,0.0,,0.99161,,

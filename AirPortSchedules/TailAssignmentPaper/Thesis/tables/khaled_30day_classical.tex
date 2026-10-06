@@ -1,14 +1,15 @@
 \begin{table}[htbp]
-\centering\small
-\caption{Time-limited classical routing runs on 30-day M/L/X Long-family instances. All reported incumbents cover every flight; optimality was not proved within the 60-second limit.}
+\centering\scriptsize
+\setlength{\tabcolsep}{3pt}
+\caption{Classical routing evidence from 3 saved records out of 3 planned cases (0 without a saved row). Native budget: 10000 seconds per case. Finite brackets do not imply proven optimality; status and end-to-end time are shown.}
 \label{tab:khaled_30day_classical}
-\begin{tabular}{lrrrrrrrr}
+\begin{tabular}{lrrrrrrrrl}
 \toprule
-Tier & $P$ & $F$ & Variables & Constraints & Build (s) & Incumbent & Valid lower bound & Gap (\%) \\
+Instance & $P$ & $F$ & Vars & Rows & Upper bound & Lower bound & Gap (\%) & Total (s) & Status \\
 \midrule
-M & 20 & 840 & 16,800 & 17,640 & 2.9 & 1,150,533.1 & 1,014,693.0 & 11.81 \\
-L & 30 & 1,260 & 37,800 & 39,060 & 6.0 & 1,735,942.0 & 1,637,103.0 & 5.69 \\
-X & 40 & 1,680 & 67,200 & 68,880 & 10.8 & 2,296,130.8 & 2,010,885.6 & 12.42 \\
+md30 & 20 & 840 & 16,800 & 17,640 & 1,093,289.8 & 1,088,923.5 & 0.399 & 10,006.6 & time limit \\
+ld30 & 30 & 1,260 & 37,800 & 39,060 & 1,643,284.5 & 1,637,799.0 & 0.334 & 10,010.8 & time limit \\
+xd30 & 40 & 1,680 & 67,200 & 68,880 & 2,298,768.8 & 2,182,001.5 & 5.080 & 10,017.2 & time limit \\
 \bottomrule
 \end{tabular}
 \end{table}

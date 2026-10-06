@@ -1,0 +1,222 @@
+Exact optimisation provides a certificate of optimality, but the compact
+aircraft-routing model becomes computationally demanding on dense or
+maintenance-heavy instances. The heuristic methods therefore provide fast
+executable schedules and independent performance benchmarks when exact search
+is impractical. They share the maintenance dominance order
+$D \succ C \succ B \succ A$, while their route-list simulator is stricter than
+the current MILP on some initial-maintenance and movement transitions. The
+present application does not pass heuristic schedules to the solver as warm
+starts; a valid future warm start would have to initialize all coupled MILP
+variables consistently.
+
+The current implementation contains constructive, improvement, and network-search procedures in the \texttt{Scheduler} class of \texttt{src/model.py}. The first group operates directly on ordered flight lists and repeatedly invokes a timeline simulator. The modified Dijkstra heuristic now implemented in the same class uses an implicit time-ordered flight-transition network. The ACO mode uses the same route representation but adds pheromone-guided probabilistic construction and best-ant reinforcement.
+
+\section{Taxonomy of heuristic methods}
+\label{sec:heuristic_taxonomy}
+
+The heuristics used in this project can be grouped into three main classes.
+
+\begin{enumerate}
+    \item \textbf{Constructive assignment heuristics.} These methods build a schedule from scratch by assigning flights to aircraft in chronological order. The principal representatives are the greedy heuristic and the insertion-based heuristic implemented in the project scheduler.
+    \item \textbf{Repair and local-improvement heuristics.} These methods start from an initial feasible or partial assignment and iteratively improve it by trying insertions or relocations that preserve feasibility. In the current implementation this class includes repair and local-search refinements.
+    \item \textbf{Network-search heuristics.} The modified Dijkstra mode searches implicit time-ordered flight transitions, while ACO samples timeline-feasible transitions using pheromone and cost desirability.
+\end{enumerate}
+
+The concrete modes accepted by \texttt{Scheduler.\_normalize\_heuristic} are summarized below.
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+\textbf{Mode} & \textbf{Construction} & \textbf{Improvement phase} \\
+\midrule
+\texttt{greedy} & append to cheapest feasible aircraft route & none \\
+\texttt{insertion} & best feasible position over all routes & none \\
+\texttt{greedy+insertion} & greedy append & up to five insertion sweeps \\
+\texttt{repair} & greedy append & up to eight insertion sweeps \\
+\texttt{local\_search} & greedy append & relocation, then up to four insertion sweeps \\
+\texttt{dijkstra} & maximum-coverage label search & repeated path selection \\
+\texttt{aco} & pheromone-guided chronological construction & best-ant reinforcement \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Thus, the implementation combines route-list procedures with two implicit graph-search procedures. The shared feasibility simulator is the controlling abstraction; the constructive modes modify ordered route lists directly, whereas Dijkstra uses labels and ACO uses pheromone-guided route sampling.
+
+\section{Shared feasibility oracle}
+\label{sec:heuristic_oracle}
+
+All heuristic procedures rely on a common feasibility oracle that evaluates an aircraft route in chronological order. Given an ordered flight list $[f_1,\ldots,f_k]$ for aircraft $j$, the simulator returns either a feasible event sequence with total accumulated cost, or an infeasible status. This is the central primitive of the project scheduler and implements the heuristic route semantics used by every mode.
+
+For each aircraft, the simulator maintains four running counters: the elapsed flight minutes since the last A- or B-check, and the elapsed calendar-day counters since the last C- or D-check. Each new flight is accepted only if the aircraft can reach the required departure airport in time, tolerate any necessary repositioning, and satisfy maintenance-trigger conditions before the departure time. If a maintenance check is triggered, the simulator checks that the aircraft is at a maintenance-capable origin airport, that the required station capacity is available, and that the check duration can be completed before the next flight departure. The aircraft is then reset according to the dominance hierarchy $D \succ C \succ B \succ A$. A route is rejected immediately if any of these conditions fail.
+
+This design is deliberate. A flight assignment can appear locally attractive at the cost level while still violating the operational sequence of the schedule. For example, an aircraft might be assigned a new flight too soon after a previous departure, leaving insufficient time for a required maintenance check, or it might accumulate flight hours beyond the permitted threshold before the reset is applied. The timeline oracle filters out these invalid sequences before the assignment is accepted.
+
+In the current implementation, the main logic is encoded in the class \texttt{Scheduler} and the method \texttt{get\_timeline}. The function is the concrete realisation of the abstract feasibility check that is also used in the network-based algorithms: whenever an aircraft route is extended by another flight, the simulator is called to confirm that the maintained route remains feasible with respect to turn times, maintenance durations, capacities, and reset rules.
+
+\section{Greedy construction}
+\label{sec:heuristic_greedy}
+
+The most direct constructive heuristic is a chronological greedy assignment strategy. Flights are ordered by departure time and processed one by one. For the current flight $i$, the algorithm considers every aircraft $j$ and evaluates the extended route $R_j \cup \{i\}$ using the timeline oracle. Among the feasible options it selects the aircraft that yields the minimum incremental assignment cost:
+
+\begin{equation}
+    j^{*} = \arg\min_{j\in\Pc^{\mathrm{feas}}(i)} c_{ij},
+\end{equation}
+
+where $\Pc^{\mathrm{feas}}(i)$ denotes the aircraft for which the new route remains feasible under the timeline rules. If no aircraft can accommodate flight $i$, the flight remains unassigned and the search continues with the next flight.
+
+This method is simple, deterministic, and fast. It is also highly transparent, which makes it a natural baseline in computational experiments. The implementation exposes this strategy as the \texttt{greedy} mode. The route is extended only at its current end: the candidate sequence is \texttt{ac\_fids[aid] + [fid]}, and the complete candidate timeline is simulated before acceptance. If no aircraft can accommodate a flight, that flight is placed in the unassigned set rather than being forced into an invalid route.
+
+The strength of the greedy scheme is its speed. The weakness is its myopia. A locally cheapest assignment may block later flights or create a maintenance state that leaves no feasible schedule for the remaining network. This is particularly relevant in dense instances where the feasible room for each aircraft is tightly constrained by the maintenance thresholds and by the aircraft-specific departure and arrival times. In such cases, greediness can produce a complete schedule only for a subset of the flights, or can concentrate aircraft in a way that is cost-efficient locally but poor globally.
+
+\section{Insertion-based construction and repair}
+\label{sec:heuristic_insertion}
+
+The project’s insertion routine is implemented by \texttt{\_best\_feasible\_insertion}. For a candidate flight $i$, it enumerates every aircraft $j$ and every position $q \in \{0,\ldots,|R_j|\}$ in the current ordered route $R_j$. It constructs the trial route
+\begin{equation}
+    R_j^{(q,i)} = (R_{j,1},\ldots,R_{j,q},i,R_{j,q+1},\ldots,R_{j,|R_j|})
+\end{equation}
+and accepts the feasible candidate with minimum simulated route cost. The \texttt{insertion} mode applies this procedure directly to flights in chronological order; the other modes use it as a repair phase for flights that remain unassigned.
+
+This refinement is especially effective when the greedy pass leaves some flights unassigned because the aircraft state is too constrained at the moment of first selection. Insertion repair differs fundamentally from a pure greedy assignment: it does not only ask whether a flight can be added at the end of a route, but whether there exists some point in the current route where the new sequence becomes feasible. As a result, insertion repair can recover flights that were initially rejected due to local incompatibility with the current partial schedule.
+
+The \texttt{greedy+insertion} mode performs a greedy pass followed by five insertion sweeps. The \texttt{repair} mode performs the same greedy pass and then permits up to eight sweeps, stopping early when a sweep inserts no flight. These iteration limits are part of the implemented algorithm and make the repair effort bounded and reproducible.
+
+The \texttt{local\_search} mode adds a relocation neighbourhood. For every currently assigned flight $i$, \texttt{\_best\_feasible\_relocation} removes $i$ from its current aircraft and tries every target aircraft and every target position. The move is accepted only when both affected routes remain feasible and the total simulated cost decreases strictly. Three relocation passes are attempted, followed by up to four insertion sweeps for flights still unassigned.
+
+The repair and local-search refinements are therefore not separate conceptual models; they are different levels of the same algorithmic principle. At each step, the algorithm asks whether a small change to the current assignment improves feasibility or decreases cost while respecting the maintenance oracle. This is a standard local-improvement strategy for assignment models with strong temporal and maintenance coupling.
+
+\section{Ferry and no-ferry variants}
+\label{sec:heuristic_ferry}
+
+The scheduler supports two operational modes through the Boolean parameter \texttt{allow\_ferry}, also exposed by the command-line option \texttt{--no-ferry}. In the default ferry-enabled mode, an aircraft may be repositioned from its current airport $k$ to the origin $o_i$ of the next flight. The implementation inserts a \texttt{FERRY} event of fixed duration $\tau^{\mathrm{ferry}}=60$ minutes and adds the fixed ferry cost $\kappa^{\mathrm{ferry}}=6000$ to the route objective. The candidate remains feasible only if
+\begin{equation}
+    t_{\mathrm{current}} + \tau^{\mathrm{ferry}} \leq t_i^{\mathrm{dep}}.
+\end{equation}
+
+In the no-ferry mode, a location mismatch is an immediate rejection: if the aircraft finishes at an airport different from the next flight origin, \texttt{get\_timeline} returns \textsc{Infeasible}. Consequently, the no-ferry heuristic searches only routes whose consecutive flights are physically connected, and it may leave more flights unassigned. The two modes therefore represent different operational assumptions, not merely different penalty settings: ferry-enabled routes may include explicit repositioning events, whereas no-ferry routes must be airport-continuous.
+
+The MILP uses the same switch but has a different modelling interpretation. With \texttt{allow\_ferry=True}, the model adds the C2--C3 equipment-flow and turnaround constraints, preventing implicit teleportation between incompatible flight endpoints. With \texttt{allow\_ferry=False}, those constraints are omitted, producing a smaller pure assignment-plus-maintenance model; it does not create explicit ferry variables. Thus, a no-ferry heuristic schedule and a MILP solution built without C2--C3 should not be interpreted as exactly the same operational model.
+
+\section{Path-based and arc-based representations}
+\label{sec:heuristic_path_arc}
+
+The heuristic and MILP use different representations of aircraft movement. The heuristic is \emph{path-list based}: for each aircraft $j$ it stores an ordered sequence
+\begin{equation}
+    R_j=(i_1,i_2,\ldots,i_{q_j}),
+\end{equation}
+and feasibility is determined by simulating the whole sequence from the aircraft’s initial airport and maintenance state. Appending, inserting, or relocating a flight changes a route path and triggers re-evaluation of the affected sequence. There is no explicit node set, arc set, shortest-path label, or flow variable in this heuristic implementation.
+
+The MILP is instead \emph{assignment based}. Its sparse binary variables
+$x_{ij}$ indicate that flight $i$ is assigned to aircraft $j$; they are not
+flight-connection or ferry arcs. Additional temporal and maintenance
+constraints couple these assignments, flight pairs, and maintenance decisions.
+The MILP therefore derives route consistency from global constraints rather
+than storing one mutable route list per aircraft.
+
+As discussed in Section~\ref{sec:heuristic_ferry}, this representational gap is
+also why the MILP \texttt{allow\_ferry} switch is not an exact analogue of the
+heuristic ferry events. The project implements Dijkstra and ACO on implicit
+transition graphs rather than as separate explicit time-expanded network data
+structures.
+
+\section{Modified Dijkstra heuristic}
+\label{sec:heuristic_network}
+
+A more global alternative to the direct flight-list heuristics is the implemented modified Dijkstra mode. It represents the space-time network implicitly: each candidate flight is a node, and a transition from flight $i$ to flight $i'$ is considered only when the time ordering is valid and the complete trial route passes the timeline simulator. This avoids constructing a separate time-expanded graph while retaining its path-search interpretation.
+
+The network representation is useful because it makes temporal precedence explicit. Before a flight may be scheduled, the algorithm must demonstrate that the aircraft can reach the correct origin airport, complete any necessary maintenance, and satisfy the timing constraints imposed by the remainder of the route. In the implementation, these conditions are not duplicated as arc formulas; they are delegated to \texttt{get\_timeline}, which validates every candidate label extension.
+
+For each aircraft, the method maintains at most one best label per terminal flight. A label contains the ordered path and its simulated incremental cost. Candidate labels are compared lexicographically: the primary criterion is the number of covered flights, and the secondary criterion is the incremental route cost. This is the modified Dijkstra rule from the project’s mathematical formulation: it maximizes covered flight arcs rather than minimizing ordinary distance.
+
+The outer loop repeatedly evaluates the best path available for each aircraft over the currently unassigned flights. It selects the path that covers the largest number of flights and breaks ties by lower incremental cost, appends the path to the selected aircraft route, marks its flights as assigned, and repeats until no feasible path remains. The executable mode is selected with \texttt{--heuristic dijkstra}; aliases include \texttt{modifieddijkstra} and \texttt{dijkstraheuristic}.
+
+Because the candidate transitions are ordered by departure time, the implicit graph is acyclic. The implementation consequently uses a label-setting dynamic-programming traversal rather than a conventional heap-based shortest-path implementation. Its complexity is higher than a single greedy pass because candidate route extensions repeatedly invoke the full timeline simulator, but it can recover longer feasible sequences than a purely local append decision.
+
+\section{Ant colony optimisation heuristic}
+\label{sec:heuristic_aco}
+
+The implemented ACO mode constructs a colony of candidate assignments over the flights sorted by departure time. For each flight, an ant considers every aircraft whose route remains feasible after appending the flight. Let $p$ be the previous flight on aircraft $j$, or a source symbol if the route is empty. The transition trail is $\tau_{j,p,i}$ and the cost desirability is
+\begin{equation}
+    \eta_{j,p,i} = \frac{1}{1+\max(0,\Delta c_{j,i})},
+\end{equation}
+where $\Delta c_{j,i}$ is the incremental timeline cost of assigning flight $i$ to aircraft $j$. The ant samples an aircraft with probability proportional to
+\begin{equation}
+    \tau_{j,p,i}\,\eta_{j,p,i}^{\beta}.
+\end{equation}
+Infeasible transitions have zero probability because they are removed before sampling.
+
+After all ants have constructed their assignments, pheromone evaporates toward its initial value $\tau_0=1$:
+\begin{equation}
+    \tau_{j,p,i} \leftarrow (1-\rho)\tau_{j,p,i}+\rho\tau_0,
+\end{equation}
+where $\rho$ is \texttt{aco\_evaporation}. The best ant of the iteration then deposits additional pheromone on its visited transitions. Ant quality is ordered first by the number of assigned flights and then by lower total simulated cost. The default implementation uses twenty iterations, eight ants, $\rho=0.2$, $\beta=2$, and seed zero; all are configurable through the \texttt{Scheduler} constructor.
+
+The mode is selected with \texttt{--heuristic aco}. A local pseudo-random generator makes repeated runs reproducible for a fixed seed, while the pheromone updates allow exploration of alternatives to deterministic greedy assignment. The full timeline oracle remains authoritative, so ACO cannot introduce ferry, timing, or maintenance violations even when a probabilistic transition is selected.
+
+\section{Application workflow and generated schedules}
+\label{sec:heuristic_application}
+
+The heuristic algorithms are exposed through the same application entry point
+as the exact optimizer. A run begins by reading one JSON instance, constructing
+the \texttt{Scheduler}, selecting a heuristic mode, and sorting the flights by
+departure time. The scheduler then builds one ordered route list per aircraft.
+At every construction or improvement step, the proposed route is passed to
+\texttt{get\_timeline}; only routes that return a feasible event sequence are
+accepted. This makes the application workflow explicit: the heuristic is not a
+post-processing visualization of an assignment, but the component that creates
+and validates the aircraft schedule.
+
+For a command-line run, the principal controls are \texttt{--data} for the
+input instance, \texttt{--heuristic} for the selected method, and
+\texttt{--no-ferry} for the airport-continuity variant. The default mode is
+\texttt{greedy+insertion}; the other executable choices are \texttt{greedy},
+\texttt{insertion}, \texttt{repair}, \texttt{local\_search},
+\texttt{dijkstra}, and \texttt{aco}. The ferry switch is applied before
+maintenance evaluation: with ferrying enabled, a repositioning event must fit
+before the next departure and contributes its fixed cost; with ferrying
+disabled, an airport mismatch rejects the candidate route immediately.
+
+The application returns three related views of the same result. The internal
+route dictionary maps each aircraft to its ordered flight identifiers; the
+event representation expands each route into flight, ferry, and maintenance
+events; and the tabular output records aircraft, event type, locations, times,
+durations, and remaining maintenance margins. The optional Gantt output is a
+visual projection of these events, while the CSV and event text files provide
+machine-readable records for subsequent analysis. Unassigned flights are kept
+explicitly rather than silently discarded, allowing coverage and feasibility to
+be reported separately.
+
+The heuristic and exact optimizer are exposed through the same application, but
+their current execution paths remain separate. The \texttt{warm\_start}
+argument is retained in \texttt{run\_milp} for solver-control compatibility;
+the present \texttt{MILP\_Sheduler.warm\_start\_from\_heuristic} method is a
+deliberate no-op because a partial assignment-only start was rejected as
+infeasible by CPLEX. Thus, the heuristic currently supplies an independent
+executable schedule and benchmark, while the MILP searches for an improved or
+certified solution from its own model state. A future complete warm start would
+need to initialize all coupled assignment, maintenance, and timing variables
+consistently.
+
+\section{Quality assessment and computational role}
+\label{sec:heuristic_quality}
+
+The heuristic methods are evaluated first by coverage and feasibility, and then
+by runtime and decomposed cost. When a heuristic and exact model use the same
+feasible-set semantics and objective accounting, the exact MILP also provides a
+reference for an optimality-gap measure. For a heuristic solution with objective
+value $z_{\mathrm{H}}$ and a comparable reference bound $z_{\mathrm{ref}}$, the
+relative gap is
+
+\begin{equation}
+    \delta_{\mathrm{H}} = \frac{z_{\mathrm{H}} - z_{\mathrm{ref}}}{z_{\mathrm{ref}}} \times 100\%. 
+\end{equation}
+
+When the exact MILP is solved to optimality, $z_{\mathrm{ref}} = z^{*}$;
+otherwise, $z_{\mathrm{ref}}$ can be taken as the LP bound from the same
+formulation and instance. Such a gap is rigorous only for a heuristic incumbent
+that is feasible for that formulation and evaluated by the same objective.
+Where route replay exposes different initial-maintenance, ferry, or maintenance-
+event semantics, Chapter~\ref{ch:experiments} reports coverage and decomposed
+costs descriptively instead of labelling the difference an optimality gap.
+
+The overall conclusion is that the heuristic family is not just a fallback technique. It is a structured collection of methods tailored to the peculiar structure of the tail-assignment problem: heavy temporal coupling, maintenance-trigger logic, and non-trivial interaction between assignment decisions and route feasibility. The deterministic timeline-based methods are the project’s main practical tools, while the Dijkstra and ACO formulations remain important as more global search concepts that illuminate the trade-off between solution quality, robustness, and computational effort.

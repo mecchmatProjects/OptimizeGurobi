@@ -115,7 +115,7 @@ also experimental and restrictive; omit it from equivalence comparisons.
 # Full model via src/model.py CLI
 python src/model.py --mode milp `
   --data data/instances/DataCplex_density=1_p=30_h=14_test_0.json `
-  --solver cplexamp --executable "F:\Progs\IBM.ILOG.CPLEX.for.AMPL.v12.6-EAT\CPLEXamp.exe" `
+  --solver highs `
   --time-limit 500 `
   --max-hour-check-deferral-days 3 `
   --only-checks A
@@ -137,8 +137,23 @@ For unrestricted runs use `--max-hour-check-deferral-days none`. The Step 4
 proven infeasible instances; it is off by default pending end-to-end timing
 evidence. `--include-routing-infeasible` bypasses it explicitly. CSV rows are
 flushed incrementally, with audit, metadata and log sidecars; `--resume` requires
-the same source, input hashes and settings. Full CPLEXamp long-run commands and
-the later thesis-update protocol are in `docs/REPRODUCIBILITY.md`, Section 13.
+the same source, input hashes and settings. The verified CPLEX 12.9 protocol,
+optional HiGHS commands and later thesis-update protocol are in
+`docs/REPRODUCIBILITY.md`, Section 13. Use fixed solver/thread/cap settings and
+fresh output paths for revised code; do not enable preflight for routine
+known-feasible runs unless its filtering benefit has been measured.
+
+Commit `828d3f0` used an implicit three-day cap and a weaker LP relaxation that
+reset all binary bounds to `[0,1]`. Step 4's explicit
+`--lp-relaxation legacy-unit-bounds` reproduces that procedure; the default
+`preserve-bounds` retains the model's zero/other bounds. Label and compare those
+LP policies separately. CPLEX `--threads 0` selects automatic threads; it is
+not accepted as an automatic-thread option for other backends in this wrapper.
+
+The `CPLEX.exe` and `CPLEXamp.exe` files in the old AMPL folder are identical
+32-bit ASL binaries. Renaming/selecting the other file does not fix their
+large-model memory failure. CPLEX long runs require a fully licensed 64-bit
+installation; do not treat this ASL `CPLEX.exe` as an interactive CPLEX CLI.
 
 `src/`, `experiments/` and `tests/` are authoritative. `Thesis/src/` and
 `Thesis/code/` are archived snapshots, not interchangeable live source trees.

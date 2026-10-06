@@ -1,0 +1,4 @@
+instance,case,effective_cap,build_s,build_cpu_s,n_var,n_con,z_vars,model_sha256,stem,P,H,F,vars,constraints,nodes_max,gap_pct,cpu_s,objective
+md14_p20_h14_r1,commit_default,3,2.972614500002237,2.96875,52460,55452,42700,570e6a6a2834d7a05a4dc0bb4e9190ecab599d54d74a7e58d9f2be5125f81864,md14_p20_h14_r1,,,,52460,55452,,,,
+md14_p20_h14_r1,current_cap3,3,2.920290699999896,2.921875,52460,55452,42700,570e6a6a2834d7a05a4dc0bb4e9190ecab599d54d74a7e58d9f2be5125f81864,md14_p20_h14_r1,,,,52460,55452,,,,
+md14_p20_h14_r1,current_none,,3.6255615999980364,3.609375,89220,70132,79460,1efbc009811a4f7927f9b8efa1ad220cf25fddbcf130364d32cda13a9bdd93ed,md14_p20_h14_r1,,,,89220,70132,,,,

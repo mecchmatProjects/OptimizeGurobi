@@ -1,0 +1,1 @@
+instance,family,formulation,n_var,n_con,z_vars,status,lp_bound,runtime_s,build_s,wall_s,routing_status,preflight_s,total_wall_s,error,max_deferral_days,restrictive_deferral,reused_preflight,dual_bound,primal_bound,mip_gap,nodes,solver_message,solver_return_code,stem,P,H,F,vars,constraints,nodes_max,gap_pct,cpu_s,objective

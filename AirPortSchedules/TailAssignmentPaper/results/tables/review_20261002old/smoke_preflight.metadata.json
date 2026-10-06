@@ -1,0 +1,32 @@
+{
+  "commit": "828d3f0890a8f5103de6594da4f11c0f62cc371d",
+  "source_sha256": "6dac35eec05637c097d98134690b57acd828f30be1840c85cf5c7306a8b43b5b",
+  "python": "3.12.0",
+  "pyomo": "6.10.1",
+  "platform": "Windows-10-10.0.19045-SP0",
+  "processor": "AMD64 Family 23 Model 113 Stepping 0, AuthenticAMD",
+  "cpu_count": 12,
+  "solver_version": "(12, 6, 0, 0)",
+  "threads": "solver default",
+  "inputs": {
+    "F:\\Lectures\\Facultative\\Optimizers\\Tasks\\AirPortSchedules\\TailAssignmentPaper\\data\\instances\\ABCD_no_maint_test.json": "10c371d31f3e5fa4ac4f2ba4d9848780d82b0acaa6fc6b6b62d9730582381084"
+  },
+  "config": {
+    "input_dir": "data\\instances",
+    "pattern": "ABCD_no_maint_test.json",
+    "solver": "cplexamp",
+    "executable": "F:\\Progs\\IBM.ILOG.CPLEX.for.AMPL.v12.6-EAT\\CPLEXamp.exe",
+    "time_limit": 5,
+    "formulation": "both",
+    "enabled_checks": "",
+    "sparse_z": false,
+    "reachability": false,
+    "tight_c13_m": false,
+    "strong_conflicts": false,
+    "max_hour_check_deferral_days": null,
+    "routing_preflight": true,
+    "include_routing_infeasible": false,
+    "preflight_time_limit": 5,
+    "tee": false
+  }
+}

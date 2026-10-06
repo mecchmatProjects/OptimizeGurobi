@@ -1,0 +1,4 @@
+instance,routing_status,preflight_s,action,stem,P,H,F,vars,constraints,nodes_max,gap_pct,cpu_s,objective
+ld07_p30_h14_r1,optimal,6.752371099995798,retained,ld07_p30_h14_r1,,,,,,,,,
+md14_p20_h14_r1,optimal,2.7389490000059595,retained,md14_p20_h14_r1,,,,,,,,,
+xd14_p40_h14_r1,optimal,9.079078099995968,retained,xd14_p40_h14_r1,,,,,,,,,

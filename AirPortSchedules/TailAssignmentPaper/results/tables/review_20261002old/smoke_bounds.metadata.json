@@ -1,0 +1,34 @@
+{
+  "commit": "828d3f0890a8f5103de6594da4f11c0f62cc371d",
+  "source_sha256": "8dfa8054c5453b50b64720458c8ca0091aed9eb09d36adadb58ead86870aaceb",
+  "python": "3.12.0",
+  "pyomo": "6.10.1",
+  "platform": "Windows-10-10.0.19045-SP0",
+  "inputs": {
+    "F:\\Lectures\\Facultative\\Optimizers\\Tasks\\AirPortSchedules\\TailAssignmentPaper\\data\\instances\\ABCD_no_maint_test.json": "10c371d31f3e5fa4ac4f2ba4d9848780d82b0acaa6fc6b6b62d9730582381084"
+  },
+  "config": {
+    "input_dir": "data\\instances",
+    "solver": "highs",
+    "executable": null,
+    "time_limit": 5,
+    "heuristic": "greedy+insertion",
+    "only_checks": "",
+    "skip_heuristic": false,
+    "skip_lp": false,
+    "build_only": false,
+    "pattern": "ABCD_no_maint_test.json",
+    "max_hour_check_deferral_days": null,
+    "tee": false,
+    "variants": {
+      "baseline": {},
+      "combined": {
+        "use_strong_maint_link": true,
+        "use_sparse_maint_aircraft_domain": true,
+        "use_tight_c13_m": true,
+        "use_maint_reachability": false,
+        "use_strong_maint_conflicts": true
+      }
+    }
+  }
+}

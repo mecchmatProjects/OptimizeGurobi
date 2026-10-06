@@ -1,0 +1,36 @@
+{
+  "commit": "247b3956090096e641e5bbac7b41dc0c1b5ca3be",
+  "source_sha256": "0ce0a6f009598ab02a530994cdde12ba141ac2784edbd23e3b08cec055926974",
+  "python": "3.12.0",
+  "pyomo": "6.10.1",
+  "platform": "Windows-10-10.0.19045-SP0",
+  "processor": "AMD64 Family 23 Model 113 Stepping 0, AuthenticAMD",
+  "cpu_count": 12,
+  "solver_version": "(12, 9, 0, 0)",
+  "threads": 0,
+  "inputs": {
+    "F:\\Lectures\\Facultative\\Optimizers\\Tasks\\AirPortSchedules\\TailAssignmentPaper\\data\\Long_family\\md14_p20_h14_r1.json": "21de9b3163404732628f6f4b1a76e547f9a58161d8a49db164bfc647b583f761"
+  },
+  "config": {
+    "input_dir": "data\\Long_family",
+    "pattern": "md14_p20_h14_r1.json",
+    "solver": "cplex",
+    "executable": "F:\\LT\\IJOC_SDDP_for_Multi-Echelon_Lot-Sizing_with_Component_Substitution\\cplex\\CPLEX_Studio\\cplex\\bin\\x64_win64\\cplex.exe",
+    "time_limit": 30,
+    "formulation": "integrated",
+    "enabled_checks": "",
+    "sparse_z": false,
+    "reachability": false,
+    "tight_c13_m": false,
+    "strong_conflicts": false,
+    "max_hour_check_deferral_days": 3,
+    "routing_preflight": false,
+    "include_routing_infeasible": false,
+    "preflight_time_limit": 60,
+    "tee": false,
+    "threads": 0,
+    "lp_relaxation": "legacy-unit-bounds",
+    "lp_method": "dual",
+    "barrier_no_crossover": false
+  }
+}

@@ -1,0 +1,2 @@
+instance,routing_status,preflight_s,action,stem,P,H,F,vars,constraints,nodes_max,gap_pct,cpu_s,objective
+ABCD_no_maint_test,optimal,1.3061807999997654,retained,ABCD_no_maint_test,,,,,,,,,

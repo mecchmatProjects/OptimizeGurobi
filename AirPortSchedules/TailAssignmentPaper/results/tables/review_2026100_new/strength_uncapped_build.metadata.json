@@ -1,0 +1,45 @@
+{
+  "commit": "247b3956090096e641e5bbac7b41dc0c1b5ca3be",
+  "source_sha256": "99efabd56f0aaddbedcf5b134de91fc24f20141d36ed9247665de55b2ee70926",
+  "python": "3.12.0",
+  "pyomo": "6.10.1",
+  "platform": "Windows-10-10.0.19045-SP0",
+  "processor": "AMD64 Family 23 Model 113 Stepping 0, AuthenticAMD",
+  "cpu_count": 12,
+  "solver_version": "not queried",
+  "threads": "solver default",
+  "inputs": {
+    "F:\\Lectures\\Facultative\\Optimizers\\Tasks\\AirPortSchedules\\TailAssignmentPaper\\data\\Long_family\\ld30_p30_h30_r1.json": "38b15ab54315b7dd1e1864e141a17e1ee61c929ec84f9c6b3047a7d3555cf61f",
+    "F:\\Lectures\\Facultative\\Optimizers\\Tasks\\AirPortSchedules\\TailAssignmentPaper\\data\\Long_family\\md30_p20_h30_r1.json": "8667b71a8941ffad702bb5157c662d3fc9e0653a505a5fcc30c91c3a52c24967",
+    "F:\\Lectures\\Facultative\\Optimizers\\Tasks\\AirPortSchedules\\TailAssignmentPaper\\data\\Long_family\\xd30_p40_h30_r1.json": "0ea97812ad89a7d4c7d16aff25fb4ed34453dad6ae004f022d27670b044b8fb4"
+  },
+  "config": {
+    "input_dir": "data\\Long_family",
+    "solver": "cplex",
+    "executable": "F:\\LT\\IJOC_SDDP_for_Multi-Echelon_Lot-Sizing_with_Component_Substitution\\cplex\\CPLEX_Studio\\cplex\\bin\\x64_win64\\cplex.exe",
+    "time_limit": 10000,
+    "heuristic": "greedy+insertion",
+    "only_checks": "",
+    "skip_heuristic": false,
+    "skip_lp": false,
+    "build_only": true,
+    "pattern": "*h30*.json",
+    "max_hour_check_deferral_days": null,
+    "tee": false,
+    "mode": "all",
+    "variant": "both",
+    "keepfiles": false,
+    "continue_on_solver_error": false,
+    "threads": null,
+    "variants": {
+      "baseline": {},
+      "combined": {
+        "use_strong_maint_link": true,
+        "use_sparse_maint_aircraft_domain": true,
+        "use_tight_c13_m": true,
+        "use_maint_reachability": false,
+        "use_strong_maint_conflicts": true
+      }
+    }
+  }
+}

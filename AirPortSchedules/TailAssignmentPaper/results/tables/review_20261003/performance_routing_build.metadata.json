@@ -1,0 +1,19 @@
+{
+  "commit": "247b3956090096e641e5bbac7b41dc0c1b5ca3be",
+  "source_sha256": "c8db5a85434cdcaab46579f0b3eb4a1ad2387bef19a9af956c89b2b3462dba3e",
+  "python": "3.12.0",
+  "pyomo": "6.10.1",
+  "platform": "Windows-10-10.0.19045-SP0",
+  "processor": "AMD64 Family 23 Model 113 Stepping 0, AuthenticAMD",
+  "cpu_count": 12,
+  "solver_version": "not queried",
+  "threads": "solver default",
+  "inputs": {
+    "F:\\Lectures\\Facultative\\Optimizers\\Tasks\\AirPortSchedules\\TailAssignmentPaper\\data\\Long_family\\md14_p20_h14_r1.json": "21de9b3163404732628f6f4b1a76e547f9a58161d8a49db164bfc647b583f761"
+  },
+  "config": {
+    "benchmark": "routing-only construction",
+    "build_only": true,
+    "repeats": 3
+  }
+}

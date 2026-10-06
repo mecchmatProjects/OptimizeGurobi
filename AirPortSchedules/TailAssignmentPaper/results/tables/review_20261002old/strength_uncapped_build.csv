@@ -1,0 +1,7 @@
+instance,variant,mode,flights,aircraft,days,variables,constraints,z_variables,build_s,solver,time_limit_s,status,objective,dual_bound,primal_bound,mip_gap,nodes,runtime_s,coverage,error,max_deferral_days,restrictive_deferral,wall_s,bound_validated,stem,P,H,F,vars,nodes_max,gap_pct,cpu_s
+ld30_p30_h30_r1,baseline,build,1260,30,30,941430,586860,892830,47.272176,none,,built,,,,,,,,,none,False,,,ld30_p30_h30_r1,30,30,1260,941430,,,
+ld30_p30_h30_r1,combined,build,1260,30,30,941430,659190,892830,53.480078,none,,built,,,,,,,,,none,False,,,ld30_p30_h30_r1,30,30,1260,941430,,,
+md30_p20_h30_r1,baseline,build,840,20,30,415820,275100,391820,24.149205,none,,built,,,,,,,,,none,False,,,md30_p20_h30_r1,20,30,840,415820,,,
+md30_p20_h30_r1,combined,build,840,20,30,415820,333160,391820,23.874251,none,,built,,,,,,,,,none,False,,,md30_p20_h30_r1,20,30,840,415820,,,
+xd30_p40_h30_r1,baseline,build,1680,40,30,1578280,931720,1496680,82.205906,none,,built,,,,,,,,,none,False,,,xd30_p40_h30_r1,40,30,1680,1578280,,,
+xd30_p40_h30_r1,combined,build,1680,40,30,1578280,1047280,1496680,95.939177,none,,built,,,,,,,,,none,False,,,xd30_p40_h30_r1,40,30,1680,1578280,,,

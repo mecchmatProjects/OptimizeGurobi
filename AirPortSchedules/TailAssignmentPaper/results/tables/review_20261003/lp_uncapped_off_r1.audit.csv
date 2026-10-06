@@ -1,0 +1,3 @@
+instance,routing_status,preflight_s,action,stem,P,H,F,vars,constraints,nodes_max,gap_pct,cpu_s,objective
+ld07_p30_h7_r1,included_without_preflight,4.00003045797348e-07,retained,ld07_p30_h7_r1,,,,,,,,,
+xd07_p40_h7_r1,included_without_preflight,1.8999999156221747e-06,retained,xd07_p40_h7_r1,,,,,,,,,

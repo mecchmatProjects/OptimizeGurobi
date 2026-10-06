@@ -1,0 +1,2 @@
+instance,variant,mode,flights,aircraft,days,variables,constraints,z_variables,build_s,solver,time_limit_s,status,objective,dual_bound,primal_bound,mip_gap,nodes,runtime_s,coverage,error,max_deferral_days,restrictive_deferral,wall_s,bound_validated,solver_message,solver_return_code,solver_artifacts,stem,P,H,F,vars,nodes_max,gap_pct,cpu_s
+ld30_p30_h30_r1,heuristic:greedy+insertion,heuristic,1260,30,,,,,,none,,partial,315705.10000000003,,,,,18.066268,0.18571428571428572,1026 unassigned,none,False,,False,,,,ld30_p30_h30_r1,30,,1260,,,,18.066268

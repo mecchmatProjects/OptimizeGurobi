@@ -1,0 +1,6 @@
+instance,variant,mode,flights,aircraft,days,variables,constraints,z_variables,build_s,solver,time_limit_s,status,objective,dual_bound,primal_bound,mip_gap,nodes,runtime_s,coverage,error,max_deferral_days,restrictive_deferral,wall_s,bound_validated,solver_message,solver_return_code,solver_artifacts,stem,P,H,F,vars,nodes_max,gap_pct,cpu_s
+ABCD_no_maint_test,heuristic:greedy+insertion,heuristic,14,4,,,,,,none,,complete,14000.0,,14000.0,,,0.057217,1.0,,none,False,,True,,,,ABCD_no_maint_test,4,,14,,,,0.057217
+ABCD_no_maint_test,baseline,lp,14,4,8,1000,1222,560,0.020921,highs,5,optimal,14000.0,14000.0,14000.0,0.0,,0.123672,,,none,False,0.1492206000002625,True,<undefined>,,,ABCD_no_maint_test,4,8,14,1000,,0.0,0.123672
+ABCD_no_maint_test,baseline,milp,14,4,8,1000,1222,560,0.021487,highs,5,optimal,14000.0,14000.0,14000.0,0.0,,0.202991,,,none,False,0.22582880000118166,True,<undefined>,,,ABCD_no_maint_test,4,8,14,1000,,0.0,0.202991
+ABCD_no_maint_test,combined,lp,14,4,8,1000,1222,560,0.022276,highs,5,optimal,14000.0,14000.0,14000.0,0.0,,0.115234,,,none,False,0.14227990000290447,True,<undefined>,,,ABCD_no_maint_test,4,8,14,1000,,0.0,0.115234
+ABCD_no_maint_test,combined,milp,14,4,8,1000,1222,560,0.022398,highs,5,optimal,14000.0,14000.0,14000.0,0.0,,0.249963,,,none,False,0.27352869999958784,True,<undefined>,,,ABCD_no_maint_test,4,8,14,1000,,0.0,0.249963

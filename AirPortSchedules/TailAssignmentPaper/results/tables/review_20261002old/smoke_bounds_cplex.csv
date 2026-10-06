@@ -1,0 +1,6 @@
+instance,variant,mode,flights,aircraft,days,variables,constraints,z_variables,build_s,solver,time_limit_s,status,objective,dual_bound,primal_bound,mip_gap,nodes,runtime_s,coverage,error,max_deferral_days,restrictive_deferral,wall_s,bound_validated,stem,P,H,F,vars,nodes_max,gap_pct,cpu_s
+ABCD_no_maint_test,heuristic:greedy+insertion,heuristic,14,4,,,,,,none,,complete,14000.0,,14000.0,,,0.050611,1.0,,none,False,,True,ABCD_no_maint_test,4,,14,,,,0.050611
+ABCD_no_maint_test,baseline,lp,14,4,8,1000,1222,560,0.020714,cplexamp,5,optimal,14000.0,14000.0,14000.0,0.0,,0.571939,,,none,False,0.5970801999997093,True,ABCD_no_maint_test,4,8,14,1000,,0.0,0.571939
+ABCD_no_maint_test,baseline,milp,14,4,8,1000,1222,560,0.020796,cplexamp,5,optimal,14000.0,14000.0,14000.0,0.0,,0.586618,,,none,False,0.6085300999998253,True,ABCD_no_maint_test,4,8,14,1000,,0.0,0.586618
+ABCD_no_maint_test,combined,lp,14,4,8,1000,1222,560,0.058672,cplexamp,5,optimal,14000.0,14000.0,14000.0,0.0,,0.552578,,,none,False,0.6160454999999274,True,ABCD_no_maint_test,4,8,14,1000,,0.0,0.552578
+ABCD_no_maint_test,combined,milp,14,4,8,1000,1222,560,0.021733,cplexamp,5,optimal,14000.0,14000.0,14000.0,0.0,,0.593478,,,none,False,0.6162490000001526,True,ABCD_no_maint_test,4,8,14,1000,,0.0,0.593478

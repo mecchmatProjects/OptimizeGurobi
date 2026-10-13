@@ -1,0 +1,126 @@
+TAIL ASSIGNMENT STUDY: LOWER BOUNDS AND MILP TIGHTENING
+
+This note explains the lower-bound and formulation-strengthening discussion in the draft thesis. It also records the generated 30-day Gantt chart and its verified scope.
+
+GENERATED 30-DAY MILP GANTT
+
+Chart: results/figures/30day_A_integrated_milp_gantt_highres.png
+Event report: results/tables/gantt_30day/30day_A_integrated_milp_events.txt
+Run report: results/tables/gantt_30day/30day_A_integrated_milp.txt
+
+The chart comes from the integrated MILP on data/feasible_instances_corrected/DataCplex_density=1_p=10_h=30_test_0.json, with the instance's A-check maintenance family enabled. The solver proved optimality with objective 18,592. The event report was checked: all 40 flights are assigned, there are 10 tails, and each tail receives one A-check event. The planning horizon is 30 days, although this instance's flights and checks occur within the first 13 days. This is an A-only maintenance instance, not a full A/B/C/D study. The PNG is a separate image file; this text note points to it rather than embedding binary image data.
+
+1. LOWER BOUNDS: WHAT THEY MEAN
+
+The TAP model is a minimization problem. Let z* be the minimum cost among schedules feasible for the integer model. A lower bound L satisfies L <= z*. A feasible schedule with cost U gives an upper bound, so together they bracket the optimum:
+
+    L <= z* <= U.
+
+An LP relaxation replaces integer restrictions with continuous ones while retaining the relevant model constraints. Its feasible region contains the integer-feasible schedules. Therefore, its minimum objective z_LP cannot exceed the integer optimum:
+
+    z_LP <= z*.
+
+This makes an optimal LP-relaxation objective a rigorous lower bound, provided the relaxation still contains every feasible integer schedule and uses the same instance and objective. A solver's MILP dual bound is also a lower bound. A feasible MILP incumbent is an upper bound. At a time limit, these can remain useful even when optimality has not been proved. An LP timeout without a certified finite bound does not provide a published LP bound in the thesis tables.
+
+A zero MILP residual gap means branch-and-bound proved the integer solution optimal. It does not mean the LP relaxation is integral. Conversely, an LP value close to the integer optimum means a small relaxation gap on that instance, not that every instance or the formulation as a whole is integral.
+
+The thesis reports two different gap conventions, which should not be compared without checking the denominator. The bound-to-incumbent residual gap in Chapter 6 is:
+
+    (upper_bound - lower_bound) / abs(upper_bound).
+
+Chapter 8's heuristic-to-LP gap is:
+
+    (heuristic_cost - LP_bound) / LP_bound * 100%.
+
+The Chapter 8 expression is meaningful only when the heuristic schedule is complete and feasible for the same model and cost definition. A partial schedule is not an upper bound; it must not be inserted into either formula without a separate, explicit treatment of unassigned flights.
+
+2. WHAT THE MILP TIGHTENING METHODS DO
+
+The methods serve different purposes. Some remove provably unnecessary variables or rows; some strengthen the continuous relaxation; and some change the mathematical model's scope. A smaller model is not automatically a tighter LP bound.
+
+Sparse aircraft-compatible maintenance triggers
+
+The trigger variable z[i,j,d,c] represents a maintenance trigger for flight i, aircraft j, candidate day d and check type c. The sparse formulation creates it only if assigning flight i to aircraft j is a feasible assignment arc. If that arc is impossible, its trigger is impossible too. Removing such variables is an exact domain reduction when the assignment-arc set is valid. It mainly reduces model size and memory; it need not change the LP objective if the removed variables were already fixed to zero implicitly.
+
+Day-specific maintenance-state bounds
+
+A check-state variable y[j,d,c] is fixed to zero when no trigger in the model can cause aircraft j to perform check c on day d. Hierarchy-state variables are similarly fixed when none of the checks they represent can occur. These bounds are derived from the instantiated trigger domain, not from an arbitrary day window. The model also omits linking or hierarchy rows that become tautological as a consequence.
+
+Strong trigger-to-assignment linking
+
+For the candidate trigger days D(i,c), the stronger link is:
+
+    sum over d in D(i,c) of z[i,j,d,c] <= x[i,j].
+
+A trigger for aircraft j must be supported by assigning its triggering flight to that aircraft. Summing across candidate days also prevents unsupported fractional trigger mass in the LP relaxation. The thesis characterizes this as preserving the intended integer assignment logic while strengthening the relaxation.
+
+Interval-specific big-M for C13
+
+A very large global big-M can make a constraint nearly ineffective in the LP relaxation. For an aircraft, check type and interval, the draft defines a tighter value from the total duration of flights compatible with that aircraft in that interval, less the applicable threshold, floored at zero:
+
+    M[j,d,d',c] = max(0, sum of compatible flight durations in the interval
+                         - check-hour threshold).
+
+The sum is an upper bound on the flight time that aircraft could accumulate in the interval, so this can reduce big-M slack while preserving validity. The pre-horizon accumulated-hours constraints are separate and are not replaced by this interval-specific value. The option is distinct from the default corrected C13 pair.
+
+Pairwise maintenance conflicts
+
+Aggregate C8 rows that block flights during a selected maintenance window can be disaggregated into individual conflicts. For each blocked flight i', a representative row is:
+
+    z[i,j,d,c] + x[i',j] <= 1.
+
+This directly forbids assigning the blocked flight to the aircraft when the relevant maintenance trigger is selected. Disaggregation can strengthen the LP on the represented blocked-flight set, but may increase the number of rows substantially.
+
+Temporal-overlap clique inequalities
+
+A flight occupies an aircraft from departure until arrival plus minimum turn time. Flights whose extended intervals overlap cannot use the same aircraft. Pairwise rows express this two flights at a time. A maximal conflict clique Q permits a single row:
+
+    sum over i in Q eligible for aircraft j of x[i,j] <= 1.
+
+The bounded thesis comparison reports 292 maximal cliques covering 7,641 M-20 pairwise conflicts. In the common short-budget runs, clique rows reduced the full model's row count and build time. Those runs did not prove optimality and do not establish a general solve-time or incumbent-quality advantage. The evidence supports compactness/build-time claims for those tested cases, not uniform solver superiority.
+
+C13 endpoint split
+
+The draft replaces the paper's single endpoint expression with two endpoint-anchored inequalities. In the draft's intended logic, each row is relaxed by its corresponding endpoint check, while an endpoint without a check keeps a check-free interval constrained. Chapter 4 presents this as a correction to an endpoint-activation defect in the original row. Treat this as a formulation-correctness claim, not merely as a performance switch: it can change which schedules the mathematical model accepts. The surrounding accumulated-hour constraints and their conventions must be evaluated together.
+
+3. WHAT THE EXPERIMENTS ESTABLISH
+
+Historical Small and Medium strengthening study
+
+The Small tier contains 20 constructive instances with 64 flights and 8 aircraft. Average trigger variables fall from 2,048 to 256 (87.5%); average constraints fall from 6,598 to 3,269. All 20 baseline and combined MILPs prove optimality. Mean runtime changes from 1.69 to 1.00 seconds.
+
+The Medium tier contains five instances with 128 flights and 8 aircraft. Average trigger variables fall from 9,120 to 4,160 (54.4%); constraints fall from 19,320 to 17,186. All five MILPs in each variant prove optimality. Mean runtime changes from 4.92 to 3.21 seconds. On the cited Medium instances r4 and r5, the LP-to-MILP gaps are approximately 0.373% and 0.197%; baseline and combined LP bounds coincide. Thus the reported Small/Medium result is smaller models and faster exact solves on those tested instances, not tighter LP objective bounds.
+
+These are historical HiGHS results. The historical combined configuration included an experimental station-wait reachability restriction. The current combined runner excludes it. Do not attribute those historical timings to the current configuration or claim feasible-region equivalence from objective matches alone.
+
+Long-family integrated LP runs
+
+The 14-day CPLEX 12.9 table reports optimal LP solves for three integrated instances: LD-30 bound 628,831.5; MD-20 bound 418,523.6; XD-40 bound 845,783.2. That protocol is unrestricted in A/B deferral and used four threads, but its historical metadata did not record the LP relaxation policy.
+
+The separate 21-day table reports optimal LP solves for LD-30 bound 1,082,558.4 and XD-40 bound 1,451,428.8. That protocol uses a three-day A/B deferral cap, automatic CPLEX threads and the legacy unit-bound relaxation. It is not the same protocol as the 14-day study; the tables must not be used as a paired speed or bound-strength comparison.
+
+The legacy relaxation manually changes binary variables to nonnegative continuous variables and resets their bounds to [0,1]. In doing so, it reopens binary variables whose original upper bound was fixed at zero. The resulting relaxation contains all integer-feasible solutions and can still yield a valid, but potentially weaker, lower bound. It is not equal in general to the standard bound-preserving LP relaxation. The thesis therefore labels the policy instead of mixing the two values.
+
+Classical 30-day results versus integrated maintenance
+
+The M-20, L-30 and X-40 classical 30-day routing runs omit maintenance. Their time-limited feasible brackets concern that classical model. Their incumbent schedules are not feasible upper bounds for the integrated maintenance model. The draft does not use those classical brackets as integrated-maintenance results without a separate model-scope argument. The integrated A-only Gantt at the top of this file is a distinct solved instance and must not be conflated with those classical runs.
+
+4. SOURCE LOCATIONS
+
+Draft strengthening methods and bound discussion:
+    Thesis/sections/06_milp_strengthening.tex
+Long-family and LP reporting caveats:
+    Thesis/sections/08_computational_study.tex
+C13 formulation discussion:
+    Thesis/sections/04_maintenance_model.tex
+MILP implementation:
+    src/model.py
+LP relaxation helper:
+    src/solver_utils.py
+LP experiment harness:
+    experiments/step4_lp_lower_bounds.py
+Generated bound tables:
+    Thesis/tables/strength_bounds_model_size.tex
+    Thesis/tables/strength_bounds_summary.tex
+    Thesis/tables/validated_lp_1.tex
+    Thesis/tables/validated_lp_2.tex

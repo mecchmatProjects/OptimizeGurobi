@@ -1,0 +1,656 @@
+\section{Purpose and status of the proposed approach}
+\label{sec:bp_scope}
+
+The compact formulation assigns flights and maintenance decisions directly to
+aircraft. Chapter~\ref{ch:strengthening} reduces its size and strengthens some
+of its inequalities. A complementary approach is to optimize over complete
+integer scheduling patterns for individual tails, generating those patterns
+only when they can improve a coordinating master problem. This chapter develops
+that approach for the full A/B/C/D maintenance hierarchy through
+Dantzig--Wolfe decomposition and branch-and-price.
+
+\textit{This chapter is a methodological proposal submitted for review before
+implementation. No branch-and-price solver, measured speedup, generated root
+bound, or computational optimality result is claimed here. The results in
+Chapter~\ref{ch:experiments} concern the previously implemented methods.}
+
+The target is an exact reformulation of the selected compact model, not a new
+interpretation of maintenance legality. The initial proposal retains the
+aircraft-indexed binary trigger formulation, hard flight coverage, full ABCD
+checks, and the same assignment domains, initial conditions, hierarchy,
+maintenance durations, deferral policy, cost accounting and routing flags.
+The optional global-trigger formulation is outside this initial decomposition
+because its cross-aircraft variables require a separate separability analysis.
+In particular, replacing a compact constraint by a stricter physical replay
+rule would change the comparison problem and is not part of this proposal.
+
+For an unambiguous reference, the equivalence claim in this chapter concerns
+the default full-maintenance profile of \texttt{MILP\_Sheduler}: hard coverage;
+aircraft-indexed sparse $z$ variables; day-specific $y$ and $\gamma$ bounds;
+C2--C3 and interval-clique overlap enabled; capacity, hierarchy, C12, C12b,
+C13b and corrected split C13 enabled; three-day A/B deferral; global
+$M_{\mathrm{BIG}}=9{,}999{,}999$ for C13/C13b; and the default weak C9 link.
+The C14b duration constant is $M_{\mathrm{C14b}}=\max_c K_c^{\mathrm{dur}}+1$.
+The global-trigger, soft-coverage, no-capacity, reachability, tight-C13-$M$,
+original-paper-C13, strong-link, strong-conflict and sanity-fixing options are
+disabled. The documented compatibility C15 component is empty; C8 supplies
+the maintenance-flight blocking rows. Any experiment with another option set
+requires the corresponding local set and coefficient definitions to change.
+
+\section{Literature review and positioning}
+\label{sec:bp_literature}
+
+\subsection{Decomposition and exact integer optimization}
+
+\citet{dantzig1960decomposition} distinguish constraints belonging to individual
+subproblems from constraints connecting those subproblems. Their coordinating
+linear program uses columns proposed by the subproblems, while its dual prices
+define successive subproblem objectives. The relevance here is the separation
+between a tail's routing and maintenance decisions and the fleet-wide demands
+for flight coverage and maintenance-station capacity.
+
+Decomposing an integer problem requires more than solving the coordinating LP.
+\citet{barnhart1998branchprice} describe column generation within a
+branch-and-bound tree, including pricing at tree nodes and branching rules
+compatible with implicit columns. This distinction is essential: column
+generation at the root yields a relaxation bound, whereas exact integer
+optimization requires pricing under the restrictions imposed throughout the
+search tree. An integer solve over a fixed, generated column pool can produce
+an incumbent, but does not certify the optimum over omitted columns.
+
+\subsection{Airline strings, routing and maintenance}
+
+\citet{barnhart1998flight} formulate aircraft fleeting and routing with flight
+strings, allowing maintenance and connection requirements to be represented
+within a route-based description. That work motivates replacing individual
+assignment decisions by structured aircraft duties. It is distinct from the
+general branch-and-price paper by \citet{barnhart1998branchprice}, although both
+were published in 1998.
+
+\citet{desaulniers1997daily} develop daily routing models using
+set partitioning and time-constrained networks, with column
+generation and compatible branching. Their profit-maximization setting must
+not be confused with the minimization problem in this thesis: the direction
+of a relaxation bound depends on the objective sense. Their methodological
+relevance is the connection between decomposed routing formulations and
+branching decisions that remain expressible in pricing.
+
+\citet{sarac2006branch} specifically address operational aircraft maintenance
+routing through branch-and-price. This provides direct application precedent
+for generating maintenance-aware aircraft patterns. It does not by itself
+establish that their maintenance conventions equal the ABCD hierarchy,
+initial-state treatment and station-capacity accounting used here. Those
+model-specific details must be stated and validated independently.
+
+The compact model of \citet{khaled2018compact} remains the formulation reference
+for the thesis, together with the modifications in
+Chapters~\ref{ch:maintenance} and~\ref{ch:hierarchy}. The proposed contribution
+is therefore not the invention of branch-and-price. It is a precisely defined
+full-ABCD decomposition of that reference model, with reconstructable pattern
+certificates, transparent lower-bound certification and a controlled evaluation
+against the compact formulation.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Distinctions between route-based solution procedures.}
+\label{tab:bp_method_distinctions}
+\begin{tabularx}{\textwidth}{@{}p{0.25\textwidth}XX@{}}
+\toprule
+Procedure & Columns considered & What can be certified \\
+\midrule
+Complete pattern enumeration & Every feasible local integer pattern & Full master LP and integer optima, if solved \\
+Root column generation & Improving patterns generated at the root & Full master LP bound after exact pricing certification \\
+Restricted integer master & A fixed generated pool & A feasible incumbent; not generally full integer optimality \\
+Branch-and-price & Patterns generated under restrictions at every node & Integer optimality if the complete search is certified \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Tail-local integer scheduling patterns}
+\label{sec:bp_local_sets}
+
+Flights, tails, stations, days and check types retain the sets
+$\mathcal F$, $\mathcal P$, $\mathcal A$, $\mathcal D$ and
+$\mathcal C=\{A,B,C,D\}$, respectively. Let $\mathcal K\subseteq\mathcal A$
+be the maintenance stations. For each tail $j$, collect all of its original
+binary decisions into a vector $v_j$. Its components include $x_{ij}$,
+$z_{ijdc}$, $y_{jdc}$, $\gamma_{jdc}$ and maintenance-start auxiliaries.
+The mathematical symbol $\gamma_{jdc}$ corresponds to \texttt{mega[j,d,c]}
+in the implementation. Variables absent from a sparse domain are represented
+as zero when coefficients are evaluated.
+
+The selected compact model's local feasible set is
+\begin{equation}
+ \mathcal Q_j=
+ \left\{v_j\in\{0,1\}^{n_j}:
+ A_jv_j\le h_j,\ E_jv_j=e_j,\ \ell_j^{\mathrm{var}}\le v_j\le u_j^{\mathrm{var}}
+ \right\}.
+ \label{eq:bp_local_set}
+\end{equation}
+The matrices denote exactly the previously defined tail-local constraints;
+they do not introduce a replacement maintenance model. Table~\ref{tab:bp_split}
+specifies their ownership. Flight coverage C1 and shared capacity C10 are
+excluded from $\mathcal Q_j$ and retained in the master.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Constraint ownership in the proposed decomposition.}
+\label{tab:bp_split}
+\begin{tabularx}{\textwidth}{@{}p{0.19\textwidth}p{0.17\textwidth}X@{}}
+\toprule
+Constraint group & Owner & Meaning \\
+\midrule
+C1 & Master & Hard exact coverage of every flight \\
+C10 & Master & Shared station/day capacity across tails and check types \\
+C2--C3 & Tail pricing & Per-aircraft equipment flow and minimum turn \\
+Overlap & Tail pricing & Per-aircraft temporal clique rows \\
+C8 & Tail pricing & Same-day blocking and deferred-trigger escape blocking \\
+C9 & Tail pricing & Default weak trigger/assignment link, exactly as coded \\
+C11 & Tail pricing & Per-tail/day/check sum of triggers equals $y_{jdc}$ \\
+Hierarchy & Tail pricing & $\gamma$ equalities from the selected checks \\
+C12, C12b & Tail pricing & Calendar spacing and initial calendar deadline \\
+C13, C13b & Tail pricing & Split hour rows and pre-horizon accumulated hours \\
+C14, C14b & Tail pricing & At most one check/day and multi-day duration \\
+C15 & No rows & Empty compatibility component; C8 performs blocking \\
+Start links & Tail pricing & $s_{jdc}$ detects $y_{jdc}$ starts for objective cost \\
+Variable domains & Tail pricing & Sparse $X,Z$, binary domains and day-specific zero bounds \\
+Objective & Tail pricing & Assignment cost plus maintenance-start penalty \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The table is the decomposition claim, row by row: every nonempty original
+row other than C1 and C10 is copied without changing its index sets,
+coefficients, sense or bounds into exactly one tail block. For example, C9
+uses the implementation's default weak link: for C/D checks it links the
+assignment to the first candidate trigger day, not the stronger sum-over-days
+link. The sparse $Z$ domain, impossible-state upper bounds and hierarchy bounds
+are also part of that block, not merely optional presolve. C15 has no active
+rows, so it contributes nothing to either block.
+
+For clarity, let $H_{jdd'}^c$ be the assigned flight-minute accumulation
+in a C13 interval, let $Y_{jdd'}^c$ be the sum of intervening hierarchy reset
+indicators, and let $T_c=60H_c$ be the flight-hour threshold in minutes when
+the input threshold $H_c$ is expressed in hours. Under the selected default
+profile, C13 uses the single global constant $M_{\mathrm{BIG}}=9{,}999{,}999$,
+not the optional interval-specific tightening. The reference split rows are
+\begin{align}
+ H_{jdd'}^c&=\sum_{i\in\mathcal F_{d,d'}:(i,j)\in X}t_i x_{ij},\\
+ Y_{jdd'}^c&=\sum_{r\in\mathcal D:\ d<r<d'}\gamma_{jrc}.
+ \label{eq:bp_c13_accumulation}
+\end{align}
+where $\mathcal F_{d,d'}$ uses the same departure-day interval convention as
+the compact builder. The enforced pair is
+\begin{align}
+ H_{jdd'}^c &\le T_c+M_{\mathrm{BIG}}Y_{jdd'}^c
+                         +M_{\mathrm{BIG}}\gamma_{jdc},\\
+ H_{jdd'}^c &\le T_c+M_{\mathrm{BIG}}Y_{jdd'}^c
+                         +M_{\mathrm{BIG}}\gamma_{jd'c}.
+ \label{eq:bp_retained_c13}
+\end{align}
+All terms use minutes. For each endpoint day $d'$, C13b is the additional
+opening-horizon row
+\begin{align}
+ H_{jd'}^{c,0}&=\sum_{i\in\mathcal F_{0,d'}:(i,j)\in X}t_i x_{ij},\\
+ H_{jd'}^{c,0}&\le 60(H_c-h_{jc}^{0})+
+ M_{\mathrm{BIG}}\left(\sum_{r\in\mathcal D:r<d'}\gamma_{jrc}
+                        +\gamma_{jd'c}\right),
+ \label{eq:bp_c13b}
+\end{align}
+where $h_{jc}^{0}$ is the input's initial accumulated A/B flight-hour
+exposure. The interval domains and opening-horizon rows are inherited from
+the reference model. Branch-and-price does not, by
+itself, prove these modelling conventions physically correct. Its equivalence
+claims below concern the chosen mathematical model. Enabling
+\texttt{use\_tight\_c13\_m} changes the LP relaxation and therefore defines a
+different bound-comparison protocol, even when its interval constants are
+valid for the same integer schedules.
+
+The three-day A/B deferral cap and unrestricted \texttt{none} option define
+different $\mathcal Q_j$ sets and must be compared separately. Likewise, the
+compact flag that activates C2--C3 must not be interpreted as adding the
+heuristic scheduler's explicit ferry events. The proposed initial protocol
+keeps restrictive station-wait filtering disabled.
+
+Let $\mathcal R_j$ index all elements of the finite set $\mathcal Q_j$, with
+$v_j^r$ denoting pattern $r$. A pattern is a complete vector of decisions,
+not merely a tuple of flight identifiers. Identical flight assignments with
+different check days or trigger placements must remain available. An idle
+pattern is admissible only if it satisfies every local constraint, including
+initial C/D deadlines. A maintenance-only pattern may be used only if the
+existing trigger formulation actually permits it.
+
+\section{Pattern coefficients and the full master problem}
+\label{sec:bp_master}
+
+Define the coverage coefficient and full pattern cost by
+\begin{align}
+ a_{ijr}&=x_{ij}^r,\\
+ C_{jr}&=\sum_{i\in\mathcal F:(i,j)\in X}c_{ij}x_{ij}^r
+       +100\sum_{d\in\mathcal D}\sum_{c\in\mathcal C}
+                    K_c^{\mathrm{dur}}s_{jdc}^r.
+ \label{eq:bp_cost_coverage}
+\end{align}
+Here $s_{jdc}$ is the binary maintenance-start variable and
+$K_c^{\mathrm{dur}}$ is the check duration in days. The compact objective
+charges 100 times the full check duration for each start. The local start-link
+rows include $s_{jdc}\le y_{jdc}$ and
+$s_{jdc}\ge y_{jdc}-y_{j,d-1,c}$ (with $s_{jdc}\ge y_{jdc}$ on the first
+horizon day). Thus a 0-to-1 transition forces $s=1$ and an inactive day forces
+$s=0$; on a continuing 1-to-1 day either binary value satisfies these rows.
+Because the objective coefficient is positive, an optimum chooses $s=0$ on
+such continuation days. The exact local pattern set retains the original
+variable and inequalities rather than tightening them. This term is part of
+the current objective;
+omitting it would make the master objective inequivalent even if every
+feasible pattern were present. The assignment-cost lookup uses the actual
+input flight row, not an assumption that identifiers are one-based. For any
+candidate local vector $v_j$, write its complete objective contribution as
+$f_j(v_j)$; thus $C_{jr}=f_j(v_j^r)$.
+
+Let $\mathcal I_{dc}=\{i:d\in D(i,c)\}$ be the trigger flights returned by
+the implementation's day/check index, and let
+$\mathcal F_m(k,d)=\{i:\operatorname{dest}(i)=k,
+\operatorname{arrivalDay}(i)\le d\}$. The exact trigger set for C10 is
+$\mathcal T_{kdc}=\mathcal I_{dc}\cap\mathcal F_m(k,d)$. Only instantiated
+aircraft/flight trigger indices are included. For a fixed-tail pattern $r$,
+the capacity coefficient is
+\begin{equation}
+ b_{kdjr}=\sum_{c\in\mathcal C}\sum_{i\in\mathcal T_{kdc}}
+                    \mathbf 1\{(i,j,d,c)\in Z\}z_{ijdc}^r.
+ \label{eq:bp_capacity_coefficient}
+\end{equation}
+This reproduces C10's trigger/start accounting. It does not silently charge
+capacity on every occupied day of a multi-day check. Local duration blocking
+continues to be enforced by C14b and the other retained rows. Denote the
+reference capacity by $K_{kd}$; when the input has a station-wide constant,
+$K_{kd}=K_k$ for every day.
+
+With $\lambda_{jr}=1$ selecting pattern $r$ for tail $j$, the full integer
+master is
+\begin{align}
+ \min\quad &\sum_{j\in\mathcal P}\sum_{r\in\mathcal R_j}C_{jr}\lambda_{jr}
+                  \label{eq:bp_master_obj}\\
+ \text{s.t.}\quad
+ &\sum_{j\in\mathcal P}\sum_{r\in\mathcal R_j}a_{ijr}\lambda_{jr}=1
+                  &&\forall i\in\mathcal F,\label{eq:bp_master_cover}\\
+ &\sum_{r\in\mathcal R_j}\lambda_{jr}=1
+                  &&\forall j\in\mathcal P,\label{eq:bp_master_convexity}\\
+ &\sum_{j\in\mathcal P}\sum_{r\in\mathcal R_j}b_{kdjr}\lambda_{jr}\le K_{kd}
+                  &&\forall k\in\mathcal K,d\in\mathcal D,
+                     \label{eq:bp_master_capacity}\\
+ &\lambda_{jr}\in\{0,1\}
+                  &&\forall j\in\mathcal P,r\in\mathcal R_j.
+                     \label{eq:bp_master_binary}
+\end{align}
+The equality in \eqref{eq:bp_master_convexity} ensures a complete local state
+is selected for every tail, even if its flight assignment is empty.
+
+\begin{proposition}[Integer equivalence]
+\label{prop:bp_integer_equivalence}
+Suppose every local integer pattern of the selected compact model is included
+in $\mathcal R_j$, and C1 and C10 are its only cross-tail constraints.
+Then the full integer master and that compact model have equal optimal
+objectives, with cost-preserving feasible-solution mappings in both directions.
+\end{proposition}
+\begin{proof}
+A compact feasible solution determines one $v_j\in\mathcal Q_j$ for each tail.
+Select its indexed column. C1 gives \eqref{eq:bp_master_cover}, C10 gives
+\eqref{eq:bp_master_capacity}, and exactly one pattern is selected per tail.
+Conversely, binary master variables and the convexity equations select one
+member of $\mathcal Q_j$ per tail. Its local constraints hold, while the two
+shared master groups reproduce C1 and C10. Equation~\eqref{eq:bp_cost_coverage}
+preserves the objective in either mapping.
+\end{proof}
+
+The separability premise must be checked against the active implementation
+options before this proposition is used computationally. The patterns are
+not claimed to be physically connected routes beyond what the retained
+compact routing constraints themselves establish.
+
+\section{Continuous relaxation and bound strength}
+\label{sec:bp_relaxation}
+
+Replace \eqref{eq:bp_master_binary} by $\lambda_{jr}\ge0$. The convexity
+equations already imply $\lambda_{jr}\le1$. Its optimum is denoted
+$z_{\mathrm{DW}}$. A fractional selection projects into original variables as
+\begin{equation}
+ \bar v_j=\sum_{r\in\mathcal R_j}v_j^r\lambda_{jr}
+              \in\operatorname{conv}(\mathcal Q_j).
+ \label{eq:bp_projection}
+\end{equation}
+Let $P_j$ be the bound-preserving continuous relaxation of the same local
+compact block. Because $P_j$ is convex and contains $\mathcal Q_j$,
+$\operatorname{conv}(\mathcal Q_j)\subseteq P_j$.
+
+\begin{proposition}[Relaxation ordering]
+\label{prop:bp_bound_ordering}
+For identical objective, local domains and shared constraints, and finite
+optima of feasible models,
+\begin{equation}
+ z_{\mathrm{compact\,LP}}\le z_{\mathrm{DW}}\le z^*\le U,
+ \label{eq:bp_bound_order}
+\end{equation}
+where $z^*$ is the common integer optimum and $U$ is any validated incumbent.
+\end{proposition}
+\begin{proof}
+Every projected master-LP solution lies in each $P_j$ and satisfies the same
+shared rows. It is therefore feasible in the compact relaxation, so its
+minimum cannot be below the compact-LP minimum. Every integer master solution
+is feasible in the master relaxation, giving the second inequality. The last
+inequality is the definition of an incumbent upper bound.
+\end{proof}
+
+Equality is possible; no strict improvement or runtime advantage follows
+from this proposition. The comparison uses the standard bound-preserving LP,
+not a legacy procedure that reopens zero binary bounds. Even a stronger root
+bound may be expensive to obtain if pricing requires difficult MILP solves.
+
+\section{Restricted master, dual prices and exact pricing}
+\label{sec:bp_pricing}
+
+Since the full pattern sets can be enormous, begin with subsets
+$\widehat{\mathcal R}_j\subseteq\mathcal R_j$. The restricted master problem
+(RMP) is the master LP using only these subsets. In this section assume that
+the RMP is feasible without artificial variables and solved to optimality.
+Let $\pi_i$ and $\alpha_j$ be unrestricted dual variables for coverage and
+convexity, respectively, and let $\beta_{kd}\le0$ be the dual variables for
+capacity. The restricted dual is
+\begin{align}
+ \max\quad &\sum_{i\in\mathcal F}\pi_i+\sum_{j\in\mathcal P}\alpha_j
+                  +\sum_{k\in\mathcal K,d\in\mathcal D}K_{kd}\beta_{kd}
+                  \label{eq:bp_dual_obj}\\
+ \text{s.t.}\quad
+ &\sum_{i\in\mathcal F}a_{ijr}\pi_i+\alpha_j
+                  +\sum_{k,d}b_{kdjr}\beta_{kd}\le C_{jr}
+                  &&\forall j,r\in\widehat{\mathcal R}_j,\\
+ &\pi_i,\alpha_j\in\mathbb R,\quad\beta_{kd}\le0.
+\end{align}
+The capacity sign is appropriate for a minimization primal with a
+less-than-or-equal row. Thus $-\beta_{kd}b_{kdjr}$ penalizes use of a scarce
+station-day resource in the reduced cost.
+
+For each tail, solve the pricing MILP
+\begin{align}
+ p_j=\min_{v_j\in\mathcal Q_j}\quad
+ &f_j(v_j)-\sum_{i\in\mathcal F}\pi_i x_{ij}
+          -\sum_{k,d}\beta_{kd}b_{kd}(v_j)-\alpha_j.
+ \label{eq:bp_pricing_milp}
+\end{align}
+Here $b_{kd}(v_j)$ is the linear trigger expression in
+\eqref{eq:bp_capacity_coefficient}. A feasible pricing solution with negative
+reduced cost defines a column to add; it need not be the pricing optimum to
+be useful. However, failure of a heuristic to find such a column is not an
+optimality certificate. Exact termination requires a proven lower bound on
+the pricing objective for every tail.
+
+The initial pricing design retains the compact local MILP rather than
+replacing it by a resource-constrained shortest-path algorithm. A future
+label-setting implementation would need an equivalence proof covering
+alternative maintenance timings, hierarchy resets and initial conditions.
+The existing greedy timeline simulator can suggest seed patterns only after
+they have been checked against $\mathcal Q_j$. Its deterministic maintenance
+placement does not enumerate every feasible column.
+
+\section{Certified lower bounds with incomplete pricing}
+\label{sec:bp_certification}
+
+Restricting columns in a minimization LP can increase its objective. Hence
+$z_{\mathrm{RMP}}\ge z_{\mathrm{DW}}$, but $z_{\mathrm{RMP}}$ alone need not
+be a lower bound on $z^*$. A bound must account for columns that remain absent.
+
+Let $\underline p_j\le p_j$ be a certified lower bound from pricing. A pricing
+incumbent provides an upper bound on $p_j$, not the required lower bound.
+Define $\delta_j=\min\{0,\underline p_j\}$.
+
+\begin{proposition}[Pricing-corrected lower bound]
+\label{prop:bp_corrected_bound}
+With feasible optimal Phase-II RMP duals and a finite certified
+$\underline p_j$ for every nonempty local pattern set,
+\begin{equation}
+ L=z_{\mathrm{RMP}}+\sum_{j\in\mathcal P}\delta_j
+       \le z_{\mathrm{DW}}\le z^*.
+ \label{eq:bp_certified_lb}
+\end{equation}
+If every pricing optimum is certified nonnegative, then
+$z_{\mathrm{RMP}}=z_{\mathrm{DW}}$.
+\end{proposition}
+\begin{proof}
+For every pattern of tail $j$, its reduced cost is at least
+$p_j\ge\underline p_j\ge\delta_j$. Replace $\alpha_j$ by
+$\alpha'_j=\alpha_j+\delta_j$ while keeping the other dual variables unchanged.
+All reduced costs become the previous reduced costs minus $\delta_j$, hence
+are nonnegative. These adjusted duals are feasible for every column of the
+full master. Their objective is \eqref{eq:bp_certified_lb}, proving the bound
+by weak duality. If the original duals already have no violated column,
+they are feasible for the full dual; the RMP primal is also full-master
+feasible, so their equal objectives prove optimality.
+\end{proof}
+
+The proof is stated in exact arithmetic. In implementation, solver feasibility
+and objective-bound tolerances must be recorded and handled conservatively.
+For example, if only $p_j\ge-\varepsilon$ is certified for every tail,
+$z_{\mathrm{RMP}}-|\mathcal P|\varepsilon$ is the corresponding mathematical
+lower bound; a zero correction is not justified by that tolerance alone.
+Unresolved pricing with no valid finite bound yields no new certificate.
+An inherited node bound can still be retained. A proven empty local set
+implies node infeasibility, not a numeric pricing correction.
+
+\section{Feasible initialization and Phase I}
+\label{sec:bp_phase_one}
+
+A small initial pool may not cover all flights or contain a pattern for every
+tail. A feasible full integer solution is helpful but is not required to
+initialize column generation. Introduce nonnegative artificial variables
+$s_i^+,s_i^-$ for coverage and $t_j^+,t_j^-$ for convexity:
+\begin{align}
+ \sum_{j,r}a_{ijr}\lambda_{jr}+s_i^+-s_i^-&=1 &&\forall i,\\
+ \sum_r\lambda_{jr}+t_j^+-t_j^-&=1 &&\forall j.
+\end{align}
+Retain station capacities and minimize the artificial violation
+\begin{equation}
+ \Phi=\sum_i w_i(s_i^++s_i^-)+\sum_j w_j(t_j^++t_j^-),
+ \qquad w_i,w_j>0.
+ \label{eq:bp_phase_one_obj}
+\end{equation}
+With nonnegative capacities, the all-zero real-column solution and positive
+right-hand-side artificials provide an initial feasible Phase-I RMP. Real
+columns have zero direct cost in Phase I. Their pricing objective uses
+Phase-I duals and zero pattern cost, not $C_{jr}$ from Phase II.
+
+If the artificial objective reaches zero, fix the artificial variables to
+zero and optimize the original objective. If exact Phase-I pricing certifies
+that the complete Phase-I optimum is positive, the full master LP is
+infeasible, and therefore so is its integer restriction. Positive artificial
+values in an incompletely priced RMP do not prove infeasibility. Original
+cost bounds must never be computed from the Phase-I objective.
+
+\section{Branching, incumbents and node bounds}
+\label{sec:bp_branching}
+
+At node $N$, let $\mathcal Q_j^N$ contain local patterns consistent with all
+inherited decisions. Column generation and bound certification are repeated
+over these node-specific sets. Pricing only at the root is insufficient.
+
+\subsection{Branching in the original variable space}
+
+For a fractional master solution, reconstruct all original binaries through
+\eqref{eq:bp_projection}. Prefer an assignment component
+$0<\bar x_{ij}<1$ and create the children
+\begin{equation}
+ x_{ij}=0\qquad\text{and}\qquad x_{ij}=1.
+ \label{eq:bp_x_branch}
+\end{equation}
+Each child excludes incompatible existing columns and imposes the same fixing
+in every future pricing solve for tail $j$. Other tail pools are unchanged,
+although coverage propagation may yield additional valid fixings.
+
+Integral assignments alone do not establish an integral scheduling state.
+If the assignment components are integral but a maintenance component is
+fractional, branch on an original binary component $v_{jq}$, for example a
+$y$, $z$ or hierarchy indicator:
+\begin{equation}
+ \mathcal Q_j^{N0}=\{v_j\in\mathcal Q_j^N:v_{jq}=0\},\qquad
+ \mathcal Q_j^{N1}=\{v_j\in\mathcal Q_j^N:v_{jq}=1\}.
+ \label{eq:bp_general_branch}
+\end{equation}
+These children partition the original integer patterns. Branching only on an
+existing $\lambda$ risks allowing future columns to bypass the intended
+decision, whereas original-variable fixings are directly enforceable in
+pricing.
+
+If every reconstructed original binary is integral, each projected $\bar v_j$
+belongs to $\mathcal Q_j$: it is an integer vector satisfying the linear
+local constraints by convexity. Together with the master linking rows it is
+a compact-model feasible solution, even if some $\lambda$ values remain
+fractional. Its objective is preserved. The reconstructed certificate must
+nevertheless be checked against all active original constraints before it
+updates the incumbent $U$.
+
+\subsection{Pruning and global certification}
+
+A node is closed only by a certified infeasibility result, a valid bound
+$L_N\ge U$, or a certified node-optimal integral projection. Discovering an
+integral incumbent during incompletely priced optimization does not alone
+close the node. A restricted integer master may improve $U$ if its selected
+patterns satisfy the original model, but its reported restricted-pool
+optimality is not full-problem optimality.
+
+Children inherit the parent's valid lower bound. When new pricing certificates
+are available, use the larger of that inherited bound and the new valid
+correction. For the open-node set $\mathcal O$ and a finite incumbent, a global
+lower bound is
+\begin{equation}
+ L_{\mathrm{global}}=\min\left\{U,\min_{N\in\mathcal O}L_N\right\}.
+ \label{eq:bp_global_lb}
+\end{equation}
+When no nodes remain, the inner minimum is $+\infty$; a finite incumbent is
+then optimal if every closure was justified. Without an incumbent, exhausting
+all nodes by certified infeasibility proves infeasibility. At interruption,
+open nodes lacking a new pricing certificate remain represented by their
+inherited valid bound, potentially $-\infty$.
+
+For finite bounds and nonzero incumbent cost, report
+\begin{equation}
+ g=100\,\frac{\max\{0,U-L_{\mathrm{global}}\}}{|U|}.
+ \label{eq:bp_reported_gap}
+\end{equation}
+Zero-cost and missing-bound cases require explicit handling rather than a
+fabricated finite percentage. All solver calls share a global remaining-time
+budget; separately granting the full budget to every pricing call would not
+constitute a fixed-budget comparison.
+
+\section{Proposed algorithm}
+\label{sec:bp_algorithm}
+
+Algorithm~\ref{alg:bp} describes the intended controller. In exact arithmetic,
+finite binary local sets, complete pricing and original-binary branching give
+a finite exact search. This is not a practical runtime guarantee. Degenerate
+master LPs, expensive pricing and duplicate columns can make convergence slow.
+Dual stabilization or heuristic pricing may be useful implementation options,
+but certification must use valid duals and complete pricing bounds, not an
+unverified stabilized objective.
+
+\begin{algorithm}[htbp]
+\caption{Proposed full-ABCD branch-and-price controller}
+\label{alg:bp}
+\begin{algorithmic}[1]
+\State Initialize root, validated seed patterns, $U\gets+\infty$ and open-node queue
+\While{the queue is nonempty and global time remains}
+ \State Select node $N$; filter pools and pricing models by inherited fixings
+ \State Run Phase-I column generation when a feasible master is unavailable
+ \If{full Phase-I infeasibility is certified}
+  \State Close $N$ and continue
+ \EndIf
+ \If{Phase I remains unresolved}
+  \State Retain $N$ with its inherited bound and mark it unfinished
+  \State Continue to another node, or stop if the global budget is exhausted
+ \EndIf
+ \Repeat
+  \State Solve the Phase-II RMP LP and obtain consistent dual prices
+  \State Price every tail over $\mathcal Q_j^N$ within the remaining budget
+  \State Add new negative-reduced-cost patterns and retain pricing certificates
+  \State Update $L_N$ from the pricing correction when its premises hold
+ \Until{full LP certification or interruption of column generation}
+ \State Validate any reconstructed integer schedule; update $U$ if improved
+ \If{$N$ is certified infeasible, bound-prunable, or node-optimal integral}
+  \State Close $N$
+ \ElsIf{the full node LP is certified and its original projection is fractional}
+  \State Branch on an original binary and enqueue both children
+ \Else
+  \State Retain $N$ as unfinished with a valid bound
+ \EndIf
+\EndWhile
+\State Report incumbent, global bound, status and complete timing/provenance
+\end{algorithmic}
+\end{algorithm}
+
+\section{Illustration of the restricted-master bound issue}
+\label{sec:bp_example}
+
+The following is an algebraic illustration, not an experiment on the ABCD
+benchmark. Consider one flight and two tails. Both admit an idle pattern.
+The flight costs 100 on tail 1 and 10 on tail 2, and no coupling resource is
+binding. Suppose the initial pool contains the flight pattern only for tail 1,
+together with both idle patterns. The RMP assigns the flight to tail 1 and
+has objective 100, but the actual integer optimum is 10. Thus reporting 100
+as a lower bound would be false.
+
+An optimal RMP dual solution is $\pi=100$ and $\alpha_1=\alpha_2=0$.
+The missing tail-2 flight pattern has reduced cost $10-100=-90$.
+With pricing minima $p_1=0$ and $p_2=-90$, the correction yields
+\begin{equation}
+ L=100+\min\{0,0\}+\min\{0,-90\}=10.
+\end{equation}
+Adding that pattern lets the master reach 10. In the integrated model,
+station-capacity duals and alternative maintenance placements perform the
+same coordinating role, but with much larger local pattern spaces.
+
+\section{Validation and planned computational evaluation}
+\label{sec:bp_evaluation}
+
+Before implementation results are admitted to the thesis, the following gates
+are required. First, tiny exhaustive local-pattern enumeration must establish
+that the priced sets reproduce the selected compact constraints and bounds.
+The complete enumerated master LP must match certified column generation;
+its integer optimum and branch-and-price must match the compact MILP.
+Second, targeted cases must cover shared station bottlenecks, initial A/B
+exposure, C/D deadlines, multi-day checks, hierarchy substitution, alternative
+maintenance placements, infeasible idle patterns and sparse trigger domains.
+Third, branching tests must include integral assignments with fractional
+maintenance states, while interruption tests must distinguish feasible pricing
+patterns from certified pricing lower bounds.
+
+Matched experiments should then compare the bound-preserving compact LP,
+the certified root Dantzig--Wolfe relaxation, the selected strengthened compact
+MILP and the full branch-and-price search. Use the same canonical input,
+ABCD checks, cap, cost, station accounting, solver version and thread policy.
+Capped and unrestricted studies remain separate protocols. Start with small
+verified cases before extending the grid to 7-, 14-, 21- and 30-day horizons.
+
+Record the certified lower bound, incumbent, residual gap, proof status,
+generated columns, pricing iterations and calls, search-tree nodes, master
+and pricing time, construction time and total wall time. Source and input
+hashes and all model options are required. Report bound improvement together
+with its computational cost; a stronger root bound is not sufficient evidence
+of a faster exact algorithm. Memory reductions require actual measurements,
+not an inference from the number of master variables alone.
+
+The existing route experiment enumerates routing-only paths and does not
+implement pricing or maintenance-aware branch-and-price. Its results therefore
+cannot be relabelled as validation of this chapter. Similarly, the 30-day
+A-only Gantt illustrates a different solved configuration, not a full-ABCD
+branch-and-price schedule.
+
+\section{Review decisions before coding}
+\label{sec:bp_review}
+
+The proposed mathematical design should be evaluated on four questions:
+whether the local/shared decomposition reproduces every active compact row;
+whether C10 trigger accounting is the intended comparison resource; whether
+the bound and Phase-I certificates are sufficiently explicit; and whether
+exact MILP pricing is an acceptable first implementation despite its potential
+cost. Approval of the chapter does not itself establish computational
+effectiveness. Implementation and a reproducible experimental study remain
+subsequent tasks, and their results must determine the final scope of the
+thesis's contribution claims.

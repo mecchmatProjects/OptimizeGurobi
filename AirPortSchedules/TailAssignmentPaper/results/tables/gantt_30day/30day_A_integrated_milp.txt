@@ -1,0 +1,112 @@
+
+=== MILP Aircraft Assignment Report ===
+  Status : optimal
+  Vars   : 1610   Constraints: 3014
+  Gap    : 0.0000%   CPU: 0.39s
+  Obj    : 18592.0
+
+--- Assignment ---
+  Flight    1  -> Aircraft 0
+  Flight    2  -> Aircraft 0
+  Flight    3  -> Aircraft 1
+  Flight    4  -> Aircraft 0
+  Flight    5  -> Aircraft 1
+  Flight    6  -> Aircraft 2
+  Flight    7  -> Aircraft 0
+  Flight    8  -> Aircraft 2
+  Flight    9  -> Aircraft 1
+  Flight   10  -> Aircraft 3
+  Flight   11  -> Aircraft 1
+  Flight   12  -> Aircraft 3
+  Flight   13  -> Aircraft 4
+  Flight   14  -> Aircraft 2
+  Flight   15  -> Aircraft 2
+  Flight   16  -> Aircraft 4
+  Flight   17  -> Aircraft 5
+  Flight   18  -> Aircraft 3
+  Flight   19  -> Aircraft 3
+  Flight   20  -> Aircraft 4
+  Flight   21  -> Aircraft 5
+  Flight   22  -> Aircraft 6
+  Flight   23  -> Aircraft 4
+  Flight   24  -> Aircraft 6
+  Flight   25  -> Aircraft 5
+  Flight   26  -> Aircraft 7
+  Flight   27  -> Aircraft 5
+  Flight   28  -> Aircraft 7
+  Flight   29  -> Aircraft 8
+  Flight   30  -> Aircraft 6
+  Flight   31  -> Aircraft 6
+  Flight   32  -> Aircraft 8
+  Flight   33  -> Aircraft 9
+  Flight   34  -> Aircraft 7
+  Flight   35  -> Aircraft 7
+  Flight   36  -> Aircraft 8
+  Flight   37  -> Aircraft 9
+  Flight   38  -> Aircraft 8
+  Flight   39  -> Aircraft 9
+  Flight   40  -> Aircraft 9
+
+--- Maintenance ---
+  Aircraft 0  day   2  check A after flight:
+1 arr 450.0 
+
+
+  Aircraft 1  day   3  check A after flight:
+3 arr 1905.0 
+
+
+  Aircraft 2  day   4  check A after flight:
+6 arr 3360.0 
+
+
+  Aircraft 3  day   5  check A after flight:
+10 arr 4815.0 
+
+
+  Aircraft 4  day   6  check A after flight:
+13 arr 6210.0 
+
+
+  Aircraft 5  day   7  check A after flight:
+17 arr 7665.0 
+
+
+  Aircraft 6  day   8  check A after flight:
+22 arr 9120.0 
+
+
+  Aircraft 7  day   9  check A after flight:
+26 arr 10575.0 
+
+
+  Aircraft 8  day  10  check A after flight:
+29 arr 11970.0 
+
+
+  Aircraft 9  day  11  check A after flight:
+33 arr 13425.0 
+
+
+y[0,2,A] = 1.0  (check A for aircraft 0 on day 2)
+z[1,0,2,A] = 1.0  (flight 1 triggers check A for aircraft 0 on day 2)
+y[1,3,A] = 1.0  (check A for aircraft 1 on day 3)
+z[3,1,3,A] = 1.0  (flight 3 triggers check A for aircraft 1 on day 3)
+y[2,4,A] = 1.0  (check A for aircraft 2 on day 4)
+z[6,2,4,A] = 1.0  (flight 6 triggers check A for aircraft 2 on day 4)
+y[3,5,A] = 1.0  (check A for aircraft 3 on day 5)
+z[10,3,5,A] = 1.0  (flight 10 triggers check A for aircraft 3 on day 5)
+y[4,6,A] = 1.0  (check A for aircraft 4 on day 6)
+z[13,4,6,A] = 1.0  (flight 13 triggers check A for aircraft 4 on day 6)
+y[5,7,A] = 1.0  (check A for aircraft 5 on day 7)
+z[17,5,7,A] = 1.0  (flight 17 triggers check A for aircraft 5 on day 7)
+y[6,8,A] = 1.0  (check A for aircraft 6 on day 8)
+z[22,6,8,A] = 1.0  (flight 22 triggers check A for aircraft 6 on day 8)
+y[7,9,A] = 1.0  (check A for aircraft 7 on day 9)
+z[26,7,9,A] = 1.0  (flight 26 triggers check A for aircraft 7 on day 9)
+y[8,10,A] = 1.0  (check A for aircraft 8 on day 10)
+z[29,8,10,A] = 1.0  (flight 29 triggers check A for aircraft 8 on day 10)
+y[9,11,A] = 1.0  (check A for aircraft 9 on day 11)
+z[33,9,11,A] = 1.0  (flight 33 triggers check A for aircraft 9 on day 11)
+
+Total cost: 18592.00

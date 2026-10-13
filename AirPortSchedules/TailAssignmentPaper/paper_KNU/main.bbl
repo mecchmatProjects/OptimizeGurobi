@@ -1,0 +1,193 @@
+\begin{thebibliography}{}
+
+\bibitem [\protect \citeauthoryear {%
+Glomb%
+, Liers%
+\BCBL {}\ \BBA {} R{\"o}sel%
+}{%
+Glomb%
+\ \protect \BOthers {.}}{%
+{\protect \APACyear {2023}}%
+}]{%
+glomb2023predictive}
+\APACinsertmetastar {%
+glomb2023predictive}%
+\begin{APACrefauthors}%
+Glomb, L.%
+, Liers, F.%
+\BCBL {}\ \BBA {} R{\"o}sel, F.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{2023}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {A stochastic optimization approach for optimal {Tail
+  Assignment} with knowledge-based predictive maintenance} {A stochastic
+  optimization approach for optimal {Tail Assignment} with knowledge-based
+  predictive maintenance}.{\BBCQ}
+\newblock
+\APACjournalVolNumPages{CEAS Aeronautical Journal}{14}{3}{715--728}.
+\newblock
+\begin{APACrefDOI} \doi{10.1007/s13272-023-00663-0} \end{APACrefDOI}
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+Khaled%
+, Minoux%
+, Mousseau%
+, Michel%
+\BCBL {}\ \BBA {} Ceugniet%
+}{%
+Khaled%
+\ \protect \BOthers {.}}{%
+{\protect \APACyear {2018}}%
+}]{%
+khaled2018compact}
+\APACinsertmetastar {%
+khaled2018compact}%
+\begin{APACrefauthors}%
+Khaled, O.%
+, Minoux, M.%
+, Mousseau, V.%
+, Michel, S.%
+\BCBL {}\ \BBA {} Ceugniet, X.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{2018}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {A compact optimization model for the tail assignment
+  problem} {A compact optimization model for the tail assignment
+  problem}.{\BBCQ}
+\newblock
+\APACjournalVolNumPages{European Journal of Operational
+  Research}{264}{2}{548--557}.
+\newblock
+\begin{APACrefDOI} \doi{10.1016/j.ejor.2017.06.045} \end{APACrefDOI}
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+Saltzman%
+\ \BBA {} Stern%
+}{%
+Saltzman%
+\ \BBA {} Stern%
+}{%
+{\protect \APACyear {2022}}%
+}]{%
+saltzman2022multiday}
+\APACinsertmetastar {%
+saltzman2022multiday}%
+\begin{APACrefauthors}%
+Saltzman, R\BPBI M.%
+\BCBT {}\ \BBA {} Stern, H\BPBI I.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{2022}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {The multi-day aircraft maintenance routing problem} {The
+  multi-day aircraft maintenance routing problem}.{\BBCQ}
+\newblock
+\APACjournalVolNumPages{Journal of Air Transport Management}{102}{}{102224}.
+\newblock
+\begin{APACrefDOI} \doi{10.1016/j.jairtraman.2022.102224} \end{APACrefDOI}
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+Torres~Sanchez%
+, Boyac{\i}%
+\BCBL {}\ \BBA {} Zografos%
+}{%
+Torres~Sanchez%
+\ \protect \BOthers {.}}{%
+{\protect \APACyear {2020}}%
+}]{%
+torressanchez2020maintenance}
+\APACinsertmetastar {%
+torressanchez2020maintenance}%
+\begin{APACrefauthors}%
+Torres~Sanchez, D.%
+, Boyac{\i}, B.%
+\BCBL {}\ \BBA {} Zografos, K\BPBI G.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{2020}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {An optimisation framework for airline fleet maintenance
+  scheduling with tail assignment considerations} {An optimisation framework
+  for airline fleet maintenance scheduling with tail assignment
+  considerations}.{\BBCQ}
+\newblock
+\APACjournalVolNumPages{Transportation Research Part B:
+  Methodological}{133}{}{142--164}.
+\newblock
+\begin{APACrefDOI} \doi{10.1016/j.trb.2019.12.008} \end{APACrefDOI}
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+Zhang%
+, Chung%
+, Ma%
+\BCBL {}\ \BBA {} Sun%
+}{%
+Zhang%
+\ \protect \BOthers {.}}{%
+{\protect \APACyear {2024}}%
+}]{%
+zhang2024heterogeneous}
+\APACinsertmetastar {%
+zhang2024heterogeneous}%
+\begin{APACrefauthors}%
+Zhang, Q.%
+, Chung, S\BHBI H.%
+, Ma, H\BHBI L.%
+\BCBL {}\ \BBA {} Sun, X.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{2024}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {Robust aircraft maintenance routing with heterogeneous
+  aircraft maintenance tasks} {Robust aircraft maintenance routing with
+  heterogeneous aircraft maintenance tasks}.{\BBCQ}
+\newblock
+\APACjournalVolNumPages{Transportation Research Part C: Emerging
+  Technologies}{160}{}{104518}.
+\newblock
+\begin{APACrefDOI} \doi{10.1016/j.trc.2024.104518} \end{APACrefDOI}
+\PrintBackRefs{\CurrentBib}
+
+\bibitem [\protect \citeauthoryear {%
+Zhang%
+\ \protect \BOthers {.}}{%
+Zhang%
+\ \protect \BOthers {.}}{%
+{\protect \APACyear {2025}}%
+}]{%
+zhang2025synergy}
+\APACinsertmetastar {%
+zhang2025synergy}%
+\begin{APACrefauthors}%
+Zhang, Q.%
+, Zhang, X.%
+, Ma, H\BHBI L.%
+, Sun, X.%
+, Chan, H\BHBI K.%
+\BCBL {}\ \BBA {} Chung, S\BHBI H.%
+\end{APACrefauthors}%
+\unskip\
+\newblock
+\APACrefYearMonthDay{2025}{}{}.
+\newblock
+{\BBOQ}\APACrefatitle {Synergy of airline and maintenance service provider in
+  aircraft maintenance routing} {Synergy of airline and maintenance service
+  provider in aircraft maintenance routing}.{\BBCQ}
+\newblock
+\APACjournalVolNumPages{Transport Policy}{166}{}{32--49}.
+\newblock
+\begin{APACrefDOI} \doi{10.1016/j.tranpol.2025.02.022} \end{APACrefDOI}
+\PrintBackRefs{\CurrentBib}
+
+\end{thebibliography}

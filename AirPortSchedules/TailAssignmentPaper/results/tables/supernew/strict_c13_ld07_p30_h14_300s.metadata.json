@@ -1,0 +1,57 @@
+{
+  "commit": "9ec38d16871e0caad97f8f908b0ae89f622b29ea",
+  "source_sha256": "9a718f87a39ff0eac91604804f53a7cc39310e9362c402b300348bfbd9d4a4c3",
+  "python": "3.12.0",
+  "pyomo": "6.10.1",
+  "platform": "Windows-10-10.0.19045-SP0",
+  "processor": "AMD64 Family 23 Model 113 Stepping 0, AuthenticAMD",
+  "cpu_count": 12,
+  "solver_version": "(12, 9, 0, 0)",
+  "threads": 1,
+  "inputs": {
+    "F:\\Lectures\\Facultative\\Optimizers\\Tasks\\AirPortSchedules\\TailAssignmentPaper\\data\\SuperNew\\ld07_p30_h14_r1 (1).json": "8f9660b269bd6f39ee1c2667db0dcd40991e9fb66069863288952d8a65c51bcc"
+  },
+  "config": {
+    "methods": [
+      "compact_milp"
+    ],
+    "solver": "cplex",
+    "executable": "F:\\LT\\IJOC_SDDP_for_Multi-Echelon_Lot-Sizing_with_Component_Substitution\\cplex\\CPLEX_Studio\\cplex\\bin\\x64_win64\\cplex.exe",
+    "threads": 1,
+    "time_limit": 300,
+    "max_hour_check_deferral_days": 3,
+    "profile": {
+      "use_day_spacing": true,
+      "use_existing_hrs": true,
+      "use_check_hierarchy": true,
+      "use_sanity": false,
+      "use_overlap": true,
+      "use_clique_overlap": true,
+      "allow_ferry": true,
+      "use_maintenance": true,
+      "use_strong_maint_link": false,
+      "use_sparse_maint_aircraft_domain": true,
+      "use_global_maint_trigger": false,
+      "use_day_specific_maintenance_bounds": true,
+      "use_aircraft_routing_reachability": false,
+      "use_capacity": true,
+      "use_tight_c13_m": false,
+      "use_maint_reachability": false,
+      "use_strong_maint_conflicts": false,
+      "use_paper_c13": false,
+      "use_split_c13": false,
+      "prune_unneeded_hour_checks": true,
+      "use_sparse_maintenance_states": true,
+      "soft_coverage": false
+    },
+    "lp_relaxation": "preserve-bounds",
+    "node_limit": null,
+    "seed_certificates": false,
+    "compact_mip_starts": false,
+    "tight_c13_m": false,
+    "strong_c8_conflicts": false,
+    "strong_c9_link": false,
+    "hour_state_flow": false,
+    "split_c13": false
+  }
+}

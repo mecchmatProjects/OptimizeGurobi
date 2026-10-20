@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "runs": [
+    {
+      "git_revision": "d88fee176c9d30f43a1412c1a7da628e02e9a488",
+      "python": "3.12.0",
+      "pyomo": "6.10.1",
+      "sources": {
+        "experiments\\run_four_method_suite.py": "0aebd17831f5ab988e7341ce9b08a856b0929a77b07e4ea512af90d4d0d02235",
+        "src\\model.py": "f09b8d0397fa04dc20eb1ba6ffafde5aa4eefabbd0ded95a8e82fe86897c6869",
+        "src\\compact_a_event_model.py": "5c2c2739ba8289418734829fab9bb21eb014d8558c66439b9db296e5b5db19ca",
+        "src\\generate_feasible_instances.py": "07b6bff0544e28195ea4a17bdb7a98c5ea2ae6918d5ad597b8e43a915668d05e",
+        "src\\generate_instances.py": "4e1389ad95d801246a41ac57d4df91a79d89a2429865eb3b51aa81611c4a4169"
+      },
+      "inputs": {
+        "data\\five_method_longflight_e14_e21_compact\\perf_p=5_h=29.json": {
+          "sha256": "f7a87b649c3a127558b6f5aad16a4b843383766e863f254f23733d7963961871",
+          "P": 5,
+          "observed_H": 30,
+          "F": 74,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        }
+      },
+      "configuration": {
+        "methods": [
+          "legacy_corrected_strengthened",
+          "legacy_strict_interval",
+          "legacy_hour_prefix"
+        ],
+        "effective_enabled_checks": [
+          "A"
+        ],
+        "solver": "cplexamp",
+        "solver_version": "12.6",
+        "executable": "F:\\Progs\\IBM.ILOG.CPLEX.for.AMPL.v12.6-EAT\\CPLEXamp.exe",
+        "time_limit_s": 60,
+        "threads": 1,
+        "presolve_configuration": "presolve_on",
+        "warm_start": false,
+        "legacy_max_hour_check_deferral_days": 0,
+        "lp_relaxation": true,
+        "event_based_optimized_policy": "immediate-after-trigger-flight",
+        "event_based_flex_max_deferral_minutes": 1440.0
+      },
+      "result_csv_sha256": "26a6015f4a81d3686303eb508415ce680c4e63700916ef542f372cea2bb7c529"
+    }
+  ]
+}

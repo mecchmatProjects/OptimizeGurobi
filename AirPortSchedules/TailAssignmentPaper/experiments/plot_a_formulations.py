@@ -44,8 +44,17 @@ def read_rows(path: Path):
 
 def plot_metric(rows, metric, ylabel, output: Path):
     grouped = defaultdict(list)
+    paired_optimal_cases = {
+        case
+        for case in {row["case"] for row in rows}
+        if {
+            row["formulation"]
+            for row in rows
+            if row["case"] == case and row.get("status") == "optimal"
+        } == set(LABELS)
+    }
     for row in rows:
-        if row.get("status") != "optimal":
+        if row.get("status") != "optimal" or row["case"] not in paired_optimal_cases:
             continue
         if row.get("formulation") not in LABELS:
             continue
@@ -80,7 +89,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--input",
-        default="results/tables/five_method_longflight_final.csv",
+        default="results/tables/a_only_policy_matched_20261020.csv",
     )
     parser.add_argument("--fleet-size", type=int, default=10)
     parser.add_argument("--output-dir", default="paper/figures")

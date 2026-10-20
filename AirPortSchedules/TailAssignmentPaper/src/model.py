@@ -661,7 +661,10 @@ class MILP_Sheduler:
                     use_event_only_block_capacity=False,
                     use_paper_c13=False,
                     use_tight_c13_m=False,
-                    use_strict_hour_state=False):
+                    use_strict_hour_state=False,
+                    use_strict_c13_intervals=False,
+                    use_hour_state_flow=False,
+                    prune_unneeded_hour_checks=False):
         """Construct the ConcreteModel.  Call before solve().
 
         Parameters
@@ -712,9 +715,28 @@ class MILP_Sheduler:
             endpoint checks do not erase flights that occur before the check.
             The default remains the historical endpoint-split formulation for
             reproducibility of the legacy results.
+        use_strict_c13_intervals : bool
+            When *True*, use strict C13/C13b interval rows, relaxed only by
+            checks strictly inside each interval. This is an opt-in comparison
+            formulation, separate from the day-indexed exact state.
+        use_hour_state_flow : bool
+            When *True*, represent cumulative daily flight time by prefix
+            states and use them in strict C13/C13b interval rows. Mutually
+            exclusive with ``use_strict_hour_state`` and ``use_paper_c13``.
+        prune_unneeded_hour_checks : bool
+            In an A-only model, remove a tail's A-trigger variables when the
+            sum of all its assignable flight hours plus initial A exposure is
+            no greater than the A threshold. Check costs are nonnegative, so
+            an optimal solution exists without those optional checks.
         """
+        if use_strict_hour_state and (use_strict_c13_intervals or use_hour_state_flow):
+            raise ValueError("Select only one exact-hour formulation.")
+        if use_paper_c13 and (use_strict_c13_intervals or use_hour_state_flow):
+            raise ValueError("Paper C13 cannot be combined with strict interval rows.")
         m = ConcreteModel()
         self.model = m
+        self.prune_unneeded_hour_checks = bool(prune_unneeded_hour_checks)
+        self.unneeded_hour_checks_by_aircraft = self._find_unneeded_hour_checks()
         self._add_sets_and_variables(m)
         if use_maintenance and use_event_maintenance:
             self._add_event_maintenance_scaffold(
@@ -738,6 +760,8 @@ class MILP_Sheduler:
             self._add_hierarchy(m, use_check_hierarchy)
             self._add_c14_one_check_per_day(m)
             self._add_c14b_check_duration(m)
+            if use_hour_state_flow:
+                self._add_hour_state_flow(m)
             if use_day_spacing:
                 self._add_c12_day_spacing(m)
             self._add_c12b_initial_days(m)   # enforce first C/D check within remaining-days window
@@ -746,11 +770,17 @@ class MILP_Sheduler:
                 self._add_exact_hour_state(m)
             else:
                 if use_existing_hrs:
-                    self._add_c13b_existing_hrs(m)
+                    self._add_c13b_existing_hrs(
+                        m,
+                        use_strict_state=(use_strict_c13_intervals or use_hour_state_flow),
+                        use_hour_state_flow=use_hour_state_flow,
+                    )
                 self._add_c13_hr_accumulation(
                     m,
                     use_paper_c13=use_paper_c13,
                     use_tight_m=use_tight_c13_m,
+                    use_strict_state=(use_strict_c13_intervals or use_hour_state_flow),
+                    use_hour_state_flow=use_hour_state_flow,
                 )
             self._add_c15_no_flight_during_maint(m)
         if use_sanity:
@@ -758,6 +788,22 @@ class MILP_Sheduler:
         
         #input("Model built. Press Enter to continue...")  # Debug pause to inspect model before solving
         return m
+
+    def _find_unneeded_hour_checks(self):
+        if not self.prune_unneeded_hour_checks or self.CHECK_LIST != ['A']:
+            return set()
+
+        threshold = self.check_hrs['A']
+        unneeded = set()
+        for aircraft in self.aircraft_ids:
+            max_assignable_hours = sum(
+                self.flight_data[flight]['duration']
+                for flight in self._x_flights_for_aircraft(aircraft)
+            ) / 60.0
+            initial_hours = self.init_check_hrs['A'].get(aircraft, 0.0)
+            if initial_hours + max_assignable_hours <= threshold + 1e-9:
+                unneeded.add(aircraft)
+        return unneeded
 
     def _add_event_maintenance_scaffold(self, m, use_event_bridge_strict=False):
         """Phase-2 scaffold: add event-based maintenance structures.
@@ -1009,6 +1055,8 @@ class MILP_Sheduler:
             for i in self.maint_flight_ids:
                 for j in self.aircraft_ids:
                     for c in self.CHECK_LIST:
+                        if j in self.unneeded_hour_checks_by_aircraft and c == 'A':
+                            continue
                         for d in self._z_days_for(i, c):
                             yield (i, j, d, c)
         m.Z = Set(dimen=4, initialize=_z_index_init)
@@ -1282,9 +1330,13 @@ class MILP_Sheduler:
                 escape = self.c8_escape[(i, c)]
 
                 for j in m.P:
+                    if (i, j, d_i, c) not in m.Z and not any(
+                        (i, j, day, c) in m.Z for day in self._z_days_for(i, c)
+                    ):
+                        continue
                     # (b) same-day: block in-window departures from maint airport
                     same_day_block_j = self.c8_same_day_block_feasible[(i, c, j)]
-                    if same_day_block_j:
+                    if same_day_block_j and (i, j, d_i, c) in m.Z:
                         m.c8.add(
                             sum(m.x[i2, j] for i2 in same_day_block_j)
                             <= len(same_day_block) * (1 - m.z[i, j, d_i, c])
@@ -1293,6 +1345,8 @@ class MILP_Sheduler:
                     # (c) deferred: block escape + check-day departures
                     for d in self._z_days_for(i, c):
                         if d <= d_i:
+                            continue
+                        if (i, j, d, c) not in m.Z:
                             continue
                         escape_j = self.c8_escape_feasible[(i, c, j)]
                         if escape_j:  # c1: waiting-period
@@ -1317,11 +1371,14 @@ class MILP_Sheduler:
         for c in self.CHECK_LIST:
             for i in m.FM:  # only maintenance-eligible flights
                 z_days = self._z_days_for(i, c)
-                start_day = z_days[0]
                 for j in self._x_aircrafts_for_flight(i):
+                    available_days = [day for day in z_days if (i, j, day, c) in m.Z]
+                    if not available_days:
+                        continue
+                    start_day = available_days[0]
                     if self.check_days[c] is None:
                         m.c9.add(
-                            sum(m.z[i, j, d, c] for d in z_days) <= m.x[i, j]
+                            sum(m.z[i, j, d, c] for d in available_days) <= m.x[i, j]
                         )
                     else:
                         m.c9.add(m.x[i, j] >= m.z[i, j, start_day, c])
@@ -1347,13 +1404,16 @@ class MILP_Sheduler:
                 flights_a = self.F_m(a, d)  # flights arriving at a on or before day d
                 if flights_a:
                     # Sum across ALL check types: capacity is airport-wide, not per check
-                    m.c10.add(
-                        sum(m.z[i, j, d, c]
-                            for c in self.CHECK_LIST
-                            for i in self._z_trigger_flights(d, c)
-                            if i in flights_a
-                            for j in m.P) <= cap[a]
-                    )
+                    capacity_terms = [
+                        m.z[i, j, d, c]
+                        for c in self.CHECK_LIST
+                        for i in self._z_trigger_flights(d, c)
+                        if i in flights_a
+                        for j in m.P
+                        if (i, j, d, c) in m.Z
+                    ]
+                    if capacity_terms:
+                        m.c10.add(sum(capacity_terms) <= cap[a])
 
     # ------------------------------------------------------------------
     # Constraint C11 – link z to y:
@@ -1366,7 +1426,11 @@ class MILP_Sheduler:
             for d in m.D:
                 for j in m.P:
                     m.c11.add(
-                        sum(m.z[i, j, d, c] for i in self._z_trigger_flights(d, c))
+                        sum(
+                            m.z[i, j, d, c]
+                            for i in self._z_trigger_flights(d, c)
+                            if (i, j, d, c) in m.Z
+                        )
                         == m.y[j, d, c]
                     )
 
@@ -1542,12 +1606,48 @@ class MILP_Sheduler:
         threshold = self.check_hrs[c] * 60.0
         return max(0.0, upper_bound - threshold)
 
+    def _add_hour_state_flow(self, m):
+        """Build exact cumulative flight-minute prefixes for C13/C13b."""
+        days = sorted(self.days)
+        initial_day = days[0] - 1
+        m.HOUR_DAYS = Set(initialize=[initial_day] + days)
+        max_hours = {
+            aircraft: sum(
+                self.flight_data[flight]['duration']
+                for flight in self._x_flights_for_aircraft(aircraft)
+            )
+            for aircraft in self.aircraft_ids
+        }
+        m.hour_cumulative = Var(
+            m.P,
+            m.HOUR_DAYS,
+            domain=NonNegativeReals,
+            bounds=lambda _m, aircraft, _day: (0.0, max_hours[aircraft]),
+        )
+        m.hour_state_flow = ConstraintList()
+        for aircraft in m.P:
+            m.hour_cumulative[aircraft, initial_day].fix(0.0)
+            previous_day = initial_day
+            for day in days:
+                daily_time = sum(
+                    self.flight_data[flight]['duration'] * m.x[flight, aircraft]
+                    for flight in self.flight_ids
+                    if self.flight_data[flight]['day_departure'] == day
+                    and self._x_has_arc(flight, aircraft)
+                )
+                m.hour_state_flow.add(
+                    m.hour_cumulative[aircraft, day]
+                    == m.hour_cumulative[aircraft, previous_day] + daily_time
+                )
+                previous_day = day
+
     def _add_c13_hr_accumulation(
         self,
         m,
         use_paper_c13=False,
         use_tight_m=False,
         use_strict_state=False,
+        use_hour_state_flow=False,
     ):
         m.c13 = ConstraintList()
         days  = sorted(self.days)
@@ -1562,13 +1662,20 @@ class MILP_Sheduler:
             # For A/B check_days is None; enforce over the full horizon.
             for j in m.P:
                 for si in range(n - 1):
-                    for ei in range(si + 2, n):
+                    first_end = si + 1 if use_strict_state else si + 2
+                    for ei in range(first_end, n):
                         d,  d_ = days[si], days[ei]
-                        t_sum  = sum(
-                            self.flight_data[i]['duration'] * m.x[i, j]
-                            for i in self._f_dep_between_days(d, d_)
-                            if self._x_has_arc(i, j)
-                        )
+                        interval_flights = self._f_dep_between_days(d, d_)
+                        if not any(self._x_has_arc(flight, j) for flight in interval_flights):
+                            continue
+                        if use_hour_state_flow:
+                            t_sum = m.hour_cumulative[j, d_] - m.hour_cumulative[j, d]
+                        else:
+                            t_sum = sum(
+                                self.flight_data[i]['duration'] * m.x[i, j]
+                                for i in interval_flights
+                                if self._x_has_arc(i, j)
+                            )
                         y_mid  = sum(m.mega[j, days[r], c]
                                      for r in range(si + 1, ei))
                         big_m = (
@@ -1587,6 +1694,12 @@ class MILP_Sheduler:
                             )
                             continue
 
+                        if use_strict_state:
+                            m.c13.add(
+                                t_sum <= hr_limit * 60 + big_m * y_mid
+                            )
+                            continue
+
                         m.c13.add(
                             t_sum <= hr_limit * 60
                                      + big_m * y_mid
@@ -1597,12 +1710,6 @@ class MILP_Sheduler:
                                      + big_m * y_mid
                                      + big_m * m.mega[j, d_, c]
                         )
-
-                        if use_strict_state:
-                            m.c13.add(
-                                t_sum <= hr_limit * 60 + big_m * y_mid
-                            )
-                            continue
 
     def _add_exact_hour_state(self, m):
         """Propagate exact A/B flight-hour state across planning days."""
@@ -1703,7 +1810,12 @@ class MILP_Sheduler:
     # The aircraft's accumulated hours since last check must be respected.
     # ------------------------------------------------------------------
 
-    def _add_c13b_existing_hrs(self, m, use_strict_state=False):
+    def _add_c13b_existing_hrs(
+        self,
+        m,
+        use_strict_state=False,
+        use_hour_state_flow=False,
+    ):
         """C13b: account for hours accumulated since last check BEFORE the
         planning horizon starts.  Only applies to A/B (flight-hour types);
         C/D are calendar-day types handled by C12."""
@@ -1720,11 +1832,14 @@ class MILP_Sheduler:
                 # was range(1, min(n-1, cd)) which dropped the final window).
                 for ei in range(1, n):
                     d_   = days[ei]
-                    t_sum = sum(
-                        self.flight_data[i]['duration'] * m.x[i, j]
-                        for i in self._f_dep_between_days(0, d_)
-                        if self._x_has_arc(i, j)
-                    )
+                    if use_hour_state_flow:
+                        t_sum = m.hour_cumulative[j, d_]
+                    else:
+                        t_sum = sum(
+                            self.flight_data[i]['duration'] * m.x[i, j]
+                            for i in self._f_dep_between_days(0, d_)
+                            if self._x_has_arc(i, j)
+                        )
                     y_mid = sum(m.mega[j, days[r], c] for r in range(ei))
                     # Relax when any check occurs in [day_1 .. d_] (y_mid covers
                     # days[0]..days[ei-1]; mega[d_] covers the boundary itself).
@@ -1986,7 +2101,7 @@ class MILP_Sheduler:
                     val = pyo_value(m.y[j, d, c])
                     if val > 0.5:
                         for i in self._z_trigger_flights(d, c):
-                            if pyo_value(m.z[i, j, d, c]) > 0.5:
+                            if (i, j, d, c) in m.Z and pyo_value(m.z[i, j, d, c]) > 0.5:
                                 _p(f"  Aircraft {j}  day {d:3d}  check {c} after flight:")
                                 _p(f"{i} arr {self.flight_data[i]['arrivalTime']} ")
                                 _p("\n")
@@ -2007,7 +2122,7 @@ class MILP_Sheduler:
                     if pyo_value(m.y[j, d, c]) > 0.5:
                         _p(f"y[{j},{d},{c}] = {pyo_value(m.y[j, d, c])}  (check {c} for aircraft {j} on day {d})")
                     for i in self._z_trigger_flights(d, c):
-                        if pyo_value(m.z[i, j, d, c]) > 0.5:
+                        if (i, j, d, c) in m.Z and pyo_value(m.z[i, j, d, c]) > 0.5:
                             _p(f"z[{i},{j},{d},{c}] = {pyo_value(m.z[i, j, d, c])}  (flight {i} triggers check {c} for aircraft {j} on day {d})")
               
 
@@ -2288,6 +2403,33 @@ class LegacyCorrectedStrengthenedMILPScheduler(LegacyCorrectedMILPScheduler):
         model = super().build_model(**kwargs)
         self._add_overlap(model, mode="clique")
         return model
+
+
+class LegacyStrictIntervalMILPScheduler(MILP_Sheduler):
+    """A-only strict C13/C13b formulation with explicit interval sums."""
+
+    FORMULATION_ID = "legacy_strict_interval"
+    CHECK_LIST = ("A",)
+
+    def build_model(self, **kwargs):
+        kwargs["use_paper_c13"] = False
+        kwargs["use_strict_hour_state"] = False
+        kwargs["use_strict_c13_intervals"] = True
+        kwargs["use_hour_state_flow"] = False
+        return super().build_model(**kwargs)
+
+
+class LegacyHourPrefixMILPScheduler(LegacyStrictIntervalMILPScheduler):
+    """A-only strict C13/C13b using cumulative daily prefix variables."""
+
+    FORMULATION_ID = "legacy_hour_prefix"
+
+    def build_model(self, **kwargs):
+        kwargs["use_paper_c13"] = False
+        kwargs["use_strict_hour_state"] = False
+        kwargs["use_strict_c13_intervals"] = True
+        kwargs["use_hour_state_flow"] = True
+        return MILP_Sheduler.build_model(self, **kwargs)
 
 
 # ----------------------------

@@ -1,0 +1,102 @@
+{
+  "description": "A-only five-method correctness and performance suite",
+  "methods": [
+    "legacy_paper_c13",
+    "legacy_endpoint_split",
+    "legacy_corrected_strengthened",
+    "event_based_optimized",
+    "event_based_flex"
+  ],
+  "flights_per_aircraft": 8,
+  "spread_rotations": true,
+  "replicate_indices": [
+    0,
+    1,
+    2
+  ],
+  "regression_cases": [
+    "c13_loophole_test.json",
+    "event_vs_legacy_clean_test.json"
+  ],
+  "performance_grid": [
+    {
+      "P": 5,
+      "H": 29,
+      "replicate_index": 0,
+      "file": "perf_p=5_h=29_r=0.json"
+    },
+    {
+      "P": 5,
+      "H": 29,
+      "replicate_index": 1,
+      "file": "perf_p=5_h=29_r=1.json"
+    },
+    {
+      "P": 5,
+      "H": 29,
+      "replicate_index": 2,
+      "file": "perf_p=5_h=29_r=2.json"
+    },
+    {
+      "P": 5,
+      "H": 49,
+      "replicate_index": 0,
+      "file": "perf_p=5_h=49_r=0.json"
+    },
+    {
+      "P": 5,
+      "H": 49,
+      "replicate_index": 1,
+      "file": "perf_p=5_h=49_r=1.json"
+    },
+    {
+      "P": 5,
+      "H": 49,
+      "replicate_index": 2,
+      "file": "perf_p=5_h=49_r=2.json"
+    },
+    {
+      "P": 10,
+      "H": 29,
+      "replicate_index": 0,
+      "file": "perf_p=10_h=29_r=0.json"
+    },
+    {
+      "P": 10,
+      "H": 29,
+      "replicate_index": 1,
+      "file": "perf_p=10_h=29_r=1.json"
+    },
+    {
+      "P": 10,
+      "H": 29,
+      "replicate_index": 2,
+      "file": "perf_p=10_h=29_r=2.json"
+    },
+    {
+      "P": 10,
+      "H": 49,
+      "replicate_index": 0,
+      "file": "perf_p=10_h=49_r=0.json"
+    },
+    {
+      "P": 10,
+      "H": 49,
+      "replicate_index": 1,
+      "file": "perf_p=10_h=49_r=1.json"
+    },
+    {
+      "P": 10,
+      "H": 49,
+      "replicate_index": 2,
+      "file": "perf_p=10_h=49_r=2.json"
+    }
+  ],
+  "notes": [
+    "Regression cases preserve the canonical inputs by copying them.",
+    "Performance cases are generated with overnight A maintenance and a common JSON input per cell.",
+    "Fixed-model objective parity is checked on optimal runs for each case.",
+    "The flexible-model objective is checked against the immediate-start relaxation bound.",
+    "Replicate indices are passed directly to build_feasible_instance without changing stable_seed."
+  ]
+}

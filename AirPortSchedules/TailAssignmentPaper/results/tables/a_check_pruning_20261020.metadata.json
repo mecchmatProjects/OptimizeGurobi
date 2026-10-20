@@ -1,0 +1,45 @@
+{
+  "git_revision": "d88fee176c9d30f43a1412c1a7da628e02e9a488",
+  "python": "3.12.0",
+  "pyomo": "6.10.1",
+  "source_sha256": "89f2996269a08452d1c32130570ab374a09b81caf329a530aae86c6d87c68460",
+  "original_input": "F:\\Lectures\\Facultative\\Optimizers\\Tasks\\AirPortSchedules\\TailAssignmentPaper\\data\\instances\\event_vs_legacy_clean_test.json",
+  "original_input_sha256": "8e2906d48c917a9b63a306e94ecaff12ffdda9c49e9d193415ab7405e925ee22",
+  "transformed_input_sha256": "86023fc26e0ff06864d90d546dc4f474355e88b5020a8293cda866e89f819a54",
+  "profile": {
+    "maintenance_families": [
+      "A"
+    ],
+    "initial_a_hours": {
+      "0": 0.0,
+      "1": 0.0
+    },
+    "a_threshold_minutes": 100000.0,
+    "legacy_deferral_days": 0,
+    "pruning_precondition": "initial A hours plus total assignable A-only flight hours <= threshold",
+    "tail_bounds": {
+      "0": {
+        "initial_a_hours": 0.0,
+        "max_assignable_flight_hours": 20.0,
+        "sum_hours": 20.0,
+        "threshold_hours": 1666.6666666666667,
+        "precondition_holds": true
+      },
+      "1": {
+        "initial_a_hours": 0.0,
+        "max_assignable_flight_hours": 20.0,
+        "sum_hours": 20.0,
+        "threshold_hours": 1666.6666666666667,
+        "precondition_holds": true
+      }
+    }
+  },
+  "solver": {
+    "name": "cplexamp",
+    "version": "12.6",
+    "executable": "F:\\Progs\\IBM.ILOG.CPLEX.for.AMPL.v12.6-EAT\\CPLEXamp.exe",
+    "time_limit_s": 60,
+    "threads": 1
+  },
+  "results_csv_sha256": "cb0dbf0a366f4837f07cc654474591a327dfa26b6266e166e5add0e7df77ee60"
+}

@@ -276,6 +276,13 @@ $h_{jd}=h_{j,d-1}+v_{jd}$. If $y_{j,d-1}=1$, the reset inequalities give
 $h_{jd}=v_{jd}$. The upper bound then enforces the flight-hour threshold on
 every day, including the flights operated immediately before a night check.
 
+The state $h_{jd}$ is indexed at day boundaries, whereas the ordered
+Event-based state in \Cref{sec:event_reformulation} is indexed after individual
+flights and resets at a selected event. These are distinct time resolutions;
+no general projection-equivalence theorem between the formulations is claimed
+here. Section~\ref{subsec:event_measurements} compares them under the stated
+A-check timing policies and independently audits optimizer-selected schedules.
+
 \subsection{Equivalent implementation strengthening}
 \label{subsec:corrected_legacy_strengthening}
 
@@ -304,8 +311,9 @@ planning horizon.
 Finally, the strengthened implementation generates maximal interval-clique
 rows for flight overlap. The implementation is
 \texttt{LegacyCorrectedStrengthenedMILPScheduler}; the original
-\texttt{LegacyCorrectedMILPScheduler} remains unchanged for reproduction of
-the four-method baseline.
+\texttt{LegacyCorrectedMILPScheduler} remains available for the earlier
+four-method baseline; the current five-method scale-up uses the strengthened
+class.
 
 \subsection{Pre-horizon accumulated hours}
 \label{subsec:c11_pre_horizon}
@@ -319,6 +327,45 @@ exactly through the initial condition
 \end{equation}
 The condition is required for every aircraft, including $\Phi^A_j=0$; no
 separate opening-window big-$M$ inequality is needed.
+
+\subsection{Cumulative-prefix representation of strict interval rows}
+\label{subsec:c13_prefix_equivalence}
+
+The strict interval form of C13/C13b also admits a cumulative-prefix
+representation. This is an alternative encoding of the interval rows, not the
+reset state $h_{jd}$ above. Let $q_{jd}$ be the flight minutes assigned to
+aircraft $j$ on day $d$, and define $Q_{j0}=0$ and
+\begin{equation}
+  Q_{jd}=Q_{j,d-1}+q_{jd},
+  \qquad 0\leq Q_{jd}\leq U_j^{\mathrm{fly}},
+  \label{eq:c13_prefix_flow}
+\end{equation}
+where $U_j^{\mathrm{fly}}$ is any valid upper bound on the total assignable
+flight minutes for aircraft $j$. For every day pair $d<d'$, telescoping gives
+\begin{equation}
+  \sum_{i:\,d<\operatorname{depday}(i)\leq d'}
+       \tilde t_i x_{ij}=Q_{jd'}-Q_{jd},
+  \qquad
+  \sum_{i:\,\operatorname{depday}(i)\leq d'}
+       \tilde t_i x_{ij}=Q_{jd'}.
+  \label{eq:c13_prefix_telescope}
+\end{equation}
+Consequently, the strict interval rows can be written as
+\begin{align}
+  Q_{jd'}-Q_{jd}
+  &\leq T^A_{\max}+M_{dd'}\sum_{r=d+1}^{d'-1}\mu_{jr},
+  \label{eq:c13_prefix_interval}\\
+  Q_{jd'}
+  &\leq T^A_{\max}-\Phi^A_j
+       +M^0\sum_{r=1}^{d'-1}\mu_{jr},
+  \label{eq:c13_prefix_opening}
+\end{align}
+where $\mu_{jr}$ is the A-check reset indicator used by the strict interval
+formulation. Since the prefix flow equations uniquely determine $Q$ from the
+assignment variables and the rows above are exactly the telescoped interval
+expressions, this substitution preserves the projection onto the common
+variables and the bound-preserving LP objective. It does not assert LP
+equivalence with the stronger day-indexed reset-state formulation $h_{jd}$.
 
 \subsection{Integrality constraints}
 \begin{equation}

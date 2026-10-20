@@ -12,6 +12,12 @@ event attached to the flight that triggers it. Thus the design-note variables
 $x_{ij}$ and $z_{ij}$ are represented below through an ordered position index
 $r$ that maps to a flight index $i_r$.
 
+The formulations in this section are for type-A checks only. The optional
+flexible-start variant E14$_{\\mathrm{flex}}$--E21$_{\\mathrm{flex}}$ also
+models only A-check timing; it does not include the B/C/D maintenance
+hierarchy. Its computational implementation uses a one-minute time grid and a
+1440-minute maximum deferral window.
+
 \subsection{Ordered event representation}
 
 For flight $i$, let $o_i$ and $a_i$ be its departure and arrival airports,
@@ -418,10 +424,10 @@ flexible-start formulation is implemented by
 comparison binaries, active-at-start indicators, and station-capacity rows
 correspond to E14$_{\mathrm{flex}}$--E21$_{\mathrm{flex}}$. The earlier
 benchmark numbers for the previous flex linearisation are not results for this
-formulation. The regenerated paired measurements are in
-\texttt{results/tables/flexible\_event\_benchmark\_e14\_e21.csv}; the section-07
-tables and figures still require refresh before those measurements are reported
-as paper results.
+formulation. A separate 12-case flexible-prototype benchmark is recorded in
+	exttt{results/tables/flexible\_event\_benchmark\_e14\_e21.csv}; it is not
+pooled with the six-instance, zero-day-legacy-deferral scale-up reported in
+Section~\ref{subsec:event_measurements}.
 
 Table~\ref{tab:ordered_c1_c13} records the correspondence with the numbered
 day-indexed requirements. Some legacy rows disappear because their variables

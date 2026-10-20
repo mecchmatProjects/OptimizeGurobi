@@ -73,7 +73,12 @@ Their builder identifiers are respectively
 \texttt{legacy\_corrected\_strengthened}, \texttt{event\_based\_optimized}, and
 \texttt{event\_based\_flex}. A result is described
 as objective-matched only when both
-compared methods are optimal.
+compared methods are optimal. The legacy methods use a zero-day trigger-to-check
+deferral cap in the matched rerun; the optimized event model starts maintenance
+after the triggering flight, while the flexible event model permits a
+one-day (1440-minute) offset. The day-indexed and event-based timing rules
+remain different, so this setting improves comparability but does not make the
+formulations identical.
 
 \subsubsection{Longer horizons and fleet sizes}
 
@@ -84,78 +89,84 @@ instances contain 74--240 flights with up to eight seeded round-trip
 rotations per aircraft. Each rotation is checked by the generator's
 independent maintenance replay; this validates the designated generated
 rotations, not every schedule returned by a MILP. All five formulations use
-the same JSON instance within each cell. CPLEX~12.6 was given a 180-second
-time limit. The corrected-cost results are recorded in
-\texttt{results/tables/five\_method\_longflight\_final.csv}; this is an
-extended-family experiment, not a reproduction of Khaled et al.'s Table~6.
+the same JSON instance within each cell. CPLEX~12.6 was run with one thread,
+presolve enabled, and a 180-second limit. Legacy methods were run with
+\texttt{max\_hour\_check\_deferral\_days=0}; event-flex retains its 1440-minute
+deferral window. Results, input hashes, and solver configuration are recorded
+in \texttt{results/tables/a\_only\_policy\_matched\_20261020.csv} and its
+metadata sidecar. This is an extended-family experiment, not a reproduction of
+Khaled et al.'s Table~6.
 
 Table~\ref{tab:longflight_results} reports solver status, incumbent objective,
-timing, and built model size for all 30 performance runs. The P=15, H=30
-Event-based runs reached the time limit with feasible incumbents; their
-objectives are not proven optima.
+timing, model size, and independent replay status for all 30 performance runs.
+Both Event-based methods reached the time limit at P=15 for H=30 and H=49;
+their incumbents are not proven optima and were not independently replayed.
 
 \begin{table}[p]
 \centering\scriptsize
 \caption{Five-method A-only results on the longer-horizon, higher-flight-count
-family. Objectives are solver incumbents; CPU and wall times are in seconds.
-The two \texttt{maxIterations} rows are time-limited and are not optimality
-certificates.}
+family with zero-day legacy check deferral. ``Replay'' is the independent
+flight-hour audit (PASS or violation count); time-limited rows are not
+optimality certificates. CPU and wall times are in seconds.}
 \label{tab:longflight_results}
 \resizebox{\linewidth}{!}{%
-\begin{tabular}{rrrllrrr rr}
+\begin{tabular}{rrrlllr rrrr}
 \toprule
-$|P|$ & $H$ & $F$ & Method & Status & Objective & CPU & Wall & Vars & Cons. \\
+$|P|$ & $H$ & $F$ & Method & Status & Replay & Objective & CPU & Wall & Vars & Cons. \\
 \midrule
-5 & 30 & 74 & Legacy paper & optimal & 34883 & 0.88 & 1.46 & 3980 & 7125 \\
-5 & 30 & 74 & Legacy split & optimal & 36083 & 1.28 & 2.03 & 3980 & 9300 \\
-5 & 30 & 74 & Legacy corrected & optimal & 36583 & 0.52 & 0.94 & 4135 & 5115 \\
-5 & 30 & 74 & Event optimized & optimal & 37583 & 0.35 & 0.69 & 925 & 3007 \\
-5 & 30 & 74 & Event flex & optimal & 37583 & 0.43 & 0.81 & 1363 & 4393 \\
-5 & 48 & 80 & Legacy paper & optimal & 37707 & 0.75 & 1.77 & 6335 & 12494 \\
-5 & 48 & 80 & Legacy split & optimal & 39207 & 1.09 & 2.48 & 6335 & 18134 \\
-5 & 48 & 80 & Legacy corrected & optimal & 39707 & 0.44 & 0.93 & 6580 & 7419 \\
-5 & 48 & 80 & Event optimized & optimal & 40707 & 0.30 & 0.69 & 1000 & 3240 \\
-5 & 48 & 80 & Event flex & optimal & 40707 & 0.29 & 0.67 & 1360 & 4320 \\
-10 & 30 & 146 & Legacy paper & optimal & 68850 & 2.15 & 3.53 & 14870 & 23117 \\
-10 & 30 & 146 & Legacy split & optimal & 71150 & 4.39 & 6.20 & 14870 & 27467 \\
-10 & 30 & 146 & Legacy corrected & optimal & 72150 & 1.80 & 2.67 & 15180 & 16747 \\
-10 & 30 & 146 & Event optimized & optimal & 74150 & 11.03 & 11.63 & 3650 & 11425 \\
-10 & 30 & 146 & Event flex & optimal & 74150 & 9.31 & 10.08 & 5458 & 18000 \\
-10 & 49 & 160 & Legacy paper & optimal & 75391 & 11.47 & 14.15 & 24620 & 40230 \\
-10 & 49 & 160 & Legacy split & optimal & 78391 & 18.39 & 22.71 & 24620 & 51990 \\
-10 & 49 & 160 & Legacy corrected & optimal & 79391 & 2.24 & 3.53 & 25120 & 27970 \\
-10 & 49 & 160 & Event optimized & optimal & 81391 & 9.12 & 9.75 & 4000 & 12672 \\
-10 & 49 & 160 & Event flex & optimal & 81391 & 4.27 & 5.07 & 5663 & 18269 \\
-15 & 30 & 218 & Legacy paper & optimal & 102849 & 5.08 & 7.83 & 32565 & 50454 \\
-15 & 30 & 218 & Legacy split & optimal & 106249 & 10.45 & 14.13 & 32565 & 56979 \\
-15 & 30 & 218 & Legacy corrected & optimal & 107749 & 3.03 & 4.76 & 33030 & 34824 \\
-15 & 30 & 218 & Event optimized & maxIterations & 110749 & 180.49 & 181.57 & 8175 & 25222 \\
-15 & 30 & 218 & Event flex & maxIterations & 110749 & 180.75 & 182.46 & 12265 & 42053 \\
-15 & 49 & 240 & Legacy paper & optimal & 113169 & 8.91 & 14.67 & 54090 & 81275 \\
-15 & 49 & 240 & Legacy split & optimal & 117669 & 28.93 & 37.82 & 54090 & 98915 \\
-15 & 49 & 240 & Legacy corrected & optimal & 119169 & 6.29 & 8.99 & 54840 & 58505 \\
-15 & 49 & 240 & Event optimized & optimal & 122169 & 149.53 & 150.74 & 9000 & 28039 \\
-15 & 49 & 240 & Event flex & optimal & 122169 & 130.46 & 132.17 & 12807 & 42276 \\
+5 & 30 & 74 & Legacy paper & optimal & 51 & 34883 & 0.52 & 1.02 & 1020 & 4348 \\
+5 & 30 & 74 & Legacy split & optimal & 17 & 36083 & 1.01 & 1.71 & 1020 & 6523 \\
+5 & 30 & 74 & Legacy corrected & optimal & PASS & 37583 & 0.32 & 0.67 & 1175 & 2338 \\
+5 & 30 & 74 & Event optimized & optimal & PASS & 37583 & 0.33 & 0.67 & 925 & 3007 \\
+5 & 30 & 74 & Event flex & optimal & PASS & 37583 & 0.41 & 0.88 & 1363 & 4393 \\
+5 & 48 & 80 & Legacy paper & optimal & 60 & 37707 & 0.49 & 1.36 & 1335 & 8385 \\
+5 & 48 & 80 & Legacy split & optimal & 15 & 39207 & 0.92 & 2.24 & 1335 & 14025 \\
+5 & 48 & 80 & Legacy corrected & optimal & PASS & 40707 & 0.28 & 0.67 & 1580 & 3310 \\
+5 & 48 & 80 & Event optimized & optimal & PASS & 40707 & 0.30 & 0.67 & 1000 & 3240 \\
+5 & 48 & 80 & Event flex & optimal & PASS & 40707 & 0.29 & 0.68 & 1360 & 4320 \\
+10 & 30 & 146 & Legacy paper & optimal & 106 & 68850 & 0.94 & 1.96 & 3120 & 12095 \\
+10 & 30 & 146 & Legacy split & optimal & 30 & 71150 & 2.56 & 4.05 & 3120 & 16445 \\
+10 & 30 & 146 & Legacy corrected & optimal & PASS & 74150 & 1.55 & 2.13 & 3430 & 5725 \\
+10 & 30 & 146 & Event optimized & optimal & PASS & 74150 & 12.32 & 12.93 & 3650 & 11425 \\
+10 & 30 & 146 & Event flex & optimal & PASS & 74150 & 10.38 & 11.15 & 5458 & 18000 \\
+10 & 49 & 160 & Legacy paper & optimal & 120 & 75391 & 3.29 & 5.36 & 3900 & 20308 \\
+10 & 49 & 160 & Legacy split & optimal & 30 & 78391 & 10.12 & 13.62 & 3900 & 32068 \\
+10 & 49 & 160 & Legacy corrected & optimal & PASS & 81391 & 0.77 & 1.53 & 4400 & 8048 \\
+10 & 49 & 160 & Event optimized & optimal & PASS & 81391 & 0.98 & 2.04 & 4000 & 12672 \\
+10 & 49 & 160 & Event flex & optimal & PASS & 81391 & 1.57 & 2.37 & 5663 & 18269 \\
+15 & 30 & 218 & Legacy paper & optimal & 158 & 102849 & 1.72 & 3.73 & 6300 & 25822 \\
+15 & 30 & 218 & Legacy split & optimal & 46 & 106249 & 5.68 & 8.62 & 6300 & 32347 \\
+15 & 30 & 218 & Legacy corrected & optimal & PASS & 110749 & 12.49 & 13.48 & 6765 & 10192 \\
+15 & 30 & 218 & Event optimized & maxIterations & -- & 110749 & 180.41 & 181.50 & 8175 & 25222 \\
+15 & 30 & 218 & Event flex & maxIterations & -- & 110749 & 180.50 & 182.08 & 12265 & 42053 \\
+15 & 49 & 240 & Legacy paper & optimal & 168 & 113169 & 4.25 & 8.57 & 7650 & 36633 \\
+15 & 49 & 240 & Legacy split & optimal & 45 & 117669 & 15.42 & 22.45 & 7650 & 54273 \\
+15 & 49 & 240 & Legacy corrected & optimal & PASS & 122169 & 24.10 & 25.59 & 8400 & 13863 \\
+15 & 49 & 240 & Event optimized & maxIterations & -- & 122169 & 180.45 & 181.75 & 9000 & 28039 \\
+15 & 49 & 240 & Event flex & maxIterations & -- & 122169 & 180.52 & 182.35 & 12807 & 42276 \\
 \bottomrule
 \end{tabular}
 }%
 \end{table}
 
-The objectives differ across formulation families, so these results do not
-support a general objective-parity claim. On the five cells where both
-Event-based models are optimal, their objectives agree; at P=15, H=30 both
-returned the same incumbent but neither proved optimality. Event formulations
-are smaller in variable count in these cases, while row counts and run time
-vary by instance. In particular, the P=15, H=49 Event-based solves take over
-two minutes despite having fewer variables than the legacy models. These
-observations are descriptive of this generated family and solver setup, not a
-universal speed or dominance result.
+With zero-day legacy deferral, the strengthened legacy and both Event-based
+formulations have identical optimal objectives on the four cells where all
+three methods prove optimality. On the two P=15 cells, the Event-based methods
+return the same incumbent as strengthened legacy but hit the time limit, so
+that agreement is not an optimality certificate. The original-paper and
+endpoint-split models return lower objectives, but their independently replayed
+schedules exceed the A-hour threshold (663 and 183 violations across the six
+cases, respectively); those objectives are not feasible-quality comparisons.
+The optimized Event-based model has fewer variables than strengthened legacy
+on three of six cells; averaged over all six, its variable count is slightly
+higher. Neither Event-based formulation consistently reduces constraints or
+timing. These results are limited to this generated family and solver setup.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.86\linewidth]{figures/ordered_a_wall_vs_horizon_extended_p10.png}
 \caption{A-only solve wall time versus observed horizon for $|P|=10$. Only
-optimal runs are plotted.}
+paired cells where all five methods are optimal are plotted.}
 \label{fig:ordered_a_wall_horizon}
 \end{figure}
 
@@ -163,7 +174,7 @@ optimal runs are plotted.}
 \centering
 \includegraphics[width=0.86\linewidth]{figures/ordered_a_cpu_vs_horizon_extended_p10.png}
 \caption{A-only solve CPU time versus observed horizon for $|P|=10$. Only
-optimal runs are plotted.}
+paired cells where all five methods are optimal are plotted.}
 \label{fig:ordered_a_cpu_horizon}
 \end{figure}
 
@@ -171,7 +182,8 @@ optimal runs are plotted.}
 
 The fleet-size figures use the complete matched set at observed horizon
 $H=30$ for $|P|\in\{5,10,15\}$. Model-size figures include all successfully
-built models; timing figures include only optimal solver runs.
+built models; timing figures include only cells where all five methods are
+optimal (P=5 and P=10).
 
 \begin{figure}[t]
 \centering
@@ -191,7 +203,7 @@ built models; timing figures include only optimal solver runs.
 \centering
 \includegraphics[width=0.86\linewidth]{figures/a_cpu_vs_fleet_extended_h30.png}
 \caption{A-only solve CPU time versus fleet size at observed horizon $H=30$.
-Only optimal runs are plotted.}
+Only paired fleet sizes where all five methods are optimal are plotted.}
 \label{fig:a_cpu_fleet}
 \end{figure}
 
@@ -199,23 +211,20 @@ Only optimal runs are plotted.}
 \centering
 \includegraphics[width=0.86\linewidth]{figures/a_wall_vs_fleet_extended_h30.png}
 \caption{A-only solve wall time versus fleet size at observed horizon $H=30$.
-Only optimal runs are plotted.}
+Only paired fleet sizes where all five methods are optimal are plotted.}
 \label{fig:a_wall_fleet}
 \end{figure}
 
 \subsection{Summary and limitations}
 
-All 30 solver runs returned incumbents and 28 terminated optimally. The two
-time-limited Event-based P=15, H=30 incumbents are not optimality certificates
-and are excluded from optimal-run timing aggregates. The corrected one-day
-maintenance-cost accounting is included in this rerun. Generator validation
-establishes feasibility of its designated rotations but is not an independent
-certificate for the optimizer-selected schedules. A separate day-indexed
-replay validator flagged flight-hour violations in a sampled legacy solution;
-it assumes day-indexed trigger variables and is not directly compatible with
-the ordered Event-based event variables. Solver termination status and the
-generated-rotation check are therefore reported separately from full schedule
-replay validation.
+All 30 solver runs returned incumbents and 26 terminated optimally. The four
+time-limited Event-based runs are the P=15 cases at H=30 and H=49; their
+incumbents are not optimality certificates and are excluded from paired timing
+averages. Independent replay reports zero violations for all six strengthened
+legacy schedules and the four optimal schedules from each Event-based method.
+The original-paper and endpoint-split schedules fail replay in all six cells,
+consistent with the C13 counterexamples above. Time-limited Event-based
+schedules were not replayed.
 
 The experiment uses one deterministic seed per $(P,H)$ cell, one
 maintenance-capable hub, A checks only, and a single CPLEX configuration. It
@@ -229,51 +238,166 @@ metrics collected here.
 \subsubsection{Aggregate model size and optimal-run timing}
 
 Table~\ref{tab:longflight_aggregates} averages model counts over all six
-performance cases. CPU and wall-time averages use only optimal runs (six for
-each legacy formulation and five for each Event-based formulation), so
-max-iteration incumbents do not distort exact-solve timing.
+performance cases. Timing averages use the same four P=5/10 cells, where all
+five methods terminated optimally. This paired subset avoids comparing means
+computed from different sets of solved instances.
 
 \begin{table}[t]
 \centering\scriptsize
-\caption{Mean active scalar model size over six generated cases and mean solve
-times over optimal runs only. Times are in seconds.}
+\caption{Mean active scalar model size over six generated cases; mean build,
+CPU, and wall times over the four common optimal cells. Times are in seconds.}
 \label{tab:longflight_aggregates}
-\begin{tabular}{lrrrrr}
+\begin{tabular}{lrrrrrr}
 \toprule
-Method & Optimal runs & Mean vars & Mean constraints & Mean CPU & Mean wall \\
+Method & Optimal/6 & Mean vars/6 & Mean cons./6 & Mean build/4 & Mean CPU/4 & Mean wall/4 \\
 \midrule
-Legacy paper & 6/6 & 22743.3 & 35782.5 & 4.873 & 7.235 \\
-Legacy split & 6/6 & 22743.3 & 43797.5 & 10.756 & 14.227 \\
-Legacy corrected & 6/6 & 23147.5 & 25096.7 & 2.385 & 3.637 \\
-Event optimized & 5/6 & 4458.3 & 13934.2 & 34.064 & 34.700 \\
-Event flex & 5/6 & 6486.0 & 21551.8 & 28.954 & 29.758 \\
+Legacy paper & 6/6 & 3887.5 & 17931.8 & 1.327 & 1.310 & 2.426 \\
+Legacy split & 6/6 & 3887.5 & 25946.8 & 1.412 & 3.654 & 5.404 \\
+Legacy corrected & 6/6 & 4291.7 & 7246.0 & 0.181 & 0.730 & 1.248 \\
+Event optimized & 4/6 & 4458.3 & 13934.2 & 0.325 & 3.486 & 4.080 \\
+Event flex & 4/6 & 6486.0 & 21551.8 & 0.334 & 3.161 & 3.766 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-These averages show a model-size/runtime trade-off: Event formulations use
-fewer variables, but their optimal-run timing is not uniformly lower than the
-legacy formulations. The C13 counterexample table above remains a targeted
-row-verification experiment and should not be conflated with the generated
-long-flight benchmarks.
+On the four paired optimal cells, the corrected legacy method has the lowest
+mean CPU and wall time; the ordered formulations do not show a timing advantage
+on this subset. Average model sizes are descriptive and depend on the chosen
+domain and maintenance-timing semantics. The original and split rows have
+lower objectives but violate the independent hour replay, so they are not
+feasible performance baselines.
+
+\subsubsection{Cumulative-prefix LP and MILP ablation}
+\label{subsec:hour_prefix_ablation}
+
+We compared the compact strict interval formulation with an opt-in cumulative
+daily-prefix representation on the four P=5/10 instances. Both use the same
+strict C13/C13b conditions, zero-day legacy deferral, and bound-preserving LP
+relaxation. All interval and prefix LPs and MILPs terminated optimally on these
+four cases. The prefix projection reproduces the interval LP objective to
+numerical precision, as expected from the telescoping reformulation in
+\Cref{subsec:c13_prefix_equivalence}, and the two formulations return identical integer
+objectives. The exact day-state model has a stronger LP bound on all four
+instances, so prefix-versus-interval equivalence should not be misread as
+equivalence to that stronger relaxation. The P=15 LP ablation is excluded:
+several solver runs reached their iteration limit and returned no reliable LP
+objective.
+
+\begin{table}[t]
+\centering\scriptsize
+\caption{A-only cumulative-prefix ablation on four tractable instances. LP
+columns report optimal lower bounds; the MIP objective is shared by exact
+day-state, strict interval, and prefix models. Prefix model size and MIP wall
+time are shown for comparison.}
+\label{tab:hour_prefix_ablation}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{rrr rrr r r r r}
+\toprule
+$|P|$ & $H$ & $F$ & Exact-state LP & Interval LP & Prefix LP & MIP objective & Interval vars/rows & Prefix vars/rows & Prefix wall (s) \\
+\midrule
+5 & 30 & 74 & 36516.33 & 34383.06 & 34383.06 & 37583 & 1020/4493 & 1180/4648 & 0.91 \\
+5 & 48 & 80 & 39557.00 & 37207.06 & 37207.06 & 40707 & 1335/8620 & 1585/8865 & 1.05 \\
+10 & 30 & 146 & 72050.00 & 67850.11 & 67850.11 & 74150 & 3120/12385 & 3440/12695 & 8.24 \\
+10 & 49 & 160 & 79057.67 & 74391.13 & 74391.13 & 81391 & 3900/20788 & 4410/21288 & 4.61 \\
+\bottomrule
+\end{tabular}
+}%
+\end{table}
+
+The prefix representation adds continuous states and flow rows, and it does
+not improve solve time uniformly: it is faster than interval on two cells and
+slower on two. This is a formulation-equivalence and size observation for the
+tested A-only subset, not evidence of a general performance advantage. Raw
+LP/MILP rows and run metadata are stored in
+\texttt{results/tables/a\_only\_hour\_prefix\_lp\_20261020.csv} and
+\texttt{results/tables/a\_only\_hour\_prefix\_milp\_p5\_p10\_20261020.csv}.
+
+\subsubsection{Three-seed A-only replication subset}
+
+To measure instance-to-instance variation, we generated three deterministic
+replicates for each of the four P=5/10, H=30/48/49 cells in
+\texttt{data/a\_only\_multiseed\_20261020/}. All 60 method-instance runs
+terminated optimally. The strengthened legacy and both Event-based objectives
+matched on every replicate. Table~\ref{tab:a_only_multiseed} reports the mean
+common objective and wall time as mean $\pm$ sample standard deviation. These
+three replicates are a limited robustness check, not a basis for significance
+tests or a general runtime ranking.
+
+\begin{table}[t]
+\centering\scriptsize
+\caption{Three-seed A-only subset. Each cell has three generated instances;
+all 60 runs are optimal. Objective means agree across the three corrected
+methods. Wall time is mean $\pm$ sample standard deviation in seconds.}
+\label{tab:a_only_multiseed}
+\begin{tabular}{rrr r rrr}
+\toprule
+$|P|$ & $H$ & $F$ & Mean objective & Strengthened legacy & Event optimized & Event flex \\
+\midrule
+5 & 30 & 74 & 37603.7 & $0.689\pm0.008$ & $0.700\pm0.011$ & $0.812\pm0.040$ \\
+5 & 48 & 80 & 40706.3 & $0.695\pm0.004$ & $0.642\pm0.007$ & $0.679\pm0.008$ \\
+10 & 30 & 146 & 74219.3 & $2.064\pm0.131$ & $13.099\pm7.063$ & $12.975\pm2.532$ \\
+10 & 49 & 160 & 81405.3 & $1.527\pm0.055$ & $1.843\pm0.265$ & $2.395\pm0.050$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The P=10, H=30 Event-based wall-time standard deviations are large relative
+to their means, illustrating why the single-instance scale-up timings should
+not be interpreted as stable method rankings. All five methods pass the
+objective/status checks in this subset, but the independent replay still
+rejects the paper-C13 and endpoint-split schedules; their lower objectives
+must not be treated as feasible comparisons. Raw rows and provenance are in
+\texttt{results/tables/a\_only\_multiseed\_20261020.csv} and its metadata
+sidecar.
+
+\subsubsection{Conditional removal of unnecessary A checks}
+
+We also tested the sufficient pruning condition that removes optional A-check
+triggers when a tail's initial exposure plus all assignable flight hours is
+below the A threshold. On a modified six-flight A-only control, each tail had
+at most 20 assignable flight hours and zero initial exposure, versus a
+100{,}000-minute threshold (1{,}666.7 hours). The unpruned and pruned models
+both solved optimally at objective 600 and passed independent replay. Pruning
+removed all 12 trigger variables and reduced the model from 88 to 76 variables
+and from 187 to 172 constraints. This is a construction/model-size check on a
+deliberately qualifying instance; it does not establish a runtime improvement
+on operationally binding cases. Table~\ref{tab:a_check_pruning} summarizes the
+run; the run and transformed-input hashes are
+recorded in \texttt{results/tables/a\_check\_pruning\_20261020.csv} and its
+metadata sidecar.
+
+\begin{table}[t]
+\centering\small
+\caption{Conditional A-check pruning on a constructed qualifying instance.}
+\label{tab:a_check_pruning}
+\begin{tabular}{lrrrrrrl}
+\toprule
+Variant & Status & Objective & $z$ vars & Vars & Cons. & Wall (s) & Replay \\
+\midrule
+Baseline & optimal & 600.0 & 12 & 88 & 187 & 0.544 & PASS \\
+Pruned & optimal & 600.0 & 0 & 76 & 172 & 0.513 & PASS \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \subsubsection{Independent schedule replay and scope}
 
-The designated generator rotations pass its maintenance replay, but that check
-does not certify optimizer-selected schedules. A separate day-indexed replay
-validator flagged flight-hour violations in a sampled legacy solution. Its
-trigger interpretation relies on day-indexed $z$ variables and cannot be
-applied unchanged to the ordered Event-based event variables. A corresponding
-independent replay for every formulation is required before interpreting
-solver feasibility as operational maintenance feasibility.
+The generator replay certifies the designated rotations; the separate
+post-solve replay audits optimizer-selected schedules. For legacy models it
+resets the hour counter after the selected maintenance day; for ordered event
+models it resets after the selected trigger flight and independently checks
+event timing, flight blocking, and station capacity. This protocol detects
+violations in the paper and split C13 variants and returns zero violations for
+the strengthened exact-state and optimal Event-based schedules in this suite.
+It does not certify the four Event-based incumbents stopped by the time limit.
 
 \subsubsection{Event-model comparison}
 
-Across the five optimal cells, optimized and flexible Event-based objectives
-coincide. The P=15, H=30 incumbents also coincide, but the time limit leaves
-optimality unresolved. In comparison with the other formulation families,
-objectives differ on every performance cell; this experiment therefore makes
-no general objective-equivalence claim.
+Optimized and flexible Event-based objectives match the strengthened legacy
+optimum on the four jointly optimal P=5/10 cells. At P=15, both event methods
+return the same incumbent as strengthened legacy, but neither proves
+optimality at either horizon. No objective-equivalence claim is made beyond
+these matched cases.
 
 \subsubsection{Flexible-start Event-based variant}
 

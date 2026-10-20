@@ -89,15 +89,20 @@ that a two-row endpoint split is also insufficient and give an exact
 cumulative-state formulation. We give a numeric counterexample, evaluated against
 the real built constraint objects at two adversarial check patterns, in
 which the original and endpoint-split formulations each fail on a different
-pattern while the ordered formulation rejects both, and we independently
-verify every reported solution by replaying its maintenance counters outside
-the model. Third, we propose an alternative to Khaled et al.'s set of constraints for the same TAP problem with type-A maintenance:
+pattern while the ordered formulation rejects both. Third, we propose an
+alternative to Khaled et al.'s set of constraints for the same TAP problem
+with type-A maintenance:
 an ordered, day-free event-based formulation that uses aircraft-local prefix state without a day-pair window.
 We prove the reformulation is correct and evaluate it alongside the two legacy
 rows and the strict corrected legacy variant. On the corrected feasible family,
-all four formulations achieve objective parity, while the event-based model
-uses fewer variables. The observed timing advantage is instance- and
-solver-specific. All code, instances, and result tables accompany the project.
+we compare five formulations on six deterministic A-only instances with zero-day
+legacy deferral. The strengthened legacy and event formulations match
+objectives on the four cells where all three prove optimality; four larger
+event-based runs reach the time limit. Independent replay accepts all optimal
+strengthened-legacy and event schedules, while the original and endpoint-split
+C13 schedules violate the flight-hour threshold. The experiments do not
+establish a general timing advantage. All code, instances, and result tables
+accompany the project.
 \end{abstract}
 
 \begin{keyword}

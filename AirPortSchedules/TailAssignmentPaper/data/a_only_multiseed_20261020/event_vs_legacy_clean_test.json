@@ -1,0 +1,43 @@
+{
+    "_comment": [
+        "=== CLEAN COMPARISON INSTANCE for legacy vs event-based formulation ===",
+        "2 aircraft, 6 flights over 3 days, generous A-check threshold (1500 min)",
+        "vs. per-flight duration (200 min) and ample initial margin (0 min used),",
+        "so a legally feasible schedule with periodic maintenance exists under",
+        "BOTH the day-indexed legacy model and the event-based exact-state model.",
+        "Both aircraft start at maintenance-capable airport M."
+    ],
+    "Aircrafts": [0, 1],
+    "AIRCRAFT_INIT_POS": {"0": "M", "1": "M"},
+    "Flights": [
+        [1, "M", "M",   60.0,  260.0],
+        [2, "M", "M",  400.0,  600.0],
+        [3, "M", "M", 1500.0, 1700.0],
+        [4, "M", "M", 1840.0, 2040.0],
+        [5, "M", "M", 2900.0, 3100.0],
+        [6, "M", "M", 3240.0, 3440.0]
+    ],
+    "Cost_Matrix": [
+        [100.0, 100.0],
+        [100.0, 100.0],
+        [100.0, 100.0],
+        [100.0, 100.0],
+        [100.0, 100.0],
+        [100.0, 100.0]
+    ],
+    "Maintenance_Thresholds": {
+        "A": 1500,
+        "B": 999999,
+        "C": 9999,
+        "D": 9999
+    },
+    "Maintenance_Durations": {
+        "A": 60,
+        "B": 60,
+        "C": 60,
+        "D": 60
+    },
+    "Station_Capacity": {
+        "M": 4
+    }
+}

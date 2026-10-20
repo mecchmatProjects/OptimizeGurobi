@@ -1,19 +1,16 @@
-"""Independent, post-hoc verification of maintenance-threshold compliance.
+"""Independent post-hoc replay of A/B maintenance-threshold compliance.
 
-Ported and adapted from the ``thesis_version`` branch (stripped of the
-``use_paper_c13`` toggle, which no longer exists: ``src/model.py`` now builds
-only the endpoint-split C13). Recomputes cumulative flight-hour accumulation
-directly from a SOLVED ``MILP_Sheduler``'s raw ``x``/``y`` decision variables
-via a timestamp-ordered walk over each aircraft's assigned flights and the
-selected trigger-flight variables -- NOT via the ``mega`` hierarchy variable
-and NOT by re-checking any of the model's own
-big-M constraint expressions (C13/C13b). This makes it independent of bugs in
-those constraints (see the endpoint-split flaw proved in
+The replay uses the solved assignment and maintenance decisions, not the
+model's cumulative-hour state or C13/C13b expressions. Day-indexed models reset
+after all flights on a selected maintenance day; ordered-event models reset
+after the selected trigger flight and are additionally checked against their
+event completion, blocking, and station-capacity decisions. This makes the
+replay independent of the hour-state rows (including the endpoint-split flaw
+proved in
 ``paper/sections/04_maintenance_model.tex``, Lemma ``lem:c13_split_limit``,
-and numerically confirmed in ``experiments/c13_loophole_validation.py``): if
-the MILP reports 'optimal' but the *actual* flown schedule exceeds a check's
-flight-hour threshold between two real maintenance events, this script flags
-it.
+and numerically confirmed in ``experiments/c13_loophole_validation.py``). If a
+solver reports an optimal schedule whose flown hours exceed a check threshold,
+the replay reports the excess.
 
 Only the A/B (flight-hour) check types are validated here, since those are
 exactly the types governed by C13/C13b. C/D (calendar-day) checks are
@@ -83,8 +80,127 @@ def _check_event_days(opt, aircraft, check):
     return events
 
 
+def _selected_trigger_flights(opt, aircraft, check):
+    """Extract selected reset flights from legacy or ordered-event z indices."""
+    model = opt.model
+    trigger_flights = set()
+    for index in model.Z:
+        if len(index) == 3:
+            flight, candidate_aircraft, candidate_check = index
+        elif len(index) == 4:
+            flight, candidate_aircraft, _day, candidate_check = index
+        else:
+            raise ValueError(f"Unsupported maintenance trigger index: {index!r}")
+
+        if (
+            candidate_aircraft == aircraft
+            and candidate_check == check
+            and pyo_value(model.z[index]) > 0.5
+        ):
+            trigger_flights.add(flight)
+    return trigger_flights
+
+
+def _validate_ordered_event_windows(opt, tol):
+    """Validate selected ordered events against timing, capacity, and blocking."""
+    model = opt.model
+    selected_indices = [
+        index for index in model.Z if pyo_value(model.z[index]) > 0.5
+    ]
+    if not selected_indices or len(next(iter(model.Z))) != 3:
+        return []
+
+    flexible = hasattr(model, "s")
+    violations = []
+    events = []
+    for index in selected_indices:
+        flight, aircraft, check = index
+        arrival = opt.flight_data[flight]["arrivalTime"]
+        duration = float(opt.check_dur[check])
+        offset = pyo_value(model.s[index]) if flexible else 0.0
+        offset = float(offset)
+        if flexible:
+            max_offset = duration + float(opt.MAX_MAINT_DEFER)
+            grid = float(opt.MAINTENANCE_TIME_GRID)
+            if offset < duration - tol or offset > max_offset + tol:
+                violations.append({
+                    "type": "maintenance_timing",
+                    "aircraft": aircraft,
+                    "flight": flight,
+                    "offset_min": offset,
+                    "minimum_offset_min": duration,
+                    "maximum_offset_min": max_offset,
+                })
+            if abs(offset / grid - round(offset / grid)) > tol:
+                violations.append({
+                    "type": "maintenance_grid",
+                    "aircraft": aircraft,
+                    "flight": flight,
+                    "offset_min": offset,
+                    "grid_min": grid,
+                })
+
+        if (flight, aircraft) not in model.X or pyo_value(model.x[flight, aircraft]) <= 0.5:
+            violations.append({
+                "type": "maintenance_unassigned_trigger",
+                "aircraft": aircraft,
+                "flight": flight,
+            })
+
+        completion = arrival + offset if flexible else arrival + duration
+        start = completion - duration
+        events.append({
+            "flight": flight,
+            "aircraft": aircraft,
+            "check": check,
+            "airport": opt.flight_data[flight]["destination"],
+            "arrival": arrival,
+            "start": start,
+            "completion": completion,
+        })
+
+        turn = float(opt.MIN_TURN)
+        for following in model.F:
+            if (following, aircraft) not in model.X:
+                continue
+            if pyo_value(model.x[following, aircraft]) <= 0.5:
+                continue
+            departure = opt.flight_data[following]["departureTime"]
+            if departure >= arrival - tol and departure < completion + turn - tol:
+                violations.append({
+                    "type": "flight_during_maintenance",
+                    "aircraft": aircraft,
+                    "trigger_flight": flight,
+                    "following_flight": following,
+                    "departure_min": departure,
+                    "available_min": completion + turn,
+                })
+
+    for airport in opt.maint_airports:
+        airport_events = [event for event in events if event["airport"] == airport]
+        capacity = int(opt.station_cap.get(airport, 0))
+        for instant in sorted({event["start"] for event in airport_events}):
+            active = [
+                event for event in airport_events
+                if event["start"] <= instant + tol
+                and instant < event["completion"] - tol
+            ]
+            if len(active) > capacity:
+                violations.append({
+                    "type": "maintenance_capacity",
+                    "airport": airport,
+                    "time_min": instant,
+                    "active_events": [
+                        (event["flight"], event["aircraft"], event["check"])
+                        for event in active
+                    ],
+                    "capacity": capacity,
+                })
+    return violations
+
+
 def validate_solved_model(opt, tol=1e-6):
-    """Independently verify A/B flight-hour thresholds on a solved MILP_Sheduler.
+    """Independently verify A/B flight-hour thresholds on a solved model.
 
     Returns a list of violation dicts (empty list means compliant).
     """
@@ -99,26 +215,49 @@ def validate_solved_model(opt, tol=1e-6):
                 continue  # C/D calendar-day type: out of scope here
             threshold_min = opt.check_hrs[c] * 60.0
             accumulated = opt.init_check_hrs[c].get(j, 0.0) * 60.0
-            trigger_flights = {
-                i
-                for i in opt.maint_flight_ids
-                for d in opt._z_days_for(i, c)
-                if (i, j, d, c) in m.Z and pyo_value(m.z[i, j, d, c]) > 0.5
-            }
-            for _, flight, duration in flights:
-                accumulated += duration
-                if accumulated > threshold_min + tol:
-                    violations.append({
-                        'aircraft': j,
-                        'check': c,
-                        'window_start_day': None,
-                        'window_end_day': opt.flight_data[flight]['day_arrival'],
-                        'accumulated_min': accumulated,
-                        'threshold_min': threshold_min,
-                        'excess_min': accumulated - threshold_min,
-                    })
-                if flight in trigger_flights:
-                    accumulated = 0.0
+            index_dimension = len(next(iter(m.Z))) if len(m.Z) else None
+            if index_dimension == 4:
+                flights_by_day = defaultdict(list)
+                for departure, flight, duration in flights:
+                    day = opt.flight_data[flight]['day_departure']
+                    flights_by_day[day].append((departure, flight, duration))
+                check_days = {
+                    day for day in m.D
+                    if pyo_value(m.y[j, day, c]) > 0.5
+                }
+                replay_days = sorted(set(flights_by_day) | check_days)
+                for day in replay_days:
+                    for _, flight, duration in flights_by_day.get(day, ()):
+                        accumulated += duration
+                        if accumulated > threshold_min + tol:
+                            violations.append({
+                                'aircraft': j,
+                                'check': c,
+                                'window_start_day': None,
+                                'window_end_day': day,
+                                'accumulated_min': accumulated,
+                                'threshold_min': threshold_min,
+                                'excess_min': accumulated - threshold_min,
+                            })
+                    if day in check_days:
+                        accumulated = 0.0
+            else:
+                trigger_flights = _selected_trigger_flights(opt, j, c)
+                for _, flight, duration in flights:
+                    accumulated += duration
+                    if accumulated > threshold_min + tol:
+                        violations.append({
+                            'aircraft': j,
+                            'check': c,
+                            'window_start_day': None,
+                            'window_end_day': opt.flight_data[flight]['day_arrival'],
+                            'accumulated_min': accumulated,
+                            'threshold_min': threshold_min,
+                            'excess_min': accumulated - threshold_min,
+                        })
+                    if flight in trigger_flights:
+                        accumulated = 0.0
+    violations.extend(_validate_ordered_event_windows(opt, tol))
     return violations
 
 

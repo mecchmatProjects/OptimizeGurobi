@@ -12,9 +12,35 @@ if str(ROOT) not in sys.path:
 
 from experiments import run_four_method_suite
 from experiments.run_four_method_suite import write_run_metadata
+from experiments.report_uniform_study import audit_schedule
 
 
 class FourMethodSuiteTests(unittest.TestCase):
+    def test_saved_schedule_audit_rejects_cost_and_timing_tampering(self):
+        data = {
+            "Aircrafts": [0], "AIRCRAFT_INIT_POS": {"0": "M"},
+            "Flights": [[1, "M", "M", 10, 20]], "Cost_Matrix": [[100]],
+            "Maintenance_Thresholds": {"A": 15},
+            "Maintenance_Durations": {"A": 10}, "Station_Capacity": {"M": 1},
+        }
+        policy = {
+            "time_grid_minutes": 1, "maximum_start_deferral_minutes": 1440,
+            "night_start_minute": None,
+        }
+        schedule = {
+            "assignments": [[1, 0]],
+            "events": [{"flight": 1, "aircraft": 0, "check": "A", "start": 20, "completion": 30}],
+        }
+        self.assertEqual(audit_schedule(data, schedule, policy, 200), [])
+        self.assertIn("objective reconstruction", audit_schedule(data, schedule, policy, 100))
+        schedule["events"][0].update(start=15, completion=25)
+        self.assertIn("maintenance deferral", audit_schedule(data, schedule, policy, 200))
+        schedule["events"][0].update(start=20, completion=30)
+        schedule["events"].append(dict(schedule["events"][0]))
+        problems = audit_schedule(data, schedule, policy, 300)
+        self.assertIn("multiple checks per actual start day", problems)
+        self.assertIn("maintenance bay capacity", problems)
+
     def test_replicate_generation_is_reproducible_by_index(self):
         with tempfile.TemporaryDirectory(dir=ROOT) as temp_dir:
             suite_dir = Path(temp_dir) / "replicate_suite"
@@ -94,6 +120,8 @@ class FourMethodSuiteTests(unittest.TestCase):
             self.assertEqual(input_record["effective_enabled_checks"], ["A"])
             self.assertEqual(run["configuration"]["solver_version"], "12.9.0")
             self.assertEqual(run["configuration"]["threads"], 1)
+            self.assertIn("src\\validate_maintenance.py", run["sources"])
+            self.assertTrue(output_path.with_suffix(".sources.zip").is_file())
             self.assertIsNone(run["configuration"]["legacy_max_hour_check_deferral_days"])
             self.assertEqual(
                 run["result_csv_sha256"],

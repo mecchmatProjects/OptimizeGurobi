@@ -47,6 +47,34 @@
 \tableofcontents
 \clearpage
 
+\section{Verified Source and Uniform Flexible Policy}
+Khaled et al. (2018), Section 5.1, Table 9 and equations (8)--(13) on
+page 555 specify nightly checks after the last flight, a daily station quota,
+and both calendar spacing and flight-hour limits for type A. Equation (13)
+counts $F_{d+1,d'}$: the ending day is included. The published basic-model
+proof on pages 551--552 does address sufficiency; its equal-departure-time
+corner case must not be described as a proof in the wrong direction.
+
+The uniform flexible study is an hour-only extension, not a reproduction of
+that complete policy. All encodings use a one-minute grid, a maximum
+start deferral of 1440 minutes, equal A-check duration, stationary waiting
+through completion plus turn time, simultaneous bay capacity and common
+costs. One check per aircraft per \emph{actual start day} is imposed, where
+$d(t)=\lfloor t/1440\rfloor+1$. The day-indexed variable $z_{ijdA}$
+selects that start day; the event-indexed variable is its aggregate
+$z_{ijA}=\sum_d z_{ijdA}$. A check cannot erase overdue flying time on its
+triggering flight. The chronological flight-event state is shared by both
+encodings, whereas independent replay reconstructs all selected decisions.
+Fixed starts at 22:00 restrict this same flexible model and cannot improve
+its minimum total cost. The fixed clock time is an experimental convention.
+
+Daily reset states and strict daily interval/prefix rows below apply only
+to day-boundary maintenance: they are not exact for a check between two
+same-day flights. Their opening rows must include every ending day,
+including the first day, and flights through that day before its night reset.
+Earlier derivations in this working document are historical where they
+conflict with this policy; the paper's uniform-policy section is authoritative.
+
 %%==========================================================================
 \section{Notation Summary}
 %%==========================================================================

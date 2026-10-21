@@ -83,6 +83,7 @@ def _check_event_days(opt, aircraft, check):
 def _selected_trigger_flights(opt, aircraft, check):
     """Extract selected reset flights from legacy or ordered-event z indices."""
     model = opt.model
+    events = getattr(model, "event_z", model.z)
     trigger_flights = set()
     for index in model.Z:
         if len(index) == 3:
@@ -95,7 +96,7 @@ def _selected_trigger_flights(opt, aircraft, check):
         if (
             candidate_aircraft == aircraft
             and candidate_check == check
-            and pyo_value(model.z[index]) > 0.5
+            and pyo_value(events[index]) > 0.5
         ):
             trigger_flights.add(flight)
     return trigger_flights
@@ -104,8 +105,9 @@ def _selected_trigger_flights(opt, aircraft, check):
 def _validate_ordered_event_windows(opt, tol):
     """Validate selected ordered events against timing, capacity, and blocking."""
     model = opt.model
+    event_variables = getattr(model, "event_z", model.z)
     selected_indices = [
-        index for index in model.Z if pyo_value(model.z[index]) > 0.5
+        index for index in model.Z if pyo_value(event_variables[index]) > 0.5
     ]
     if not selected_indices or len(next(iter(model.Z))) != 3:
         return []
@@ -176,6 +178,36 @@ def _validate_ordered_event_windows(opt, tol):
                     "available_min": completion + turn,
                 })
 
+    if hasattr(model, "c_one_check_per_start_day"):
+        starts_by_day = defaultdict(list)
+        for event in events:
+            start_day = int(event["start"] // opt.DAY_SHIFT) + 1
+            starts_by_day[event["aircraft"], start_day].append(event["flight"])
+            selected_days = [
+                index[2] for index in model.Z_START
+                if index[0] == event["flight"] and index[1] == event["aircraft"]
+                and index[3] == event["check"] and pyo_value(model.start_day[index]) > 0.5
+            ]
+            if selected_days != [start_day]:
+                violations.append({
+                    "type": "maintenance_start_day_link",
+                    "aircraft": event["aircraft"], "flight": event["flight"],
+                    "actual_start_day": start_day, "selected_days": selected_days,
+                })
+            if opt.FIXED_NIGHT_START:
+                expected_start = (start_day - 1) * opt.DAY_SHIFT + opt.NIGHT_START_MINUTE
+                if abs(event["start"] - expected_start) > tol:
+                    violations.append({
+                        "type": "maintenance_night_start", "flight": event["flight"],
+                        "start_min": event["start"], "expected_min": expected_start,
+                    })
+        for (aircraft, day), triggers in starts_by_day.items():
+            if len(triggers) > 1:
+                violations.append({
+                    "type": "multiple_checks_per_start_day", "aircraft": aircraft,
+                    "day": day, "trigger_flights": triggers,
+                })
+
     for airport in opt.maint_airports:
         airport_events = [event for event in events if event["airport"] == airport]
         capacity = int(opt.station_cap.get(airport, 0))
@@ -199,6 +231,30 @@ def _validate_ordered_event_windows(opt, tol):
     return violations
 
 
+def _validate_uniform_routes(opt, seq_by_ac, tol):
+    model = opt.model
+    violations = []
+    for flight in model.F:
+        assigned = sum(
+            pyo_value(model.x[flight, aircraft]) > 0.5
+            for aircraft in opt._x_aircrafts_for_flight(flight)
+        )
+        if assigned != 1:
+            violations.append({"type": "flight_coverage", "flight": flight, "count": assigned})
+    for aircraft in model.P:
+        airport = opt.aircraft_init[aircraft]
+        ready = 0.0
+        for departure, flight, _duration in seq_by_ac.get(aircraft, ()):
+            data = opt.flight_data[flight]
+            if data["origin"] != airport:
+                violations.append({"type": "airport_continuity", "aircraft": aircraft, "flight": flight})
+            if departure < ready - tol:
+                violations.append({"type": "route_overlap_or_turn", "aircraft": aircraft, "flight": flight})
+            airport = data["destination"]
+            ready = data["arrivalTime"] + opt.MIN_TURN
+    return violations
+
+
 def validate_solved_model(opt, tol=1e-6):
     """Independently verify A/B flight-hour thresholds on a solved model.
 
@@ -207,6 +263,8 @@ def validate_solved_model(opt, tol=1e-6):
     m = opt.model
     seq_by_ac = _solved_flight_sequence(opt)
     violations = []
+    if hasattr(m, "c_one_check_per_start_day"):
+        violations.extend(_validate_uniform_routes(opt, seq_by_ac, tol))
 
     for j in m.P:
         flights = seq_by_ac.get(j, [])
@@ -216,6 +274,11 @@ def validate_solved_model(opt, tol=1e-6):
             threshold_min = opt.check_hrs[c] * 60.0
             accumulated = opt.init_check_hrs[c].get(j, 0.0) * 60.0
             index_dimension = len(next(iter(m.Z))) if len(m.Z) else None
+            if accumulated > threshold_min + tol or accumulated < -tol:
+                violations.append({
+                    "type": "invalid_initial_exposure", "aircraft": j, "check": c,
+                    "accumulated_min": accumulated, "threshold_min": threshold_min,
+                })
             if index_dimension == 4:
                 flights_by_day = defaultdict(list)
                 for departure, flight, duration in flights:

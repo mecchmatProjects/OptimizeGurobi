@@ -18,6 +18,7 @@
 \usepackage{graphicx}
 \usepackage[ruled, vlined, linesnumbered]{algorithm2e}
 \usepackage{hyperref}
+\usepackage{xurl}
 \usepackage{cleveref}
 \usepackage{xcolor}
 \usepackage{siunitx}    % consistent number formatting in tables
@@ -81,28 +82,22 @@ make three contributions.  First, we show that the basic continuity and
 turn-time inequalities (C2--C4; constraints~(3)--(6) in Khaled et al.) admit a
 simultaneous-departure corner case that is mathematically feasible but
 physically infeasible, and we close this gap with explicit non-overlap
-constraints (C5).  Second, we identify and formally correct a flaw in
-the paper's cumulative-flight-time row (constraint~(13) in Khaled et al.;
-not our aggregation constraint C11): the original
-formulation allows maintenance intervals to be incorrectly relaxed. We show
-that a two-row endpoint split is also insufficient and give an exact
-cumulative-state formulation. We give a numeric counterexample, evaluated against
-the real built constraint objects at two adversarial check patterns, in
-which the original and endpoint-split formulations each fail on a different
-pattern while the ordered formulation rejects both. Third, we propose an
-alternative to Khaled et al.'s set of constraints for the same TAP problem
-with type-A maintenance:
-an ordered, day-free event-based formulation that uses aircraft-local prefix state without a day-pair window.
-We prove the reformulation is correct and evaluate it alongside the two legacy
-rows and the strict corrected legacy variant. On the corrected feasible family,
-we compare five formulations on six deterministic A-only instances with zero-day
-legacy deferral. The strengthened legacy and event formulations match
-objectives on the four cells where all three prove optimality; four larger
-event-based runs reach the time limit. Independent replay accepts all optimal
-strengthened-legacy and event schedules, while the original and endpoint-split
-C13 schedules violate the flight-hour threshold. The experiments do not
-establish a general timing advantage. All code, instances, and result tables
-accompany the project.
+constraints (C5). Second, we analyse the limitations of using the published
+cumulative-flight-time row in isolation and of a two-row endpoint split,
+and give exact hour-state formulations with pre-horizon exposure and a
+pre-check threshold guard. Opening-hour bounds include the first day and
+flights through the ending day. Third, we study a flexible-start, hour-limited
+A-check extension with at most one check per aircraft per actual start day.
+It is not the full model of Khaled et al., which specifies nightly
+maintenance, daily capacity and an additional calendar-spacing requirement.
+The uniform day-indexed and event-indexed encodings use the same timing,
+capacity, cost and hour engine; we prove their projection equivalence and
+compare them under matched solver settings. Fixed 22:00 starts form a
+separate restricted comparison. Independent chronological replay and a tiny
+enumerated start-time case supplement the encoding proof. Historical
+comparisons using different maintenance policies are reported separately and
+do not establish formulation equivalence or a general timing advantage.
+Code, instances, raw results and provenance artifacts accompany the study.
 \end{abstract}
 
 \begin{keyword}
@@ -119,6 +114,7 @@ Integer programming \sep Mixed-integer programming corrections
 \input{sections/04_maintenance_model}
 \input{sections/06_event_reformulation}
 \input{sections/07_computational}
+\clearpage
 \input{sections/08_conclusion}
 %% ==========================================================================
 

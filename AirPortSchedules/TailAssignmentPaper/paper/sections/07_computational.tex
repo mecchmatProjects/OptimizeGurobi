@@ -3,6 +3,18 @@
 \label{sec:computational}
 %%==========================================================================
 
+\input{sections/07_uniform_results}
+\clearpage
+
+\paragraph{Evidence versions.}
+The tables below dated 2026-10-20 are preserved historical experiments with
+nonuniform maintenance policies. They are not results for the uniform
+flexible encodings of \Cref{subsec:uniform_flexible}. In particular, their
+strict interval/prefix ablation is a day-boundary comparison; its opening-row
+implementation omitted the first day. Those historical LP bounds are not
+evidence for the repaired formulation; the fresh rerun is reported in
+Table~\ref{tab:repaired_prefix} above.
+
 \subsection{Implementation and environment}
 
 All models are implemented in Python using Pyomo. The reported exact solves
@@ -24,41 +36,48 @@ this paper use CPLEX.
 
 \subsection{Cumulative-flight-time row verification}
 
-The original cumulative-flight-time row and the natural endpoint-split
-replacement were evaluated on the hand-built four-day counterexample
-\texttt{data/instances/c13\_loophole\_test.json}. The instance fixes one
+The original C13 row, its endpoint-split alternative, and the legacy opening
+companion were evaluated on the hand-built four-day counterexample
+\path{data/instances/c13_loophole_test.json}. The instance fixes one
 aircraft, $T^A_{\max}=600$ minutes, $M_{14}=1200$ minutes, 1,200 minutes of
 flying in $(1,4]$, and two check patterns: checks at both endpoints, and a
-check only at the end. The actual production row objects admit complementary
-violating patterns: the original row is relaxed when only one endpoint is
-checked, while the split replacement is relaxed when both endpoints carry
-checks. The exact cumulative-state and ordered event-state formulations reject
-both patterns. This directly confirms the algebraic analysis in
-\Cref{subsec:c11_flaw,subsec:c11_corrected}.
+check only at the end. The table reports the C13-family result and, for exact
+state methods, the corresponding hour-state result; it is not a test of every
+other model constraint. With both endpoints checked, C13 is active and the
+split rows are relaxed. With only the ending check, C13 is inactive by design;
+the legacy opening companion is separately tested for whether it protects
+pre-check exposure. The exact state formulations reject both overdue
+schedules. Thus, the both-endpoints case is a counterexample to the split,
+whereas the one-endpoint case illustrates why a practical model needs a
+separate opening-hour condition, not why C13 should be active without two
+checked endpoints. The results test
+\Cref{subsec:c13_opening_coverage,subsec:c11_corrected}.
 
 \begin{table}[t]
 \centering\small
-\caption{Four-way numeric verification of the cumulative-flight-time flaw.
+\caption{Row-family numerical verification of conditional C13 and opening-hour
+protection.
 The fixed counterexample has $T^A_{\max}=600$, $M_{14}=1200$, and LHS
-$\sum_{i\in F_{1,4}}x_{ij}\tilde t_i=1200$. ``Accepts'' means every row of
-that formulation is satisfied; ``rejects'' means the violation is detected.}
+$\sum_{i\in F_{1,4}}x_{ij}\tilde t_i=1200$. C13 status is row-local;
+opening status tests companion C13b and independent replay.}
 \label{tab:c13_loophole}
-\begin{tabular}{lcccc}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{lccccc}
 \toprule
-Scenario & Khaled~(13) & Legacy split & Legacy corrected strengthened & Event-based optimized \\
+Scenario & Khaled C13 & Legacy C13b & Endpoint split & Exact day-state & Exact event-state \\
 \midrule
-Both endpoints checked & rejects & accepts (wrong) & rejects & rejects \\
-Only end checked & accepts (wrong) & rejects & rejects & rejects \\
+Both endpoints checked & active; rejects & within limit & relaxed; misses & rejects & rejects \\
+Ending check only & inactive by design & 0/7 violated; replay fails & active; rejects & rejects & rejects \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
 \end{table}
 
-The flexible-start event variant is omitted from this table because it inherits
+The historical flexible-start event variant is omitted from this table because it inherits
 E9--E13 verbatim from the optimized event model and therefore reproduces its
 verdicts on both patterns; the suite run in
 \Cref{subsec:event_measurements} confirms this.
 
-\subsection{Five-method type-A comparison}
+\subsection{Historical five-method type-A comparison}
 \label{subsec:event_measurements}
 
 The ordered implementation removes explicit successor variables and propagates
@@ -69,9 +88,9 @@ evaluated in the matched A-only experiment are the original Khaled row,
 the endpoint split, the strengthened corrected legacy rows, the optimized
 ordered event-based formulation, and its flexible-start variant.
 Their builder identifiers are respectively
-\texttt{legacy\_paper\_c13}, \texttt{legacy\_endpoint\_split},
-\texttt{legacy\_corrected\_strengthened}, \texttt{event\_based\_optimized}, and
-\texttt{event\_based\_flex}. A result is described
+\path{legacy_paper_c13}, \path{legacy_endpoint_split},
+\path{legacy_corrected_strengthened}, \path{event_based_optimized}, and
+\path{event_based_flex}. A result is described
 as objective-matched only when both
 compared methods are optimal. The legacy methods use a zero-day trigger-to-check
 deferral cap in the matched rerun; the optimized event model starts maintenance
@@ -83,7 +102,7 @@ formulations identical.
 \subsubsection{Longer horizons and fleet sizes}
 
 The five methods were run on six matched A-only instances generated in
-\texttt{data/five\_method\_longflight\_e14\_e21\_compact/}. Fleet sizes are
+\path{data/five_method_longflight_e14_e21_compact/}. Fleet sizes are
 $|P|\in\{5,10,15\}$, observed horizons are $H\in\{30,48,49\}$, and the
 instances contain 74--240 flights with up to eight seeded round-trip
 rotations per aircraft. Each rotation is checked by the generator's
@@ -93,7 +112,7 @@ the same JSON instance within each cell. CPLEX~12.6 was run with one thread,
 presolve enabled, and a 180-second limit. Legacy methods were run with
 \texttt{max\_hour\_check\_deferral\_days=0}; event-flex retains its 1440-minute
 deferral window. Results, input hashes, and solver configuration are recorded
-in \texttt{results/tables/a\_only\_policy\_matched\_20261020.csv} and its
+in \path{results/tables/a_only_policy_matched_20261020.csv} and its
 metadata sidecar. This is an extended-family experiment, not a reproduction of
 Khaled et al.'s Table~6.
 
@@ -178,7 +197,7 @@ paired cells where all five methods are optimal are plotted.}
 \label{fig:ordered_a_cpu_horizon}
 \end{figure}
 
-\subsubsection{Fleet-size scaling at $H=30$}
+\subsubsection{Fleet-size scaling at \texorpdfstring{$H=30$}{H=30}}
 
 The fleet-size figures use the complete matched set at observed horizon
 $H=30$ for $|P|\in\{5,10,15\}$. Model-size figures include all successfully
@@ -247,6 +266,7 @@ computed from different sets of solved instances.
 \caption{Mean active scalar model size over six generated cases; mean build,
 CPU, and wall times over the four common optimal cells. Times are in seconds.}
 \label{tab:longflight_aggregates}
+\resizebox{\linewidth}{!}{%
 \begin{tabular}{lrrrrrr}
 \toprule
 Method & Optimal/6 & Mean vars/6 & Mean cons./6 & Mean build/4 & Mean CPU/4 & Mean wall/4 \\
@@ -257,7 +277,7 @@ Legacy corrected & 6/6 & 4291.7 & 7246.0 & 0.181 & 0.730 & 1.248 \\
 Event optimized & 4/6 & 4458.3 & 13934.2 & 0.325 & 3.486 & 4.080 \\
 Event flex & 4/6 & 6486.0 & 21551.8 & 0.334 & 3.161 & 3.766 \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
 \end{table}
 
 On the four paired optimal cells, the corrected legacy method has the lowest
@@ -309,14 +329,14 @@ not improve solve time uniformly: it is faster than interval on two cells and
 slower on two. This is a formulation-equivalence and size observation for the
 tested A-only subset, not evidence of a general performance advantage. Raw
 LP/MILP rows and run metadata are stored in
-\texttt{results/tables/a\_only\_hour\_prefix\_lp\_20261020.csv} and
-\texttt{results/tables/a\_only\_hour\_prefix\_milp\_p5\_p10\_20261020.csv}.
+\path{results/tables/a_only_hour_prefix_lp_20261020.csv} and
+\path{results/tables/a_only_hour_prefix_milp_p5_p10_20261020.csv}.
 
 \subsubsection{Three-seed A-only replication subset}
 
 To measure instance-to-instance variation, we generated three deterministic
 replicates for each of the four P=5/10, H=30/48/49 cells in
-\texttt{data/a\_only\_multiseed\_20261020/}. All 60 method-instance runs
+\path{data/a_only_multiseed_20261020/}. All 60 method-instance runs
 terminated optimally. The strengthened legacy and both Event-based objectives
 matched on every replicate. Table~\ref{tab:a_only_multiseed} reports the mean
 common objective and wall time as mean $\pm$ sample standard deviation. These
@@ -347,7 +367,7 @@ not be interpreted as stable method rankings. All five methods pass the
 objective/status checks in this subset, but the independent replay still
 rejects the paper-C13 and endpoint-split schedules; their lower objectives
 must not be treated as feasible comparisons. Raw rows and provenance are in
-\texttt{results/tables/a\_only\_multiseed\_20261020.csv} and its metadata
+\path{results/tables/a_only_multiseed_20261020.csv} and its metadata
 sidecar.
 
 \subsubsection{Conditional removal of unnecessary A checks}
@@ -363,7 +383,7 @@ and from 187 to 172 constraints. This is a construction/model-size check on a
 deliberately qualifying instance; it does not establish a runtime improvement
 on operationally binding cases. Table~\ref{tab:a_check_pruning} summarizes the
 run; the run and transformed-input hashes are
-recorded in \texttt{results/tables/a\_check\_pruning\_20261020.csv} and its
+recorded in \path{results/tables/a_check_pruning_20261020.csv} and its
 metadata sidecar.
 
 \begin{table}[t]

@@ -1,13 +1,29 @@
 %%==========================================================================
-\section{The Maintenance-Extended Model and Cumulative-Flight-Time Correction}
+\section{Maintenance Extension and Cumulative-Hour Coverage}
 \label{sec:maintenance}
 %%==========================================================================
 
 \subsection{Maintenance problem definition}
 
-Following \citet{khaled2018compact}, we consider type-A checks triggered after
-at most $T^A_{\max}$ cumulative flight hours.  Checks take place at night
-after the last flight on a given day in an airport with maintenance capacity.
+\paragraph{Primary-source scope.}
+Section~5.1 and Table~9 of \citet{khaled2018compact} (p.~555) specify
+night maintenance at the arrival airport of the last flight of the day,
+capacity measured as aircraft handled per airport-day, and both calendar
+spacing and cumulative-hour requirements for type-A checks. Their
+equation~(13) sums over $F_{d+1,d'}$, i.e. the flights departing on days
+$d+1,\ldots,d'$; with the convention in this section, this is
+$F_{d,d'}=(d,d']$.
+These definitions do not describe arbitrary flexible daytime starts.
+
+The main experiment here is an explicitly different, hour-limited A-check
+extension: starts may be deferred across days, checks have a stated duration,
+and capacity measures simultaneous bay occupancy. It omits the original
+calendar-spacing requirement rather than assigning that requirement only to
+C/D checks. All main encodings use these same assumptions. Fixed-night
+starts are a separate restricted comparison, not a relaxation of flexible
+timing. The following day-indexed rows provide the historical and
+day-boundary reference for the cumulative-hour analysis; they are not the
+complete flexible-start model.
 
 Additional notation is collected in \Cref{tab:maint_notation}.
 
@@ -15,7 +31,7 @@ Additional notation is collected in \Cref{tab:maint_notation}.
 \centering\small
 \caption{Additional notation for the maintenance model.}
 \label{tab:maint_notation}
-\begin{tabular}{ll}
+\begin{tabularx}{\linewidth}{lX}
 \toprule
 Symbol & Meaning \\
 \midrule
@@ -33,7 +49,7 @@ $d_{\max}$                    & Max calendar-day interval between checks \\
 $M_{dd'}$                     & Big-$M$ for day pair $(d,d')$ \\
 $F_{d,d'}$                    & Flights with departure day in $(d,d']$ \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table}
 
 \subsection{Additional decision variables}
@@ -96,11 +112,10 @@ constraints:
   \forall j \in \Pc.
 \end{equation}
 
-For the type-A-only model studied in this paper, C12 is not an additional
-calendar-spacing requirement: type-A maintenance is governed by the exact
-flight-hour state introduced in the cumulative-state formulation below. The displayed row is retained as the generic
-day-indexed maintenance notation and becomes active only for a calendar-time
-maintenance type, which is outside the scope of this paper.
+Khaled's type-A model includes C12. Our hour-only experiments deliberately
+leave it inactive and must therefore not be described as a reproduction of
+all original type-A requirements. An experiment imposing C12 would also need
+an explicitly supplied initial calendar age and common opening-window policy.
 
 The original paper's cumulative-flight-time constraint is C13:
 \paragraph{C13 — Paper-based cumulative-flight-time constraint.}
@@ -161,41 +176,62 @@ operationally intuitive, gives clear modeling semantics, but it has the followin
   intervals. For example, if a maintenance night is scheduled on day $d$ and the next maintenance night is 
   scheduled on day $d'$, the big-$M$ constraints only enforce that the cumulative flight hours between $d$ and $d'$ do not exceed $T^A_{\max}$, but they do not prevent excessive flight hours before day $d$.
 
-  \item The day-indexed formulation forces a specific maintenance schedule on each day for a given time zone, thus allowing to have two different maintenance checks within 24 hrs, but not in two different days within the same 24-hr period.
+  \item A calendar-day limit is not a rolling 24-hour limit. Checks on either
+  side of midnight may be less than 24 hours apart; two starts on the same
+  calendar day are disallowed in the uniform study.
 
-  \item The day-indexed formulation does not allow for a natural integration with the ordered flight formulation, which is more efficient and compact. The ordered flight formulation allows for a more direct representation of the maintenance events in relation to the flight sequence, leading to a more efficient model.
+  \item Ordered flight states offer an alternative representation without
+  successor variables. Their total size and runtime depend on event conflicts
+  and do not imply computational superiority over day-indexed decisions.
 
-  \item The original cumulative-flight-time row (paper equation) in the day-indexed formulation is flawed, as it does not correctly enforce the flight-hour limit between two consecutive maintenance nights. This flaw can lead to infeasible solutions that violate the intended maintenance intervals.
+  \item C13 is conditional on successive checked endpoints. As a row by
+  itself it does not initialize pre-horizon exposure or protect the opening
+  interval to the first check; a practical model needs separate history and
+  opening-window rules.
 \end{itemize}
 
 
-\subsection{Legacy cumulative-flight-time row: original formulation and flaw}
-\label{subsec:c11_flaw}
+\subsection{Legacy cumulative-flight-time row: valid conditional, incomplete practical model}
+\label{subsec:c13_opening_coverage}
 
-The original paper's cumulative-flight-time constraint \eqref{eq:c13_paper} is intended to enforce that the cumulative flight hours between two consecutive maintenance nights do not exceed $T^A_{\max}$. However, as shown in \Cref{lem:c11_flaw}, this constraint can fail to enforce the intended maintenance intervals in certain cases, particularly when there is no maintenance scheduled at the start of the interval.
+Constraint~\eqref{eq:c13_paper} is a valid conditional bound for an interval
+whose two endpoints are successive maintenance days: when both endpoints are
+checks and there is no intervening check, its right-hand side is
+$T^A_{\max}$. Relaxing it when an endpoint is not a check is intentional.
+It is not, however, a complete practical flight-hour model over a finite
+planning horizon. In particular, it contains no initial state $\Phi^A_j$ and
+no opening-window bound from the horizon start to the first selected check.
+Practical use therefore needs an initial counter value and an opening
+condition tied to that exposure; an exact counter state is a robust way to
+handle the opening and every subsequent reset. The implementation-level
+opening example below diagnoses a separate gap in the companion C13b code,
+not an invalid conditional deactivation in Khaled's C13. The practical fix
+is to augment C13 with history/opening constraints or use an exact state
+formulation; C13 should remain as the between-check interval row when that
+conditional structure is useful.
 
-\begin{lemma}[Flaw in~\eqref{eq:c13_paper}]
-  \label{lem:c11_flaw}
-  If $y_{jd}=0$ and $y_{jd'}=1$, with no intermediate check, the RHS of
-  \eqref{eq:c13_paper} becomes $T^A_{\max}+M_{dd'}$. Because $M_{dd'}$ is
-  chosen as a large upper bound on cumulative flight time, the row is then
-  vacuous and imposes no limit on flying time before the first check of the
-  period. The same issue occurs symmetrically when $y_{jd}=1$ and
-  $y_{jd'}=0$.
+\begin{lemma}[The implemented opening companion can miss prior exposure]
+  \label{lem:c13_opening_gap}
+  In the legacy implementation's opening C13b row, a check on the ending day
+  can relax the upper bound on all flights from the horizon start through day
+  $d'$. If that exposure exceeds the remaining allowance before the day-$d'$
+  check, the combined C13/C13b implementation can accept an overdue
+  pre-check schedule. This is an implementation gap in the opening companion,
+  not a flaw in C13's conditional interval logic.
 \end{lemma}
 
 \begin{proof}
-  Direct substitution of $y_{jd} = 0$, $y_{jd'} = 1$, $\sum_{r} y_{jr} = 0$
-  into~\eqref{eq:c13_paper} gives the stated RHS. Since $M_{dd'}$ is chosen
-  as the maximum possible cumulative flight time over the horizon (a large
-  positive constant), the resulting constraint is trivially satisfied regardless
-  of the actual flight hours flown.
+  Direct substitution of $y_{jd}=0$, $y_{jd'}=1$, and no intermediate check
+  relaxes C13 by design. In C13b, the ending-day indicator contributes a
+  big-$M$ term that can similarly release the opening sum. The regression
+  evaluates both built row families and independently replays the schedule;
+  only the replay exposes the pre-check excess.
 \end{proof}
 
 \subsection{Legacy cumulative-flight-time row: endpoint-split strengthening and limitation}
 \label{subsec:c11_corrected}
 
-An endpoint-split strengthening considered for replacing
+An endpoint-split alternative considered for replacing
 \eqref{eq:c13_paper} consists of two constraints, each relaxed by one endpoint:
 
 \begin{equation}\label{eq:c11_split_a}
@@ -310,8 +346,8 @@ planning horizon.
 
 Finally, the strengthened implementation generates maximal interval-clique
 rows for flight overlap. The implementation is
-\texttt{LegacyCorrectedStrengthenedMILPScheduler}; the original
-\texttt{LegacyCorrectedMILPScheduler} remains available for the earlier
+\path{LegacyCorrectedStrengthenedMILPScheduler}; the original
+\path{LegacyCorrectedMILPScheduler} remains available for the earlier
 four-method baseline; the current five-method scale-up uses the strengthened
 class.
 
@@ -361,50 +397,48 @@ Consequently, the strict interval rows can be written as
   \label{eq:c13_prefix_opening}
 \end{align}
 where $\mu_{jr}$ is the A-check reset indicator used by the strict interval
-formulation. Since the prefix flow equations uniquely determine $Q$ from the
+formulation; for A only, $\mu_{jr}=y_{jr}$. The opening row is imposed for
+every $d'\in\D$, including $d'=1$, and $M^0$ is a valid bound on the largest
+opening-window excess. These rows assume checks after the flights of their
+labelled day; they are not sufficient for arbitrary intra-day flexible resets.
+Since the prefix flow equations uniquely determine $Q$ from the
 assignment variables and the rows above are exactly the telescoped interval
 expressions, this substitution preserves the projection onto the common
 variables and the bound-preserving LP objective. It does not assert LP
 equivalence with the stronger day-indexed reset-state formulation $h_{jd}$.
 
 \subsection{Integrality constraints}
-\begin{equation}
-  x_{ij} \in \{0,1\},\quad
-  z_{ijd} \in \{0,1\},\quad
-  y_{jd} \in \{0,1\},
-  \qquad
-  \begin{aligned}
-    &(i,j)\in\F\times\Pc,\\
-    &d\in\D,\quad
-      i\in\bigcup_{m\in\MA}F_d^{\downarrow}(m)\ \text{for }z_{ijd}.
-  \end{aligned}
-\end{equation}
+\begin{align}
+  x_{ij}&\in\{0,1\}, && i\in\F,\ j\in\Pc,\\
+  z_{ijd}&\in\{0,1\}, && i\in\bigcup_{m\in\MA}F_d^{\downarrow}(m),\ j\in\Pc,\ d\in\D,\\
+  y_{jd}&\in\{0,1\}, && j\in\Pc,\ d\in\D.
+\end{align}
 
 The variables $h_{jd}$ are continuous and satisfy
 $0\leq h_{jd}\leq T^A_{\max}$ as imposed in~\eqref{eq:c11_state_bound}.
 
-As we see, the fixes to the original paper's maintenance model are twofold: (i) the C0--C5 correction, which ensures that the flight assignment is physically feasible, and (ii) the cumulative-flight-time row correction.
-Also, the cumulative-flight-time correction is implemented in two ways: (i) the endpoint-split strengthening, which is a partial fix, and (ii) the exact cumulative-state formulation, which is a complete fix. The exact cumulative-state formulation correctly propagates the flight-hour state and enforces the maintenance intervals as intended.
-The complexity of the corrected model is higher than the original model, because we need to track the cumulative flight hours explicitly that require more $O(n_f D)$ variables, 
-but it is necessary to ensure that the solutions are physically feasible and respect the maintenance requirements.
-day-indexed model is higher than the original
-model, because the cumulative flight-hour state $h_{jd}$ adds
-$O(n_p n_d)$ continuous variables,
-
-The additional complexity is justified by the need to accurately model the maintenance requirements and ensure that the resulting flight schedules are feasible in practice.
+There are two independent corrections: C1--C5 supplies a physically executable
+assignment, and the cumulative-state recursion enforces the hour threshold
+under the stated day-boundary reset policy. The endpoint split is not an
+exact substitute. The day-boundary state adds $O(n_p n_d)$ continuous
+variables, not $O(n_f n_d)$; a flexible model with flight-event states instead
+uses up to $O(n_f n_p)$ hour-state variables. These counts describe different
+time resolutions and must not be interchanged.
 
 \subsection{Rigorous feasibility theorem for C1--C13f}
 \label{subsec:feasibility_theorem_c1_c13}
 
-We now state the corrected sufficiency result for the type-A maintenance model.
-Consider the constraint family
+We now state the corrected sufficiency result for the hour-only, day-boundary
+type-A extension studied here; it is not a claim of equivalence to Khaled's
+complete nightly policy.
+Consider the day-boundary reference constraint family
 \eqref{eq:c0}--\eqref{eq:c4_overlap}, \eqref{eq:c8}--\eqref{eq:c11},
 \eqref{eq:c11_state_lower}--\eqref{eq:c11_state_bound}, and the stated
-variable domains. Constraint C12 is inactive for the type-A-only model:
-hour spacing is enforced by the cumulative-state rows rather than by
-calendar-day covering.
+variable domains. Constraint C12 is deliberately omitted in this hour-only
+extension: hour spacing is enforced by the cumulative-state rows, but the
+original type-A calendar-spacing rule is outside this theorem's assumptions.
 
-\begin{theorem}[Physical feasibility under corrected C1--C13f]
+\begin{theorem}[Physical feasibility under day-boundary C1--C13f]
   \label{thm:physical_feasibility_c1_c13}
   Any solution satisfying the above constraints, with $x$, $z$, and $y$
   binary and $h$ continuous, induces for each aircraft $j$ a physically

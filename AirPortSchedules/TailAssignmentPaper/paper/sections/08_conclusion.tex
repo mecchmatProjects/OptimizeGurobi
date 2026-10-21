@@ -7,31 +7,31 @@ This paper revisited the compact Tail Assignment Problem formulation of
 \citet{khaled2018compact} and made three focused contributions. First, we
 showed that the basic continuity and turn-time inequalities admit a
 simultaneous-departure corner case and closed it with explicit non-overlap
-constraints. Second, we proved that the paper's cumulative-flight-time
-row can relax a maintenance interval incorrectly and that the
-natural endpoint split is also insufficient. We provided an exact
-cumulative-state correction and verified the failure against the production
-constraint objects. Third, we developed a day-free event-based reformulation
-for type-A maintenance and an ordered prefix-state implementation.
-The event formulation attaches maintenance to its triggering flight and
-propagates the flight-hour counter along the aircraft's selected route. The
-five-method, six-instance A-only rerun matches the legacy and event check
-deferral policies more closely by setting the day-indexed legacy deferral cap
-to zero. On the four P=5/10 cells where all three corrected methods prove
-optimality, strengthened legacy, optimized Event-based, and flexible Event-based
-objectives agree. At P=15, both Event-based methods reach the time limit; their
-incumbents match the strengthened legacy incumbent, but optimality is not
-established.
+constraints. Second, we analysed the missing boundary protections of using
+the original conditional hour row alone and the failure of its endpoint-split
+alternative. Exact states guard each pre-check arrival; strict day-boundary
+opening rows now include the first day and flights through their ending day.
+Third, we formulated uniform day-indexed and event-indexed encodings for
+flexible-start, hour-limited A checks, with cross-day deferral and at most one
+check per aircraft per actual start day. They share an event-aware hour
+engine and are equivalent by direct substitution. This is an encoding result,
+not independent physical validation or a day-free reformulation of Khaled's
+complete nightly/calendar-spacing model. A fixed 22:00 comparison restricts
+the flexible model without changing its resource or cost rules.
 
-Independent post-solve replay reports no flight-hour violations for the six
+In the historical, nonuniform-policy study, post-solve replay reports no
+flight-hour violations for the six
 strengthened legacy optima and the four optimal schedules from each Event-based
 method. The original paper-C13 and endpoint-split formulations produce 663 and
 183 violations, respectively, across the six instances. Their lower objectives
 therefore do not represent feasible performance advantages under the replayed
 A-check semantics. The replay also checks ordered-event timing, capacity, and
-flight blocking; time-limited Event-based schedules remain unvalidated.
+flight blocking; its four time-limited Event-based schedules remain
+unvalidated in that historical snapshot. New uniform runs instead replay
+every loaded incumbent, including time limits, and save the decisions for an
+additional artifact-level cost and feasibility audit.
 
-The results do not show a general Event-based speedup. On the four common
+The historical results do not show a general Event-based speedup. On the four common
 optimal cells, the strengthened legacy model has lower mean CPU and wall time
 than either Event-based method, while the per-cell and model-size results vary.
 An optional A-check-pruning reduction also preserves the optimum on one
@@ -41,12 +41,14 @@ The six-cell scale-up uses one seed per cell; a separate three-seed P=5/10
 subset confirms objective matching and shows substantial timing variation on
 the P=10, H=30 cell. This small replication is descriptive and does not
 establish statistical performance ranking or solver-independent dominance.
-All results use one CPLEX 12.6 configuration. 
+The new comparisons also use CPLEX 12.6; timings remain descriptive rather
+than solver-independent or statistically isolated performance evidence.
 
 \paragraph{Reproducibility.}
 The project contains the model implementations, deterministic instance
-generator, benchmark scripts, result tables, provenance sidecars, and plotting
-scripts needed to reproduce the reported snapshots. The legacy, event, and
+generator, benchmark scripts, result tables, source snapshots, saved schedules,
+provenance sidecars and plotting scripts needed to reproduce the reported
+snapshots. The legacy, event, and
 ordered A-only builders remain separately selectable so comparisons can
 distinguish model semantics from implementation choices.
 

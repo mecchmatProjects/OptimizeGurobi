@@ -1,0 +1,210 @@
+{
+  "schema_version": 1,
+  "runs": [
+    {
+      "git_revision": "81fbfafb423a8434d3a3e922d9fab92aa8bbdbc7",
+      "python": "3.12.0",
+      "pyomo": "6.10.1",
+      "sources": {
+        "experiments\\run_four_method_suite.py": "8357f7990364a8de8562c6db2d08a996f72019d692d97a5c7d2156a37ab27a42",
+        "src\\model.py": "234f3f4d191c811f428a683a2901928f718914caaf829a85b6390cda5f49124f",
+        "src\\compact_a_event_model.py": "b1d6d93c5cf46e1c75851170d38925dbe43263d3c4b60d97abfe3f52ac910e42",
+        "src\\generate_feasible_instances.py": "07b6bff0544e28195ea4a17bdb7a98c5ea2ae6918d5ad597b8e43a915668d05e",
+        "src\\generate_instances.py": "4e1389ad95d801246a41ac57d4df91a79d89a2429865eb3b51aa81611c4a4169",
+        "src\\validate_maintenance.py": "77c82dbdab85299be1b0eb6ef3e4937b573b130bcb9cdbeaf4f5b3945e6fbfe4"
+      },
+      "inputs": {
+        "data\\a_only_multiseed_20261020\\perf_p=10_h=29_r=0.json": {
+          "sha256": "23e4177466fb69ef7fa1ea188c1b9ca340621b7eda6b1269b9572a0b0970854b",
+          "P": 10,
+          "observed_H": 30,
+          "F": 146,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed_20261020\\perf_p=10_h=29_r=1.json": {
+          "sha256": "e86129b690c52f11a158913e748200807ee34f24e86ed7be3824c27f26f496c5",
+          "P": 10,
+          "observed_H": 30,
+          "F": 146,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed_20261020\\perf_p=10_h=29_r=2.json": {
+          "sha256": "1bbf60bf6f6299d767a99e9927295d41fe12fbdbbf1dc4a3a16ed6e426c0b689",
+          "P": 10,
+          "observed_H": 30,
+          "F": 146,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed_20261020\\perf_p=10_h=49_r=0.json": {
+          "sha256": "c3fc31a213b9af5b8f690e983e365c08ff3f4ae49b6b27058f07291a4a9ac4f6",
+          "P": 10,
+          "observed_H": 49,
+          "F": 160,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed_20261020\\perf_p=10_h=49_r=1.json": {
+          "sha256": "7921c8f8de035e3088cde8852966bf35ab16c6096113b66aa2e6b70cdd1e5bc4",
+          "P": 10,
+          "observed_H": 49,
+          "F": 160,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed_20261020\\perf_p=10_h=49_r=2.json": {
+          "sha256": "5bb8ebbae5538b40b39f8ddcaa908f6ab93bf4dd0e62562be14c4aa1c7df31c8",
+          "P": 10,
+          "observed_H": 49,
+          "F": 160,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed_20261020\\perf_p=5_h=29_r=0.json": {
+          "sha256": "f7a87b649c3a127558b6f5aad16a4b843383766e863f254f23733d7963961871",
+          "P": 5,
+          "observed_H": 30,
+          "F": 74,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed_20261020\\perf_p=5_h=29_r=1.json": {
+          "sha256": "4e438cb26fa06626c14a21a1f438df2812a4a03654f1c4a6bd5e8ed5864f2e2b",
+          "P": 5,
+          "observed_H": 30,
+          "F": 74,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed_20261020\\perf_p=5_h=29_r=2.json": {
+          "sha256": "068c02ab86fa02a57c0b852dfa4fbb00df20f93e84b08c9341b85e77c2871fa5",
+          "P": 5,
+          "observed_H": 30,
+          "F": 74,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed_20261020\\perf_p=5_h=49_r=0.json": {
+          "sha256": "17372a8535368f2b1fc8d068c78e7356c02dacdd41c8a97a61c44481570fbc76",
+          "P": 5,
+          "observed_H": 48,
+          "F": 80,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed_20261020\\perf_p=5_h=49_r=1.json": {
+          "sha256": "ae77a9dc3ca8e59178144d579d207c51e635aee25eadeaea0ab137f9aa1981e0",
+          "P": 5,
+          "observed_H": 48,
+          "F": 80,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed_20261020\\perf_p=5_h=49_r=2.json": {
+          "sha256": "a418de3533fdbb755f80947dfe398b975a7872a43c76054f40233d6d689acbb4",
+          "P": 5,
+          "observed_H": 48,
+          "F": 80,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        }
+      },
+      "configuration": {
+        "methods": [
+          "uniform_flexible_day",
+          "uniform_flexible_event"
+        ],
+        "effective_enabled_checks": [
+          "A"
+        ],
+        "solver": "cplexamp",
+        "solver_version": "12.6.0.0",
+        "executable": "F:\\Progs\\IBM.ILOG.CPLEX.for.AMPL.v12.6-EAT\\CPLEXamp.exe",
+        "time_limit_s": 180,
+        "threads": 1,
+        "presolve_configuration": "presolve_on",
+        "warm_start": false,
+        "legacy_max_hour_check_deferral_days": null,
+        "lp_relaxation": false,
+        "event_based_optimized_policy": "immediate-after-trigger-flight",
+        "event_based_flex_max_deferral_minutes": 1440.0,
+        "policies": {
+          "uniform_flexible_day": {
+            "policy_id": "flexible_start_day_cap_v1",
+            "day_indexed_z": true,
+            "maximum_start_deferral_minutes": 1440.0,
+            "time_grid_minutes": 1.0,
+            "one_check_per": "aircraft_actual_start_calendar_day",
+            "capacity": "simultaneous_half_open_bay_occupancy",
+            "calendar_spacing_requirement": null,
+            "night_start_minute": null
+          },
+          "uniform_flexible_event": {
+            "policy_id": "flexible_start_day_cap_v1",
+            "day_indexed_z": false,
+            "maximum_start_deferral_minutes": 1440.0,
+            "time_grid_minutes": 1.0,
+            "one_check_per": "aircraft_actual_start_calendar_day",
+            "capacity": "simultaneous_half_open_bay_occupancy",
+            "calendar_spacing_requirement": null,
+            "night_start_minute": null
+          }
+        }
+      },
+      "result_csv_sha256": "25caa13265f3ca4e0e3efc0b58890593e4749377305b208f90332601f5376f49",
+      "source_snapshot": "uniform_flexible_multiseed_20261021.sources.zip",
+      "source_snapshot_sha256": "e29cc0a83b20a96a796ec920cea7c8c1f59c4f12fc024d2b2c98d2f72049a046",
+      "schedule_sha256": "2ea3ac05427aa45df46cadbb7938bf28b4ff0c158261726b8162fc849aa2084a"
+    }
+  ]
+}

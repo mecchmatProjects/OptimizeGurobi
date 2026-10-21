@@ -6,6 +6,8 @@ It is intentionally separate from the full A/B/C/D formulation so its parity
 with the A-only legacy model can be tested before extending the hierarchy.
 """
 
+from pathlib import Path
+
 from pyomo.environ import (
     Binary,
     ConcreteModel,
@@ -125,7 +127,7 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
             ),
         )
         model.x = Var(model.X, domain=Binary, initialize=0)
-        model.z = Var(model.Z, domain=Binary, initialize=0)
+        self._add_event_variables(model)
         if self.NATIVE_STATE_BOUNDS:
             def state_bounds(_model, _position, aircraft, check):
                 threshold = self.check_hrs[check] * 60.0
@@ -154,7 +156,7 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
                     for flight, aircraft in model.X)
                 + sum(
                     100 * max(1, int(self.check_dur[check] / self.DAY_SHIFT + 0.999999))
-                    * model.z[flight, aircraft, check]
+                    * model.event_z[flight, aircraft, check]
                     for flight, aircraft, check in model.Z
                 )
             ),
@@ -172,6 +174,13 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
             calendar_candidate_pruning=calendar_candidate_pruning,
         )
         return model
+
+    def _add_event_variables(self, model):
+        model.z = Var(model.Z, domain=Binary, initialize=0)
+        model.event_z = Expression(
+            model.Z,
+            rule=lambda m, flight, aircraft, check: m.z[flight, aircraft, check],
+        )
 
     @staticmethod
     def _rename_ordered_route_components(model):
@@ -197,7 +206,7 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
     ):
         model.e8_event_assignment = ConstraintList()
         for flight, aircraft, check in model.Z:
-            model.e8_event_assignment.add(model.z[flight, aircraft, check] <= model.x[flight, aircraft])
+            model.e8_event_assignment.add(model.event_z[flight, aircraft, check] <= model.x[flight, aircraft])
 
         # C11 aggregation without a binary day indicator: multiple events on
         # one calendar day remain representable instead of being forbidden.
@@ -208,7 +217,7 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
                     model.c11_event_count.add(
                         model.event_count[aircraft, day]
                         == sum(
-                            model.z[flight, aircraft, check]
+                            model.event_z[flight, aircraft, check]
                             for flight, candidate_aircraft, check in model.Z
                             if candidate_aircraft == aircraft
                             and int(
@@ -223,7 +232,7 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
             for flight in self.maint_flight_ids:
                 for aircraft in self._x_aircrafts_for_flight(flight):
                     events = [
-                        model.z[flight, aircraft, check]
+                        model.event_z[flight, aircraft, check]
                         for check in self.CHECK_LIST
                         if (flight, aircraft, check) in model.Z
                     ]
@@ -257,7 +266,7 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
                         model.e9_e13_prefix_state.add(state == previous)
                         continue
                     checked = sum(
-                        model.z[flight, aircraft, reset_check]
+                        model.event_z[flight, aircraft, reset_check]
                         for reset_check in self.CHECK_HIERARCHY[check]
                         if reset_check in self.CHECK_LIST
                         and (flight, aircraft, reset_check) in model.Z
@@ -335,7 +344,7 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
                             ):
                                 model.e14_maintenance_block.add(
                                     model.x[following, aircraft]
-                                    + model.z[trigger, aircraft, check]
+                                    + model.event_z[trigger, aircraft, check]
                                     <= 1
                                 )
 
@@ -362,7 +371,7 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
                         continue
                     emitted_capacity_rows.add(signature)
                 model.e15_maintenance_capacity.add(
-                    sum(model.z[index] for index in active_indices) <= capacity
+                    sum(model.event_z[index] for index in active_indices) <= capacity
                 )
 
     def _add_flexible_maintenance_timing(self, model):
@@ -419,7 +428,7 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
             }
             model.event_selected = Expression(
                 model.FM,
-                rule=lambda m, flight: sum(m.z[key] for key in keys_by_flight[flight]),
+                rule=lambda m, flight: sum(m.event_z[key] for key in keys_by_flight[flight]),
             )
             model.event_offset = Expression(
                 model.FM,
@@ -453,17 +462,17 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
                         big_m = max(0.0, block_limit - departure)
                         model.e14_flex_maintenance_block.add(
                             departure + big_m
-                            * (2 - model.x[following, aircraft] - model.z[event_key])
+                            * (2 - model.x[following, aircraft] - model.event_z[event_key])
                             >= arrival + model.s[event_key] + self.MIN_TURN
                         )
 
             model.e15_flex_completion_bounds = ConstraintList()
             for event_key in model.Z:
                 model.e15_flex_completion_bounds.add(
-                    model.s[event_key] >= duration * model.z[event_key]
+                    model.s[event_key] >= duration * model.event_z[event_key]
                 )
                 model.e15_flex_completion_bounds.add(
-                    model.s[event_key] <= max_offset * model.z[event_key]
+                    model.s[event_key] <= max_offset * model.event_z[event_key]
                 )
 
             model.e21_flex_event_uniqueness = ConstraintList()
@@ -602,14 +611,14 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
                         by_flight.setdefault(flight, []).append(check)
 
                     first_events = [
-                        sum(model.z[flight, aircraft, check] for check in checks)
+                        sum(model.event_z[flight, aircraft, check] for check in checks)
                         for flight, checks in by_flight.items()
                         if self.flight_data[flight]["arrivalTime"] <= first_deadline
                     ]
                 else:
                     by_flight = None
                     first_events = [
-                        model.z[flight, aircraft, check]
+                        model.event_z[flight, aircraft, check]
                         for flight, check in qualifying
                         if self.flight_data[flight]["arrivalTime"] <= first_deadline
                     ]
@@ -627,9 +636,9 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
                         start = self.flight_data[flight]["arrivalTime"]
                         if start + limit > horizon_end:
                             continue
-                        rhs = sum(model.z[flight, aircraft, check] for check in checks)
+                        rhs = sum(model.event_z[flight, aircraft, check] for check in checks)
                         following = [
-                            sum(model.z[next_flight, aircraft, next_check] for next_check in next_checks)
+                            sum(model.event_z[next_flight, aircraft, next_check] for next_check in next_checks)
                             for next_flight, next_checks in by_flight.items()
                             if start
                             < self.flight_data[next_flight]["arrivalTime"]
@@ -642,14 +651,14 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
                         if start + limit > horizon_end:
                             continue
                         following = [
-                            model.z[next_flight, aircraft, next_check]
+                            model.event_z[next_flight, aircraft, next_check]
                             for next_flight, next_check in qualifying
                             if start
                             < self.flight_data[next_flight]["arrivalTime"]
                             <= start + limit
                         ]
                         model.c14_calendar.add(
-                            sum(following) >= model.z[flight, aircraft, check]
+                            sum(following) >= model.event_z[flight, aircraft, check]
                         )
 
     def print_report(self, out_path=None, summary=None):
@@ -667,7 +676,7 @@ class OrderedHourEventMILPScheduler(MILP_Sheduler):
                 lines.append(f"  Flight {flight:4d}  -> Aircraft {aircraft}")
         lines.append("\n--- A maintenance events ---")
         for flight, aircraft, check in self.model.Z:
-            if value(self.model.z[flight, aircraft, check]) > 0.5:
+            if value(self.model.event_z[flight, aircraft, check]) > 0.5:
                 lines.append(f"  Aircraft {aircraft} {check} after flight {flight}")
         text = "\n".join(lines)
         print(text)
@@ -711,6 +720,134 @@ class FlexiblePaperEventBasedMILPScheduler(OptimizedPaperEventBasedMILPScheduler
     FLEXIBLE_MAINTENANCE = True
     MAX_MAINT_DEFER = 1440.0
     MAINTENANCE_TIME_GRID = 1.0
+
+
+class UniformFlexibleEventMILPScheduler(FlexiblePaperEventBasedMILPScheduler):
+    """Hour-limited flexible A checks, at most one per actual start day."""
+
+    FORMULATION_ID = "uniform_flexible_event"
+    DAY_INDEXED_Z = False
+    FIXED_NIGHT_START = False
+    NIGHT_START_MINUTE = 22 * 60
+    POLICY_ID = "flexible_start_day_cap_v1"
+
+    def _add_start_day_domain(self, model):
+        grid = self.MAINTENANCE_TIME_GRID
+        if self.DAY_SHIFT % grid or self.NIGHT_START_MINUTE % grid:
+            raise ValueError("Day boundaries and night starts must lie on the time grid.")
+        for aircraft in self.aircraft_ids:
+            if not 0 <= self.init_check_hrs["A"][aircraft] <= self.check_hrs["A"]:
+                raise ValueError("Initial A exposure must lie between zero and its threshold.")
+        starts = []
+        for flight, aircraft, check in model.Z:
+            arrival = self.flight_data[flight]["arrivalTime"]
+            first_day = int(arrival // self.DAY_SHIFT) + 1
+            last_day = int((arrival + self.MAX_MAINT_DEFER) // self.DAY_SHIFT) + 1
+            starts.extend(
+                (flight, aircraft, day, check)
+                for day in range(first_day, last_day + 1)
+            )
+        model.Z_START = Set(dimen=4, initialize=starts, ordered=True)
+        model.START_DAYS = Set(initialize=sorted({key[2] for key in starts}))
+        self.start_keys_by_event = {
+            key: [index for index in starts if (index[0], index[1], index[3]) == key]
+            for key in model.Z
+        }
+
+    def _add_event_variables(self, model):
+        super()._add_event_variables(model)
+        self._add_start_day_domain(model)
+        model.start_day = Var(model.Z_START, domain=Binary, initialize=0)
+
+    def build_model(self, **kwargs):
+        model = super().build_model(**kwargs)
+        model.c_start_day_link = ConstraintList()
+        model.c_start_day_time = ConstraintList()
+        model.c_one_check_per_start_day = ConstraintList()
+        model.c_fixed_night_start = ConstraintList()
+        for event_key in model.Z:
+            flight, aircraft, check = event_key
+            arrival = self.flight_data[flight]["arrivalTime"]
+            duration = self.check_dur[check]
+            starts = self.start_keys_by_event[event_key]
+            if not self.DAY_INDEXED_Z:
+                model.c_start_day_link.add(
+                    sum(model.start_day[index] for index in starts)
+                    == model.event_z[event_key]
+                )
+            start_time = arrival + model.s[event_key] - duration
+            for index in starts:
+                day = index[2]
+                selected = model.start_day[index]
+                lower = (day - 1) * self.DAY_SHIFT
+                upper = day * self.DAY_SHIFT - self.MAINTENANCE_TIME_GRID
+                model.c_start_day_time.add(
+                    start_time >= lower - max(0.0, lower - arrival + duration) * (1 - selected)
+                )
+                model.c_start_day_time.add(
+                    start_time <= upper + max(0.0, arrival + self.MAX_MAINT_DEFER - upper) * (1 - selected)
+                )
+                if self.FIXED_NIGHT_START:
+                    night = lower + self.NIGHT_START_MINUTE
+                    if not arrival <= night <= arrival + self.MAX_MAINT_DEFER:
+                        self._start_variable(model, index).fix(0)
+            if self.FIXED_NIGHT_START:
+                model.c_fixed_night_start.add(
+                    model.s[event_key] == sum(
+                        ((index[2] - 1) * self.DAY_SHIFT + self.NIGHT_START_MINUTE
+                         - arrival + duration) * model.start_day[index]
+                        for index in starts
+                    )
+                )
+        for aircraft in model.P:
+            for day in model.START_DAYS:
+                choices = [
+                    model.start_day[index] for index in model.Z_START
+                    if index[1] == aircraft and index[2] == day
+                ]
+                if choices:
+                    model.c_one_check_per_start_day.add(sum(choices) <= 1)
+        return model
+
+    def _start_variable(self, model, index):
+        return model.z[index] if self.DAY_INDEXED_Z else model.start_day[index]
+
+
+class UniformFlexibleDayMILPScheduler(UniformFlexibleEventMILPScheduler):
+    """Day-indexed maintenance decisions with the common event-aware hour engine."""
+
+    FORMULATION_ID = "uniform_flexible_day"
+    DAY_INDEXED_Z = True
+
+    def _add_event_variables(self, model):
+        self._add_start_day_domain(model)
+        model.z = Var(model.Z_START, domain=Binary, initialize=0)
+        model.start_day = Expression(
+            model.Z_START,
+            rule=lambda m, flight, aircraft, day, check: m.z[flight, aircraft, day, check],
+        )
+        model.event_z = Expression(
+            model.Z,
+            rule=lambda m, flight, aircraft, check: sum(
+                m.z[index] for index in self.start_keys_by_event[flight, aircraft, check]
+            ),
+        )
+
+
+class UniformNightEventMILPScheduler(UniformFlexibleEventMILPScheduler):
+    """Fixed 22:00 starts, otherwise identical to uniform flexible events."""
+
+    FORMULATION_ID = "uniform_night_event"
+    FIXED_NIGHT_START = True
+    POLICY_ID = "fixed_2200_start_day_cap_v1"
+
+
+class UniformNightDayMILPScheduler(UniformFlexibleDayMILPScheduler):
+    """Day-indexed encoding of the same fixed-night restriction."""
+
+    FORMULATION_ID = "uniform_night_day"
+    FIXED_NIGHT_START = True
+    POLICY_ID = "fixed_2200_start_day_cap_v1"
 
 
 class OrderedABEventMILPScheduler(OrderedHourEventMILPScheduler):

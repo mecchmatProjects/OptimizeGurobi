@@ -26,10 +26,11 @@ import shutil
 import subprocess
 import sys
 import time
+import zipfile
 from pathlib import Path
 
 import pyomo
-from pyomo.environ import Constraint, TransformationFactory, Var
+from pyomo.environ import Constraint, TransformationFactory, Var, value
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -38,6 +39,10 @@ if str(ROOT) not in sys.path:
 from src.compact_a_event_model import (
     FlexiblePaperEventBasedMILPScheduler,
     OptimizedPaperEventBasedMILPScheduler,
+    UniformFlexibleDayMILPScheduler,
+    UniformFlexibleEventMILPScheduler,
+    UniformNightDayMILPScheduler,
+    UniformNightEventMILPScheduler,
 )
 from src.generate_feasible_instances import build_feasible_instance
 from src.model import (
@@ -60,6 +65,10 @@ FORMULATIONS = {
     "event_based_flex": FlexiblePaperEventBasedMILPScheduler,
     "legacy_strict_interval": LegacyStrictIntervalMILPScheduler,
     "legacy_hour_prefix": LegacyHourPrefixMILPScheduler,
+    "uniform_flexible_day": UniformFlexibleDayMILPScheduler,
+    "uniform_flexible_event": UniformFlexibleEventMILPScheduler,
+    "uniform_night_day": UniformNightDayMILPScheduler,
+    "uniform_night_event": UniformNightEventMILPScheduler,
 }
 DEFAULT_FORMULATIONS = (
     "legacy_paper_c13",
@@ -74,6 +83,7 @@ PROVENANCE_SOURCES = (
     ROOT / "src" / "compact_a_event_model.py",
     ROOT / "src" / "generate_feasible_instances.py",
     ROOT / "src" / "generate_instances.py",
+    ROOT / "src" / "validate_maintenance.py",
 )
 DEFAULT_PERFORMANCE_GRID = [(p, h) for p in (5, 10, 20, 40) for h in (7, 15, 30)]
 EXTENDED_PERFORMANCE_GRID = [
@@ -130,6 +140,10 @@ def write_run_metadata(
     append: bool,
 ) -> Path:
     metadata_path = output.with_suffix(".metadata.json")
+    snapshot = output.with_suffix(".sources.zip")
+    with zipfile.ZipFile(snapshot, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        for source in PROVENANCE_SOURCES:
+            archive.write(source, source.relative_to(ROOT).as_posix())
     if append and metadata_path.is_file():
         metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
     else:
@@ -166,8 +180,30 @@ def write_run_metadata(
             "event_based_flex_max_deferral_minutes": (
                 FlexiblePaperEventBasedMILPScheduler.MAX_MAINT_DEFER
             ),
+            "policies": {
+                name: {
+                    "policy_id": FORMULATIONS[name].POLICY_ID,
+                    "day_indexed_z": FORMULATIONS[name].DAY_INDEXED_Z,
+                    "maximum_start_deferral_minutes": FORMULATIONS[name].MAX_MAINT_DEFER,
+                    "time_grid_minutes": FORMULATIONS[name].MAINTENANCE_TIME_GRID,
+                    "one_check_per": "aircraft_actual_start_calendar_day",
+                    "capacity": "simultaneous_half_open_bay_occupancy",
+                    "calendar_spacing_requirement": None,
+                    "night_start_minute": (
+                        FORMULATIONS[name].NIGHT_START_MINUTE
+                        if FORMULATIONS[name].FIXED_NIGHT_START else None
+                    ),
+                }
+                for name in formulations if name.startswith("uniform_")
+            },
         },
         "result_csv_sha256": sha256_file(output),
+        "source_snapshot": snapshot.name,
+        "source_snapshot_sha256": sha256_file(snapshot),
+        "schedule_sha256": (
+            sha256_file(output.with_suffix(".schedules.json"))
+            if output.with_suffix(".schedules.json").is_file() else None
+        ),
     })
     metadata_path.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
     return metadata_path
@@ -254,6 +290,7 @@ def run_case(path: Path, formulation: str, solver: str, executable: str | None, 
     data = json.loads(path.read_text(encoding="utf-8"))
     row: dict[str, object] = {
         "case": path.stem,
+        "stem": path.stem,
         "file": path.name,
         "P": len(data["Aircrafts"]),
         "H": max(int(float(flight[4]) // 1440) + 1 for flight in data["Flights"]),
@@ -277,6 +314,11 @@ def run_case(path: Path, formulation: str, solver: str, executable: str | None, 
         "replay_violation_types": "",
         "replay_error": "",
         "error": "",
+        "has_solution": False,
+        "lower_bound": "",
+        "upper_bound": "",
+        "gap_pct": "",
+        "nodes_max": "",
     }
     started = time.perf_counter()
     try:
@@ -316,8 +358,12 @@ def run_case(path: Path, formulation: str, solver: str, executable: str | None, 
             objective=summary.get("obj", ""),
             cpu_s=summary.get("cpu", ""),
             wall_s=round(time.perf_counter() - solve_started, 6),
+            has_solution=summary.get("has_solution", False),
+            lower_bound=summary.get("lower_bound", ""),
+            upper_bound=summary.get("upper_bound", ""),
+            gap_pct=100 * summary["gap"] if summary.get("gap") is not None else "",
         )
-        if row["status"] == "optimal" and not lp_relaxation:
+        if row["has_solution"] and not lp_relaxation:
             try:
                 violations = validate_solved_model(scheduler)
                 row["replay_status"] = "pass" if not violations else "fail"
@@ -325,6 +371,36 @@ def run_case(path: Path, formulation: str, solver: str, executable: str | None, 
                 row["replay_violation_types"] = ";".join(
                     sorted({violation.get("type", "flight_hours") for violation in violations})
                 )
+                model = scheduler.model
+                schedule = {
+                    "case": path.stem, "formulation": formulation,
+                    "status": row["status"], "violations": violations,
+                    "assignments": [
+                        list(index) for index in model.X if value(model.x[index]) > 0.5
+                    ],
+                    "events": [],
+                }
+                if hasattr(model, "event_z"):
+                    for key in model.Z:
+                        if value(model.event_z[key]) <= 0.5:
+                            continue
+                        flight, aircraft, check = key
+                        arrival = scheduler.flight_data[flight]["arrivalTime"]
+                        completion = arrival + (
+                            value(model.s[key]) if hasattr(model, "s")
+                            else scheduler.check_dur[check]
+                        )
+                        schedule["events"].append({
+                            "flight": flight, "aircraft": aircraft, "check": check,
+                            "start": completion - scheduler.check_dur[check],
+                            "completion": completion,
+                        })
+                else:
+                    schedule["events"] = [
+                        {"legacy_index": list(index)} for index in model.Z
+                        if value(model.z[index]) > 0.5
+                    ]
+                row["_schedule"] = schedule
             except (AttributeError, KeyError, TypeError, ValueError) as error:
                 row["replay_status"] = "error"
                 row["replay_error"] = f"{type(error).__name__}: {error}"
@@ -353,6 +429,14 @@ def run_suite(solver: str, executable: str | None, limit: int, threads: int,
         for formulation in active
     ]
     RESULTS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    schedules_path = RESULTS_PATH.with_suffix(".schedules.json")
+    schedules = [row.pop("_schedule") for row in rows if "_schedule" in row]
+    if append and schedules_path.is_file():
+        schedules = [
+            item for item in json.loads(schedules_path.read_text(encoding="utf-8"))
+            if item["formulation"] not in set(active)
+        ] + schedules
+    schedules_path.write_text(json.dumps(schedules, indent=2) + "\n", encoding="utf-8")
     fieldnames = list(rows[0])
     if append and RESULTS_PATH.exists():
         with RESULTS_PATH.open(newline="", encoding="utf-8") as handle:
@@ -427,6 +511,8 @@ def run_suite(solver: str, executable: str | None, limit: int, threads: int,
         parity_formulations = set(prefix_methods)
         if not lp_relaxation and "legacy_corrected_strengthened" in present:
             parity_formulations.add("legacy_corrected_strengthened")
+    elif any(name.startswith("uniform_") for name in present):
+        parity_formulations = {"uniform_flexible_day", "uniform_flexible_event"}
     else:
         parity_formulations = {
             "legacy_corrected_strengthened",
@@ -436,6 +522,21 @@ def run_suite(solver: str, executable: str | None, limit: int, threads: int,
     for case in sorted({row["case"] for row in rows}):
         case_rows = [row for row in rows if row["case"] == case]
         by_formulation = {row["formulation"]: row for row in case_rows}
+        for policy in ("flexible", "night"):
+            pair = [by_formulation.get(f"uniform_{policy}_{encoding}") for encoding in ("day", "event")]
+            if all(item is not None and item["status"] == "optimal" for item in pair):
+                if abs(float(pair[0]["objective"]) - float(pair[1]["objective"])) > 1e-6:
+                    parity_failures.append((case, f"{policy} encoding objective mismatch"))
+        for encoding in ("day", "event"):
+            flexible = by_formulation.get(f"uniform_flexible_{encoding}")
+            night = by_formulation.get(f"uniform_night_{encoding}")
+            if flexible and night and flexible["status"] == night["status"] == "optimal":
+                if float(flexible["objective"]) > float(night["objective"]) + 1e-6:
+                    parity_failures.append((case, "flexible optimum exceeds nightly restriction"))
+        for row in case_rows:
+            if str(row["formulation"]).startswith("uniform_") and row["has_solution"]:
+                if row["replay_status"] != "pass":
+                    parity_failures.append((case, row["formulation"], "incumbent replay failed"))
         fixed_rows = [by_formulation[name] for name in parity_formulations]
         if fixed_rows and all(row["status"] == "optimal" for row in fixed_rows):
             fixed_objectives = {
@@ -465,6 +566,7 @@ def run_suite(solver: str, executable: str | None, limit: int, threads: int,
     print(f"Wrote provenance metadata to {metadata_path}")
     if parity_failures:
         print(f"Objective comparison failures: {parity_failures}")
+        raise SystemExit(1)
     else:
         print("Fixed-formulation parity and flexible relaxation bound passed.")
     if relaxation_unresolved:

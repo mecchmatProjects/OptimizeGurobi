@@ -3,17 +3,16 @@
 \label{sec:event_reformulation}
 %%==========================================================================
 
-In this paper, we present an ordered event-based model for
-flight-hour maintenance. It removes day-indexed maintenance decision states
-and does not introduce the
-standalone successor-arc event formulation. Flights are processed in
-nondecreasing departure-time order, and maintenance is represented by a binary
-event attached to the flight that triggers it. Thus the design-note variables
-$x_{ij}$ and $z_{ij}$ are represented below through an ordered position index
-$r$ that maps to a flight index $i_r$.
+The historical immediate-start ordered formulation processes flights in
+nondecreasing departure-time order and represents maintenance by an event
+attached to its triggering flight, without successor-arc variables. The
+uniform flexible extension below retains this event index but adds bounded
+actual-start-day selectors. It therefore is not fully day-free. The ordered
+position index $r$ maps to a flight index $i_r$ and is used for assignments,
+hour states and event triggers.
 
 The formulations in this section are for type-A checks only. The optional
-flexible-start variant E14$_{\\mathrm{flex}}$--E21$_{\\mathrm{flex}}$ also
+flexible-start variant E14$_{\mathrm{flex}}$--E21$_{\mathrm{flex}}$ also
 models only A-check timing; it does not include the B/C/D maintenance
 hierarchy. Its computational implementation uses a one-minute time grid and a
 1440-minute maximum deferral window.
@@ -30,7 +29,8 @@ Define the ordered-position index set
 \]
 and let $(i_1,\ldots,i_{n_f})$ be flights sorted by $(\tD{i},i)$. Position
 $r\in\mathcal{R}$ refers to flight $i_r$. This is the only role of $r$: it is
-an order index over flights. Define
+an order index over flights. Write $p_r=p_{i_r}$ and $c_{rj}=c_{i_rj}$,
+and define $\F^M=\{i\in\F:a_i\in\MA\}$. Define
 \[
 \mathcal{R}^M=\{r\in\mathcal{R}: i_r\in\F^M\},
 \]
@@ -43,6 +43,9 @@ Use the following A-only variables:
 \item $z_{rj}\in\{0,1\}$: a type-A maintenance event is performed after flight $i_r$ on aircraft $j$;
 \item $h_{rj}\ge 0$: cumulative type-A flight time of aircraft $j$ immediately after processing position $r$.
 \end{itemize}
+For inadmissible event pairs, set $z_{rj}=0$ rather than instantiate a
+variable. These zero values are used in the prefix-state rows at all
+ordered flight positions.
 Because $r\leftrightarrow i_r$ is one-to-one, the relation to the original
 notation is direct: $x_{rj}=x_{i_r j}$ and $z_{rj}=z_{i_r jd}$ for the
 corresponding arrival day $d$; the check type is always A in this section.
@@ -108,7 +111,10 @@ The first E13 row resets the post-event state to zero when $z_{rj}=1$. The secon
 E13 row is the pre-event threshold guard: the flight cannot arrive over the
 flight-hour limit and then use the event to reset the state. Here
 $M^{\mathrm{pre}}_{rj}$ is sufficiently large to deactivate the guard when
-$x_{rj}=0$. The initial state is $h_{0j}=\Phi_j$.
+$x_{rj}=0$. With valid $0\le\Phi_j\le T_F$, a common sufficient choice is
+$M_{rj}=T_F+p_r$ and $M^{\mathrm{pre}}_{rj}=p_r$. The implementation uses
+separate tighter constants for the carry and accumulation rows.
+The initial state is $h_{0j}=\Phi_j$.
 
 \subsection{Maintenance blocking and capacity constraints}
 
@@ -298,9 +304,11 @@ feasible schedules and can only weakly improve their minimum assignment cost.
 
 \subsection{Implemented E1--E15 model and flexible-start specification}
 
-The following list gives the event-family components of the current immediate-start
-ordered A-only builder and separately identifies the optional flexible-start
-formulation. Legacy C labels are given only as cross-references.
+The following list maps the historical immediate-start ordered A-only builder
+to the numbered day-boundary requirements and identifies its flexible timing
+extension. It is not a complete constraint list for the uniform flexible
+builders, which add actual-start-day selectors and a daily check limit. Legacy
+C labels are given only as cross-references.
 
 \begin{description}
 \item[E1--E3: variable domains.] The variables $x_{rj}$ and $z_{rj}$ are
@@ -353,7 +361,7 @@ timestamp, the active arrival-started maintenance events satisfy
 \end{equation}
 where $\mathcal{E}(a,\theta)$ contains events whose half-open intervals
 $[\theta_r,\theta_r+\delta_A)$ contain $\theta$. This is implemented by the E15 component
-\texttt{e15\_maintenance\_capacity}; it is the maintenance-capacity constraint that was not
+\path{e15_maintenance_capacity}; it is the maintenance-capacity constraint that was not
 explicitly displayed earlier.
 
 \item[E14$_{\mathrm{flex}}$--E21$_{\mathrm{flex}}$: deferrable maintenance timing (optional variant).]
@@ -373,11 +381,13 @@ n_{jd}=\sum_{r:\,\lfloor\tI{i_r}/1440\rfloor=d}z_{rj},
 \qquad n_{jd}\in\mathbb{Z}_{+}.
 \label{eq:ordered_c11_recovery}
 \end{equation}
-This preserves C11's aggregation information without imposing the removed
-one-event-per-day restriction.
+This describes the historical unrestricted event count. The uniform flexible
+model below replaces it with a binary actual-start-day aggregation and
+explicitly enforces at most one check per aircraft per calendar day.
 
-\item[Inactive legacy C12.] Calendar spacing is inactive in the A-only model. It is
-implemented only by the C/D calendar extension, which is not enabled here.
+\item[Inactive legacy C12.] The hour-only extension omits calendar spacing
+by choice. Khaled et al. impose a maximum-spacing constraint on type A; its
+omission here does not imply that A checks lack calendar requirements.
 
 \item[E9--E13: cumulative flight-hour state (legacy C13--C13f).] The paper's C13 row is
 replaced by the auxiliary prefix state $h_{rj}$, which is
@@ -416,16 +426,16 @@ implementation; every conflicting pair belongs to a maximal clique, so the
 integer feasible set is unchanged.
 
 The baseline implementation remains
-\texttt{PaperEventBasedMILPScheduler}. The equivalent reduced implementation
-is \texttt{OptimizedPaperEventBasedMILPScheduler}; keeping both classes makes
+\path{PaperEventBasedMILPScheduler}. The equivalent reduced implementation
+is \path{OptimizedPaperEventBasedMILPScheduler}; keeping both classes makes
 the effect of implementation choices independently reproducible. The exact
 flexible-start formulation is implemented by
-\texttt{FlexiblePaperEventBasedMILPScheduler}: its integer-grid offset,
+\path{FlexiblePaperEventBasedMILPScheduler}: its integer-grid offset,
 comparison binaries, active-at-start indicators, and station-capacity rows
 correspond to E14$_{\mathrm{flex}}$--E21$_{\mathrm{flex}}$. The earlier
 benchmark numbers for the previous flex linearisation are not results for this
 formulation. A separate 12-case flexible-prototype benchmark is recorded in
-	exttt{results/tables/flexible\_event\_benchmark\_e14\_e21.csv}; it is not
+\path{results/tables/flexible_event_benchmark_e14_e21.csv}; it is not
 pooled with the six-instance, zero-day-legacy-deferral scale-up reported in
 Section~\ref{subsec:event_measurements}.
 
@@ -452,7 +462,7 @@ C8 & Maintenance blocks later flights & Timestamp blocking using $\delta_A+\dt$;
 C9 & Maintenance requires assignment & The event-assignment inequality above. \\
 C10 & Maintenance capacity & Direct timestamp-overlap rows at event starts; exact grid-based overlap-indicator rows in the flexible variant. \\
 C11 & Aggregate events by aircraft and day & Integer event count $n_{jd}=\sum_{r:\,d(i_r)=d}z_{rj}$. \\
-C12 & Calendar-time spacing & Inactive for type-A-only maintenance in this paper. \\
+C12 & Calendar-time spacing & Omitted by choice in this hour-only extension; present in Khaled's A policy. \\
 C13 & Paper cumulative-flight-time row & Replaced by the exact ordered prefix state. \\
 C13a & Daily assigned flight time & Implicit in the ordered flight sequence. \\
 C13b--C13f & Exact cumulative-state recursion and bound & Ordered prefix-state rows~\eqref{eq:ordered_hour_transition}. \\
@@ -477,9 +487,74 @@ the threshold from being exceeded before a reset. The induction starts from
 $\Phi_j$, so every assigned route satisfies the type-A limit.
 \end{proof}
 
-\subsection{Why the ordered formulation is the better method}
+\subsection{Uniform flexible and day-indexed encodings}
+\label{subsec:uniform_flexible}
 
-\subsection{Theoretical complexity and model size}
+The uniform main model retains E4--E13 and flexible E14--E21, with one-minute
+grid $\tau=1$, maximum start deferral $W=1440$ minutes, a common A-check
+duration, and the same assignment and nonnegative check costs in every
+encoding. These are experimental assumptions, not parameter values taken
+from Khaled. An aircraft remains at its trigger's arrival station until
+completion plus turn time; no assigned flight may escape while waiting.
+The hour state resets algebraically at the trigger, but blocking ensures
+there is no intervening flight before actual completion. Thus the next
+assigned flight sees exactly the post-completion state, including when a
+check is deferred across midnight.
+
+Let $\sigma_{rj}=\tI{i_r}+s_{rj}-\delta_A$ be the actual start time when
+$z_{rj}=1$, and let $b_{rjd}$ select its start day. Candidate days intersect
+$[\tI{i_r},\tI{i_r}+W]$. The activated day links and daily limit are
+\begin{align}
+ \sum_d b_{rjd}&=z_{rj},\\
+ (d-1)1440-L_{rd}(1-b_{rjd})&\le\sigma_{rj},\\
+ \sigma_{rj}&\le d1440-\tau+U_{rd}(1-b_{rjd}),\\
+ \sum_r b_{rjd}&\le1,\\
+ b_{rjd}&\in\{0,1\}.
+ \label{eq:uniform_start_day}
+\end{align}
+The links are imposed for every admissible $(r,j,d)$; the last inequality
+is imposed for each aircraft-day. Valid constants include
+$L_{rd}=\max\{0,(d-1)1440-\tI{i_r}+\delta_A\}$ and
+$U_{rd}=\max\{0,\tI{i_r}+W-(d1440-\tau)\}$, allowing the inactive
+offset $s_{rj}=0$. An exact midnight start belongs to the new day.
+
+The event-indexed implementation uses $z_{rj}$ and $b_{rjd}$; the
+day-indexed implementation makes $z^{D}_{rjd}=b_{rjd}$ its binary decisions
+and substitutes $z_{rj}=\sum_d z^{D}_{rjd}$ as an expression in every
+assignment, cost, timing and state row. They share the hour engine; they are
+not independent implementations of the physical counter.
+
+\begin{proposition}[Uniform encoding equivalence]
+The two uniform encodings have the same projection onto assignments,
+selected maintenance starts and hour states, and the same optimum.
+\end{proposition}
+\begin{proof}
+From an event-indexed solution set $z^{D}_{rjd}=b_{rjd}$. Every substituted
+row and the objective is unchanged. Conversely, from a day-indexed solution
+set $b_{rjd}=z^{D}_{rjd}$ and $z_{rj}=\sum_d z^{D}_{rjd}$. Assignment
+linking bounds this nonnegative integral sum by $x_{rj}\le1$, so it is
+binary. The day links locate the selected start uniquely on the grid.
+All other rows are identical under substitution, proving both directions.
+\end{proof}
+
+For the fixed-night comparison, restrict selected starts to 22:00 on a
+candidate day, still within the same $W$ window. The time 22:00 is a stated
+study convention, not a specification in the original paper. All remaining
+constraints, including concurrent bay capacity, are retained. Therefore every
+fixed-night schedule is flexible-feasible and
+$v_{\mathrm{flex}}\le v_{\mathrm{night}}$ when both optima are finite.
+This is a restriction, not a lower-bound relaxation or a literal reproduction
+of Khaled's daily-quota model. Daily interval/prefix rows are studied only
+under their day-boundary reset assumptions, not as exact flexible models.
+
+Daily indicators add up to
+$O(n_m n_p(1+\lceil W/1440\rceil))$ variables and links. With $W=1440$
+their support is bounded per event, but it would be misleading to call the
+uniform model fully day-free. Independent chronological replay and the
+tiny start-time enumeration test, rather than the shared state engine alone,
+provide additional correctness checks.
+
+\subsection{Historical immediate-start model: complexity and size}
 
 Let $n_f=|\F|$, $n_p=|\Pc|$, and let $n_m$ denote the number of flights
 that arrive at a maintenance-capable airport. In the A-only ordered model,

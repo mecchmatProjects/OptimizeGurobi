@@ -2,6 +2,12 @@
 
 import sys
 import unittest
+import contextlib
+import io
+import itertools
+import json
+import os
+import tempfile
 from pathlib import Path
 
 from pyomo.core.expr.visitor import identify_variables
@@ -18,8 +24,13 @@ from src.compact_a_event_model import (
     OrderedAEventMILPScheduler,
     OrderedABEventMILPScheduler,
     OrderedABCDEventMILPScheduler,
+    UniformFlexibleDayMILPScheduler,
+    UniformFlexibleEventMILPScheduler,
+    UniformNightDayMILPScheduler,
+    UniformNightEventMILPScheduler,
 )
 from src.event_model import EventMILPScheduler
+from src.validate_maintenance import validate_solved_model
 
 
 SOURCE = ROOT / "data" / "instances" / "event_vs_legacy_clean_test.json"
@@ -27,6 +38,112 @@ ABCD_SOURCE = ROOT / "data" / "feasible_instances" / "abcd" / "DataCplex_density
 
 
 class CompactAEventTests(unittest.TestCase):
+    def test_uniform_cross_day_solution_matches_enumerated_start_times(self):
+        executable = os.environ.get(
+            "TAP_PYOMO_SOLVER_EXECUTABLE",
+            "F:/Progs/IBM.ILOG.CPLEX.for.AMPL.v12.6-EAT/CPLEXamp.exe",
+        )
+        if not Path(executable).is_file():
+            self.skipTest("Set TAP_PYOMO_SOLVER_EXECUTABLE to the CPLEX AMPL executable.")
+        flights = [[1, "M", "M", 10, 20], [2, "M", "M", 70, 80], [3, "M", "M", 1510, 1520]]
+        data = {
+            "Aircrafts": [0], "AIRCRAFT_INIT_POS": {"0": "M"},
+            "Flights": flights, "Cost_Matrix": [[100], [100], [100]],
+            "Maintenance_Thresholds": {"A": 15, "B": 99999, "C": 9999, "D": 9999},
+            "Maintenance_Durations": {"A": 10, "B": 10, "C": 10, "D": 10},
+            "Maintenance_Families": ["A"], "Station_Capacity": {"M": 1},
+        }
+        feasible_starts = []
+        for first, second in itertools.product(range(20, 1461, 10), range(80, 1521, 10)):
+            if first + 10 + 30 > 70 or second + 10 + 30 > 1510:
+                continue
+            if first // 1440 == second // 1440:
+                continue
+            feasible_starts.append((first, second))
+        self.assertTrue(feasible_starts)
+        self.assertTrue(all(second >= 1440 for _, second in feasible_starts))
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "cross_day.json"
+            path.write_text(json.dumps(data), encoding="utf-8")
+            for builder in (UniformFlexibleDayMILPScheduler, UniformFlexibleEventMILPScheduler):
+                with self.subTest(builder=builder.__name__):
+                    scheduler = builder(str(path))
+                    scheduler.MAINTENANCE_TIME_GRID = 10
+                    scheduler.build_model()
+                    with contextlib.redirect_stdout(io.StringIO()):
+                        result = scheduler.solve(
+                            solver_name="cplexamp", executable=executable,
+                            time_limit=10, solver_options={"threads": 1},
+                        )
+                    self.assertEqual(result["status"], "optimal")
+                    self.assertEqual(result["obj"], 300 + 2 * 100)
+                    self.assertEqual(validate_solved_model(scheduler), [])
+                    for index in scheduler.model.Z_START:
+                        scheduler._start_variable(scheduler.model, index).set_value(0)
+                    for key in scheduler.model.Z:
+                        if key[0] in (1, 2):
+                            scheduler.model.s_ticks[key].set_value(1)
+                            if not scheduler.DAY_INDEXED_Z:
+                                scheduler.model.z[key].set_value(1)
+                            scheduler._start_variable(
+                                scheduler.model, (key[0], key[1], 1, key[2])
+                            ).set_value(1)
+                    violations = validate_solved_model(scheduler)
+                    self.assertIn("multiple_checks_per_start_day", {item.get("type") for item in violations})
+            for builder in (UniformNightDayMILPScheduler, UniformNightEventMILPScheduler):
+                scheduler = builder(str(path))
+                scheduler.MAINTENANCE_TIME_GRID = 10
+                scheduler.build_model()
+                with contextlib.redirect_stdout(io.StringIO()):
+                    result = scheduler.solve(
+                        solver_name="cplexamp", executable=executable,
+                        time_limit=10, solver_options={"threads": 1},
+                    )
+                self.assertEqual(result["status"], "infeasible")
+
+    def test_uniform_models_group_checks_by_actual_start_day(self):
+        for builder in (UniformFlexibleDayMILPScheduler, UniformFlexibleEventMILPScheduler):
+            with self.subTest(builder=builder.__name__):
+                scheduler = builder(str(SOURCE))
+                scheduler.flight_data[1]["arrivalTime"] = 1430
+                model = scheduler.build_model()
+                event = next(key for key in model.Z if key[0] == 1)
+                self.assertEqual(
+                    {key[2] for key in scheduler.start_keys_by_event[event]}, {1, 2}
+                )
+                for index in model.Z_START:
+                    scheduler._start_variable(model, index).set_value(0)
+                if not scheduler.DAY_INDEXED_Z:
+                    for variable in model.z.values():
+                        variable.set_value(0)
+                    model.z[event].set_value(1)
+                scheduler._start_variable(model, (event[0], event[1], 2, event[2])).set_value(1)
+                model.s_ticks[event].set_value(1440 - 1430 + scheduler.check_dur["A"])
+                for row in model.c_start_day_time.values():
+                    if any(
+                        variable is model.s_ticks[event]
+                        for variable in identify_variables(row.body)
+                    ):
+                        self.assertLessEqual(value(row.body), value(row.upper) + 1e-8) if row.has_ub() else self.assertGreaterEqual(value(row.body), value(row.lower) - 1e-8)
+                self.assertTrue(hasattr(model, "c_one_check_per_start_day"))
+                self.assertEqual(model.z.index_set().dimen, 4 if scheduler.DAY_INDEXED_Z else 3)
+                self.assertEqual(value(model.event_z[event]), 1)
+
+    def test_uniform_night_builders_only_restrict_flexible_starts(self):
+        for flexible_builder, night_builder in (
+            (UniformFlexibleDayMILPScheduler, UniformNightDayMILPScheduler),
+            (UniformFlexibleEventMILPScheduler, UniformNightEventMILPScheduler),
+        ):
+            flexible = flexible_builder(str(SOURCE)).build_model()
+            night = night_builder(str(SOURCE)).build_model()
+            for family in (
+                "e9_e13_prefix_state", "e14_flex_maintenance_block",
+                "e20_flex_station_capacity", "c_one_check_per_start_day",
+            ):
+                self.assertEqual(len(getattr(flexible, family)), len(getattr(night, family)))
+            self.assertEqual(len(flexible.c_fixed_night_start), 0)
+            self.assertEqual(len(night.c_fixed_night_start), len(night.Z))
+
     def test_only_a_check_events_and_state_are_instantiated(self):
         scheduler = CompactAEventMILPScheduler(str(SOURCE))
         model = scheduler.build_model()

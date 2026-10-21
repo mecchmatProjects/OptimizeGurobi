@@ -19,6 +19,7 @@ from src.model import (
     LegacyCorrectedMILPScheduler,
     LegacyCorrectedStrengthenedMILPScheduler,
     LegacyHourPrefixMILPScheduler,
+    LegacyPaperC13MILPScheduler,
     LegacyStrictIntervalMILPScheduler,
     MILP_Sheduler,
 )
@@ -28,6 +29,86 @@ SOURCE = ROOT / "data" / "instances" / "ABCD_near_threshold_test.json"
 
 
 class C13FormulationTests(unittest.TestCase):
+    def test_paper_c13_omits_consecutive_checked_days(self):
+        data = json.loads((ROOT / "data" / "instances" / "c13_loophole_test.json").read_text(encoding="utf-8"))
+        data["Flights"][1][4] = 2060.0
+        fixture = ROOT / "tests" / "_temporary_adjacent_c13_fixture.json"
+        fixture.write_text(json.dumps(data), encoding="utf-8")
+        try:
+            scheduler = LegacyPaperC13MILPScheduler(
+                str(fixture), enabled_checks=["A"], max_hour_check_deferral_days=0
+            )
+            model = scheduler.build_model(use_paper_c13=True)
+            for variable in model.x.values():
+                variable.set_value(1)
+            for variable in model.z.values():
+                variable.set_value(0)
+            for variable in model.y.values():
+                variable.set_value(0)
+            for variable in model.mega.values():
+                variable.set_value(0)
+            model.z[1, 0, 1, "A"].set_value(1)
+            model.z[2, 0, 2, "A"].set_value(1)
+            model.y[0, 1, "A"].set_value(1)
+            model.y[0, 2, "A"].set_value(1)
+            model.mega[0, 1, "A"].set_value(1)
+            model.mega[0, 2, "A"].set_value(1)
+
+            for family in (model.c13, model.c13b):
+                for row in family.values():
+                    self.assertLessEqual(value(row.body), value(row.upper) + 1e-6)
+            self.assertGreater(len(validate_solved_model(scheduler)), 0)
+        finally:
+            fixture.unlink(missing_ok=True)
+
+    def test_strict_opening_without_first_day_flights_stays_symbolic(self):
+        scheduler = LegacyStrictIntervalMILPScheduler(str(SOURCE), enabled_checks=["A"])
+        scheduler._f_dep_between_days = lambda _first, _last: []
+        model = ConcreteModel()
+        model.P = Set(initialize=[0])
+        model.D = Set(initialize=[1])
+        model.C = Set(initialize=["A"])
+        model.mega = Var(model.P, model.D, model.C, domain=Binary, initialize=0)
+        scheduler.days = [1]
+        scheduler._add_c13b_existing_hrs(model, use_strict_state=True)
+        self.assertEqual(len(model.c13b), 1)
+        self.assertLessEqual(value(model.c13b[1].body), value(model.c13b[1].upper))
+
+    def test_strict_opening_hours_include_first_and_last_days(self):
+        source = ROOT / "data" / "instances" / "c13_loophole_test.json"
+        for scheduler_type in (
+            LegacyStrictIntervalMILPScheduler,
+            LegacyHourPrefixMILPScheduler,
+        ):
+            for initial_minutes, expected_violation in ((594, True), (590, False)):
+                with self.subTest(
+                    formulation=scheduler_type.__name__, initial=initial_minutes
+                ):
+                    scheduler = scheduler_type(
+                        str(source), enabled_checks=["A"],
+                        max_hour_check_deferral_days=0,
+                    )
+                    scheduler.init_check_hrs["A"][0] = initial_minutes / 60
+                    model = scheduler.build_model()
+                    for variable in model.x.values():
+                        variable.set_value(0)
+                    for variable in model.mega.values():
+                        variable.set_value(0)
+                    model.x[1, 0].set_value(1)
+                    model.mega[0, 1, "A"].set_value(1)
+                    if hasattr(model, "hour_cumulative"):
+                        for (aircraft, day), variable in model.hour_cumulative.items():
+                            variable.set_value(10 if day >= 1 else 0)
+                    opening = model.c13b[1]
+                    violated = value(opening.body) > value(opening.upper) + 1e-6
+                    self.assertEqual(violated, expected_violation)
+                    self.assertEqual(len(model.c13b), len(model.P) * len(model.D))
+                    if hasattr(model, "hour_cumulative"):
+                        final_row = model.c13b[len(model.c13b)]
+                        self.assertIn(
+                            f"hour_cumulative[0,{max(model.D)}]", str(final_row.expr)
+                        )
+
     def test_unneeded_a_check_pruning_requires_a_only_safe_bound(self):
         data = json.loads(SOURCE.read_text(encoding="utf-8"))
         data["Maintenance_Thresholds"]["A"] = 100_000

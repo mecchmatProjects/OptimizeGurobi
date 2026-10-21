@@ -438,6 +438,19 @@ def main():
     )
     args = parser.parse_args()
     audit_data_provenance()
+    from report_uniform_study import load_and_audit, render
+
+    uniform_main = load_and_audit(ROOT / "results/tables/uniform_flexible_main_20261021.csv")
+    uniform_night = load_and_audit(ROOT / "results/tables/uniform_night_subset_20261021.csv")
+    uniform_seeds = load_and_audit(ROOT / "results/tables/uniform_flexible_multiseed_20261021.csv")
+    repaired_lp = load_and_audit(ROOT / "results/tables/repaired_hour_prefix_lp_20261021.csv", allow_day_boundary=True)
+    repaired_mip = load_and_audit(ROOT / "results/tables/repaired_hour_prefix_milp_20261021.csv", allow_day_boundary=True)
+    uniform_tex = ROOT / "paper/sections/07_uniform_results.tex"
+    if uniform_tex.read_text(encoding="ascii") != render(uniform_main, uniform_night, uniform_seeds, repaired_lp, repaired_mip):
+        problems.append("uniform generated tables differ from audited result artifacts")
+    for filename in ("uniform_variables_h30_20261021.png", "uniform_wall_h30_20261021.png"):
+        if not (ROOT / "paper/figures" / filename).is_file():
+            problems.append(f"missing uniform figure: {filename}")
     if args.require_provenance:
         problems.extend(warnings)
     if problems:

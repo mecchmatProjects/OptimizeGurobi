@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "runs": [
+    {
+      "git_revision": "81fbfafb423a8434d3a3e922d9fab92aa8bbdbc7",
+      "python": "3.12.0",
+      "pyomo": "6.10.1",
+      "sources": {
+        "experiments\\run_four_method_suite.py": "8357f7990364a8de8562c6db2d08a996f72019d692d97a5c7d2156a37ab27a42",
+        "src\\model.py": "73ef42e58fc5f86e37d19df2a14136065f343ca70d034fc37e7851e5a99c5946",
+        "src\\compact_a_event_model.py": "b1d6d93c5cf46e1c75851170d38925dbe43263d3c4b60d97abfe3f52ac910e42",
+        "src\\generate_feasible_instances.py": "07b6bff0544e28195ea4a17bdb7a98c5ea2ae6918d5ad597b8e43a915668d05e",
+        "src\\generate_instances.py": "4e1389ad95d801246a41ac57d4df91a79d89a2429865eb3b51aa81611c4a4169",
+        "src\\validate_maintenance.py": "77c82dbdab85299be1b0eb6ef3e4937b573b130bcb9cdbeaf4f5b3945e6fbfe4"
+      },
+      "inputs": {
+        "data\\instances\\event_vs_legacy_clean_test.json": {
+          "sha256": "8e2906d48c917a9b63a306e94ecaff12ffdda9c49e9d193415ab7405e925ee22",
+          "P": 2,
+          "observed_H": 3,
+          "F": 6,
+          "declared_maintenance_families": null,
+          "effective_enabled_checks": [
+            "A"
+          ]
+        }
+      },
+      "configuration": {
+        "methods": [
+          "uniform_flexible_day",
+          "uniform_flexible_event",
+          "uniform_night_day",
+          "uniform_night_event"
+        ],
+        "effective_enabled_checks": [
+          "A"
+        ],
+        "solver": "cplexamp",
+        "solver_version": "12.6.0.0",
+        "executable": "F:\\Progs\\IBM.ILOG.CPLEX.for.AMPL.v12.6-EAT\\CPLEXamp.exe",
+        "time_limit_s": 60,
+        "threads": 1,
+        "presolve_configuration": "presolve_on",
+        "warm_start": false,
+        "legacy_max_hour_check_deferral_days": null,
+        "lp_relaxation": false,
+        "event_based_optimized_policy": "immediate-after-trigger-flight",
+        "event_based_flex_max_deferral_minutes": 1440.0,
+        "policies": {
+          "uniform_flexible_day": {
+            "policy_id": "flexible_start_day_cap_v1",
+            "day_indexed_z": true,
+            "maximum_start_deferral_minutes": 1440.0,
+            "time_grid_minutes": 1.0,
+            "one_check_per": "aircraft_actual_start_calendar_day",
+            "capacity": "simultaneous_half_open_bay_occupancy",
+            "calendar_spacing_requirement": null,
+            "night_start_minute": null
+          },
+          "uniform_flexible_event": {
+            "policy_id": "flexible_start_day_cap_v1",
+            "day_indexed_z": false,
+            "maximum_start_deferral_minutes": 1440.0,
+            "time_grid_minutes": 1.0,
+            "one_check_per": "aircraft_actual_start_calendar_day",
+            "capacity": "simultaneous_half_open_bay_occupancy",
+            "calendar_spacing_requirement": null,
+            "night_start_minute": null
+          },
+          "uniform_night_day": {
+            "policy_id": "fixed_2200_start_day_cap_v1",
+            "day_indexed_z": true,
+            "maximum_start_deferral_minutes": 1440.0,
+            "time_grid_minutes": 1.0,
+            "one_check_per": "aircraft_actual_start_calendar_day",
+            "capacity": "simultaneous_half_open_bay_occupancy",
+            "calendar_spacing_requirement": null,
+            "night_start_minute": 1320
+          },
+          "uniform_night_event": {
+            "policy_id": "fixed_2200_start_day_cap_v1",
+            "day_indexed_z": false,
+            "maximum_start_deferral_minutes": 1440.0,
+            "time_grid_minutes": 1.0,
+            "one_check_per": "aircraft_actual_start_calendar_day",
+            "capacity": "simultaneous_half_open_bay_occupancy",
+            "calendar_spacing_requirement": null,
+            "night_start_minute": 1320
+          }
+        }
+      },
+      "result_csv_sha256": "420f8813067c5610d6932aaaca3250762e65814750fb46d7272e6ca734466b95",
+      "source_snapshot": "uniform_smoke_20261021.sources.zip",
+      "source_snapshot_sha256": "1807cf24ee14754484854f88b538a69de3f72281b0c2c7ab90e5757b1339e08c",
+      "schedule_sha256": "072c5c10afb5f83719f07f50517b89dad0fddf79afcba921596bdf367e07aca2"
+    }
+  ]
+}

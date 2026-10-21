@@ -25,9 +25,11 @@ significant reduction over the classic multi-commodity flow model of
 Further, \citet{khaled2018compact} extended the model to include type-A maintenance
 requirements, which are defined by a maximum flying-time interval between maintenance checks, that adds other $O(n_f n_p D)$ 
 binary variables, where $D$ is the number of calendar days in the planning horizon. 
-Computational experiments reported in that paper show that instances with up
-to 1\,500 flight legs and 40 aircraft can be solved to certified optimality
-within one hour on a standard workstation.
+Their basic-model experiments include instances with about 1\,500 flight legs
+and 40 aircraft. Table~6 reports a nonzero residual gap for its largest
+no-presolve cell, so these results do not certify every such instance within
+one hour. The maintenance experiments in Tables~10--11 are separate and
+include three-hour time limits with nonzero residual gaps.
 
 \subsection*{Our contributions}
 
@@ -50,24 +52,26 @@ constraint count is therefore governed by the sparse conflict set
 $\mathcal O$ defined in \Cref{sec:basic}.
 
 
-\item \textbf{Cumulative-flight-time row correction.}  We show that the cumulative-flight-
-  time maintenance constraint (constraint (13) in \citet{khaled2018compact})
-  contains a logical flaw in opening and one-endpoint intervals, and in the handling of consecutive flights and maintenance events. 
-  We also show  by counterexample that a natural two-row endpoint split does not fully repair
-  the model. We therefore formulate an exact cumulative-state recursion that
-  propagates and resets the flight-hour counter without day-pair ambiguity.
+\item \textbf{Cumulative-flight-time modeling.} Constraint~(13) in
+  \citet{khaled2018compact} is a valid conditional bound between successive
+  checked endpoints, but it is not by itself a complete finite-horizon
+  maintenance-hour model: prior exposure and the opening interval to the first
+  check need separate protection. We demonstrate an opening gap in the
+  implementation's companion row, test a two-row endpoint split on its own
+  counterexample, and give exact state formulations for the stated
+  day-boundary policy.
 
 \item \textbf{Event-based reformulation.}  The day-indexed type-A model
-  above still repeats a calendar-day index across every maintenance
-  variable. We give a complete, day-free reformulation of the same type-A
-  C1--C13 requirements, in which each flight's own timestamp supplies all
-  calendar information and maintenance is represented as a virtual flight
-  triggered by, and indexed on, the preceding real flight rather than by
-  calendar day. This removes the day dimension from the maintenance model's
-  size and lets the flight-hour counter propagate exactly along each
-  aircraft's actual route, with no day-pair window and therefore no
-  possibility of the split-form failure mode proved for
-  the legacy cumulative-flight-time row.
+  above uses calendar-day maintenance decisions. We study two exact encodings
+  of an explicitly defined flexible-start, hour-limited extension: one uses
+  day-indexed trigger decisions and the other event-indexed decisions with
+  actual-start-day selectors. Both allow cross-day deferral and impose one
+  check per aircraft per actual start day. They share an event-aware hour
+  engine, and their projection equivalence follows by substitution of the
+  event aggregate. This is not a fully day-free model, nor an exact
+  reformulation of Khaled's complete nightly and calendar-spacing policy.
+  A fixed-night restriction is compared separately under otherwise identical
+  assumptions, and an independent schedule replay checks all loaded incumbents.
 \end{enumerate}
 
 \subsection*{Paper organisation}
@@ -76,8 +80,8 @@ $\mathcal O$ defined in \Cref{sec:basic}.
 basic TAP model and proves a C1--C4 corner-case correction closed by C1--C5.  \Cref{sec:maintenance}
 presents the maintenance-extended model, the cumulative-flight-time row correction, and
 the induced interpretation updates for C8--C13 under the corrected basic model.
-\Cref{sec:event_reformulation} gives the day-free event-based reformulation
-of the type-A requirements and proves its correctness directly.
+\Cref{sec:event_reformulation} gives event-aware A-hour constraints and the
+uniform flexible encodings, with their projection-equivalence proof.
 \Cref{sec:computational} reports the numeric cumulative-flight-time
 counterexample, the five-method A-only benchmark, and its three-seed subset.
 \Cref{sec:conclusion} concludes.

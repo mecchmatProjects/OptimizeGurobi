@@ -81,9 +81,11 @@ maintenance semantics, and solver-budget protocol.  In TAP, this condition is
 often not met across compact MILP, branch-and-price, Benders-decomposed, and
 robust/scenario formulations because these approaches typically optimize
 different decision scopes or uncertainty assumptions.  Accordingly, this paper
-uses \citet{khaled2018compact} as the direct compact baseline for
-instance-matched comparisons, and treats other MILP families as complementary
-reference paradigms rather than strict one-to-one benchmarks.
+uses \citet{khaled2018compact} as its compact-model reference, not as a
+literal reproduction of the complete original maintenance policy. The main
+instance-matched study compares uniform flexible encodings; historical
+C13 controls and fixed-night timing are labelled separately. Other MILP
+families are complementary paradigms rather than one-to-one benchmarks.
 
 \subsection{Maintenance constraints}
 
@@ -110,5 +112,7 @@ The compact formulation of \citet{khaled2018compact} represents the
 reference compact baseline for exact, cyclic-constraint-free TAP in this
 study.  The present work builds directly upon it, providing: (i) a
 diagnosis of the C1--C13 formulation in \citet{khaled2018compact} and an exact state-based replacement for the legacy cumulative-flight-time row, (ii) a
-new reformulation of the event-based model that resolves the counterexamples and improves computational performance, and (iii) an instance-matched benchmark
-of the implemented exact formulations.
+uniform flexible-start A-check encodings with an exact hour engine, and
+(iii) an instance-matched benchmark that separates encoding choices from
+maintenance-policy restrictions. Computational superiority is an empirical
+question, not a property assumed by the formulation.

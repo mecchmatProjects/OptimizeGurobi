@@ -165,11 +165,11 @@ flights conflicting with $i$. For every conflict edge and aircraft, impose
 \end{equation}
 
 The implementation can strengthen these pairwise inequalities by using maximal
-cliques of $G$. Let $\mathcal{K}$ be the set of all maximal cliques, defined by
+cliques of $G$. Let $\mathcal{K}$ contain the inclusion-maximal subsets
+$K\subseteq\F$ satisfying
 \begin{equation}
-  \mathcal{K}=\left\{K\subseteq\F:
-  |K|\geq2,\ \{i,\ell\}\in\mathcal{O}\ \forall i\neq\ell\in K,
-  \text{ and no strict superset of }K\text{ has this property}\right\}.
+  |K|\geq2,\qquad
+  \{i,\ell\}\in\mathcal{O}\quad\forall i,\ell\in K,\ i\neq\ell.
 \end{equation}
 For each maximal clique, impose the C5 inequality
 \begin{equation}\label{eq:c5_overlap}
@@ -205,10 +205,11 @@ $1.25$--$2$ times as many variables and constraints on their test instances.
 
 \subsection{Corrected proposition and its proof.}
 
-The issue with the proof of feasibility in the original model is that it does not account for simultaneous departures 
-of overlapping flights. Moreover, the logic of the published proof goes in the wrong direction, 
-and instead of proving that any solution of C1--C4 defines correct 
-feasibility, it proves that any feasible assignment flights satisfy C1-C4. 
+The published proof argues the sufficiency direction by ordering the flights
+assigned to each aircraft. The missing case is simultaneous departures:
+the strict departure-balance set does not distinguish two departures at the
+same timestamp. Our correction addresses that case; it is not a claim that
+the published proof considers only the necessity direction.
 
 
 The corrected proposition follows by considering the flights assigned to each

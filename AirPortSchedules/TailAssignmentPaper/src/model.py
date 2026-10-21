@@ -1686,7 +1686,7 @@ class MILP_Sheduler:
                             # Original Khaled et al. (2018) Eq. (13): a single
                             # constraint keyed on (2 - mega[d] - mega[d_]), which
                             # is trivially satisfied whenever either endpoint
-                            # indicator is 0 (the paper C13 flaw).
+                            # indicator is 0; opening coverage is a separate row family.
                             m.c13.add(
                                 t_sum <= hr_limit * 60
                                          + big_m * (2 - m.mega[j, d, c] - m.mega[j, d_, c])
@@ -1828,9 +1828,8 @@ class MILP_Sheduler:
             hr_limit = self.check_hrs[c]
             for j in m.P:
                 prior_hrs = self.init_check_hrs[c].get(j, 0.0)
-                # Iterate up to and including the last day (fixed off-by-one:
-                # was range(1, min(n-1, cd)) which dropped the final window).
-                for ei in range(1, n):
+                first_end = 0 if use_strict_state else 1
+                for ei in range(first_end, n):
                     d_   = days[ei]
                     if use_hour_state_flow:
                         t_sum = m.hour_cumulative[j, d_]
@@ -1846,7 +1845,10 @@ class MILP_Sheduler:
                     rhs = (hr_limit - prior_hrs) * 60 + self.M_BIG * y_mid
                     if not use_strict_state:
                         rhs += self.M_BIG * m.mega[j, d_, c]
-                    m.c13b.add(t_sum <= rhs)
+                    row = t_sum <= rhs
+                    if isinstance(row, bool):
+                        row = Constraint.Feasible if row else Constraint.Infeasible
+                    m.c13b.add(row)
 
     # ------------------------------------------------------------------
     # Constraint C15 – no flight during an active maintenance check
@@ -2017,6 +2019,7 @@ class MILP_Sheduler:
 
         n_var  = len(list(m.component_data_objects(ctype=Var)))
         n_con  = len(list(m.component_data_objects(ctype=Constraint)))
+        lo = hi = None
         try:
             lo = float(getattr(res.problem, 'lower_bound', None))
             hi = float(getattr(res.problem, 'upper_bound', None))
@@ -2043,6 +2046,8 @@ class MILP_Sheduler:
             gap=gap,
             cpu=cpu,
             obj=obj_v,
+            lower_bound=lo if lo is not None and math.isfinite(lo) else None,
+            upper_bound=hi if hi is not None and math.isfinite(hi) else None,
         )
         self.print_report(out_path=out_path, summary=summary)
         return summary

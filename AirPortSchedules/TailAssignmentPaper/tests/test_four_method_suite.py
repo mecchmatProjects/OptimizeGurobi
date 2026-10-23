@@ -1,10 +1,11 @@
+import csv
 import hashlib
 import json
 import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -13,9 +14,135 @@ if str(ROOT) not in sys.path:
 from experiments import run_four_method_suite
 from experiments.run_four_method_suite import write_run_metadata
 from experiments.report_uniform_study import audit_schedule
+from experiments.refresh_cplex_study import audit_batch, digest, execution_lock, render_ten_seed, verify_input
 
 
 class FourMethodSuiteTests(unittest.TestCase):
+    def test_checkpoint_resumes_after_interrupt_without_repeating_completed_solve(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "case.json"
+            source.write_text("{}", encoding="utf-8")
+            checkpoint = Path(directory) / "checkpoint.json"
+            methods = ["uniform_flexible_day", "uniform_flexible_event"]
+            def result(method):
+                return {
+                    "case": "case", "formulation": method, "status": "optimal",
+                    "has_solution": True, "replay_status": "pass", "replay_error": "",
+                    "_schedule": {"assignments": [[1, 0]], "events": []},
+                }
+            args = ([source], methods, "cplex", None, 30, "presolve_on",
+                    False, 1, None, False, "12.9.0.0", checkpoint)
+            with patch.object(run_four_method_suite, "run_case",
+                              side_effect=[result(methods[0]), KeyboardInterrupt]):
+                with self.assertRaises(KeyboardInterrupt):
+                    run_four_method_suite.checkpointed_cases(*args)
+            saved = json.loads(checkpoint.read_text(encoding="utf-8"))
+            self.assertEqual(len(saved["rows"]), 1)
+            self.assertIn("_schedule", saved["rows"][0])
+            with patch.object(run_four_method_suite, "run_case",
+                              return_value=result(methods[1])) as solve:
+                rows = run_four_method_suite.checkpointed_cases(*args)
+                self.assertEqual(solve.call_count, 1)
+                self.assertEqual(solve.call_args.args[1], methods[1])
+            self.assertEqual(len(rows), 2)
+            with patch.object(run_four_method_suite, "run_case") as solve:
+                self.assertEqual(len(run_four_method_suite.checkpointed_cases(*args)), 2)
+                solve.assert_not_called()
+            source.write_text('{"changed": true}', encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "inputs/code/settings changed"):
+                run_four_method_suite.checkpointed_cases(*args)
+
+    def test_execution_lock_releases_on_interrupt(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "run.lock"
+            with self.assertRaises(KeyboardInterrupt):
+                with execution_lock(path):
+                    with self.assertRaisesRegex(RuntimeError, "Another CPLEX refresh"):
+                        with execution_lock(path):
+                            self.fail("Concurrent runner acquired the lock")
+                    raise KeyboardInterrupt
+            with execution_lock(path):
+                pass
+
+    def test_refresh_audits_no_incumbent_and_rejects_tampering(self):
+        with tempfile.TemporaryDirectory(dir=ROOT) as directory:
+            folder = Path(directory)
+            source = folder / "case.json"
+            source.write_text(json.dumps({
+                "Aircrafts": [0], "Flights": [[1, "M", "M", 0, 60]],
+                "Maintenance_Families": ["A"],
+            }), encoding="utf-8")
+            output = folder / "run.csv"
+            row = {
+                "case": "case", "formulation": "uniform_flexible_day",
+                "status": "maxTimeLimit", "has_solution": "False",
+                "error": "", "replay_error": "", "lp_relaxation": "False",
+            }
+            with output.open("w", newline="", encoding="utf-8") as handle:
+                writer = csv.DictWriter(handle, fieldnames=list(row))
+                writer.writeheader()
+                writer.writerow(row)
+            output.with_suffix(".schedules.json").write_text("[]", encoding="utf-8")
+            executable = Path("cplex.exe")
+            metadata = write_run_metadata(
+                output, [source], "cplex", str(executable), "12.9.0.0",
+                1, 180, "presolve_on", False, None, False,
+                ["uniform_flexible_day"], False,
+            )
+            original = json.loads(metadata.read_text(encoding="utf-8"))["runs"][-1]
+            rows = audit_batch(output, original, executable, "12.9.0.0")
+            self.assertEqual(rows[0]["status"], "maxTimeLimit")
+            self.assertEqual(rows[0]["has_solution"], "False")
+            output.write_text("changed", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "artifact hash mismatch"):
+                audit_batch(output, original, executable, "12.9.0.0")
+
+    def test_refresh_accepts_only_archived_bytes_or_line_endings(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "input.json"
+            path.write_bytes(b'{\n  "value": 1\n}\n')
+            self.assertEqual(verify_input(path, digest(path.read_bytes())), "exact")
+            expected = digest(path.read_bytes().replace(b"\n", b"\r\n"))
+            self.assertEqual(verify_input(path, expected), "line_endings_only")
+            path.write_bytes(b'{\n  "value": 2\n}\n')
+            with self.assertRaisesRegex(ValueError, "Scientific input differs"):
+                verify_input(path, expected)
+
+    def test_presolve_off_reaches_both_cplex_interfaces(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "case.json"
+            path.write_text(json.dumps({
+                "Aircrafts": [0], "Flights": [[1, "M", "M", 0, 60]],
+            }), encoding="utf-8")
+            for backend in ("cplex", "cplexamp"):
+                with self.subTest(backend=backend):
+                    scheduler = Mock()
+                    scheduler.solve.return_value = {"status": "infeasible", "has_solution": False}
+                    with patch.dict(run_four_method_suite.FORMULATIONS, {"test": Mock(return_value=scheduler)}), \
+                         patch.object(run_four_method_suite, "model_size", return_value=(1, 1)):
+                        row = run_four_method_suite.run_case(
+                            path, "test", backend, "cplex.exe", 30,
+                            "presolve_off", False, 1, None, False,
+                        )
+                    self.assertEqual(row["status"], "infeasible")
+                    self.assertEqual(scheduler.solve.call_args.kwargs["solver_options"], {
+                        "threads": 1, "preprocessing presolve": 0,
+                    })
+
+    def test_ten_seed_report_counts_only_jointly_optimal_pairs(self):
+        rows = [
+            {"case": "a", "P": "5", "H": "30", "formulation": "uniform_flexible_day",
+             "status": "optimal", "objective": "100", "wall_s": "1"},
+            {"case": "a", "P": "5", "H": "30", "formulation": "uniform_flexible_event",
+             "status": "maxTimeLimit", "objective": "101", "wall_s": "180"},
+        ]
+        text = render_ten_seed(rows, "test", "12.9.0.0")
+        self.assertIn("5 & 30 & 1/10 & -- & 0/10 & -- & 0/10", text)
+        self.assertIn("raw CSV is absent", text)
+        rows[1].update(status="optimal")
+        with self.assertRaisesRegex(ValueError, "objective mismatch"):
+            render_ten_seed(rows, "test", "12.9.0.0")
+
     def test_saved_schedule_audit_rejects_cost_and_timing_tampering(self):
         data = {
             "Aircrafts": [0], "AIRCRAFT_INIT_POS": {"0": "M"},

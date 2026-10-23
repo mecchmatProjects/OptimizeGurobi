@@ -50,7 +50,7 @@ def audit_schedule(data, schedule, policy, objective):
             problems.append("maintenance deferral")
         if abs(start / grid - round(start / grid)) > tolerance:
             problems.append("start off grid")
-        day = int(start // 1440) + 1
+        day = int((start + tolerance) // 1440) + 1
         starts[aircraft, day] += 1
         triggers[flight, aircraft] += 1
         night = policy["night_start_minute"]

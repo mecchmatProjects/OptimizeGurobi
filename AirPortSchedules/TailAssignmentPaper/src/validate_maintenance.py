@@ -181,7 +181,8 @@ def _validate_ordered_event_windows(opt, tol):
     if hasattr(model, "c_one_check_per_start_day"):
         starts_by_day = defaultdict(list)
         for event in events:
-            start_day = int(event["start"] // opt.DAY_SHIFT) + 1
+            # A solver may return an exact midnight infinitesimally below it.
+            start_day = int((event["start"] + tol) // opt.DAY_SHIFT) + 1
             starts_by_day[event["aircraft"], start_day].append(event["flight"])
             selected_days = [
                 index[2] for index in model.Z_START

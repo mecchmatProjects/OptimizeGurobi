@@ -21,6 +21,7 @@ import csv
 import hashlib
 import io
 import json
+import os
 import platform
 import shutil
 import subprocess
@@ -31,6 +32,7 @@ from pathlib import Path
 
 import pyomo
 from pyomo.environ import Constraint, TransformationFactory, Var, value
+from tqdm import tqdm
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -79,6 +81,8 @@ DEFAULT_FORMULATIONS = (
 )
 PROVENANCE_SOURCES = (
     ROOT / "experiments" / "run_four_method_suite.py",
+    ROOT / "experiments" / "refresh_cplex_study.py",
+    ROOT / "experiments" / "report_uniform_study.py",
     ROOT / "src" / "model.py",
     ROOT / "src" / "compact_a_event_model.py",
     ROOT / "src" / "generate_feasible_instances.py",
@@ -348,7 +352,7 @@ def run_case(path: Path, formulation: str, solver: str, executable: str | None, 
                     "threads": threads,
                     **(
                         {"preprocessing presolve": 0}
-                        if configuration == "presolve_off" and solver.lower() == "cplexamp"
+                        if configuration == "presolve_off" and solver.lower() in {"cplex", "cplexamp"}
                         else {}
                     ),
                 },
@@ -410,24 +414,82 @@ def run_case(path: Path, formulation: str, solver: str, executable: str | None, 
     return row
 
 
+def checkpointed_cases(paths, active, solver, executable, limit, configuration,
+                       warm_start, threads, legacy_deferral_days, lp_relaxation,
+                       solver_version, checkpoint_path=None):
+    signature = {
+        "sources": {str(path.relative_to(ROOT)): sha256_file(path) for path in PROVENANCE_SOURCES},
+        "inputs": {str(path.resolve()): sha256_file(path) for path in paths},
+        "solver": solver, "executable": executable, "solver_version": solver_version,
+        "executable_sha256": sha256_file(Path(executable)) if executable else None,
+        "limit": limit, "configuration": configuration, "warm_start": warm_start,
+        "threads": threads, "legacy_deferral_days": legacy_deferral_days,
+        "lp_relaxation": lp_relaxation, "methods": active,
+    } if checkpoint_path else None
+    saved = {}
+    if checkpoint_path and checkpoint_path.exists():
+        checkpoint = json.loads(checkpoint_path.read_text(encoding="utf-8"))
+        if checkpoint["signature"] != signature:
+            raise ValueError(f"Checkpoint inputs/code/settings changed: {checkpoint_path}; use a new tag or --rerun")
+        for item in checkpoint["rows"]:
+            key = item["case"], item["formulation"]
+            if key in saved:
+                raise ValueError(f"Duplicate checkpoint row: {key}")
+            saved[key] = item
+        expected = {(path.stem, method) for path in paths for method in active}
+        if not set(saved).issubset(expected):
+            raise ValueError(f"Unexpected rows in checkpoint: {checkpoint_path}")
+        print(f"Resuming {len(saved)}/{len(expected)} saved solves from {checkpoint_path}", flush=True)
+    rows = []
+    for path in tqdm(paths, desc=RESULTS_PATH.stem):
+        for formulation in active:
+            key = path.stem, formulation
+            row = saved.get(key)
+            if row is None or row["status"] == "ERROR" or row.get("replay_error"):
+                print(f"SOLVE {path.stem} / {formulation}", flush=True)
+                row = run_case(
+                    path, formulation, solver, executable, limit, configuration,
+                    warm_start, threads, legacy_deferral_days, lp_relaxation,
+                )
+                saved[key] = row
+                if checkpoint_path:
+                    checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
+                    temporary = checkpoint_path.with_suffix(".tmp")
+                    with temporary.open("w", encoding="utf-8") as handle:
+                        json.dump({"signature": signature, "rows": list(saved.values())}, handle)
+                        handle.write("\n")
+                        handle.flush()
+                        os.fsync(handle.fileno())
+                    os.replace(temporary, checkpoint_path)
+                    print(f"CHECKPOINT {len(saved)}/{len(paths) * len(active)}: {row['status']}", flush=True)
+            if checkpoint_path:
+                unsafe = formulation in {"legacy_paper_c13", "legacy_endpoint_split"}
+                if row["status"] == "ERROR" or row.get("replay_error"):
+                    raise ValueError(f"Solve failed; details saved in checkpoint: {row}")
+                if row["has_solution"] and not lp_relaxation and (
+                    row["replay_status"] not in ({"pass", "fail"} if unsafe else {"pass"})
+                    or "_schedule" not in row
+                ):
+                    raise ValueError(f"Incumbent failed validation; checkpoint retained: {key}")
+            rows.append(dict(row))
+    return rows
+
+
 def run_suite(solver: str, executable: str | None, limit: int, threads: int,
               solver_version: str | None, configuration: str, warm_start: bool, pattern: str,
               legacy_deferral_days: int | None, lp_relaxation: bool,
-              formulations: list[str] | None = None, append: bool = False) -> None:
+              formulations: list[str] | None = None, append: bool = False,
+              checkpoint_path: Path | None = None) -> None:
     active = formulations or list(DEFAULT_FORMULATIONS)
     paths = sorted(
         path for path in SUITE_DIR.glob(pattern) if path.name != "manifest.json"
     )
     if not paths:
         raise SystemExit("Suite is empty; run with --generate first.")
-    rows = [
-        run_case(
-            path, formulation, solver, executable, limit, configuration,
-            warm_start, threads, legacy_deferral_days, lp_relaxation,
-        )
-        for path in paths
-        for formulation in active
-    ]
+    rows = checkpointed_cases(
+        paths, active, solver, executable, limit, configuration, warm_start,
+        threads, legacy_deferral_days, lp_relaxation, solver_version, checkpoint_path,
+    )
     RESULTS_PATH.parent.mkdir(parents=True, exist_ok=True)
     schedules_path = RESULTS_PATH.with_suffix(".schedules.json")
     schedules = [row.pop("_schedule") for row in rows if "_schedule" in row]

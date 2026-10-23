@@ -318,6 +318,71 @@ This paper studies three contributions relative to Khaled et al. (2018):
 
 
 --------------------------------------------------------------------------------
+CPLEX 12.9 REFRESH OF THE OCTOBER 2026 GUROBI GRIDS
+--------------------------------------------------------------------------------
+
+The supplied CPLEX Studio installation reports version 12.9.0.0. This is a
+new replication, separate from the historical CPLEX 12.6 and Gurobi 11.0.3
+snapshots. Run from this project directory in PowerShell:
+
+    $cplex = 'F:\LT\IJOC_SDDP_for_Multi-Echelon_Lot-Sizing_with_Component_Substitution\cplex\CPLEX_Studio\cplex\bin\x64_win64\cplex.exe'
+    .\.venv\Scripts\python.exe experiments\refresh_cplex_study.py --executable $cplex --stage all --inventory-only
+    .\.venv\Scripts\python.exe -u experiments\refresh_cplex_study.py --executable $cplex --stage core
+    .\.venv\Scripts\python.exe -u experiments\refresh_cplex_study.py --executable $cplex --stage extended
+
+Use --stage all for a single sequential run. Core starts with the 80-solve
+ten-seed uniform study, then runs matched historical/uniform models, repaired
+LP/MIP ablations, fixed-night restrictions, and the earlier seed subsets.
+Extended runs P=20/30 historical models (300 s), P=20/30 uniform encodings
+(600 s), and P=40/50 historical models (200 s). Limits come from the archived
+metadata, not the inconsistent blanket 600-second description in the old paper.
+The full refresh can take hours; do not run competing solver jobs during it.
+C5 and the separately driven C13/pruning controls are not part of this command.
+
+The driver checks the executable version, archived input hashes (accepting
+LF/CRLF-only checkout differences without rewriting inputs), mathematical source
+hashes, exact method/input grids, result sidecars, and incumbent replays.
+Uniform incumbents also pass the saved-decision cost/timing/route/capacity audit.
+Historical paper-C13 and endpoint-split replay failures are retained as evidence;
+replay failure of an exact formulation stops the refresh.
+
+Outputs use results/tables/cplex129_20261023_<original-study-name>.*.
+The *_audit.json records inventories and each completed batch's audit/summary.
+Completed batches are revalidated and skipped when the command is repeated.
+Use a new --tag for a different run or --rerun to explicitly replace this
+refresh's outputs; historical Gurobi/CPLEX files are never overwritten.
+Every completed solve (including its saved schedule and replay result) is
+atomically saved in a *.checkpoint.json file, before the next solve starts.
+Ctrl+C, closing VS Code, or shutting down the computer loses at most the active
+solve; repeat the same command to skip completed solves and continue. CPLEX's
+internal branch-and-bound state is not saved: the interrupted solve restarts.
+The checkpoint checks source, input, executable and configuration hashes before
+reuse; it refuses to mix incompatible results. Solver errors are saved and
+retried on resume, while invalid exact-model incumbents stop for investigation.
+An OS file lock prevents concurrent refresh commands and is released on exit
+or process termination; the remaining .lock file does not mean a job is active.
+Do not edit experiment/model sources during a run.
+
+For a session-independent command from a fresh PowerShell terminal:
+
+    & 'F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\TailAssignmentPaper\experiments\resume_cplex_study.ps1'
+
+This wrapper locates the project Python itself, needs no environment activation,
+and defaults to the full grid with tag 20261023. Run the identical command after
+an interruption. Optional parameters are -Stage core/extended/all, -Tag, and
+-Executable. It runs in the foreground of that terminal, not in this chat.
+For progress, inspect *.checkpoint.json: the rows array contains completed
+solves. Final CSVs and audit reports are produced when a batch finishes.
+The ten-seed batch also produces a LaTeX table alongside its CSV; review and
+copy it into the paper only after the batch audit passes.
+
+The local checkout lacks the Gurobi raw CSVs referenced by its metadata,
+although metadata, saved schedules and source archives are present. The
+replication ZIP also lacks these CSVs. Until the originals are recovered and
+hash-verified, do not claim a newly verified paired cross-solver comparison or
+infer missing timings, gaps, bounds or objectives from schedules.
+
+--------------------------------------------------------------------------------
 FREE SOLVER ALTERNATIVES
 --------------------------------------------------------------------------------
 
@@ -332,5 +397,3 @@ FREE SOLVER ALTERNATIVES
   HiGHS (free, modern, excellent performance):
       pip install highspy
       Use: --solver highs
-
-

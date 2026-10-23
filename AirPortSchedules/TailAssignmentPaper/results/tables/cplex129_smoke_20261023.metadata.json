@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "runs": [
+    {
+      "git_revision": "77259f269daf3b30a806c14bfaf16289d2cab1ea",
+      "python": "3.12.0",
+      "pyomo": "6.10.1",
+      "sources": {
+        "experiments\\run_four_method_suite.py": "920a0b25fdec3f4333d19307a88462f33e26e326ca041547f40b2bdedd219e82",
+        "src\\model.py": "2e2f4a11b218716c2f8073eacefe01e74bb9e9a7c241b11437949ffda8a8a14b",
+        "src\\compact_a_event_model.py": "69b7e2336dd2a09fa9513dc5ad1e6feb9014c33f7e382b340ee2d8e7886d983c",
+        "src\\generate_feasible_instances.py": "111b2a7a58c16e45c3c6792a48ec62544c5b5bafe80e4622635528c650c2faf0",
+        "src\\generate_instances.py": "dbf75cf082f1789d52cf844ef4aa53c56b70bd8a27e9a626191d25f83d7e0377",
+        "src\\validate_maintenance.py": "9f8494b6e191e329c75d82f5e9ce7168895327c5f261e857c5bf912692a776d8"
+      },
+      "inputs": {
+        "data\\five_method_longflight_e14_e21_compact\\perf_p=5_h=29.json": {
+          "sha256": "6637f61c198838443deffd52d90c0bfd18d703929afd08faebd0740148969e24",
+          "P": 5,
+          "observed_H": 30,
+          "F": 74,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        }
+      },
+      "configuration": {
+        "methods": [
+          "uniform_flexible_day",
+          "uniform_flexible_event"
+        ],
+        "effective_enabled_checks": [
+          "A"
+        ],
+        "solver": "cplex",
+        "solver_version": "12.9.0.0",
+        "executable": "F:\\LT\\IJOC_SDDP_for_Multi-Echelon_Lot-Sizing_with_Component_Substitution\\cplex\\CPLEX_Studio\\cplex\\bin\\x64_win64\\cplex.exe",
+        "time_limit_s": 30,
+        "threads": 1,
+        "presolve_configuration": "presolve_on",
+        "warm_start": false,
+        "legacy_max_hour_check_deferral_days": null,
+        "lp_relaxation": false,
+        "event_based_optimized_policy": "immediate-after-trigger-flight",
+        "event_based_flex_max_deferral_minutes": 1440.0,
+        "policies": {
+          "uniform_flexible_day": {
+            "policy_id": "flexible_start_day_cap_v1",
+            "day_indexed_z": true,
+            "maximum_start_deferral_minutes": 1440.0,
+            "time_grid_minutes": 1.0,
+            "one_check_per": "aircraft_actual_start_calendar_day",
+            "capacity": "simultaneous_half_open_bay_occupancy",
+            "calendar_spacing_requirement": null,
+            "night_start_minute": null
+          },
+          "uniform_flexible_event": {
+            "policy_id": "flexible_start_day_cap_v1",
+            "day_indexed_z": false,
+            "maximum_start_deferral_minutes": 1440.0,
+            "time_grid_minutes": 1.0,
+            "one_check_per": "aircraft_actual_start_calendar_day",
+            "capacity": "simultaneous_half_open_bay_occupancy",
+            "calendar_spacing_requirement": null,
+            "night_start_minute": null
+          }
+        }
+      },
+      "result_csv_sha256": "262e7c552f6f15072ae417bce6cb8fced63d5b27514a7ecf617d35186b465a6e",
+      "source_snapshot": "cplex129_smoke_20261023.sources.zip",
+      "source_snapshot_sha256": "707692d960dce49db485eda9debba1c0b60e1cb41780dbee4fecdd551e35a889",
+      "schedule_sha256": "69459218f500b655c17369abb510886800d93550805bd3e61d71b834e0a28680"
+    }
+  ]
+}

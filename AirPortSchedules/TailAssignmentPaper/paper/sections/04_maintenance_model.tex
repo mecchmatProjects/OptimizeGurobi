@@ -345,11 +345,8 @@ $T^A_{\max}$. This is particularly tighter near the beginning of the
 planning horizon.
 
 Finally, the strengthened implementation generates maximal interval-clique
-rows for flight overlap. The implementation is
-\path{LegacyCorrectedStrengthenedMILPScheduler}; the original
-\path{LegacyCorrectedMILPScheduler} remains available for the earlier
-four-method baseline; the current five-method scale-up uses the strengthened
-class.
+rows for flight overlap. This strengthened form is used for all
+corrected day-indexed results in \Cref{sec:computational}.
 
 \subsection{Pre-horizon accumulated hours}
 \label{subsec:c11_pre_horizon}
@@ -465,11 +462,12 @@ original type-A calendar-spacing rule is outside this theorem's assumptions.
   Combined with (i), this yields a realizable single-aircraft flight timeline.
 
   \textbf{(iii) Maintenance event consistency.}
-  By~\eqref{eq:c9}, maintenance trigger variables can only be activated on
-  assigned flights. By the aggregation equality~\eqref{eq:c11}, each day's
-  maintenance trigger is represented by the single aggregate indicator $y_{jd}$;
-  by the binary day indicator in~\eqref{eq:c11}, the maintenance triggers on
-  day $d$ are represented by the corresponding aggregate maintenance state.
+  By~\eqref{eq:c9}, a maintenance trigger $z_{ijd}$ can be active only if flight
+  $i$ is assigned to $j$. By the aggregation equality~\eqref{eq:c11}, the day
+  indicator $y_{jd}$ equals the number of triggers on day $d$; it is binary
+  and therefore at most one trigger per aircraft and day is active. The hour
+  rows below use $y_{jd}$ only, so every reset is attached to an assigned
+  flight and a unique day.
 
   \textbf{(iv) Maintenance capacity and blocking.}
   By~\eqref{eq:c10}, airport-day capacities are respected. By~\eqref{eq:c8}, if

@@ -1,0 +1,6 @@
+file,density,p,h,airports,flights,objective,assigned,unassigned,status
+DataCplex_density=1_p=40_h=30_test_0.json,1.0,40,30,12,1200,2627463.0,1200,0,ok
+DataCplex_density=1_p=40_h=30_test_1.json,1.0,40,30,12,1200,2380099.0,1200,0,ok
+DataCplex_density=1_p=40_h=30_test_2.json,1.0,40,30,12,1200,2341102.0,1200,0,ok
+DataCplex_density=1_p=40_h=30_test_3.json,1.0,40,30,12,1200,2195648.0,1200,0,ok
+DataCplex_density=1_p=40_h=30_test_4.json,1.0,40,30,12,1200,2228298.0,1200,0,ok

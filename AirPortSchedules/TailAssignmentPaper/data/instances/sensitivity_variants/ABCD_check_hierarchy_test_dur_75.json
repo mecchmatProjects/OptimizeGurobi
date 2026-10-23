@@ -1,0 +1,259 @@
+{
+  "_comment": [
+    "=== TEST FILE: Check hierarchy \u00e2\u20ac\u201d B-check substitutes overdue A-check ===",
+    "",
+    "Four aircraft with mixed A/B threshold states:",
+    "",
+    "  AC0: A_init=27001 (A overdue), B_init=42001 (B also overdue)",
+    "       -> HEURISTIC (D>C>B>A priority): B-check (2880 min) scheduled, resets both counters.",
+    "       -> MILP --no-check-hierarchy: B-check AND A-check required on separate days.",
+    "       -> MILP with hierarchy ON: B-check alone covers A requirement (1 event, not 2).",
+    "",
+    "  AC1: A_init=0, B_init=42001 (only B overdue)",
+    "       -> B-check regardless of hierarchy flag.",
+    "",
+    "  AC2: A_init=26800, B_init=0  (A triggered mid-horizon after 200 min flight)",
+    "       -> 26800 + 200 = 27000 >= threshold -> A-check on arrival at C.",
+    "",
+    "  AC3: all zeros, starts at C \u00e2\u20ac\u201d free aircraft for C->B outbound legs.",
+    "",
+    "NOTE: --no-check-hierarchy has NO effect on the heuristic (heuristic always",
+    "      uses D>C>B>A priority and natural counter resets). The flag only changes",
+    "      MILP constraint c_hierarchy.",
+    "",
+    "Heuristic (both flags give identical output):",
+    "  py -3 heu180h.py --data inputsABCD/ABCD_check_hierarchy_test.json --no-show",
+    "MILP comparison (observe AC0 gets 1 vs 2 check events):",
+    "  py -3 heu180h.py --mode milp --data inputsABCD/ABCD_check_hierarchy_test.json --solver cplex --no-show",
+    "  py -3 heu180h.py --mode milp --data inputsABCD/ABCD_check_hierarchy_test.json --solver cplex --no-check-hierarchy --no-show",
+    "",
+    "Horizon: ~10 days.  Station_Capacity: C=4."
+  ],
+  "Aircrafts": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "AIRCRAFT_INIT_POS": {
+    "0": "B",
+    "1": "B",
+    "2": "B",
+    "3": "C"
+  },
+  "Flights": [
+    [
+      1,
+      "B",
+      "C",
+      60.0,
+      260.0
+    ],
+    [
+      2,
+      "B",
+      "C",
+      80.0,
+      280.0
+    ],
+    [
+      3,
+      "B",
+      "C",
+      100.0,
+      300.0
+    ],
+    [
+      4,
+      "C",
+      "B",
+      400.0,
+      600.0
+    ],
+    [
+      5,
+      "C",
+      "B",
+      700.0,
+      900.0
+    ],
+    [
+      6,
+      "B",
+      "C",
+      700.0,
+      900.0
+    ],
+    [
+      7,
+      "C",
+      "B",
+      1000.0,
+      1200.0
+    ],
+    [
+      8,
+      "B",
+      "C",
+      3200.0,
+      3400.0
+    ],
+    [
+      9,
+      "C",
+      "B",
+      3500.0,
+      3700.0
+    ],
+    [
+      10,
+      "B",
+      "C",
+      3600.0,
+      3800.0
+    ],
+    [
+      11,
+      "C",
+      "B",
+      4000.0,
+      4200.0
+    ],
+    [
+      12,
+      "B",
+      "C",
+      5000.0,
+      5200.0
+    ],
+    [
+      13,
+      "C",
+      "B",
+      5300.0,
+      5500.0
+    ]
+  ],
+  "Cost_Matrix": [
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ]
+  ],
+  "Maintenance_Thresholds": {
+    "A": 27000,
+    "B": 42000,
+    "C": 600,
+    "D": 2920
+  },
+  "Maintenance_Durations": {
+    "A": 270.0,
+    "B": 2160.0,
+    "C": 15120.0,
+    "D": 45360.0
+  },
+  "Station_Capacity": {
+    "C": 4,
+    "B": 0
+  },
+  "Initial_Checks": {
+    "A": {
+      "0": 27001,
+      "1": 0,
+      "2": 26800,
+      "3": 0
+    },
+    "B": {
+      "0": 42001,
+      "1": 42001,
+      "2": 0,
+      "3": 0
+    },
+    "C_Days": {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0
+    },
+    "D_Days": {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0
+    }
+  }
+}

@@ -19,17 +19,45 @@ not independent physical validation or a day-free reformulation of Khaled's
 complete nightly/calendar-spacing model. A fixed 22:00 comparison restricts
 the flexible model without changing its resource or cost rules.
 
+The practical significance of the first correction depends on the instance:
+the timetables used here contain up to 153 same-airport pairs with identical
+departure times, yet with aircraft-specific costs the legacy optimum was
+already executable. Under neutral costs the legacy rows produced a cheaper but
+non-executable plan in four of seven instances, with an objective understated
+by 0.008--0.035\%. On twelve larger instances (300--452 flights, 20--30
+aircraft) the legacy rows were non-executable under neutral costs in every
+instance, with an objective understated by 0.04--0.14\%, whereas C1--C5 never
+was. The non-overlap rows therefore cost model size and, at this scale, some
+solution time, but they are needed for executable plans and change the
+objective only slightly.
+
 In the historical, nonuniform-policy study, post-solve replay reports no
 flight-hour violations for the six
 strengthened legacy optima and the four optimal schedules from each Event-based
-method. The original paper-C13 and endpoint-split formulations produce 663 and
-183 violations, respectively, across the six instances. Their lower objectives
-therefore do not represent feasible performance advantages under the replayed
-A-check semantics. The replay also checks ordered-event timing, capacity, and
-flight blocking; its four time-limited Event-based schedules remain
-unvalidated in that historical snapshot. New uniform runs instead replay
-every loaded incumbent, including time limits, and save the decisions for an
-additional artifact-level cost and feasibility audit.
+method in the CPLEX run. The original paper-C13 and endpoint-split
+formulations produce 663 and 183 flight-hour replay violations, respectively,
+across the six CPLEX-selected schedules. A matched Gurobi~11.0.3 rerun returns
+the same objective values but yields 672 and 200 violations, respectively.
+These differing totals show that replay counts depend on the selected optimal
+schedule and should not be interpreted as invariant formulation properties.
+Nevertheless, every replayed schedule from these two formulations fails the
+independent hour audit. All six corrected schedules and the four optimal
+Event-based schedules per method pass in the CPLEX run; all six Gurobi
+schedules per corrected or Event-based method pass. Gurobi also proves
+optimality for the four larger Event-based cases that reached the CPLEX time
+limit, and those Gurobi schedules pass replay. The audit checks event timing,
+capacity, flight blocking, and flight-hour feasibility. New uniform runs
+replay every loaded incumbent, including time-limited ones, and save the
+decisions for a separate artifact-level cost and feasibility audit.
+
+The larger A-only runs extend the scale check to 752 flights and 50 aircraft.
+They reinforce the need for independent replay: the original row and endpoint
+split fail the hour audit in every returned schedule, while all available
+strengthened-legacy and event-based incumbents pass. The uniform encodings
+prove optimality in only three of twelve runs each at 300--452 flights, so
+their scale results are limited to feasibility of returned incumbents and do
+not support a runtime ranking. No real airline timetable was available for
+this study.
 
 The historical results do not show a general Event-based speedup. On the four common
 optimal cells, the strengthened legacy model has lower mean CPU and wall time
@@ -37,12 +65,17 @@ than either Event-based method, while the per-cell and model-size results vary.
 An optional A-check-pruning reduction also preserves the optimum on one
 constructed instance where no tail can reach its hour threshold, but this is
 model-size evidence rather than a runtime result on maintenance-critical cases.
-The six-cell scale-up uses one seed per cell; a separate three-seed P=5/10
-subset confirms objective matching and shows substantial timing variation on
-the P=10, H=30 cell. This small replication is descriptive and does not
-establish statistical performance ranking or solver-independent dominance.
-The new comparisons also use CPLEX 12.6; timings remain descriptive rather
-than solver-independent or statistically isolated performance evidence.
+The six-cell scale-up uses one seed per cell; a ten-seed Gurobi replication of
+the P=5/10 cells returns identical optima for the two uniform encodings in all
+80 runs and finds the event-indexed encoding faster in 6--9 of ten instances
+per cell, with modest effect sizes and a contrary sign in the earlier CPLEX
+three-seed subset. This evidence is descriptive and does not
+establish a statistical performance ranking or solver-independent dominance.
+A matched Gurobi run supports the objective and feasibility conclusions, but
+its solver-selected replay counts differ for the two deficient hour
+formulations. The computational evidence uses one configuration per solver;
+timings remain descriptive and do not establish solver-independent or
+statistically isolated performance differences.
 
 \paragraph{Reproducibility.}
 The project contains the model implementations, deterministic instance
@@ -58,9 +91,10 @@ distinguish model semantics from implementation choices.
   \item \textbf{Larger A-only benchmark families:} repeat the horizon and
     fleet-size experiments over multiple seeds and heterogeneous timetable
     structures, reporting solver variability and confidence intervals.
-  \item \textbf{Solver and configuration robustness:} repeat the comparison
-    with and without presolve, under different time limits and warm-start
-    policies, and with an independently implemented MILP solver.
+  \item \textbf{Solver and configuration robustness:} extend the initial
+    CPLEX--Gurobi cross-check across multiple solver configurations, including
+    presolve, time limits, and warm-start policies, and report variability in
+    both runtimes and replay outcomes.
   \item \textbf{Integrated fleet assignment and routing:} extend the corrected
     compact model while retaining physically executable route constraints.
   \item \textbf{Robust and recoverable variants:} study uncertainty in flight

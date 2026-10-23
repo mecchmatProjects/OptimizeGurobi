@@ -1,0 +1,294 @@
+{
+  "_comment": [
+    "=== TEST FILE: Concurrent B-checks (medium) and C-check (long duration) ===",
+    "",
+    "Five aircraft with a mix of check types running simultaneously at station C:",
+    "",
+    "  AC0: B_init=42001 (B-check overdue, duration=2880 min \u00e2\u2030\u02c6 2 days)",
+    "       -> flies f1 B->C, arrives t=260, B-check: 260 -> 3140",
+    "",
+    "  AC1: B_init=42001 (B-check overdue, same as AC0)",
+    "       -> flies f2 B->C, arrives t=280, B-check: 280 -> 3160",
+    "",
+    "  AC2: C_Days_init=600 (C-check overdue, duration=20160 min = 14 days)",
+    "       -> flies f3 B->C, arrives t=300, C-check: 300 -> 20460",
+    "",
+    "  AC3, AC4: all zeros, start at C \u00e2\u20ac\u201d free aircraft for outbound legs",
+    "",
+    "Station_Capacity: C=3 (enough for all three simultaneously, tests parallelism).",
+    "Horizon: ~20 days (28,800 min).",
+    "",
+    "Expected output (MILP):",
+    "  AC0: F1->B-check (260->3140), then F8/F10/F11 post-maintenance.",
+    "  AC1: F2->B-check (280->3160), then F9/F12 post-maintenance.",
+    "  AC2: F3->C-check (300->20460), then F13 at 20600 and F14 at 21000.",
+    "  AC3: F4(C->B dep=400)->F6(B->C dep=700)->F7(C->B dep=1000) routing.",
+    "  AC4: F5(C->B dep=500) and other free legs.",
+    "  All 14 flights assigned.",
+    "",
+    "Note: F7 dep=1000 (not 800) allows AC3 to return via F6(arr=900) before dep.",
+    "",
+    "Run: py -3 heu180h.py --data inputsABCD/ABCD_two_b_one_c_test.json",
+    "     --no-check-hierarchy --no-show"
+  ],
+  "Aircrafts": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "AIRCRAFT_INIT_POS": {
+    "0": "B",
+    "1": "B",
+    "2": "B",
+    "3": "C",
+    "4": "C"
+  },
+  "Flights": [
+    [
+      1,
+      "B",
+      "C",
+      60.0,
+      260.0
+    ],
+    [
+      2,
+      "B",
+      "C",
+      80.0,
+      280.0
+    ],
+    [
+      3,
+      "B",
+      "C",
+      100.0,
+      300.0
+    ],
+    [
+      4,
+      "C",
+      "B",
+      400.0,
+      600.0
+    ],
+    [
+      5,
+      "C",
+      "B",
+      500.0,
+      700.0
+    ],
+    [
+      6,
+      "B",
+      "C",
+      700.0,
+      900.0
+    ],
+    [
+      7,
+      "C",
+      "B",
+      1000.0,
+      1200.0
+    ],
+    [
+      8,
+      "C",
+      "B",
+      3500.0,
+      3700.0
+    ],
+    [
+      9,
+      "C",
+      "B",
+      3600.0,
+      3800.0
+    ],
+    [
+      10,
+      "B",
+      "C",
+      4000.0,
+      4200.0
+    ],
+    [
+      11,
+      "C",
+      "B",
+      4300.0,
+      4500.0
+    ],
+    [
+      12,
+      "B",
+      "C",
+      4500.0,
+      4700.0
+    ],
+    [
+      13,
+      "C",
+      "B",
+      20600.0,
+      20800.0
+    ],
+    [
+      14,
+      "B",
+      "C",
+      21000.0,
+      21200.0
+    ]
+  ],
+  "Cost_Matrix": [
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ]
+  ],
+  "Maintenance_Thresholds": {
+    "A": 27000,
+    "B": 42000,
+    "C": 600,
+    "D": 2920
+  },
+  "Maintenance_Durations": {
+    "A": 360,
+    "B": 2880,
+    "C": 20160,
+    "D": 60480
+  },
+  "Station_Capacity": {
+    "C": 2,
+    "B": 0
+  },
+  "Initial_Checks": {
+    "A": {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0
+    },
+    "B": {
+      "0": 42001,
+      "1": 42001,
+      "2": 0,
+      "3": 0,
+      "4": 0
+    },
+    "C_Days": {
+      "0": 0,
+      "1": 0,
+      "2": 600,
+      "3": 0,
+      "4": 0
+    },
+    "D_Days": {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0
+    }
+  }
+}

@@ -1,0 +1,191 @@
+{
+  "schema_version": 1,
+  "runs": [
+    {
+      "git_revision": "6cbc1d4719def1299920f67b62775e8396bbc4af",
+      "python": "3.12.4",
+      "pyomo": "6.10.1",
+      "sources": {
+        "experiments\\run_four_method_suite.py": "920a0b25fdec3f4333d19307a88462f33e26e326ca041547f40b2bdedd219e82",
+        "src\\model.py": "2e2f4a11b218716c2f8073eacefe01e74bb9e9a7c241b11437949ffda8a8a14b",
+        "src\\compact_a_event_model.py": "69b7e2336dd2a09fa9513dc5ad1e6feb9014c33f7e382b340ee2d8e7886d983c",
+        "src\\generate_feasible_instances.py": "111b2a7a58c16e45c3c6792a48ec62544c5b5bafe80e4622635528c650c2faf0",
+        "src\\generate_instances.py": "dbf75cf082f1789d52cf844ef4aa53c56b70bd8a27e9a626191d25f83d7e0377",
+        "src\\validate_maintenance.py": "9f8494b6e191e329c75d82f5e9ce7168895327c5f261e857c5bf912692a776d8"
+      },
+      "inputs": {
+        "data\\a_only_large_20261021\\perf_p=20_h=15_r=0.json": {
+          "sha256": "df8de80aba594df18eea5f8bc1a669d03c4eb980792be46f44a1f4de33f82cd1",
+          "P": 20,
+          "observed_H": 16,
+          "F": 300,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_large_20261021\\perf_p=20_h=15_r=1.json": {
+          "sha256": "a32679d465f7afd4bbe16b41477b97feccbd253f3ba84a42a8014691b2b2babc",
+          "P": 20,
+          "observed_H": 16,
+          "F": 300,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_large_20261021\\perf_p=20_h=15_r=2.json": {
+          "sha256": "8305998ba4216e8862ebf9b32dd31e67fee628d469f968f5f50cf165728eca46",
+          "P": 20,
+          "observed_H": 16,
+          "F": 300,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_large_20261021\\perf_p=20_h=30_r=0.json": {
+          "sha256": "1ed8a270522bbaba399319743751305b0659ca26e4c1e967a196bcfa98bcca04",
+          "P": 20,
+          "observed_H": 31,
+          "F": 300,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_large_20261021\\perf_p=20_h=30_r=1.json": {
+          "sha256": "1376b769cbeaf630e4b4d7f0dd48dda40dd51a8880226761bf9fe29a16917a3f",
+          "P": 20,
+          "observed_H": 31,
+          "F": 300,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_large_20261021\\perf_p=20_h=30_r=2.json": {
+          "sha256": "96278d39899b6fc9c6e921fddb49816300b3db6485e5ec7978344d67cddcd97a",
+          "P": 20,
+          "observed_H": 31,
+          "F": 300,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_large_20261021\\perf_p=30_h=15_r=0.json": {
+          "sha256": "b2922a263d96d607834749c7ad5fcccdf61cdba6e8f48eb122d2778d35f4277b",
+          "P": 30,
+          "observed_H": 16,
+          "F": 450,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_large_20261021\\perf_p=30_h=15_r=1.json": {
+          "sha256": "040ece75650ed2fccb36d020c2c909e9b351aaa9d46582ab6e850cf0ab2093bc",
+          "P": 30,
+          "observed_H": 16,
+          "F": 450,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_large_20261021\\perf_p=30_h=15_r=2.json": {
+          "sha256": "2c5a109dbbd2eedc39c681337925f52da5e4e244eac5e890473d77121794f175",
+          "P": 30,
+          "observed_H": 16,
+          "F": 450,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_large_20261021\\perf_p=30_h=30_r=0.json": {
+          "sha256": "572f905cd5f28589a213f6e70c18c91397e045e3db4681a0705efd5631ce8804",
+          "P": 30,
+          "observed_H": 31,
+          "F": 452,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_large_20261021\\perf_p=30_h=30_r=1.json": {
+          "sha256": "3f528343594e633643a39a1383f287aa1202f88e8eaee56ee6f0029d8955db73",
+          "P": 30,
+          "observed_H": 31,
+          "F": 452,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_large_20261021\\perf_p=30_h=30_r=2.json": {
+          "sha256": "1223cc203aaeedf507f87c56f5f9d8e5023287fccde65543e775325c4f4d9f14",
+          "P": 30,
+          "observed_H": 31,
+          "F": 452,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        }
+      },
+      "configuration": {
+        "methods": [
+          "legacy_paper_c13",
+          "legacy_endpoint_split",
+          "legacy_corrected_strengthened",
+          "event_based_optimized"
+        ],
+        "effective_enabled_checks": [
+          "A"
+        ],
+        "solver": "gurobi",
+        "solver_version": "11.0.3",
+        "executable": "C:\\gurobi1103\\win64\\python311\\bin\\python.exe",
+        "time_limit_s": 300,
+        "threads": 1,
+        "presolve_configuration": "presolve_on",
+        "warm_start": false,
+        "legacy_max_hour_check_deferral_days": 0,
+        "lp_relaxation": false,
+        "event_based_optimized_policy": "immediate-after-trigger-flight",
+        "event_based_flex_max_deferral_minutes": 1440.0,
+        "policies": {}
+      },
+      "result_csv_sha256": "76c51bafeb6fa2f986aedeba4406e2e262f5b62d83670b6287692762b625402e",
+      "source_snapshot": "gurobi_a_only_large_20261021.sources.zip",
+      "source_snapshot_sha256": "2f7b1e3c9592d4bcf0b916a79165d31eb5309106f4c747a7164f0a2e4df9183c",
+      "schedule_sha256": "1609012fa912fb748acc52f5891a809f211465f2aac79d5e8e02ff96ed80a044"
+    }
+  ]
+}

@@ -3,46 +3,46 @@
 \label{sec:computational}
 %%==========================================================================
 
-\input{sections/07_uniform_results}
-\clearpage
+\subsection{Implementation, instances and protocol}
+\label{subsec:setup}
 
-\paragraph{Evidence versions.}
-The tables below dated 2026-10-20 are preserved historical experiments with
-nonuniform maintenance policies. They are not results for the uniform
-flexible encodings of \Cref{subsec:uniform_flexible}. In particular, their
-strict interval/prefix ablation is a day-boundary comparison; its opening-row
-implementation omitted the first day. Those historical LP bounds are not
-evidence for the repaired formulation; the fresh rerun is reported in
-Table~\ref{tab:repaired_prefix} above.
+All models are implemented in Python with Pyomo~\citep{pyomo2023}. The
+primary exact solves use IBM ILOG CPLEX~12.6~\citep{cplex2023} through Pyomo's
+AMPL interface, one thread, presolve enabled and a 180-second wall-clock limit
+unless stated otherwise. A complete cross-check with Gurobi~11.0.3
+\citep{gurobi2024} (one thread, default presolve, same limit) is reported in
+\Cref{subsec:solver_sensitivity}. On Windows, Pyomo's Gurobi shell interface
+runs through the Python interpreter bundled with Gurobi, and a model without
+a feasible incumbent returns no solution; our drivers preserve that
+termination status and do not extract a schedule in that case. The CPLEX
+version is old, so absolute timings should not be read as state-of-the-art
+solver performance; the Gurobi runs show that objective values do not depend
+on this choice.
 
-\subsection{Implementation and environment}
-
-All models are implemented in Python using Pyomo. The reported exact solves
-use unrestricted IBM ILOG CPLEX~12.6 for AMPL through Pyomo's
-\texttt{cplexamp} interface. The deterministic instance generator and all
-benchmark scripts are included in the companion repository. The generator
-independently validates each designated seeded rotation with its maintenance
-counter; MILP objectives and statuses are taken from the solver runs.
-
-We also smoke-tested the Pyomo interface with Gurobi~11.0.3 on small feasible
-and infeasible models. On Windows, the \texttt{gurobi} shell interface runs
-through the Python interpreter bundled with Gurobi (discovered from
-\texttt{GUROBI\_HOME}), rather than through
-\texttt{gurobi\_cl.exe}. The infeasible case returns no incumbent and marks
-its problem bounds unavailable; the implementation preserves that
-termination status and omits schedule extraction. This is an interface check,
-not a benchmark comparison: all computational results and timing tables in
-this paper use CPLEX.
+The instance families are generated deterministically from a seeded
+round-trip-rotation generator that certifies each designated rotation with an
+independent maintenance counter. This certifies the generated rotations only;
+MILP objectives, statuses and schedules always come from the solver, and every
+returned schedule is audited by an independent chronological replay. The
+replay counts a \emph{violation} for every flight after which the replayed
+flight-hour counter exceeds the threshold, and one violation for each timing,
+capacity, blocking, coverage or continuity requirement that the schedule
+breaks. A single overdue stretch with many flights therefore produces many
+violations, so counts indicate the severity of an overdue schedule rather than
+the number of distinct defects; the indicator that matters for validity is
+whether the count is zero. File names, hashes and raw outputs
+are listed in \Cref{app:artifacts}. The experiments below are an extended
+instance family and not a reproduction of the tables of Khaled et
+al.~\citep{khaled2018compact}.
 
 \subsection{Cumulative-flight-time row verification}
 
 The original C13 row, its endpoint-split alternative, and the legacy opening
-companion were evaluated on the hand-built four-day counterexample
-\path{data/instances/c13_loophole_test.json}. The instance fixes one
+companion were evaluated on the hand-built four-day counterexample (instance \texttt{c13\_loophole\_test}, \Cref{app:artifacts}). The instance fixes one
 aircraft, $T^A_{\max}=600$ minutes, $M_{14}=1200$ minutes, 1,200 minutes of
 flying in $(1,4]$, and two check patterns: checks at both endpoints, and a
 check only at the end. The table reports the C13-family result and, for exact
-state methods, the corresponding hour-state result; it is not a test of every
+state methods, the corresponding hour-state result; \Cref{tab:c13_loophole} is not a test of every
 other model constraint. With both endpoints checked, C13 is active and the
 split rows are relaxed. With only the ending check, C13 is inactive by design;
 the legacy opening companion is separately tested for whether it protects
@@ -77,6 +77,129 @@ E9--E13 verbatim from the optimized event model and therefore reproduces its
 verdicts on both patterns; the suite run in
 \Cref{subsec:event_measurements} confirms this.
 
+\subsection{Practical effect of the non-overlap correction (C5)}
+\label{subsec:c5_impact}
+
+The simultaneous-departure gap of \Cref{sec:basic} is a modelling defect, but
+whether it changes an optimum depends on the instance. We solved the pure
+assignment problem (no maintenance) with Gurobi under the legacy rows C1--C4
+and the corrected rows C1--C5 for the six matched instances of
+\Cref{subsec:event_measurements} and one smaller instance, and replayed the
+C1--C4 incumbent for overlapping flight pairs and continuity breaks. These
+timetables contain between 0 and 153 same-airport pairs of flights with
+identical departure times, so the corner case is not a rarity. With the
+shipped cost matrices, which price each designated rotation aircraft roughly
+500 units below every other tail, the C1--C4 optimum is already executable:
+objectives coincide in all seven instances and the replay finds no violation.
+The defect is thus latent: it matters only if exploiting it is profitable.
+
+To test this, we replaced each cost row by its mean plus 3 per aircraft index,
+which leaves only the mild low-index preference of the generator.
+\Cref{tab:c5_impact} shows that in four of the seven instances the C1--C4
+optimum then places one aircraft on two time-overlapping flights and breaks
+route continuity (a ``cloned'' aircraft), and its objective lies strictly
+below the true optimum. The understatement is small in relative terms
+(0.008--0.035\%), but the plan cannot be flown. In the other three instances
+the C1--C4 optimum was already executable. Adding C5 increases the number of
+rows by 9--121\% in these instances (clique rows), without a measurable
+effect on solution time (all solves took below 3\,s). We conclude that C5
+should be included whenever departure times can coincide, because it removes
+non-executable schedules at negligible computational cost, but we do not claim
+that it changes the optimum of the shipped instances.
+
+To check that this finding persists at larger scale, we repeated the
+experiment on twelve feasible instances with 300--452 flights and 20 or 30
+aircraft (three seeds for each of four size cells), again with Gurobi and
+both cost variants. All 48 solves were proven optimal. Under the shipped costs,
+the C1--C4 and C1--C5 objectives coincide and no violation occurs in any
+instance. Under flat costs, every C1--C4 incumbent is non-executable, with
+10--105 overlapping pairs and 4--14 continuity breaks, and its objective is
+0.04--0.14\% below the true optimum (\Cref{tab:c5_large}); all C1--C5
+incumbents are executable. At this scale C5 increases the row count by a factor
+of 3--10 and, under flat costs, the solution time by up to a factor of three
+(11\,s to 27\,s and 14\,s to 44\,s for $|P|=30$), while under shipped costs the
+solution times are unchanged. The cost of C5 is therefore model size, and at
+this scale also some solution time when the cost structure leaves room for
+exploiting the defect, not a loss of tractability.
+
+We extended the check to twelve further instances with 600--752 flights and
+40 or 50 aircraft (three seeds per cell, 200\,s limit per solve). Under the
+shipped costs all 24 solves were optimal, the C1--C4 and C1--C5 objectives
+coincide, and the replay finds no violation; the C1--C5 model has 7--19 times
+as many rows (for example 32\,600 versus 485\,240 for $|P|=40$, $H=16$) but
+the same solution time (24--65\,s). Under flat costs the flat-cost problem
+becomes much harder, and only 7 of the 24 solves finished within the limit
+(\Cref{tab:c5_p4050}). Every C1--C4 incumbent returned, optimal or not,
+contains overlapping flights and continuity breaks (9--24 breaks per
+instance on average), and no C1--C5 incumbent does. Because most flat-cost
+solves stopped at the limit with large gaps, no cell allows a paired
+comparison of proven optima, and we make no claim about objective differences
+at this scale.
+
+\begin{table}[t]
+\centering\small
+\caption{Larger instances under flat costs (Gurobi, 200\,s limit, means over
+three seeds). ``Opt'' is the number of seeds solved to optimality. Overlaps and
+breaks are counted on the returned incumbent, optimal or not.}
+\label{tab:c5_p4050}
+\begin{tabular}{rrr rrrr rrrr}
+\toprule
+ & & & \multicolumn{4}{c}{C1--C4} & \multicolumn{4}{c}{C1--C5} \\
+\cmidrule(lr){4-7}\cmidrule(lr){8-11}
+$|P|$ & $H$ & $F$ & Opt & Time (s) & Overl. & Breaks & Opt & Time (s) & Overl. & Breaks \\
+\midrule
+40 & 16 & 600 & 0/3 & 203 & 190 & 19 & 3/3 & 131 & 0 & 0 \\
+40 & 31 & 600 & 3/3 & 62  & 45  & 9  & 0/3 & 203 & 0 & 0 \\
+50 & 16 & 750 & 1/3 & 197 & 300 & 24 & 0/3 & 207 & 0 & 0 \\
+50 & 31 & 752 & 0/3 & 394 & 74  & 12 & 0/3 & 208 & 0 & 0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering\small
+\caption{Effect of C5 on larger instances under flat costs (Gurobi, optimal in
+all runs; means over three seeds). Overlaps and breaks are counted on the
+replayed C1--C4 incumbent; C1--C5 incumbents have none. Under shipped costs the
+objectives coincide and no violation occurs.}
+\label{tab:c5_large}
+\begin{tabular}{rrr rr r rr rr}
+\toprule
+$|P|$ & $H$ & $F$ & Obj.\ C1--C4 & Obj.\ C1--C5 & Gap (\%) & Overlaps & Breaks & Rows C1--C4 & Rows C1--C5 \\
+\midrule
+20 & 16 & 300 & 290252 & 290522 & 0.093 & 45  & 9  & 10300 & 65620 \\
+20 & 31 & 300 & 290365 & 290485 & 0.041 & 10  & 4  & 13900 & 41020 \\
+30 & 16 & 450 & 445636 & 446266 & 0.141 & 105 & 14 & 19950 & 209430 \\
+30 & 31 & 452 & 447978 & 448314 & 0.075 & 28  & 7  & 25412 & 120032 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering\small
+\caption{Effect of C5 under flat costs (Gurobi, optimal in all runs). ``Equal''
+is the number of same-airport flight pairs with identical departure time.
+Overlaps and breaks are counted on the replayed C1--C4 incumbent; C1--C5
+incumbents have none. Shipped costs give identical objectives and no
+violations on all seven instances.}
+\label{tab:c5_impact}
+\begin{tabular}{rrrr rrr rr}
+\toprule
+$|P|$ & $H$ & $F$ & Equal & Obj.\ C1--C4 & Obj.\ C1--C5 & Gap (\%) & Overlaps & Breaks \\
+\midrule
+10 & 7  & 50  & 5   & 46276  & 46276  & 0     & 0 & 0 \\
+5  & 30 & 74  & 8   & 64445  & 64457  & 0.019 & 1 & 1 \\
+5  & 48 & 80  & 0   & 69699  & 69699  & 0     & 0 & 0 \\
+10 & 30 & 146 & 59  & 135511 & 135547 & 0.027 & 3 & 2 \\
+10 & 49 & 160 & 32  & 148578 & 148578 & 0     & 0 & 0 \\
+15 & 30 & 218 & 153 & 207587 & 207659 & 0.035 & 6 & 3 \\
+15 & 49 & 240 & 96  & 228644 & 228662 & 0.008 & 1 & 1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\input{sections/07_uniform_results}
+
 \subsection{Historical five-method type-A comparison}
 \label{subsec:event_measurements}
 
@@ -86,23 +209,22 @@ maintenance event is attached to its triggering flight, and the pre-check row
 prevents an event from repairing an already overdue arrival. The five methods
 evaluated in the matched A-only experiment are the original Khaled row,
 the endpoint split, the strengthened corrected legacy rows, the optimized
-ordered event-based formulation, and its flexible-start variant.
-Their builder identifiers are respectively
-\path{legacy_paper_c13}, \path{legacy_endpoint_split},
-\path{legacy_corrected_strengthened}, \path{event_based_optimized}, and
-\path{event_based_flex}. A result is described
-as objective-matched only when both
-compared methods are optimal. The legacy methods use a zero-day trigger-to-check
-deferral cap in the matched rerun; the optimized event model starts maintenance
-after the triggering flight, while the flexible event model permits a
-one-day (1440-minute) offset. The day-indexed and event-based timing rules
-remain different, so this setting improves comparability but does not make the
-formulations identical.
+ordered event-based formulation, and its flexible-start variant. A result is
+described as objective-matched only when both compared methods are optimal.
+The legacy methods use a zero-day trigger-to-check deferral cap in the matched
+rerun; the optimized event model starts maintenance after the triggering
+flight, while the flexible event model permits a one-day (1440-minute) offset.
+The day-indexed and event-based timing rules remain different, so this setting
+improves comparability but does not make the formulations identical. This
+subsection and the following ones therefore use a different maintenance
+policy from the uniform study above; their values are not results for the
+uniform encodings. In particular, the day-boundary interval/prefix ablation
+below is not evidence for the repaired formulation of
+\Cref{tab:repaired_prefix}.
 
 \subsubsection{Longer horizons and fleet sizes}
 
-The five methods were run on six matched A-only instances generated in
-\path{data/five_method_longflight_e14_e21_compact/}. Fleet sizes are
+The five methods were run on six matched A-only instances generated instances (\Cref{app:artifacts}). Fleet sizes are
 $|P|\in\{5,10,15\}$, observed horizons are $H\in\{30,48,49\}$, and the
 instances contain 74--240 flights with up to eight seeded round-trip
 rotations per aircraft. Each rotation is checked by the generator's
@@ -111,9 +233,8 @@ rotations, not every schedule returned by a MILP. All five formulations use
 the same JSON instance within each cell. CPLEX~12.6 was run with one thread,
 presolve enabled, and a 180-second limit. Legacy methods were run with
 \texttt{max\_hour\_check\_deferral\_days=0}; event-flex retains its 1440-minute
-deferral window. Results, input hashes, and solver configuration are recorded
-in \path{results/tables/a_only_policy_matched_20261020.csv} and its
-metadata sidecar. This is an extended-family experiment, not a reproduction of
+deferral window. Results, input hashes and solver configuration are archived
+with the paper (\Cref{app:artifacts}). This is an extended-family experiment, not a reproduction of
 Khaled et al.'s Table~6.
 
 Table~\ref{tab:longflight_results} reports solver status, incumbent objective,
@@ -173,13 +294,101 @@ formulations have identical optimal objectives on the four cells where all
 three methods prove optimality. On the two P=15 cells, the Event-based methods
 return the same incumbent as strengthened legacy but hit the time limit, so
 that agreement is not an optimality certificate. The original-paper and
-endpoint-split models return lower objectives, but their independently replayed
-schedules exceed the A-hour threshold (663 and 183 violations across the six
-cases, respectively); those objectives are not feasible-quality comparisons.
+endpoint-split models return lower objectives, but their CPLEX-selected
+schedules exceed the A-hour threshold (663 and 183 replay violations across
+the six cases, respectively); those objectives are not feasible-quality
+comparisons. The solver sensitivity of these counts is examined below.
 The optimized Event-based model has fewer variables than strengthened legacy
 on three of six cells; averaged over all six, its variable count is slightly
 higher. Neither Event-based formulation consistently reduces constraints or
 timing. These results are limited to this generated family and solver setup.
+
+\subsubsection{Cross-solver check with Gurobi}
+\label{subsec:solver_sensitivity}
+To assess whether the replay counts depend on the optimizer-selected
+schedule, we reran the same six hashed instances with Gurobi~11.0.3, one
+thread, presolve enabled, and the same 180-second limit. All 30 runs returned
+incumbents and terminated with an optimal status under the solver's default
+MIP-gap tolerance; the event-flex run at $P=15$, $H=49$ had a residual gap of
+0.0041\%. A separate zero-gap run closed this gap at the same objective.
+Objectives for each formulation-instance pair matched the CPLEX results.
+Table~\ref{tab:replay_solver_sensitivity} compares the independent
+flight-hour replay counts for the two formulations whose returned schedules
+failed that audit.
+
+\begin{table}[t]
+\centering\small
+\caption{Flight-hour replay violations in solver-selected optimal schedules
+on the six matched A-only instances. Counts characterize the returned
+schedules, not the formulations alone.}
+\label{tab:replay_solver_sensitivity}
+\begin{tabular}{rrrrrr}
+\toprule
+ & & \multicolumn{2}{c}{Original paper C13} &
+ \multicolumn{2}{c}{Endpoint split} \\
+\cmidrule(lr){3-4}\cmidrule(lr){5-6}
+$|P|$ & $H$ & CPLEX & Gurobi & CPLEX & Gurobi \\
+\midrule
+5  & 30 & 51  & 51  & 17 & 15 \\
+5  & 48 & 60  & 60  & 15 & 15 \\
+10 & 30 & 106 & 106 & 30 & 30 \\
+10 & 49 & 120 & 117 & 30 & 37 \\
+15 & 30 & 158 & 158 & 46 & 47 \\
+15 & 49 & 168 & 180 & 45 & 56 \\
+\midrule
+Total & & 663 & 672 & 183 & 200 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The totals differ between solvers despite matching objective values,
+demonstrating that multiple optimal schedules can yield different replay
+counts. In both runs, however, every original-C13 and endpoint-split
+incumbent failed the independent hour audit, while all strengthened-legacy
+and Event-based incumbents passed. The Gurobi run also proved optimality for
+the four P=15 Event-based cases that reached the CPLEX time limit; their
+schedules passed replay. Raw results, schedules and provenance for these runs
+are listed in \Cref{app:artifacts}.
+
+\subsubsection{Ten-seed Gurobi replication of the uniform encodings}
+\label{subsec:ten_seed}
+To obtain a less anecdotal timing comparison of the two uniform encodings, we
+generated ten deterministic replicates (indices 0--9; indices 0--2 coincide
+with the earlier three-seed set) for each of the four P=5/10 cells and solved
+both encodings with Gurobi (one thread, 180\,s limit). All 80 runs terminated
+optimally and passed both replay audits; the two encodings returned the same
+optimal objective on every instance. \Cref{tab:ten_seed} summarizes the wall
+times. The event-indexed encoding was faster in 9, 8, 7 and 6 of the ten
+replicates in the four cells; a two-sided Wilcoxon signed-rank test gives
+$p<0.05$ in two cells ($p=0.010$ and $0.027$, not corrected for multiple
+comparisons), and the geometric-mean time ratios (event over day) are 0.87,
+0.96, 0.60 and 0.96. The effect sizes are modest, the
+absolute times are small, and the earlier CPLEX three-seed subset shows a
+different sign at $|P|=10$, $H=49$. We therefore regard the encodings as
+computationally comparable on this family, with a possible advantage of the
+event-indexed one at the hardest cell, and make no solver-independent claim.
+
+\begin{table}[t]
+\centering\small
+\caption{Ten-seed Gurobi replication of the uniform flexible encodings (all
+runs optimal, all replay checks passed). Wall time in seconds as mean
+$\pm$ sample standard deviation over ten instances; ``Faster'' is the number
+of instances on which the event-indexed encoding was faster.}
+\label{tab:ten_seed}
+\begin{tabular}{rr r rr r}
+\toprule
+$|P|$ & $H$ & Mean objective & Day & Event & Faster \\
+\midrule
+5  & 30 & 37\,619 & $0.61\pm0.08$ & $0.53\pm0.04$ & 9/10 \\
+5  & 48 & 40\,705 & $0.49\pm0.04$ & $0.47\pm0.06$ & 8/10 \\
+10 & 30 & 74\,190 & $15.06\pm6.33$ & $8.58\pm1.64$ & 7/10 \\
+10 & 49 & 81\,404 & $3.07\pm0.62$ & $2.95\pm0.55$ & 6/10 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The solve times of the P=10 cells over the observed horizon are shown in
+\Cref{fig:ordered_a_wall_horizon,fig:ordered_a_cpu_horizon}.
 
 \begin{figure}[t]
 \centering
@@ -199,7 +408,7 @@ paired cells where all five methods are optimal are plotted.}
 
 \subsubsection{Fleet-size scaling at \texorpdfstring{$H=30$}{H=30}}
 
-The fleet-size figures use the complete matched set at observed horizon
+The fleet-size figures (\Cref{fig:a_variables_fleet,fig:a_constraints_fleet,fig:a_cpu_fleet,fig:a_wall_fleet}) use the complete matched set at observed horizon
 $H=30$ for $|P|\in\{5,10,15\}$. Model-size figures include all successfully
 built models; timing figures include only cells where all five methods are
 optimal (P=5 and P=10).
@@ -234,7 +443,7 @@ Only paired fleet sizes where all five methods are optimal are plotted.}
 \label{fig:a_wall_fleet}
 \end{figure}
 
-\subsection{Summary and limitations}
+\subsubsection{Summary of the five-method results}
 
 All 30 solver runs returned incumbents and 26 terminated optimally. The four
 time-limited Event-based runs are the P=15 cases at H=30 and H=49; their
@@ -244,15 +453,6 @@ legacy schedules and the four optimal schedules from each Event-based method.
 The original-paper and endpoint-split schedules fail replay in all six cells,
 consistent with the C13 counterexamples above. Time-limited Event-based
 schedules were not replayed.
-
-The experiment uses one deterministic seed per $(P,H)$ cell, one
-maintenance-capable hub, A checks only, and a single CPLEX configuration. It
-should be read as a reproducible scale-up test, not broad statistical evidence.
-Follow-up validation should cover multiple seeds, varied airport networks and
-station capacities, nonzero initial flight-hour counters, and independent
-schedule replay for each formulation. Solver comparisons should vary presolve
-and warm-start settings and report optimality gaps and memory alongside the
-metrics collected here.
 
 \subsubsection{Aggregate model size and optimal-run timing}
 
@@ -290,7 +490,7 @@ feasible performance baselines.
 \subsubsection{Cumulative-prefix LP and MILP ablation}
 \label{subsec:hour_prefix_ablation}
 
-We compared the compact strict interval formulation with an opt-in cumulative
+\Cref{tab:hour_prefix_ablation} compares the strict interval formulation with an opt-in cumulative
 daily-prefix representation on the four P=5/10 instances. Both use the same
 strict C13/C13b conditions, zero-day legacy deferral, and bound-preserving LP
 relaxation. All interval and prefix LPs and MILPs terminated optimally on these
@@ -328,15 +528,12 @@ The prefix representation adds continuous states and flow rows, and it does
 not improve solve time uniformly: it is faster than interval on two cells and
 slower on two. This is a formulation-equivalence and size observation for the
 tested A-only subset, not evidence of a general performance advantage. Raw
-LP/MILP rows and run metadata are stored in
-\path{results/tables/a_only_hour_prefix_lp_20261020.csv} and
-\path{results/tables/a_only_hour_prefix_milp_p5_p10_20261020.csv}.
+LP/MILP rows and run metadata are listed in \Cref{app:artifacts}.
 
 \subsubsection{Three-seed A-only replication subset}
 
 To measure instance-to-instance variation, we generated three deterministic
-replicates for each of the four P=5/10, H=30/48/49 cells in
-\path{data/a_only_multiseed_20261020/}. All 60 method-instance runs
+replicates for each of the four P=5/10, H=30/48/49 cells (\Cref{app:artifacts}). All 60 method-instance runs
 terminated optimally. The strengthened legacy and both Event-based objectives
 matched on every replicate. Table~\ref{tab:a_only_multiseed} reports the mean
 common objective and wall time as mean $\pm$ sample standard deviation. These
@@ -366,9 +563,8 @@ to their means, illustrating why the single-instance scale-up timings should
 not be interpreted as stable method rankings. All five methods pass the
 objective/status checks in this subset, but the independent replay still
 rejects the paper-C13 and endpoint-split schedules; their lower objectives
-must not be treated as feasible comparisons. Raw rows and provenance are in
-\path{results/tables/a_only_multiseed_20261020.csv} and its metadata
-sidecar.
+must not be treated as feasible comparisons. Raw rows and provenance are listed in
+\Cref{app:artifacts}.
 
 \subsubsection{Conditional removal of unnecessary A checks}
 
@@ -382,9 +578,8 @@ removed all 12 trigger variables and reduced the model from 88 to 76 variables
 and from 187 to 172 constraints. This is a construction/model-size check on a
 deliberately qualifying instance; it does not establish a runtime improvement
 on operationally binding cases. Table~\ref{tab:a_check_pruning} summarizes the
-run; the run and transformed-input hashes are
-recorded in \path{results/tables/a_check_pruning_20261020.csv} and its
-metadata sidecar.
+run; hashes of the run and the transformed input are archived
+(\Cref{app:artifacts}).
 
 \begin{table}[t]
 \centering\small
@@ -432,12 +627,91 @@ independent schedule validation.
 
 
 
+\subsection{Scale check with 40 and 50 aircraft}
+\label{subsec:p4050}
+
+To probe Khaled-size fleets, we solved twelve type-A instances with 40 or 50
+aircraft and 600--752 flights (horizons 15 and 30 days, three seeds per cell)
+with Gurobi, one thread and a 200\,s limit per solve. Replay rows count
+violations in the returned incumbent. The published row alone
+(\emph{legacy paper}) was solved to optimality in all 12 cases but violates
+the flight-hour limit in every one (mean 480 violations); the endpoint split
+was optimal in 6 of 12 cases and its incumbents violate the limit in all 12;
+the exact-state row with a pre-check guard was optimal in 6 of 12 and
+otherwise stopped with a mean gap of 0.86\%, and its incumbents were
+violation-free throughout; the event-indexed model returned a violation-free
+incumbent in all 12 cases but proved none optimal within the limit (mean gap
+1.5\%). Solution times of the exact formulations therefore grow faster with
+fleet size than those of the unsafe rows, which solve quickly because they
+admit infeasible plans. At this scale the claim that exact-state formulations
+never violate the limit holds for every incumbent returned, but optimality
+proofs need a longer limit than we used, and we do not draw runtime
+conclusions from time-limited cells.
+
+\subsection{Larger A-only formulation runs}
+\label{subsec:large_a_only}
+
+We also ran the four historical A-only formulations and the two uniform
+flexible-start encodings on the same twelve instances with 20 or 30 aircraft
+and 300--452 flights (three seeds per fleet-size/horizon cell), using Gurobi
+and a 600\,s limit. This available run covers 12 instances, not the originally
+planned 40-instance grid; P=40 and P=50 results below are separate 200\,s
+scale checks and are not pooled with it. The first four formulations use the historical
+zero-day-deferral setting; the uniform runs use their separate uniform
+maintenance policy and are not directly comparable in objective value. The
+original paper row and endpoint split were optimal in all twelve historical
+runs, but every returned schedule failed the independent flight-hour replay.
+The strengthened legacy and optimized event formulations were each optimal in
+nine of twelve runs; all returned schedules passed replay. For the uniform
+encodings, each proved optimality in only three of twelve runs. Among
+time-limited uniform runs, mean reported gaps were 2.03\% for the day encoding
+and 1.52\% for the event encoding. Replay passed for the available incumbents;
+five day-encoding runs and six event-encoding runs had no schedule to replay.
+These are scale checks, not reliable runtime rankings: several formulations
+hit the time limit and the policies differ.
+
+\begin{table}[t]
+\centering\scriptsize
+\caption{Gurobi results on the larger A-only instance set. ``Opt.'' is the
+number of runs proven optimal out of 12; mean gaps are for time-limited runs
+only. Replay reports the independent flight-hour audit.}
+\label{tab:large_a_only}
+\begin{tabular}{p{0.34\linewidth}rrrr}
+\toprule
+Formulation & Opt. & Mean wall (s) & Mean limit gap (\%) & Replay \\
+\midrule
+Legacy paper C13 & 12/12 & 20.2 & -- & Fail, 12/12 \\
+Endpoint split & 12/12 & 37.8 & -- & Fail, 12/12 \\
+Strengthened legacy & 9/12 & 94.4 & 0.90 & Pass, 12/12 \\
+Optimized event & 9/12 & 175.7 & 0.41 & Pass, 12/12 \\
+Uniform flexible day & 3/12 & 515.3 & 2.03 & Pass, 7/12; 5 not run \\
+Uniform flexible event & 3/12 & 582.0 & 1.52 & Pass, 6/12; 6 not run \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Discussion and limitations}
 \label{subsec:robustness}
 
+Three findings are robust across the experiments. First, C5 removes
+non-executable schedules at negligible cost, and the corner case it addresses
+is common in the timetables used (\Cref{subsec:c5_impact}). Second, schedules
+produced by the published cumulative-flight-time row and its endpoint split in
+isolation violate the flight-hour limit in every replayed instance, with both
+solvers, whereas the exact-state formulations never do
+(\Cref{subsec:solver_sensitivity}). Third, the day- and event-indexed uniform
+encodings return identical optima and, on this family, comparable solution
+times (\Cref{subsec:ten_seed}).
 
-
-The scale-up experiment uses one deterministic seed per $(P,H)$ cell, one
-maintenance hub, A checks only, and a single CPLEX configuration. It is a
-reproducible instance-family comparison, not broad statistical evidence.
-Multiple seeds, varied airport networks and station capacities, and solver
-configuration sensitivity remain important follow-up experiments.
+The study has clear limits. All instances are synthetic. The matched families
+contain at most 240 flights and 15 aircraft; selected scale checks extend to
+752 flights and 50 aircraft, but do not reproduce the full Khaled et al.\
+benchmark protocol. The experiments use a single maintenance hub and A checks
+only, and no real airline timetable has been evaluated. The six
+matched cells use one seed each; the replication subsets cover only the
+P=5/10 cells. CPLEX~12.6 and Gurobi~11.0.3 are used with one configuration
+each, so timing comparisons are descriptive, and the replay counts depend on
+which optimal schedule the solver returns. Larger fleets, varied airport
+networks and station capacities, non-zero initial flight-hour counters, B/C/D
+checks, and the full nightly and calendar-spacing policy of Khaled et al.\ are
+not covered.

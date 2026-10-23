@@ -64,15 +64,11 @@ The objective is
 \label{eq:ordered_event_objective}
 \end{equation}
 
-The event formulation numbers its route constraints independently as follows:
-E4 is flight coverage, E5 is non-home continuity, E6 is home-airport
-continuity and turn-time balance, and E7 is pairwise non-overlap. These are
-implemented by \texttt{\_add\_c1\_coverage}, \texttt{\_add\_c23\_turn}, and
-\texttt{\_add\_overlap}. E1--E3 are the binary/continuous variable domains defined
-above.
-
-The event constraints separate maintenance blocking (E14), event assignment
-(E8), and maintenance capacity (E15).
+The event formulation numbers its route constraints independently: E4 is flight
+coverage, E5 is non-home continuity, E6 is home-airport continuity and
+turn-time balance, and E7 is pairwise non-overlap. E1--E3 are the variable
+domains defined above. Maintenance enters through event assignment (E8),
+maintenance blocking (E14) and maintenance capacity (E15).
 
 \paragraph{E8. Event assignment.}
 Events satisfy
@@ -118,9 +114,9 @@ The initial state is $h_{0j}=\Phi_j$.
 
 \subsection{Maintenance blocking and capacity constraints}
 
-Let's assume that every maintenance event starts immediately after its triggering flight. Let
- $\delta_A$ be the duration of the type-A check and let $\Delta t$ be the
-minimum post-maintenance turn time.
+In the immediate-start model, every maintenance event begins upon arrival of
+its triggering flight. Let $\delta_A$ be the duration of the type-A check and
+let $\Delta t$ be the minimum post-maintenance turn time.
 
 \paragraph{E14. Maintenance blocking (C8).}
 For an event $(r,j)$, define the incompatible following-flight set
@@ -168,20 +164,19 @@ Each event occupies the half-open interval
 $[\theta_q,\theta_q+\delta_A)$. Since all A-check windows have equal length,
 checking occupancy at every event start enforces capacity at every time.
 
-The constraints \ref{eq:E14} and \ref{eq:E15_not_full} enforce maintenance blocking and capacity limitations, however 
-they reduce the solution space by imposing additional restrictions on the feasible assignments of flights and maintenance events.
+Constraints~\eqref{eq:E14} and~\eqref{eq:E15_not_full} enforce maintenance
+blocking and station capacity, but they force every check to start on arrival.
+If the bay is occupied when an aircraft arrives, the aircraft cannot be
+assigned a check after that flight, even though a short wait could make the
+check operationally feasible.
 
-Potentially, if the plain A instead of going directly to maintenance, waits and during this waiting period 
-another plane B arrives and occupies the maintenance slot, 
-the constraints will prevent the initial plane from being assigned to maintenance at that time, even if a delayed maintenance could be operationally feasible.
+\subsection{Flexible-start extension}
+\label{subsec:flex_extension}
 
-
-To fix the issue of overly restrictive maintenance assignment due to simultaneous occupancy constraints,
-we introduce another variable representing the flexible completion time of maintenance events.
-This variable allows the model to adjust the timing of maintenance dynamically,
-ensuring that aircraft can be assigned to maintenance even if the initially preferred time slot is occupied.
-Let $W$ be the maximum allowed waiting time between the triggering flight's
-arrival and the start of its A-check. We use a time grid of resolution $\tau$
+To remove this restriction, we introduce a variable for the completion time of
+each maintenance event, which lets the model defer a check within a bounded
+window. Let $W$ be the maximum allowed waiting time between the triggering
+flight's arrival and the start of its A-check. We use a time grid of resolution $\tau$
 (one minute for the instances considered here); all timestamps, $\delta_A$,
 $W$, and maintenance offsets are multiples of $\tau$. For each admissible
 event $(r,j)$, let $s_{rj}$ be the offset from the arrival of $i_r$ to the
@@ -214,7 +209,6 @@ cannot be delayed by more than $W$:
 \delta_A z_{rj}\leq s_{rj}\leq(\delta_A+W)z_{rj},
 \qquad s_{rj}\in\tau\mathbb{Z}_{+},\quad \forall (r,j)\in\mathcal{Z}.
 \end{equation}
-\label{eq:E16_flex_s_basic}
 Thus $s_{rj}=0$ when the event is not selected.
 
 \paragraph{E16$_{\mathrm{flex}}$. Realized event time.}
@@ -302,147 +296,48 @@ feasible schedules and can only weakly improve their minimum assignment cost.
 
 
 
-\subsection{Implemented E1--E15 model and flexible-start specification}
+\subsection{Remaining rows and correspondence with the day-indexed model}
+\label{subsec:event_implementation_strengthening}
 
-The following list maps the historical immediate-start ordered A-only builder
-to the numbered day-boundary requirements and identifies its flexible timing
-extension. It is not a complete constraint list for the uniform flexible
-builders, which add actual-start-day selectors and a daily check limit. Legacy
-C labels are given only as cross-references.
-
-\begin{description}
-\item[E1--E3: variable domains.] The variables $x_{rj}$ and $z_{rj}$ are
-binary and $h_{rj}$ is nonnegative. These domains correspond to the
-assignment, event, and prefix-state variables.
-
-\item[E4: flight coverage (legacy C2).] Each ordered flight is assigned exactly once:
+The route rows E4--E7 are the corrected basic constraints of
+\Cref{sec:basic} written on the ordered index. Flight coverage (E4) is
 \begin{equation}
-\sum_{j\in\Pc}x_{rj}=1,\qquad r\in\mathcal{R}.
+\sum_{j\in\Pc}x_{rj}=1,\qquad r\in\mathcal{R},
 \label{eq:ordered_c0_c1}
 \end{equation}
+E5--E6 are the continuity and turn-time balances~\eqref{eq:c2}--\eqref{eq:c3},
+and E7 is the non-overlap family~\eqref{eq:c4_overlap}, optionally
+strengthened by maximal cliques as in~\eqref{eq:c5_overlap}. The
+calendar-spacing row C12 is deliberately omitted: the hour-only extension
+studied here does not impose Khaled et al.'s maximum-spacing rule, and this
+omission does not imply that A checks have no calendar requirement.
 
-\item[E5--E6: aircraft continuity and turn time (legacy C3--C4).] The
-corrected equipment-flow balance is applied to $x_{rj}$, including the initial
-aircraft position and the minimum turn time. The implementation is
-\texttt{e5\_e6\_continuity\_turn}.
-
-\item[E7: pairwise non-overlap (legacy C5).] For every temporally conflicting flight pair
-and aircraft, the builder adds
-\begin{equation}
-x_{ij}+x_{\ell j}\leq1.
-\label{eq:ordered_c4_pairwise}
-\end{equation}
-These rows are constructed by \texttt{e7\_pairwise\_overlap}; in the current
-ground-truth formulation they are the corrected C5 family.
-
-The current ground-truth Sections 01--04 do not define a separate clique
-constraint number; any clique strengthening is an implementation strengthening
-of C5 rather than a new numbered requirement.
-
-\item[E8: event assignment (legacy C6--C7 and C9).]
-The maintenance event variables $z_{rj}$ are
-binary and are instantiated only for flights arriving at a maintenance-capable
-airport. There is no independent daily $y$ variable in this formulation.
-Each admissible arrival can trigger at most one type-A event for an aircraft.
-
-\item[E14: maintenance blocking (legacy C8).] If $z_{rj}=1$, every selected flight whose
-departure falls before the event's completion plus turn time is blocked:
-\begin{equation}
-x_{\ell j}+z_{rj}\leq1.
-\label{eq:ordered_c8_block}
-\end{equation}
-Only economically relevant timestamp conflicts are generated.
-
-\item[E15: maintenance capacity (legacy C10).] At every possible event-start
-timestamp, the active arrival-started maintenance events satisfy
-\begin{equation}
-\sum_{(r,j)\in\mathcal{E}(a,\theta)}z_{rj}
-\leq \operatorname{mcap}_{a},
-\end{equation}
-where $\mathcal{E}(a,\theta)$ contains events whose half-open intervals
-$[\theta_r,\theta_r+\delta_A)$ contain $\theta$. This is implemented by the E15 component
-\path{e15_maintenance_capacity}; it is the maintenance-capacity constraint that was not
-explicitly displayed earlier.
-
-\item[E14$_{\mathrm{flex}}$--E21$_{\mathrm{flex}}$: deferrable maintenance timing (optional variant).]
-The discrete-grid formulation in~\eqref{eq:E14_flex}--\eqref{eq:E21_flex}
-replaces immediate-start E14--E15 by aircraft blocking, bounded completion
-offsets, exact overlap indicators, and capacity rows at selected event starts.
-It retains E1--E13 and includes immediate-start schedules as the special case
-$s_{rj}=\delta_Az_{rj}$. The overlap comparison binaries are required because
-the active-event set depends on the selected completion times. An implementation
-of this specification must enforce both overlap comparisons and their conjunction;
-an unconstrained or one-directional overlap indicator does not enforce capacity.
-
-\item[Auxiliary C11 event-count aggregation.] The binary day indicator is intentionally
-not retained. Define the nonnegative integer event count $n_{jd}$ by
+The daily indicator $y_{jd}$ is not a primitive variable of the event model.
+Where a day-level count is needed, it is defined as the expression
 \begin{equation}
 n_{jd}=\sum_{r:\,\lfloor\tI{i_r}/1440\rfloor=d}z_{rj},
 \qquad n_{jd}\in\mathbb{Z}_{+}.
 \label{eq:ordered_c11_recovery}
 \end{equation}
-This describes the historical unrestricted event count. The uniform flexible
-model below replaces it with a binary actual-start-day aggregation and
-explicitly enforces at most one check per aircraft per calendar day.
+No E-row or objective term uses $n_{jd}$ in the immediate-start model, so it
+can be recovered after solution. The uniform flexible model of
+\Cref{subsec:uniform_flexible} replaces it by a binary actual-start-day
+selector and enforces at most one check per aircraft per calendar day. The
+airport-occupancy variable of a time-expanded formulation is not needed:
+capacity is represented directly by the timestamp sums E15.
 
-\item[Inactive legacy C12.] The hour-only extension omits calendar spacing
-by choice. Khaled et al. impose a maximum-spacing constraint on type A; its
-omission here does not imply that A checks lack calendar requirements.
-
-\item[E9--E13: cumulative flight-hour state (legacy C13--C13f).] The paper's C13 row is
-replaced by the auxiliary prefix state $h_{rj}$, which is
-nonnegative, carries forward at unassigned positions, accumulates an assigned
-flight when $z_{rj}=0$, resets to zero when $z_{rj}=1$, and is bounded by
-$T^A_{\max}$. The daily flight-time definition is C13a and the state rows are
-C13b--C13f. These are implemented by
-\texttt{event\_hour\_state}; they replace the legacy day-pair C13 row rather
-than adding another numbered C-constraint.
-\end{description}
-
-The event formulation therefore has no additional business rule hidden under
-an unnumbered C-constraint. The auxiliary families are the integer C11 event
-counts and the linearization rows for the C13 hour
-state. The airport occupancy quantity $q_{a,j}$ proposed in the design note is
-not introduced as a variable: its role is represented directly by the C10
-timestamp-capacity sums, which is smaller and equivalent for the A-only case.
-
-\subsection{Equivalent A-only implementation strengthening}
-\label{subsec:event_implementation_strengthening}
-
-The immediate-start E1--E15 formulation also admits an equivalent reduced implementation.
-The daily event count in~\eqref{eq:ordered_c11_recovery} is not used by any
-E-constraint or by the objective, so it can be recovered after solution
-rather than represented by integer variables and equalities. With only one
-maintenance type, event-type exclusivity is implied by the binary domain of
-$z_{rj}$ and is omitted.
-
-The prefix state receives its valid upper bound directly as a variable bound.
-Consequently, the additional generated row that repeats this bound is
-redundant with E13 and is removed. Identical E15 active-event sets are emitted
-only once, and a capacity row is omitted whenever its number of binary terms
-does not exceed the capacity and is therefore satisfied for every assignment.
-Finally, maximal interval-clique rows replace the pairwise-plus-clique E7
-implementation; every conflicting pair belongs to a maximal clique, so the
-integer feasible set is unchanged.
-
-The baseline implementation remains
-\path{PaperEventBasedMILPScheduler}. The equivalent reduced implementation
-is \path{OptimizedPaperEventBasedMILPScheduler}; keeping both classes makes
-the effect of implementation choices independently reproducible. The exact
-flexible-start formulation is implemented by
-\path{FlexiblePaperEventBasedMILPScheduler}: its integer-grid offset,
-comparison binaries, active-at-start indicators, and station-capacity rows
-correspond to E14$_{\mathrm{flex}}$--E21$_{\mathrm{flex}}$. The earlier
-benchmark numbers for the previous flex linearisation are not results for this
-formulation. A separate 12-case flexible-prototype benchmark is recorded in
-\path{results/tables/flexible_event_benchmark_e14_e21.csv}; it is not
-pooled with the six-instance, zero-day-legacy-deferral scale-up reported in
-Section~\ref{subsec:event_measurements}.
-
-Table~\ref{tab:ordered_c1_c13} records the correspondence with the numbered
-day-indexed requirements. Some legacy rows disappear because their variables
-are eliminated; this is a formulation change, not an omitted feasibility
-condition.
+Several families can be reduced without changing the integer feasible set.
+With one maintenance type, event-type exclusivity is implied by the binary
+domain of $z_{rj}$. The prefix-state bound $h_{rj}\le T_F$ can be imposed as a
+variable bound, which makes the row repeating it in E13 redundant. Identical
+E15 active-event sets are emitted once, and a capacity row is dropped when its
+number of binary terms does not exceed the capacity. Finally, maximal
+interval-clique rows replace the pairwise rows in E7; every conflicting pair
+lies in a maximal clique, so the integer feasible set is unchanged. The
+reduced form is used in all experiments of \Cref{sec:computational}.
+\Cref{tab:ordered_c1_c13} records how each numbered day-indexed requirement is
+represented. Some rows disappear because their variables are eliminated; this
+is a change of formulation, not an omitted feasibility condition.
 
 \begin{table}[t]
 \centering\scriptsize
@@ -524,18 +419,31 @@ and substitutes $z_{rj}=\sum_d z^{D}_{rjd}$ as an expression in every
 assignment, cost, timing and state row. They share the hour engine; they are
 not independent implementations of the physical counter.
 
-\begin{proposition}[Uniform encoding equivalence]
-The two uniform encodings have the same projection onto assignments,
-selected maintenance starts and hour states, and the same optimum.
+\begin{proposition}[Equivalence of the uniform encodings]
+\label{prop:uniform_equivalence}
+Let $\mathcal{S}^{E}$ and $\mathcal{S}^{D}$ be the feasible sets of the
+event-indexed and day-indexed encodings, and let $\pi$ map a solution to its
+assignments $x$, event indicators $z_{rj}$, offsets $s_{rj}$, start-day
+selectors $b_{rjd}$ and hour states $h_{rj}$. Then
+$\pi(\mathcal{S}^{E})=\pi(\mathcal{S}^{D})$, the two models have the same
+objective on corresponding solutions, and their optimal values coincide.
 \end{proposition}
 \begin{proof}
-From an event-indexed solution set $z^{D}_{rjd}=b_{rjd}$. Every substituted
-row and the objective is unchanged. Conversely, from a day-indexed solution
-set $b_{rjd}=z^{D}_{rjd}$ and $z_{rj}=\sum_d z^{D}_{rjd}$. Assignment
-linking bounds this nonnegative integral sum by $x_{rj}\le1$, so it is
-binary. The day links locate the selected start uniquely on the grid.
-All other rows are identical under substitution, proving both directions.
+Given $(z,b,\dots)\in\mathcal{S}^{E}$, set $z^{D}_{rjd}=b_{rjd}$; the
+substitution $z_{rj}=\sum_d z^{D}_{rjd}=z_{rj}$ leaves every row and the
+objective unchanged. Conversely, given a day-indexed solution, set
+$b_{rjd}=z^{D}_{rjd}$ and $z_{rj}=\sum_d z^{D}_{rjd}$. Assignment linking
+($z_{rj}\le x_{rj}\le1$) bounds this nonnegative integral sum by one, so
+$z_{rj}$ is binary, and the day links locate the selected start uniquely on the
+grid. All other rows are identical under the substitution, which proves both
+inclusions.
 \end{proof}
+
+The proposition is a statement about encodings: it says that the day-indexed
+variables can be eliminated by substitution, not that the two models differ in
+LP strength or solution effort. Both share the hour engine, so it should not
+be read as independent confirmation of the physical hour counter. That
+confirmation is provided by the chronological replay of \Cref{sec:computational}.
 
 For the fixed-night comparison, restrict selected starts to 22:00 on a
 candidate day, still within the same $W$ window. The time 22:00 is a stated

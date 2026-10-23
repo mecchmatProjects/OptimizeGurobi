@@ -1,0 +1,261 @@
+{
+  "_comment": [
+    "=== TEST FILE: Negative control \u00e2\u20ac\u201d NO maintenance should be scheduled ===",
+    "",
+    "All initial accumulated values are zero; thresholds are far above anything",
+    "the aircraft can accumulate in 7 days:",
+    "  A threshold = 27,000 min  (~450 flight-hours); max possible ~1,400 min/AC",
+    "  B threshold = 42,000 min  (~700 flight-hours); max possible ~1,400 min/AC",
+    "  C threshold = 600 cal-days; horizon = 7 days   -> C_remain = 600 days >> 7",
+    "  D threshold = 2920 cal-days; horizon = 7 days  -> D_remain = 2920 days >> 7",
+    "",
+    "Expected output for EVERY aircraft:",
+    "  No maintenance scheduled  |  total flight mins = <some value>",
+    "",
+    "Horizon: 7 days (10,060 min).  7 C<->B round trips (14 flights of 200 min each).",
+    "Only airport C has maintenance capacity (2 slots).",
+    "",
+    "Run: py -3 heu180h.py --mode milp --data inpytABCD/ABCD_no_maint_test.json",
+    "     --solver cplex --no-check-hierarchy --no-show"
+  ],
+  "Aircrafts": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "AIRCRAFT_INIT_POS": {
+    "0": "C",
+    "1": "C",
+    "2": "C",
+    "3": "C"
+  },
+  "Flights": [
+    [
+      1,
+      "C",
+      "B",
+      200.0,
+      400.0
+    ],
+    [
+      2,
+      "B",
+      "C",
+      500.0,
+      700.0
+    ],
+    [
+      3,
+      "C",
+      "B",
+      1640.0,
+      1840.0
+    ],
+    [
+      4,
+      "B",
+      "C",
+      1940.0,
+      2140.0
+    ],
+    [
+      5,
+      "C",
+      "B",
+      3080.0,
+      3280.0
+    ],
+    [
+      6,
+      "B",
+      "C",
+      3380.0,
+      3580.0
+    ],
+    [
+      7,
+      "C",
+      "B",
+      4520.0,
+      4720.0
+    ],
+    [
+      8,
+      "B",
+      "C",
+      4820.0,
+      5020.0
+    ],
+    [
+      9,
+      "C",
+      "B",
+      5960.0,
+      6160.0
+    ],
+    [
+      10,
+      "B",
+      "C",
+      6260.0,
+      6460.0
+    ],
+    [
+      11,
+      "C",
+      "B",
+      7400.0,
+      7600.0
+    ],
+    [
+      12,
+      "B",
+      "C",
+      7700.0,
+      7900.0
+    ],
+    [
+      13,
+      "C",
+      "B",
+      8840.0,
+      9040.0
+    ],
+    [
+      14,
+      "B",
+      "C",
+      9140.0,
+      9340.0
+    ]
+  ],
+  "Cost_Matrix": [
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0,
+      1000.0
+    ]
+  ],
+  "Maintenance_Thresholds": {
+    "A": 27000,
+    "B": 42000,
+    "C": 600,
+    "D": 2920
+  },
+  "Maintenance_Durations": {
+    "A": 360.0,
+    "B": 2880.0,
+    "C": 20160.0,
+    "D": 60480.0
+  },
+  "Station_Capacity": {
+    "C": 2,
+    "B": 0
+  },
+  "Initial_Checks": {
+    "A": {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0
+    },
+    "B": {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0
+    },
+    "C_Days": {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0
+    },
+    "D_Days": {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0
+    }
+  }
+}

@@ -62,6 +62,9 @@
 %% ---------- Journal metadata (fill before submission) ----------
 \journal{European Journal of Operational Research}
 
+%% placeholder for statements that only the authors can supply
+\newcommand{\confirm}[1]{\textcolor{red}{[#1]}}
+
 \begin{document}
 
 \begin{frontmatter}
@@ -69,35 +72,42 @@
 \title{Revisiting the Compact Tail Assignment Model: Corrections and an
   Exact Event-Based Maintenance Reformulation}
 
-\author[lgi]{Viktor Borodin}
-\author[lip6]{Arun Kumar Pappala}
+\author[kyiv]{Viktor Borodin}
+\author[sutd]{Arun Kumar Pappala}
 
-\address[lgi]{Taras Shevchenko National University, Kyiv, Ukraine}
-\address[lip6]{Singapore University of Technology and Design, Singapore}
+\address[kyiv]{Taras Shevchenko National University, Kyiv, Ukraine}
+\address[sutd]{Singapore University of Technology and Design, Singapore}
+
+\begin{highlights}
+\item Simultaneous departures break the compact TAP model; non-overlap rows fix it
+\item The published flight-hour row alone yields schedules that fail an audit
+\item Exact hour-state and event-based A-check formulations are proved correct
+\item Day- and event-indexed encodings give equal optima in 80 Gurobi runs
+\item Results cross-checked with CPLEX and Gurobi; code and data are released
+\end{highlights}
 
 \begin{abstract}
-This paper revisits the compact mixed-integer linear programming model for
-the Tail Assignment Problem (TAP) introduced by Khaled et al.\ (2018).  We
-make three contributions.  First, we show that the basic continuity and
-turn-time inequalities (C2--C4; constraints~(3)--(6) in Khaled et al.) admit a
-simultaneous-departure corner case that is mathematically feasible but
-physically infeasible, and we close this gap with explicit non-overlap
-constraints (C5). Second, we analyse the limitations of using the published
-cumulative-flight-time row in isolation and of a two-row endpoint split,
-and give exact hour-state formulations with pre-horizon exposure and a
-pre-check threshold guard. Opening-hour bounds include the first day and
-flights through the ending day. Third, we study a flexible-start, hour-limited
-A-check extension with at most one check per aircraft per actual start day.
-It is not the full model of Khaled et al., which specifies nightly
-maintenance, daily capacity and an additional calendar-spacing requirement.
-The uniform day-indexed and event-indexed encodings use the same timing,
-capacity, cost and hour engine; we prove their projection equivalence and
-compare them under matched solver settings. Fixed 22:00 starts form a
-separate restricted comparison. Independent chronological replay and a tiny
-enumerated start-time case supplement the encoding proof. Historical
-comparisons using different maintenance policies are reported separately and
-do not establish formulation equivalence or a general timing advantage.
-Code, instances, raw results and provenance artifacts accompany the study.
+The compact 0--1 model of Khaled et al.\ (2018) is a widely cited baseline for
+the tail assignment problem (TAP). We re-examine it and make three
+contributions. First, we show that its continuity and turn-time rows admit
+plans in which one aircraft operates two simultaneous departures, and we prove
+that explicit non-overlap rows (C5) restore physical executability. On
+timetables with up to 153 simultaneous-departure pairs the defect is latent
+under aircraft-specific costs, but under neutral costs it produces cheaper,
+non-executable plans in four of seven instances, and in all twelve instances
+with 300--452 flights. Second, we show that the
+published cumulative-flight-time row is a valid conditional bound but, alone or
+in a two-row endpoint split, does not enforce the flight-hour limit: on six
+matched instances every schedule returned by CPLEX and by Gurobi for these rows
+fails an independent replay audit, whereas exact-state formulations with
+pre-horizon exposure and a pre-check guard never do. Third, we give
+flexible-start, hour-limited A-check formulations indexed by day or by event,
+prove them equivalent by substitution, and find identical optima and
+comparable solution times in 80 Gurobi runs. Selected synthetic scale checks
+extend to 752 flights and 50 aircraft, but do not reproduce the full Khaled
+benchmark protocol; the study uses A checks only and no real airline timetable.
+Khaled et al.'s full nightly and calendar-spacing policy is not modelled. Code,
+instances, raw results and provenance data are provided.
 \end{abstract}
 
 \begin{keyword}
@@ -114,8 +124,23 @@ Integer programming \sep Mixed-integer programming corrections
 \input{sections/04_maintenance_model}
 \input{sections/06_event_reformulation}
 \input{sections/07_computational}
-\clearpage
 \input{sections/08_conclusion}
+
+\section*{Data availability}
+All instances, code, raw results, saved schedules and provenance files
+(\Cref{app:artifacts}) are available at \confirm{repository/DOI to be inserted
+at acceptance}.
+
+\section*{Declaration of competing interest}
+\confirm{Authors to supply the declaration.}
+
+\section*{CRediT authorship contribution statement}
+\confirm{Authors to supply contributions per author.}
+
+\section*{Funding}
+\confirm{Authors to supply funding information or state that there was none.}
+
+\input{sections/A_artifacts}
 %% ==========================================================================
 
 \bibliographystyle{elsarticle-harv}

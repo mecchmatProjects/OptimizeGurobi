@@ -1,0 +1,2 @@
+file,density,p,h,flights,assigned,unassigned,objective,maintenance_families,status
+DataCplex_density=0.5_p=10_h=14_test_0.json,0.5,10,14,94,94,0,43706.0,A,ok

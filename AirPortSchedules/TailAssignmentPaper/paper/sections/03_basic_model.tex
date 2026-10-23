@@ -146,7 +146,6 @@ $x_{i_1j}+x_{i_2j}\le 1$.
 \paragraph{Corrected C1--C5 feasibility criterion.}
 For each flight $i$, define its operating interval, including the required
 turn-time buffer, by
-\paragraph{Conflict-set definition.}
 \begin{equation}
   I_i=[\tD{i},\tI{i}+\dt).
 \end{equation}
@@ -223,7 +222,8 @@ aircraft in chronological order.
 
 \begin{proof}
 Fix an aircraft $j$ and list its assigned flights in increasing departure-time
-order as $i_1,\ldots,i_m$. For each consecutive pair, the intervals
+order as $i_1,\ldots,i_m$ (ties are impossible, since equal departure times
+imply intersecting intervals). For each consecutive pair, the intervals
 $I_{i_k}$ and $I_{i_{k+1}}$ cannot intersect: otherwise
 $\{i_k,i_{k+1}\}\in\mathcal{O}$ and the C5 inequality would prohibit both
 flights from being assigned to $j$. Since the intervals are half-open and
@@ -232,15 +232,23 @@ ordered by departure time, this gives
   \tD{i_{k+1}}\geq \tI{i_k}+\dt,
   \qquad k=1,\ldots,m-1.
 \]
-Thus the aircraft has the required turn time between every consecutive pair
-of its assigned flights. Constraints~\eqref{eq:c2}--\eqref{eq:c3} ensure that
-each assigned flight departs from an airport at which the aircraft is
-available: at a non-home airport, the cumulative balance requires a prior
-arrival with the required turn time; at the initial airport, the initial
-aircraft supplies the first available unit and the balance accounts for later
-returns and departures. Therefore the ordered flights form a continuous,
-turn-time-feasible route for aircraft $j$. Applying this argument to every
-aircraft proves the claim.
+It remains to show that $i_{k+1}$ departs from the airport where $i_k$ landed,
+and that $i_1$ departs from $a^0_j$. Write $\ell_0=a^0_j$ and let $\ell_k$ be
+the arrival airport of $i_k$. We argue by induction on $k$ that $i_1,\ldots,i_k$
+form a continuous route from $a^0_j$ to $\ell_k$. For $k=0$ there is nothing to
+prove. Suppose it holds for $k$, and let $\kappa=\aD{i_{k+1}}$. All of
+$i_1,\ldots,i_k$ depart before $\tD{i_{k+1}}$ and, by the turn-time inequality
+above, arrive no later than $\tD{i_{k+1}}-\dt$; because $i_{k+1}$ is the next
+assigned flight, no other assigned flight is counted. The left-hand side of
+\eqref{eq:c2}--\eqref{eq:c3} is therefore the number of arrivals at $\kappa$
+minus the number of departures from $\kappa$ along this route, which equals
+$\mathbb{1}[\kappa=\ell_k]-\mathbb{1}[\kappa=a^0_j]$ for a continuous route.
+If $\kappa\neq a^0_j$, \eqref{eq:c2} requires this quantity to be at least
+$1$, hence $\kappa=\ell_k$. If $\kappa=a^0_j$, \eqref{eq:c3} requires
+$\mathbb{1}[\kappa=\ell_k]-1\ge0$, hence again $\kappa=\ell_k$. Therefore
+$i_{k+1}$ departs from $\ell_k$, the extended route is continuous, and the
+induction closes. Every aircraft thus has a continuous, turn-time-feasible
+route, which proves the claim.
 \end{proof}
 
 

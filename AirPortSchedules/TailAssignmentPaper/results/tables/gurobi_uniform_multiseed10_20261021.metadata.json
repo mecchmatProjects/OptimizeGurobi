@@ -1,0 +1,546 @@
+{
+  "schema_version": 1,
+  "runs": [
+    {
+      "git_revision": "dc1fe222a5756a8516c7f0cc853055a88d567561",
+      "python": "3.12.4",
+      "pyomo": "6.10.1",
+      "sources": {
+        "experiments\\run_four_method_suite.py": "920a0b25fdec3f4333d19307a88462f33e26e326ca041547f40b2bdedd219e82",
+        "src\\model.py": "2e2f4a11b218716c2f8073eacefe01e74bb9e9a7c241b11437949ffda8a8a14b",
+        "src\\compact_a_event_model.py": "69b7e2336dd2a09fa9513dc5ad1e6feb9014c33f7e382b340ee2d8e7886d983c",
+        "src\\generate_feasible_instances.py": "111b2a7a58c16e45c3c6792a48ec62544c5b5bafe80e4622635528c650c2faf0",
+        "src\\generate_instances.py": "dbf75cf082f1789d52cf844ef4aa53c56b70bd8a27e9a626191d25f83d7e0377",
+        "src\\validate_maintenance.py": "9f8494b6e191e329c75d82f5e9ce7168895327c5f261e857c5bf912692a776d8"
+      },
+      "inputs": {
+        "data\\a_only_multiseed10_20261021\\perf_p=10_h=29_r=0.json": {
+          "sha256": "23e4177466fb69ef7fa1ea188c1b9ca340621b7eda6b1269b9572a0b0970854b",
+          "P": 10,
+          "observed_H": 30,
+          "F": 146,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=10_h=29_r=1.json": {
+          "sha256": "e86129b690c52f11a158913e748200807ee34f24e86ed7be3824c27f26f496c5",
+          "P": 10,
+          "observed_H": 30,
+          "F": 146,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=10_h=29_r=2.json": {
+          "sha256": "1bbf60bf6f6299d767a99e9927295d41fe12fbdbbf1dc4a3a16ed6e426c0b689",
+          "P": 10,
+          "observed_H": 30,
+          "F": 146,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=10_h=29_r=3.json": {
+          "sha256": "cbae0e970ad0204bbe59185c1a7123d72186487ee44caa8ae33e0f05281224d6",
+          "P": 10,
+          "observed_H": 30,
+          "F": 146,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=10_h=29_r=4.json": {
+          "sha256": "0553245d14ffaf2f265ebef8df5db8c44ce91e1d335cbcb9d8a74b4994b21d5e",
+          "P": 10,
+          "observed_H": 30,
+          "F": 146,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=10_h=29_r=5.json": {
+          "sha256": "6a6a006d48500f3d67d19c96871718e78f75ff46ab66bb76f931e5f7b1dd8edc",
+          "P": 10,
+          "observed_H": 30,
+          "F": 146,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=10_h=29_r=6.json": {
+          "sha256": "f4af2d92f4dd594d591d0548aea1eec738aec44990a6d908f0be8def099081ff",
+          "P": 10,
+          "observed_H": 30,
+          "F": 146,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=10_h=29_r=7.json": {
+          "sha256": "7979b2126fd51db96bea094e61e057a6bdc4eeaef9576e1dd607c280dfed31a3",
+          "P": 10,
+          "observed_H": 30,
+          "F": 146,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=10_h=29_r=8.json": {
+          "sha256": "4313fcd3ad5378515ad9468dd161bf94107274c5d4d7736586f1b7781ef6ace8",
+          "P": 10,
+          "observed_H": 30,
+          "F": 146,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=10_h=29_r=9.json": {
+          "sha256": "dcaa1994fbcae7587926713f376ebef350e2e56bad8b1f962c0a33c1e16fd045",
+          "P": 10,
+          "observed_H": 30,
+          "F": 146,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=10_h=49_r=0.json": {
+          "sha256": "c3fc31a213b9af5b8f690e983e365c08ff3f4ae49b6b27058f07291a4a9ac4f6",
+          "P": 10,
+          "observed_H": 49,
+          "F": 160,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=10_h=49_r=1.json": {
+          "sha256": "7921c8f8de035e3088cde8852966bf35ab16c6096113b66aa2e6b70cdd1e5bc4",
+          "P": 10,
+          "observed_H": 49,
+          "F": 160,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=10_h=49_r=2.json": {
+          "sha256": "5bb8ebbae5538b40b39f8ddcaa908f6ab93bf4dd0e62562be14c4aa1c7df31c8",
+          "P": 10,
+          "observed_H": 49,
+          "F": 160,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=10_h=49_r=3.json": {
+          "sha256": "576f9037ec3a9246954f99d70c105a116e2faa0ee8294bb6a601c6ac57fc06e4",
+          "P": 10,
+          "observed_H": 49,
+          "F": 160,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=10_h=49_r=4.json": {
+          "sha256": "67b512372ccd0374ecf2b6ee171f25d486e157f33587874846d9847a93f16701",
+          "P": 10,
+          "observed_H": 49,
+          "F": 160,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=10_h=49_r=5.json": {
+          "sha256": "389fd76a0ac4156a8f5501532e5a7c30485ff61d2b804ff64c006749fdae83d7",
+          "P": 10,
+          "observed_H": 49,
+          "F": 160,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=10_h=49_r=6.json": {
+          "sha256": "78bbddc1d7355a94729db82d61e45b29648ed3e0bb80ce2f7e93132b873bd71a",
+          "P": 10,
+          "observed_H": 49,
+          "F": 160,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=10_h=49_r=7.json": {
+          "sha256": "9b11f8839d5586e7a43fdb49072927e3bbdc52c5dceded669f7b703740a08a23",
+          "P": 10,
+          "observed_H": 49,
+          "F": 160,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=10_h=49_r=8.json": {
+          "sha256": "5f5191bc454ecdc5f34b7f361e0269c32bf9ed27458b8a44eea497e4639ca2f3",
+          "P": 10,
+          "observed_H": 49,
+          "F": 160,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=10_h=49_r=9.json": {
+          "sha256": "7f3ec63dde288b43d5d9fda80f9b8ae7887cbbac0f85b4078f67caeb33810f79",
+          "P": 10,
+          "observed_H": 49,
+          "F": 160,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=5_h=29_r=0.json": {
+          "sha256": "f7a87b649c3a127558b6f5aad16a4b843383766e863f254f23733d7963961871",
+          "P": 5,
+          "observed_H": 30,
+          "F": 74,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=5_h=29_r=1.json": {
+          "sha256": "4e438cb26fa06626c14a21a1f438df2812a4a03654f1c4a6bd5e8ed5864f2e2b",
+          "P": 5,
+          "observed_H": 30,
+          "F": 74,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=5_h=29_r=2.json": {
+          "sha256": "068c02ab86fa02a57c0b852dfa4fbb00df20f93e84b08c9341b85e77c2871fa5",
+          "P": 5,
+          "observed_H": 30,
+          "F": 74,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=5_h=29_r=3.json": {
+          "sha256": "4339e7b232a24e4e9275148bbf483e1de90c4740aca1f62b413055cf054caac2",
+          "P": 5,
+          "observed_H": 30,
+          "F": 74,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=5_h=29_r=4.json": {
+          "sha256": "bc4842abb3d66fefc45bed991e15aa01b0d8f8b727ebb6785c498e2b40e7e184",
+          "P": 5,
+          "observed_H": 30,
+          "F": 74,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=5_h=29_r=5.json": {
+          "sha256": "225087719b6684cfb494d4ff36330e6d54f8380881876764f122958654c5978f",
+          "P": 5,
+          "observed_H": 30,
+          "F": 74,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=5_h=29_r=6.json": {
+          "sha256": "57a0177972db47629ad862058e940d4c17f3276ffdb3df96e8779d3754552ab1",
+          "P": 5,
+          "observed_H": 30,
+          "F": 74,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=5_h=29_r=7.json": {
+          "sha256": "d0eb489d1d50b6082908896e04f16276a08db5140828951439563f7ee59bd623",
+          "P": 5,
+          "observed_H": 30,
+          "F": 74,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=5_h=29_r=8.json": {
+          "sha256": "49692d8c346503701fb902b2a578c2194aded6476118f5b49329cf77c1a8b1f5",
+          "P": 5,
+          "observed_H": 30,
+          "F": 74,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=5_h=29_r=9.json": {
+          "sha256": "47ff0530bbbb64cca6fc5abeaaf6d5aa99b0987cb633cca7735ce22eec63dd8e",
+          "P": 5,
+          "observed_H": 30,
+          "F": 74,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=5_h=49_r=0.json": {
+          "sha256": "17372a8535368f2b1fc8d068c78e7356c02dacdd41c8a97a61c44481570fbc76",
+          "P": 5,
+          "observed_H": 48,
+          "F": 80,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=5_h=49_r=1.json": {
+          "sha256": "ae77a9dc3ca8e59178144d579d207c51e635aee25eadeaea0ab137f9aa1981e0",
+          "P": 5,
+          "observed_H": 48,
+          "F": 80,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=5_h=49_r=2.json": {
+          "sha256": "a418de3533fdbb755f80947dfe398b975a7872a43c76054f40233d6d689acbb4",
+          "P": 5,
+          "observed_H": 48,
+          "F": 80,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=5_h=49_r=3.json": {
+          "sha256": "10abcc3e42f8c1e9308adef0f85d7bde049897cc3a88b3881c37b7a995d7d7ac",
+          "P": 5,
+          "observed_H": 48,
+          "F": 80,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=5_h=49_r=4.json": {
+          "sha256": "905376bf102d9cbfc42ee7ba94ceaabaca389eb4e72f62419f748cedeb23416c",
+          "P": 5,
+          "observed_H": 48,
+          "F": 80,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=5_h=49_r=5.json": {
+          "sha256": "edb11e72159735a56532f938a57305baff430d5b03fc0533570d1f5e1a0bd2f9",
+          "P": 5,
+          "observed_H": 48,
+          "F": 80,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=5_h=49_r=6.json": {
+          "sha256": "12a40b6474c3db2af6b08a26e18af28dfce8332da5d1e0c30fcadac583825f11",
+          "P": 5,
+          "observed_H": 48,
+          "F": 80,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=5_h=49_r=7.json": {
+          "sha256": "29e82eaba3b377a7673a174241c7ddd5037e59d02b9f616b64a05792d2b72fdd",
+          "P": 5,
+          "observed_H": 48,
+          "F": 80,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=5_h=49_r=8.json": {
+          "sha256": "f808c22a3178befd496a251a3a6860b7b35826ad4cb6b9d8307aa74e1f0ca462",
+          "P": 5,
+          "observed_H": 48,
+          "F": 80,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_multiseed10_20261021\\perf_p=5_h=49_r=9.json": {
+          "sha256": "c1cc093550f06a4e8e4fe6a386b04ce6116ec4fc33eebf492af5b3db358a5e16",
+          "P": 5,
+          "observed_H": 48,
+          "F": 80,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        }
+      },
+      "configuration": {
+        "methods": [
+          "uniform_flexible_day",
+          "uniform_flexible_event"
+        ],
+        "effective_enabled_checks": [
+          "A"
+        ],
+        "solver": "gurobi",
+        "solver_version": "11.0.3",
+        "executable": "C:\\gurobi1103\\win64\\python311\\bin\\python.exe",
+        "time_limit_s": 180,
+        "threads": 1,
+        "presolve_configuration": "presolve_on",
+        "warm_start": false,
+        "legacy_max_hour_check_deferral_days": null,
+        "lp_relaxation": false,
+        "event_based_optimized_policy": "immediate-after-trigger-flight",
+        "event_based_flex_max_deferral_minutes": 1440.0,
+        "policies": {
+          "uniform_flexible_day": {
+            "policy_id": "flexible_start_day_cap_v1",
+            "day_indexed_z": true,
+            "maximum_start_deferral_minutes": 1440.0,
+            "time_grid_minutes": 1.0,
+            "one_check_per": "aircraft_actual_start_calendar_day",
+            "capacity": "simultaneous_half_open_bay_occupancy",
+            "calendar_spacing_requirement": null,
+            "night_start_minute": null
+          },
+          "uniform_flexible_event": {
+            "policy_id": "flexible_start_day_cap_v1",
+            "day_indexed_z": false,
+            "maximum_start_deferral_minutes": 1440.0,
+            "time_grid_minutes": 1.0,
+            "one_check_per": "aircraft_actual_start_calendar_day",
+            "capacity": "simultaneous_half_open_bay_occupancy",
+            "calendar_spacing_requirement": null,
+            "night_start_minute": null
+          }
+        }
+      },
+      "result_csv_sha256": "8c1664345bb2e9d63a3e1b8a6ee59b4ccf8e759d20c49ce37ece0b13b80072e1",
+      "source_snapshot": "gurobi_uniform_multiseed10_20261021.sources.zip",
+      "source_snapshot_sha256": "2f7b1e3c9592d4bcf0b916a79165d31eb5309106f4c747a7164f0a2e4df9183c",
+      "schedule_sha256": "01cb4c8fb86726471ecc6d6307eb6a4110cb7ac6bbfb4f0e6804069a5d6c5754"
+    }
+  ]
+}

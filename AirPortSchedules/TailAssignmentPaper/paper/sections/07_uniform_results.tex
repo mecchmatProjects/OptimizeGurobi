@@ -1,14 +1,15 @@
-\subsection{Uniform Flexible-Start Study}
+\subsection{Uniform flexible-start study}
 \label{subsec:uniform_results}
-The new comparison uses the common policy in \Cref{subsec:uniform_flexible}.
+The main comparison uses the common policy of \Cref{subsec:uniform_flexible}.
 Both encodings use CPLEX 12.6.0.0, one thread, presolve on, and a 180-second limit.
-They share the hour engine; the comparison measures maintenance encoding, not independent physical models.
+They share the hour engine, so the comparison measures the maintenance encoding and not independent physical models.
 All loaded incumbents, including time-limited ones, are checked by chronological replay.
 An additional audit reconstructs cost, hours, timing, routes, actual start-day counts and bay occupancy
-directly from the saved decisions and input JSON, without the model's state values.
+directly from the saved decisions and the input data, without the model's state values.
+\Cref{tab:uniform_flexible} reports the six matched instances.
 \begin{table}[t]\centering\scriptsize
 \caption{Uniform flexible-start encodings. Wall time is measured around the solver call.
-Status is the interface termination code; a time-limited incumbent is not an optimum.}
+``Limit'' means the 180-second limit was reached with an incumbent; such an incumbent is not a proven optimum.}
 \label{tab:uniform_flexible}\resizebox{\linewidth}{!}{%
 \begin{tabular}{rrl lrrrrl}\toprule
 $|P|$ & $H$ & Encoding & Status & Objective & Wall (s) & Vars & Rows & Replay \\\midrule
@@ -21,12 +22,13 @@ $|P|$ & $H$ & Encoding & Status & Objective & Wall (s) & Vars & Rows & Replay \\
 10 & 49 & Day & optimal & 81391 & 3.15 & 6463 & 21959 & PASS \\
 10 & 49 & Event & optimal & 81391 & 3.00 & 7263 & 22759 & PASS \\
 15 & 30 & Day & optimal & 110749 & 157.11 & 13900 & 49043 & PASS \\
-15 & 30 & Event & maxIterations & 110749 & 182.39 & 15535 & 50678 & PASS \\
-15 & 49 & Day & maxIterations & 122169 & 182.57 & 14607 & 50211 & PASS \\
-15 & 49 & Event & maxIterations & 122169 & 182.41 & 16407 & 52011 & PASS \\
+15 & 30 & Event & limit & 110749 & 182.39 & 15535 & 50678 & PASS \\
+15 & 49 & Day & limit & 122169 & 182.57 & 14607 & 50211 & PASS \\
+15 & 49 & Event & limit & 122169 & 182.41 & 16407 & 52011 & PASS \\
 \bottomrule\end{tabular}}\end{table}
 Of 12 runs, 9 terminate optimally and 12 return loaded incumbents; all 12 pass both replay checks.
-Unavailable solver bounds and node counts are left blank in raw data, not inferred from incumbent values.
+Solver bounds and node counts that the solver interface did not return are left blank in the raw data, not inferred from incumbent values.
+A Gurobi rerun (\Cref{subsec:solver_sensitivity}) returns the same objective in all twelve runs and stops at its limit on the same three, with residual gaps of 0.7--1.3\%; the three limit values are therefore best-known incumbents and not proven optima.
 The timings are descriptive workstation measurements, not isolated repeated-runtime trials or evidence of general speedup.
 \begin{table}[t]\centering\scriptsize
 \caption{Repaired day-boundary ablation, including the first-day opening row. This is not the arbitrary flexible-start model.}
@@ -40,15 +42,19 @@ $|P|$ & $H$ & State LP & Interval LP & Prefix LP & Common MIP & Interval vars/ro
 \bottomrule\end{tabular}}\end{table}
 All 12 repaired LP and all 12 integer runs terminate optimally. Saved integer schedules pass the day-boundary hour replay.
 The interval/prefix LP equality follows from telescoping with identical bounds and opening domains; equality to the stronger reset-state LP is not claimed.
-The raw snapshots are \path{repaired_hour_prefix_lp_20261021.csv} and \path{repaired_hour_prefix_milp_20261021.csv}.
+\Cref{tab:repaired_prefix} is a day-boundary ablation and not a result for the flexible-start encodings.
+\Cref{fig:uniform_variables,fig:uniform_wall} show model size and solve time at $H=30$.
 \begin{figure}[t]\centering
 \includegraphics[width=0.86\linewidth]{figures/uniform_variables_h30_20261021.png}
 \caption{Uniform flexible model size at observed $H=30$, including the P=15 models.}
+\label{fig:uniform_variables}
 \end{figure}
 \begin{figure}[t]\centering
 \includegraphics[width=0.86\linewidth]{figures/uniform_wall_h30_20261021.png}
 \caption{Uniform flexible solve time at $H=30$ on common optimal cells only (P=5 and P=10).}
+\label{fig:uniform_wall}
 \end{figure}
+\Cref{tab:uniform_night} reports the fixed 22:00 restriction.
 \begin{table}[t]\centering\scriptsize
 \caption{Fixed 22:00 restriction on the four P=5/10 cases, with the same 180-second limit.}
 \label{tab:uniform_night}\begin{tabular}{rrllrrl}\toprule
@@ -63,6 +69,7 @@ $|P|$ & $H$ & Encoding & Status & Objective & Wall (s) & Replay \\\midrule
 10 & 49 & Event & optimal & 81391 & 2.18 & PASS \\
 \bottomrule\end{tabular}\end{table}
 The nightly model is a restricted flexible model, not Khaled's daily-quota/calendar-spacing model.
+\Cref{tab:uniform_seeds} gives a three-seed CPLEX replication; the ten-seed Gurobi replication of \Cref{subsec:ten_seed} supersedes it for timing comparisons.
 \begin{table}[t]\centering\scriptsize
 \caption{Uniform flexible three-seed subset: wall time as mean $\pm$ sample standard deviation, optimal runs only.}
 \label{tab:uniform_seeds}\begin{tabular}{rrllr}\toprule
@@ -77,7 +84,4 @@ $|P|$ & $H$ & Encoding & Optimal / runs & Wall (s) \\\midrule
 10 & 49 & Event & 3/3 & $2.893\pm0.076$ \\
 \bottomrule\end{tabular}\end{table}
 Three seeds test limited instance variation; seed zero overlaps the six-case study and is not an additional independent sample.
-Raw new results use the \path{uniform_flexible_main_20261021.csv},
-\path{uniform_night_subset_20261021.csv} and \path{uniform_flexible_multiseed_20261021.csv}
-snapshots in \path{results/tables/}, each with saved schedules, source archive and hashed metadata.
-The following 2026-10-20 tables are historical snapshots with different policies; their values are not results for these uniform encodings.
+Raw results, saved schedules, source archives and hashed metadata are listed in \Cref{app:artifacts}.

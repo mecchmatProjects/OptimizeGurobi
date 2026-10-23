@@ -1,0 +1,254 @@
+{
+  "_comment": [
+    "=== TEST FILE: All four maintenance check types (A, B, C, D), each once ===",
+    "",
+    "Design: 5 aircraft (AC0-AC3 start at B, AC4 starts at C).",
+    "Same thresholds as ABCD_multi_check_test to keep a consistent parameter set:",
+    "  A : flight-hour threshold = 1 200 min,  duration =   360 min",
+    "  B : flight-hour threshold = 3 600 min,  duration = 2 880 min (2 days)",
+    "  C : calendar-day threshold =  10 days,  duration = 1 440 min (1 day)",
+    "  D : calendar-day threshold =  14 days,  duration = 2 880 min (2 days)",
+    "",
+    "Initial values chosen so each aircraft's first B->C flight immediately",
+    "triggers a check (initial counter = threshold - 200, one step away).",
+    "Each aircraft then returns after the check window closes.",
+    "",
+    "  AC0 -- 1x A-check:",
+    "    A_init=1000 min (200 below A-threshold=1200).",
+    "    F01 (B->C day 1, arr=260): A_accum=1200 -> A-check day 1.",
+    "    Check window [260, 620]. Return F05 dep=700 > 620.",
+    "",
+    "  AC1 -- 1x B-check:",
+    "    B_init=3400 min (200 below B-threshold=3600).",
+    "    F02 (B->C day 1, arr=320): B_accum=3600 -> B-check day 1 (2880 min window).",
+    "    Check window [320, 3200]. Return F06 dep=3400 > 3200.",
+    "",
+    "  AC2 -- 1x C-check:",
+    "    C_Days_init=9 (1 day below C-threshold=10).",
+    "    c12b forces check on day 1 (remaining=1 <= horizon).",
+    "    F03 (B->C day 1, arr=380): triggers 1st C-check day 1.",
+    "    Check window [380, 1820]. Return F07 dep=2000 > 1820.",
+    "",
+    "  AC3 -- 1x D-check:",
+    "    D_Days_init=13 (1 day below D-threshold=14).",
+    "    c12b forces check on day 1 (remaining=1 <= horizon).",
+    "    F04 (B->C day 1, arr=440): triggers 1st D-check day 1.",
+    "    Check window [440, 3320]. Return F08 dep=3500 > 3320.",
+    "",
+    "  AC4 -- free aircraft at C, one operational C->B flight.",
+    "",
+    "All 4 aircraft are at C simultaneously on day 1 (max 4 occupants = capacity).",
+    "Station_Capacity C=4 is just sufficient.",
+    "",
+    "Flight schedule (all 200 min duration):",
+    "  F01 B->C dep=   60 arr=  260 (day 1) [AC0] A-check trigger",
+    "  F02 B->C dep=  120 arr=  320 (day 1) [AC1] B-check trigger",
+    "  F03 B->C dep=  180 arr=  380 (day 1) [AC2] C-check trigger",
+    "  F04 B->C dep=  240 arr=  440 (day 1) [AC3] D-check trigger",
+    "  F05 C->B dep=  700 arr=  900 (day 1) [AC0] post-A-check (700>620)",
+    "  F06 C->B dep= 1800 arr= 2000 (day 2) [AC4] operational",
+    "  F07 C->B dep= 2000 arr= 2200 (day 2) [AC2] post-C-check (2000>1820)",
+    "  F08 C->B dep= 3400 arr= 3600 (day 3) [AC1] post-B-check (3400>3200)",
+    "  F09 C->B dep= 3500 arr= 3700 (day 3) [AC3] post-D-check (3500>3320)",
+    "",
+    "Expected MILP output (--no-check-hierarchy):",
+    "  AC0 -> A-check on day 1 (F01)",
+    "  AC1 -> B-check on day 1 (F02)",
+    "  AC2 -> C-check on day 1 (F03)",
+    "  AC3 -> D-check on day 1 (F04)",
+    "",
+    "Run command:",
+    "  py -3 heu180h.py --mode milp --data inputsABCD/ABCD_all_checks_test.json",
+    "                   --solver cplex --no-check-hierarchy --no-show"
+  ],
+  "Aircrafts": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "AIRCRAFT_INIT_POS": {
+    "0": "B",
+    "1": "B",
+    "2": "B",
+    "3": "B",
+    "4": "C"
+  },
+  "Flights": [
+    [
+      1,
+      "B",
+      "C",
+      60.0,
+      260.0
+    ],
+    [
+      2,
+      "B",
+      "C",
+      120.0,
+      320.0
+    ],
+    [
+      3,
+      "B",
+      "C",
+      180.0,
+      380.0
+    ],
+    [
+      4,
+      "B",
+      "C",
+      240.0,
+      440.0
+    ],
+    [
+      5,
+      "C",
+      "B",
+      700.0,
+      900.0
+    ],
+    [
+      6,
+      "C",
+      "B",
+      1800.0,
+      2000.0
+    ],
+    [
+      7,
+      "C",
+      "B",
+      2000.0,
+      2200.0
+    ],
+    [
+      8,
+      "C",
+      "B",
+      3400.0,
+      3600.0
+    ],
+    [
+      9,
+      "C",
+      "B",
+      3500.0,
+      3700.0
+    ]
+  ],
+  "Cost_Matrix": [
+    [
+      1000.0,
+      9999.0,
+      9999.0,
+      9999.0,
+      9999.0
+    ],
+    [
+      9999.0,
+      1000.0,
+      9999.0,
+      9999.0,
+      9999.0
+    ],
+    [
+      9999.0,
+      9999.0,
+      1000.0,
+      9999.0,
+      9999.0
+    ],
+    [
+      9999.0,
+      9999.0,
+      9999.0,
+      1000.0,
+      9999.0
+    ],
+    [
+      1000.0,
+      9999.0,
+      9999.0,
+      9999.0,
+      9999.0
+    ],
+    [
+      9999.0,
+      9999.0,
+      9999.0,
+      9999.0,
+      1000.0
+    ],
+    [
+      9999.0,
+      9999.0,
+      1000.0,
+      9999.0,
+      9999.0
+    ],
+    [
+      9999.0,
+      1000.0,
+      9999.0,
+      9999.0,
+      9999.0
+    ],
+    [
+      9999.0,
+      9999.0,
+      9999.0,
+      1000.0,
+      9999.0
+    ]
+  ],
+  "Maintenance_Thresholds": {
+    "A": 1200,
+    "B": 3600,
+    "C": 10,
+    "D": 14
+  },
+  "Maintenance_Durations": {
+    "A": 360,
+    "B": 2880,
+    "C": 1440,
+    "D": 2880
+  },
+  "Station_Capacity": {
+    "C": 2,
+    "B": 0
+  },
+  "Initial_Checks": {
+    "A": {
+      "0": 1000,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0
+    },
+    "B": {
+      "0": 0,
+      "1": 3400,
+      "2": 0,
+      "3": 0,
+      "4": 0
+    },
+    "C_Days": {
+      "0": 0,
+      "1": 0,
+      "2": 9,
+      "3": 0,
+      "4": 0
+    },
+    "D_Days": {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 13,
+      "4": 0
+    }
+  }
+}

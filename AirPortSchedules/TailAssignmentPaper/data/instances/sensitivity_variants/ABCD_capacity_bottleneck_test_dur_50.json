@@ -1,0 +1,185 @@
+{
+  "_comment": [
+    "=== TEST FILE: Capacity bottleneck \u00e2\u20ac\u201d station C has only 1 maintenance slot ===",
+    "",
+    "Three aircraft all need A-check (A_init > 27000 min, threshold=27000 min).",
+    "Aircraft arrive at station C on three different days so the day-bucket",
+    "capacity constraint C10 (\u00ce\u00a3_j y[j,d,A] \u00e2\u2030\u00a4 1 per day) can enforce serialization.",
+    "Station C capacity = 1.",
+    "",
+    "A_init=26900  \u00e2\u20ac\u201d arrives C on day 1 via F1 (arr=260)",
+    "       After F1 total=27100 > 27000 -> A-check on day 1 (260->620).",
+    "       Post-maint: F4 C->B dep=700, then F7 B->C dep=1000.",
+    "",
+    "  AC1: A_init=26900  \u00e2\u20ac\u201d arrives C on day 2 via F2 (arr=1700)",
+    "       After F2 total=27100 > 27000 -> A-check on day 2 (1700->2060).",
+    "       Post-maint: F5 C->B dep=2160, then F8 B->C dep=2500.",
+    "",
+    "  AC2: A_init=26900  \u00e2\u20ac\u201d arrives C on day 3 via F3 (arr=3140)",
+    "       After F3 total=27100 > 27000 -> A-check on day 3 (3140->3500).",
+    "       Post-maint: F6 C->B dep=3600.",
+    "",
+    "HEURISTIC BEHAVIOUR (default mode):",
+    "  The heuristic only checks capacity > 0, NOT the numeric slot count.",
+    "  All three A-checks are scheduled (no numeric cap enforcement).",
+    "",
+    "MILP BEHAVIOUR (--mode milp):",
+    "  Constraint C10 enforces Station_Capacity=1 strictly (1 A-check per day).",
+    "  Since each aircraft arrives on a different day, all three checks are feasible.",
+    "  Expected: 3 A-checks on days 1/2/3 plus post-maint outbound legs F4/F5/F6.",
+    "  F7/F8/F9 (return flights) covered by AC0 or AC1 post-check.",
+    "",
+    "Horizon: ~7 days.  Station_Capacity: C=1.",
+    "Heuristic: py -3 heu180h.py --data inputsABCD/ABCD_capacity_bottleneck_test.json --no-show",
+    "MILP:      py -3 heu180h.py --mode milp --data inputsABCD/ABCD_capacity_bottleneck_test.json",
+    "           --solver cplex --no-check-hierarchy --no-show"
+  ],
+  "Aircrafts": [
+    0,
+    1,
+    2
+  ],
+  "AIRCRAFT_INIT_POS": {
+    "0": "B",
+    "1": "B",
+    "2": "B"
+  },
+  "Flights": [
+    [
+      1,
+      "B",
+      "C",
+      60.0,
+      260.0
+    ],
+    [
+      2,
+      "B",
+      "C",
+      1500.0,
+      1700.0
+    ],
+    [
+      3,
+      "B",
+      "C",
+      2940.0,
+      3140.0
+    ],
+    [
+      4,
+      "C",
+      "B",
+      700.0,
+      900.0
+    ],
+    [
+      5,
+      "C",
+      "B",
+      2160.0,
+      2360.0
+    ],
+    [
+      6,
+      "C",
+      "B",
+      3600.0,
+      3800.0
+    ],
+    [
+      7,
+      "B",
+      "C",
+      1000.0,
+      1200.0
+    ],
+    [
+      8,
+      "B",
+      "C",
+      2500.0,
+      2700.0
+    ]
+  ],
+  "Cost_Matrix": [
+    [
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0
+    ],
+    [
+      1000.0,
+      1000.0,
+      1000.0
+    ]
+  ],
+  "Maintenance_Thresholds": {
+    "A": 27000,
+    "B": 42000,
+    "C": 600,
+    "D": 2920
+  },
+  "Maintenance_Durations": {
+    "A": 180.0,
+    "B": 1440.0,
+    "C": 10080.0,
+    "D": 30240.0
+  },
+  "Station_Capacity": {
+    "C": 1,
+    "B": 0
+  },
+  "Initial_Checks": {
+    "A": {
+      "0": 26900,
+      "1": 26900,
+      "2": 26900
+    },
+    "B": {
+      "0": 0,
+      "1": 0,
+      "2": 0
+    },
+    "C_Days": {
+      "0": 0,
+      "1": 0,
+      "2": 0
+    },
+    "D_Days": {
+      "0": 0,
+      "1": 0,
+      "2": 0
+    }
+  }
+}

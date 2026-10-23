@@ -1,0 +1,11 @@
+file,density,p,h,flights,assigned,unassigned,objective,maintenance_families,status
+DataCplex_density=0.65_p=8_h=14_test_0.json,0.65,8,14,32,32,0,14855.0,AB,ok
+DataCplex_density=0.65_p=8_h=14_test_1.json,0.65,8,14,32,32,0,14905.0,AB,ok
+DataCplex_density=0.65_p=8_h=14_test_2.json,0.65,8,14,32,32,0,14879.0,AB,ok
+DataCplex_density=0.65_p=8_h=14_test_3.json,0.65,8,14,32,32,0,14875.0,AB,ok
+DataCplex_density=0.65_p=8_h=14_test_4.json,0.65,8,14,32,32,0,14879.0,AB,ok
+DataCplex_density=0.65_p=8_h=14_test_5.json,0.65,8,14,32,32,0,14867.0,AB,ok
+DataCplex_density=0.65_p=8_h=14_test_6.json,0.65,8,14,32,32,0,14905.0,AB,ok
+DataCplex_density=0.65_p=8_h=14_test_7.json,0.65,8,14,32,32,0,14887.0,AB,ok
+DataCplex_density=0.65_p=8_h=14_test_8.json,0.65,8,14,32,32,0,14889.0,AB,ok
+DataCplex_density=0.65_p=8_h=14_test_9.json,0.65,8,14,32,32,0,14865.0,AB,ok

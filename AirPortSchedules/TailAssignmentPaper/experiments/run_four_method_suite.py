@@ -427,6 +427,7 @@ def checkpointed_cases(paths, active, solver, executable, limit, configuration,
         "lp_relaxation": lp_relaxation, "methods": active,
     } if checkpoint_path else None
     saved = {}
+    checkpoint = {"signature": signature, "rows": []}
     if checkpoint_path and checkpoint_path.exists():
         checkpoint = json.loads(checkpoint_path.read_text(encoding="utf-8"))
         if checkpoint["signature"] != signature:
@@ -455,8 +456,9 @@ def checkpointed_cases(paths, active, solver, executable, limit, configuration,
                 if checkpoint_path:
                     checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
                     temporary = checkpoint_path.with_suffix(".tmp")
+                    checkpoint["rows"] = list(saved.values())
                     with temporary.open("w", encoding="utf-8") as handle:
-                        json.dump({"signature": signature, "rows": list(saved.values())}, handle)
+                        json.dump(checkpoint, handle)
                         handle.write("\n")
                         handle.flush()
                         os.fsync(handle.fileno())

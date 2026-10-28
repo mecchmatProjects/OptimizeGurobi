@@ -363,6 +363,20 @@ An OS file lock prevents concurrent refresh commands and is released on exit
 or process termination; the remaining .lock file does not mean a job is active.
 Do not edit experiment/model sources during a run.
 
+Midnight replay handling uses an absolute tolerance (1e-6 minute in the
+model-decision replay, 1e-5 minute in the saved-decision audit) when assigning
+a start infinitesimally below midnight to its calendar day. A full minute
+before midnight remains on the previous day; genuine day-link and duplicate
+daily-check violations are still rejected. No model constraints are changed.
+The known pre-fix uniform checkpoint can be explicitly revalidated with:
+
+    .\.venv\Scripts\python.exe experiments\refresh_cplex_study.py --executable $cplex --stage all --repair-midnight-checkpoint
+
+This retains a byte-for-byte *.pre_midnight_fix.json backup, checks input and
+source compatibility, audits every saved schedule, and records the old
+violations and source hashes in the checkpoint's migration field. A genuine
+feasibility defect stops the migration. Normal resumes need no repair flag.
+
 For a session-independent command from a fresh PowerShell terminal:
 
     & 'F:\Lectures\Facultative\Optimizers\Tasks\AirPortSchedules\TailAssignmentPaper\experiments\resume_cplex_study.ps1'

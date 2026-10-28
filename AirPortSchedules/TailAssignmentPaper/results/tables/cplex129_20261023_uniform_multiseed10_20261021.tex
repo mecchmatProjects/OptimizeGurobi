@@ -1,0 +1,28 @@
+\subsubsection{CPLEX replication of the ten-seed uniform study}
+\label{subsec:cplex_refresh}
+The same 40 inputs were rerun with CPLEX~12.9.0.0 through Pyomo's
+shell interface, one thread, presolve enabled, no warm start, and a
+180-second limit per solve. The defaults of this CPLEX version were
+retained, including its MIP-gap tolerance. Each returned incumbent
+passed chronological replay and the independent saved-decision audit.
+The original Gurobi raw CSV is absent from this checkout, although its
+metadata, schedules and source archive remain available. Accordingly,
+these results are a new CPLEX replication, not a hash-verified paired
+comparison of solver runtimes or objective values.
+\begin{table}[t]\centering\small
+\caption{Ten-seed CPLEX replication. Optimal runs out of ten and wall
+time as mean $\pm$ sample standard deviation on optimal runs only.
+Paired denotes instances where both encodings terminated optimally.}
+\label{tab:cplex_ten_seed}
+\begin{tabular}{rr r l r l r}\toprule
+$|P|$ & $H$ & Day opt. & Day (s) & Event opt. & Event (s) & Paired \\\midrule
+5 & 30 & 10/10 & $0.39\pm0.02$ & 10/10 & $0.38\pm0.03$ & 10/10 \\
+5 & 48 & 10/10 & $0.27\pm0.04$ & 10/10 & $0.28\pm0.05$ & 10/10 \\
+10 & 30 & 10/10 & $75.54\pm38.12$ & 9/10 & $60.55\pm31.53$ & 9/10 \\
+10 & 49 & 10/10 & $2.24\pm0.12$ & 10/10 & $2.32\pm0.09$ & 10/10 \\
+\bottomrule\end{tabular}\end{table}
+Equality is checked only on jointly optimal pairs; time-limited
+incumbents are not counted as proven optima. These workstation timings
+are descriptive and do not establish a solver-independent ranking.
+Raw results: \path{cplex129_20261023_uniform_multiseed10_20261021.csv}
+in \path{results/tables/}, with metadata, schedules and source snapshot.

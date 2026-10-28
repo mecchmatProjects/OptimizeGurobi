@@ -48,10 +48,12 @@ EXTENDED = (
     "a_only_p4050_20261022",
 )
 PRE_MIDNIGHT_FIX_SOURCES = {
+    "experiments\\run_four_method_suite.py": "21aebe5cb5476c5f7ef512167e48c2d1cf0819f9ac93ad4d41e8c5df6f909721",
     "experiments\\refresh_cplex_study.py": "bb24c7952d139418fc79c9104de55461d757a8903872ac9b3aaa756a000a68e2",
     "experiments\\report_uniform_study.py": "82a211d0509df839d3b863068f60f0048c3c9e2afb327250e0c5712f74aaad23",
     "src\\validate_maintenance.py": "9f8494b6e191e329c75d82f5e9ce7168895327c5f261e857c5bf912692a776d8",
 }
+MIDNIGHT_FIXED_VALIDATOR_SHA256 = "034ec4d364a6bd378e73b9aa05b4c24843071618297b48e479ac6041d30a5b88"
 
 
 def repair_midnight_checkpoint(path: Path) -> None:

@@ -50,7 +50,8 @@
         "data\\a_only_multiseed10_20261021\\perf_p=5_h=49_r=9.json": "line_endings_only"
       },
       "source_differences": [
-        "experiments\\run_four_method_suite.py"
+        "experiments\\run_four_method_suite.py",
+        "src\\validate_maintenance.py"
       ],
       "expected_rows": 80,
       "original_configuration": {
@@ -94,6 +95,33 @@
             "night_start_minute": null
           }
         }
+      },
+      "output": "results\\tables\\cplex129_20261023_uniform_multiseed10_20261021.csv",
+      "audit": "pass",
+      "summary": {
+        "uniform_flexible_day": {
+          "runs": 40,
+          "statuses": {
+            "optimal": 40
+          },
+          "incumbents": 40,
+          "replay": {
+            "pass": 40
+          },
+          "mean_wall_s": 19.61164235
+        },
+        "uniform_flexible_event": {
+          "runs": 40,
+          "statuses": {
+            "optimal": 39,
+            "maxTimeLimit": 1
+          },
+          "incumbents": 40,
+          "replay": {
+            "pass": 40
+          },
+          "mean_wall_s": 18.896281025
+        }
       }
     },
     "uniform_flexible_20261021": {
@@ -108,7 +136,8 @@
         "data\\five_method_longflight_e14_e21_compact\\perf_p=5_h=49.json": "exact"
       },
       "source_differences": [
-        "experiments\\run_four_method_suite.py"
+        "experiments\\run_four_method_suite.py",
+        "src\\validate_maintenance.py"
       ],
       "expected_rows": 12,
       "original_configuration": {
@@ -152,6 +181,36 @@
             "night_start_minute": null
           }
         }
+      },
+      "output": "results\\tables\\cplex129_20261023_uniform_flexible_20261021.csv",
+      "audit": "pass",
+      "summary": {
+        "uniform_flexible_day": {
+          "runs": 6,
+          "statuses": {
+            "optimal": 4,
+            "unknown": 1,
+            "maxTimeLimit": 1
+          },
+          "incumbents": 5,
+          "replay": {
+            "pass": 5,
+            "not_run": 1
+          },
+          "mean_wall_s": 81.79109816666667
+        },
+        "uniform_flexible_event": {
+          "runs": 6,
+          "statuses": {
+            "optimal": 4,
+            "maxTimeLimit": 2
+          },
+          "incumbents": 6,
+          "replay": {
+            "pass": 6
+          },
+          "mean_wall_s": 74.00022766666666
+        }
       }
     },
     "five_method_20261021": {
@@ -166,7 +225,8 @@
         "data\\five_method_longflight_e14_e21_compact\\perf_p=5_h=49.json": "exact"
       },
       "source_differences": [
-        "experiments\\run_four_method_suite.py"
+        "experiments\\run_four_method_suite.py",
+        "src\\validate_maintenance.py"
       ],
       "expected_rows": 30,
       "original_configuration": {
@@ -204,7 +264,8 @@
         "data\\a_only_prefix_subset_20261020\\perf_p=5_h=49.json": "exact"
       },
       "source_differences": [
-        "experiments\\run_four_method_suite.py"
+        "experiments\\run_four_method_suite.py",
+        "src\\validate_maintenance.py"
       ],
       "expected_rows": 12,
       "original_configuration": {
@@ -240,7 +301,8 @@
         "data\\a_only_prefix_subset_20261020\\perf_p=5_h=49.json": "exact"
       },
       "source_differences": [
-        "experiments\\run_four_method_suite.py"
+        "experiments\\run_four_method_suite.py",
+        "src\\validate_maintenance.py"
       ],
       "expected_rows": 12,
       "original_configuration": {
@@ -274,7 +336,8 @@
         "data\\five_method_longflight_e14_e21_compact\\perf_p=5_h=49.json": "exact"
       },
       "source_differences": [
-        "experiments\\run_four_method_suite.py"
+        "experiments\\run_four_method_suite.py",
+        "src\\validate_maintenance.py"
       ],
       "expected_rows": 4,
       "original_configuration": {
@@ -328,7 +391,8 @@
         "data\\five_method_longflight_e14_e21_compact\\perf_p=10_h=49.json": "exact"
       },
       "source_differences": [
-        "experiments\\run_four_method_suite.py"
+        "experiments\\run_four_method_suite.py",
+        "src\\validate_maintenance.py"
       ],
       "expected_rows": 4,
       "original_configuration": {
@@ -392,7 +456,8 @@
         "data\\a_only_multiseed_20261020\\perf_p=5_h=49_r=2.json": "exact"
       },
       "source_differences": [
-        "experiments\\run_four_method_suite.py"
+        "experiments\\run_four_method_suite.py",
+        "src\\validate_maintenance.py"
       ],
       "expected_rows": 60,
       "original_configuration": {
@@ -438,7 +503,8 @@
         "data\\a_only_multiseed_20261020\\perf_p=5_h=49_r=2.json": "exact"
       },
       "source_differences": [
-        "experiments\\run_four_method_suite.py"
+        "experiments\\run_four_method_suite.py",
+        "src\\validate_maintenance.py"
       ],
       "expected_rows": 24,
       "original_configuration": {
@@ -502,7 +568,8 @@
         "data\\a_only_large_20261021\\perf_p=30_h=30_r=2.json": "line_endings_only"
       },
       "source_differences": [
-        "experiments\\run_four_method_suite.py"
+        "experiments\\run_four_method_suite.py",
+        "src\\validate_maintenance.py"
       ],
       "expected_rows": 48,
       "original_configuration": {
@@ -547,7 +614,8 @@
         "data\\a_only_large_20261021\\perf_p=30_h=30_r=2.json": "line_endings_only"
       },
       "source_differences": [
-        "experiments\\run_four_method_suite.py"
+        "experiments\\run_four_method_suite.py",
+        "src\\validate_maintenance.py"
       ],
       "expected_rows": 24,
       "original_configuration": {
@@ -611,7 +679,8 @@
         "data\\a_only_large_p4050_20261022\\perf_p=50_h=30_r=2.json": "line_endings_only"
       },
       "source_differences": [
-        "experiments\\run_four_method_suite.py"
+        "experiments\\run_four_method_suite.py",
+        "src\\validate_maintenance.py"
       ],
       "expected_rows": 48,
       "original_configuration": {

@@ -5,6 +5,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -15,9 +16,103 @@ from experiments import run_four_method_suite
 from experiments.run_four_method_suite import write_run_metadata
 from experiments.report_uniform_study import audit_schedule
 from experiments.refresh_cplex_study import audit_batch, digest, execution_lock, render_ten_seed, verify_input
+from experiments.refresh_cplex_study import PRE_MIDNIGHT_FIX_SOURCES, repair_midnight_checkpoint
+from src.validate_maintenance import _validate_ordered_event_windows
 
 
 class FourMethodSuiteTests(unittest.TestCase):
+    def test_midnight_checkpoint_migration_revalidates_and_preserves_original(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "case.json"
+            source.write_text(json.dumps({
+                "Aircrafts": [0], "AIRCRAFT_INIT_POS": {"0": "M"},
+                "Flights": [[1, "M", "M", 10, 20]], "Cost_Matrix": [[100]],
+                "Maintenance_Thresholds": {"A": 100},
+                "Maintenance_Durations": {"A": 10}, "Station_Capacity": {"M": 1},
+            }), encoding="utf-8")
+            sources = {str(p.relative_to(ROOT)): digest(p.read_bytes())
+                       for p in run_four_method_suite.PROVENANCE_SOURCES}
+            sources.update(PRE_MIDNIGHT_FIX_SOURCES)
+            violation = {"type": "maintenance_start_day_link", "flight": 1,
+                         "aircraft": 0, "actual_start_day": 1, "selected_days": [2]}
+            checkpoint = {
+                "signature": {"sources": sources, "inputs": {str(source): digest(source.read_bytes())}},
+                "rows": [{
+                    "case": "case", "formulation": "uniform_flexible_day",
+                    "has_solution": True, "status": "optimal", "replay_status": "fail",
+                    "replay_error": "", "objective": 200,
+                    "_schedule": {
+                        "assignments": [[1, 0]], "violations": [violation],
+                        "events": [{"flight": 1, "aircraft": 0, "check": "A",
+                                    "start": 1439, "completion": 1449}],
+                    },
+                }],
+            }
+            path = Path(directory) / "case.checkpoint.json"
+            path.write_text(json.dumps(checkpoint), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "Real day-link defect"):
+                repair_midnight_checkpoint(path)
+            self.assertFalse(path.with_suffix(".pre_midnight_fix.json").exists())
+            checkpoint["rows"][0]["_schedule"]["events"][0].update(
+                start=1440 - 1e-9, completion=1450 - 1e-9)
+            path.write_text(json.dumps(checkpoint), encoding="utf-8")
+            original = path.read_bytes()
+            repair_midnight_checkpoint(path)
+            repaired = json.loads(path.read_text(encoding="utf-8"))
+            self.assertEqual(path.with_suffix(".pre_midnight_fix.json").read_bytes(), original)
+            self.assertEqual(repaired["rows"][0]["replay_status"], "pass")
+            self.assertEqual(repaired["migration"]["corrections"][0]["previous_violations"], [violation])
+            self.assertEqual(repaired["migration"]["original_checkpoint_sha256"], digest(original))
+            repair_midnight_checkpoint(path)
+
+    def test_native_replay_classifies_midnight_with_absolute_tolerance(self):
+        key = (1, 0, "A")
+        model = SimpleNamespace(
+            Z=[key], z={key: 1}, s={key: 0},
+            X={(1, 0)}, x={(1, 0): 1}, F=[1],
+            c_one_check_per_start_day=True,
+            Z_START=[(1, 0, 2, "A")], start_day={(1, 0, 2, "A"): 1},
+        )
+        opt = SimpleNamespace(
+            model=model, flight_data={1: {"arrivalTime": 20, "departureTime": 10,
+                                         "destination": "M"}},
+            check_dur={"A": 10}, MAX_MAINT_DEFER=1440,
+            MAINTENANCE_TIME_GRID=1, MIN_TURN=30, DAY_SHIFT=1440,
+            FIXED_NIGHT_START=False, maint_airports=["M"], station_cap={"M": 1},
+        )
+        for start in (1440 - 1e-9, 1440, 1440 + 1e-9):
+            with self.subTest(start=start):
+                model.s[key] = start + 10 - 20
+                self.assertEqual(_validate_ordered_event_windows(opt, 1e-6), [])
+        for start in (1439, 1440 - 1e-3):
+            with self.subTest(start=start):
+                model.s[key] = start + 10 - 20
+                violations = _validate_ordered_event_windows(opt, 1e-6)
+                self.assertIn("maintenance_start_day_link", {v["type"] for v in violations})
+
+    def test_saved_decision_replay_does_not_hide_duplicate_checks_at_midnight(self):
+        data = {
+            "Aircrafts": [0], "AIRCRAFT_INIT_POS": {"0": "M"},
+            "Flights": [[1, "M", "M", 10, 20], [2, "M", "M", 1500, 1510]],
+            "Cost_Matrix": [[100], [100]], "Maintenance_Thresholds": {"A": 100},
+            "Maintenance_Durations": {"A": 10}, "Station_Capacity": {"M": 1},
+        }
+        schedule = {
+            "assignments": [[1, 0], [2, 0]],
+            "events": [
+                {"flight": 1, "aircraft": 0, "check": "A",
+                 "start": 1440 - 1e-9, "completion": 1450 - 1e-9},
+                {"flight": 2, "aircraft": 0, "check": "A",
+                 "start": 1520, "completion": 1530},
+            ],
+        }
+        policy = {"time_grid_minutes": 1, "maximum_start_deferral_minutes": 1440,
+                  "night_start_minute": None}
+        self.assertEqual(audit_schedule(data, schedule, policy, 400),
+                         ["multiple checks per actual start day"])
+        schedule["events"][0].update(start=1439, completion=1449)
+        self.assertEqual(audit_schedule(data, schedule, policy, 400), [])
+
     def test_checkpoint_resumes_after_interrupt_without_repeating_completed_solve(self):
         with tempfile.TemporaryDirectory() as directory:
             source = Path(directory) / "case.json"
@@ -39,12 +134,15 @@ class FourMethodSuiteTests(unittest.TestCase):
             saved = json.loads(checkpoint.read_text(encoding="utf-8"))
             self.assertEqual(len(saved["rows"]), 1)
             self.assertIn("_schedule", saved["rows"][0])
+            saved["migration"] = {"reason": "preserved audit evidence"}
+            checkpoint.write_text(json.dumps(saved), encoding="utf-8")
             with patch.object(run_four_method_suite, "run_case",
                               return_value=result(methods[1])) as solve:
                 rows = run_four_method_suite.checkpointed_cases(*args)
                 self.assertEqual(solve.call_count, 1)
                 self.assertEqual(solve.call_args.args[1], methods[1])
             self.assertEqual(len(rows), 2)
+            self.assertEqual(json.loads(checkpoint.read_text())["migration"], saved["migration"])
             with patch.object(run_four_method_suite, "run_case") as solve:
                 self.assertEqual(len(run_four_method_suite.checkpointed_cases(*args)), 2)
                 solve.assert_not_called()

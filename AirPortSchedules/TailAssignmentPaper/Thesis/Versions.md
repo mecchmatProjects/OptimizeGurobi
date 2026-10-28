@@ -19,14 +19,13 @@ packaged tests can run there.
 | `Thesis/code/releases/final_available_data_20261003_rev2/` | `6a96d19` (2026-10-06) | `247b395` (2026-10-02) | `89c8a2b7235d3a7bd40a01ed8e4f67cb41e7b18e09c05307338e961d84d0eb80` | Superseded archived release. |
 | `Thesis/code/releases/final_available_data_20261003_rev3/` | `6a96d19` (2026-10-06) | `247b395` (2026-10-02) | `89c8a2b7235d3a7bd40a01ed8e4f67cb41e7b18e09c05307338e961d84d0eb80` | Superseded archived release; source hash matched revision 2. |
 | `Thesis/code/releases/highs_ld07_20261028/` | `d8bf2f4` (2026-10-28) | `46cf8fc` (2026-10-13) | `9f163e79eeaf251203bf66261801ef3914d18d42a33f9f291465567aa75e644b` | Superseded by the bounded LD07 release below. |
+| `Thesis/code/releases/highs_ld07_bounded_20261028/` | `d8bf2f4` (2026-10-28) | `46cf8fc` (2026-10-13) | `102f0cc48c3f570194df2f09cfa4d63ac3a15eaea1ee2c13b8b4a7ee30558acb` | Removed as a duplicate code release; current code is in `Thesis/code/`, and LD07 input/status evidence remains in root `data/` and `results/`. |
 
-## Retained Release
+## Current Portable Package
 
 The root `Thesis/code/src/`, `Thesis/code/experiments/`, and
 `Thesis/code/tests/` Python files now mirror their repository-root
-counterparts. The nested bounded LD07 release below remains a separate,
-historical, reproducibility snapshot.
-
-`Thesis/code/releases/highs_ld07_bounded_20261028/` is retained. It was added
-by `d8bf2f4` (2026-10-28), packages code from `46cf8fc` (2026-10-13), and has
-source hash `102f0cc48c3f570194df2f09cfa4d63ac3a15eaea1ee2c13b8b4a7ee30558acb`.
+counterparts. The nested dated release copies have been removed to avoid
+maintaining another Python code version. The LD07 input remains at
+`data/ld07_p30_f574_h7_r1.json`; its status report remains under
+`results/tables/highs_review_20261028/`.

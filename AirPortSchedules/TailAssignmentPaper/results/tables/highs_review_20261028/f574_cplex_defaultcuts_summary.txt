@@ -1,0 +1,6 @@
+
+=== MILP Aircraft Assignment Report ===
+  Status : unknown
+  Vars   : 166111   Constraints: 165757
+  Gap    : -   CPU: 307.65s
+  Obj    : None

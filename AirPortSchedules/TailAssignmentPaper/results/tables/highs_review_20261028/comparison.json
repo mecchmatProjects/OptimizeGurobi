@@ -1,0 +1,30 @@
+[
+  {
+    "tight_c13_m": false,
+    "build_s": 2.118760500001372,
+    "solve_wall_s": 17.92736590000277,
+    "status": "optimal",
+    "loaded": true,
+    "objective": 320635.7,
+    "bounds": [
+      320635.7,
+      320635.7,
+      0.0,
+      null
+    ]
+  },
+  {
+    "tight_c13_m": true,
+    "build_s": 2.089050499998848,
+    "solve_wall_s": 18.86442339999485,
+    "status": "optimal",
+    "loaded": true,
+    "objective": 320635.7,
+    "bounds": [
+      320635.7,
+      320635.7,
+      0.0,
+      null
+    ]
+  }
+]

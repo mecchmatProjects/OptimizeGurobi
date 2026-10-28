@@ -1,0 +1,29 @@
+{
+  "status": "completed",
+  "process_exit_code": 0,
+  "wall_s": 138.96870490000583,
+  "wall_time_limit_s": 180.0,
+  "command": [
+    "F:\\Lectures\\Facultative\\Optimizers\\Tasks\\AirPortSchedules\\TailAssignmentPaper\\.venv\\Scripts\\python.exe",
+    "-u",
+    "F:\\Lectures\\Facultative\\Optimizers\\Tasks\\AirPortSchedules\\TailAssignmentPaper\\src\\model.py",
+    "--mode",
+    "milp",
+    "--solver",
+    "cplex",
+    "--executable",
+    "F:\\LT\\IJOC_SDDP_for_Multi-Echelon_Lot-Sizing_with_Component_Substitution\\cplex\\CPLEX_Studio\\cplex\\bin\\x64_win64\\cplex.exe",
+    "--data",
+    "data\\ld07_p30_f574_h7_r1.json",
+    "--time-limit",
+    "120",
+    "--aircraft-routing-reachability",
+    "--tight-c13-m",
+    "--out",
+    "results\\tables\\highs_review_20261028\\f574_cplex_reduced_summary.txt",
+    "--no-show",
+    "--tee"
+  ],
+  "log": "F:\\Lectures\\Facultative\\Optimizers\\Tasks\\AirPortSchedules\\TailAssignmentPaper\\results\\tables\\highs_review_20261028\\f574_cplex_reduced_120s.log",
+  "note": "Read the solver summary/log for optimization status."
+}

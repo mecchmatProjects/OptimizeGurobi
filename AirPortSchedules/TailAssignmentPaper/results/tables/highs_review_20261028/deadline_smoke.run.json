@@ -1,0 +1,25 @@
+{
+  "status": "wall_time_limit",
+  "process_exit_code": 1,
+  "wall_s": 2.0953937000012957,
+  "wall_time_limit_s": 2.0,
+  "command": [
+    "F:\\Lectures\\Facultative\\Optimizers\\Tasks\\AirPortSchedules\\TailAssignmentPaper\\.venv\\Scripts\\python.exe",
+    "-u",
+    "F:\\Lectures\\Facultative\\Optimizers\\Tasks\\AirPortSchedules\\TailAssignmentPaper\\src\\model.py",
+    "--mode",
+    "milp",
+    "--solver",
+    "highs",
+    "--data",
+    "data\\ld07_p30_f574_h7_r1.json",
+    "--time-limit",
+    "6000",
+    "--out",
+    "results\\tables\\highs_review_20261028\\deadline_smoke_summary.txt",
+    "--no-show",
+    "--tee"
+  ],
+  "log": "F:\\Lectures\\Facultative\\Optimizers\\Tasks\\AirPortSchedules\\TailAssignmentPaper\\results\\tables\\highs_review_20261028\\deadline_smoke.log",
+  "note": "Forced termination does not certify infeasibility or preserve an incumbent."
+}

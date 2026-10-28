@@ -1,0 +1,23 @@
+{
+  "status": "completed",
+  "process_exit_code": 0,
+  "wall_s": 3.1722230999876047,
+  "wall_time_limit_s": 120.0,
+  "command": [
+    "F:\\Lectures\\Facultative\\Optimizers\\Tasks\\AirPortSchedules\\TailAssignmentPaper\\.venv\\Scripts\\python.exe",
+    "-u",
+    "F:\\Lectures\\Facultative\\Optimizers\\Tasks\\AirPortSchedules\\TailAssignmentPaper\\src\\model.py",
+    "--mode",
+    "heuristic",
+    "--heuristic",
+    "greedy",
+    "--no-ferry",
+    "--data",
+    "data\\ld07_p30_f574_h7_r1.json",
+    "--out",
+    "results\\tables\\highs_review_20261028\\f574_greedy_noferry.csv",
+    "--no-show"
+  ],
+  "log": "F:\\Lectures\\Facultative\\Optimizers\\Tasks\\AirPortSchedules\\TailAssignmentPaper\\results\\tables\\highs_review_20261028\\f574_greedy_noferry.log",
+  "note": "Read the solver summary/log for optimization status."
+}

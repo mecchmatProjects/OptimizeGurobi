@@ -1,6 +1,0 @@
-
-=== MILP Aircraft Assignment Report ===
-  Status : maxTimeLimit
-  Vars   : 197700   Constraints: 199380
-  Gap    : -   CPU: 28.36s
-  Obj    : None

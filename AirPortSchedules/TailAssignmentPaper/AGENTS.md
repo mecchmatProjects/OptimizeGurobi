@@ -155,9 +155,10 @@ The `CPLEX.exe` and `CPLEXamp.exe` files in the old AMPL folder are identical
 large-model memory failure. CPLEX long runs require a fully licensed 64-bit
 installation; do not treat this ASL `CPLEX.exe` as an interactive CPLEX CLI.
 
-`src/`, `experiments/` and `tests/` are authoritative. `Thesis/src/` and
-`Thesis/code/` are archived snapshots, not interchangeable live source trees.
-Do not import them for new experiments or overwrite divergent archived files.
+`src/`, `experiments/` and `tests/` are authoritative. `Thesis/code/` is the
+retained portable thesis snapshot, not a live mirror; use a new versioned
+release directory when packaging updated code. Removed snapshots and their
+creation commits are recorded in `Thesis/Versions.md`.
 
 ## Agent Task Prompts
 

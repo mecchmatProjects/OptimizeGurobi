@@ -9,6 +9,7 @@ value is derived here from recorded runs, never transcribed by hand.
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
 import matplotlib
@@ -55,6 +56,17 @@ def fmt(value, digits=2):
 def load_tier(path, tier):
     frame = pd.read_csv(path)
     frame["tier"] = tier
+    sidecar = path.with_suffix('.metadata.json')
+    protocol = 'archived_without_metadata'
+    if sidecar.exists():
+        metadata = json.loads(sidecar.read_text())
+        config = metadata['config']
+        protocol = json.dumps({
+            'source': metadata['source_sha256'], 'solver': config.get('solver'),
+            'version': metadata.get('solver_version'),
+            'cap': config.get('max_hour_check_deferral_days'),
+            'variants': config.get('variants'), 'budget': config.get('time_limit')}, sort_keys=True)
+    frame['protocol'] = protocol
     return frame
 
 
@@ -65,8 +77,17 @@ def solved(frame, mode, variant):
 
 def build_pairs(frame):
     """One row per instance holding both variants' MILP and LP evidence."""
+    if 'protocol' in frame and frame['protocol'].nunique() > 1:
+        raise ValueError('Analyze different source/solver/cap protocols separately.')
+    keys = ['tier', 'instance', 'variant', 'mode']
+    successful = frame[~frame['status'].isin(['error', 'build-error'])]
+    if successful.duplicated(keys).any():
+        raise ValueError('Duplicate completed runs: analyze repeats separately.')
+    frame = frame.drop_duplicates(keys, keep='last')
+    if 'max_deferral_days' in frame and frame['max_deferral_days'].fillna('none').nunique() > 1:
+        raise ValueError('Do not pool capped and unrestricted experiments.')
     records = []
-    for instance, group in frame.groupby("instance"):
+    for (_tier, instance), group in frame.groupby(['tier', 'instance']):
         record = {"instance": instance, "tier": group["tier"].iloc[0]}
         for variant in ("baseline", "combined"):
             for mode in ("lp", "milp"):
@@ -196,13 +217,13 @@ def emit_bracket_table(pairs):
         ])
     write_table(
         TABLES / "strength_bounds_bracket.tex",
-        "Bound bracket under the combined formulation. The integrality gap "
-        "separates the LP bound from the incumbent; the residual gap is what "
+        "Bound bracket under the combined formulation. The LP--incumbent gap "
+        "is the integrality gap only when the incumbent is proven optimal; the residual gap is what "
         "remained unproved at termination. Heuristic coverage below 100\\% means "
         "the heuristic cost is not a valid upper bound.",
         "tab:strength_bounds_bracket",
         ["Instance", "LP bound", "Dual bound", "Incumbent",
-         r"Integrality gap (\%)", r"Residual gap (\%)", r"Heur. coverage (\%)"],
+         r"LP--incumbent gap (\%)", r"Residual gap (\%)", r"Heur. coverage (\%)"],
         rows,
         "lrrrrrr",
     )

@@ -2,9 +2,13 @@
 
 Updated 2026-10-28. Git retains the deleted files and their complete history.
 The current repository-root `src/`, `experiments/`, and `tests/` are the
-maintained source of truth. The user-requested portable `Thesis/code/` package
-is retained; its `src/` snapshot was introduced by `4946358` (2026-08-20) and
-last updated by `8eefb0d` (2026-09-08).
+maintained source of truth. The portable `Thesis/code/` package is retained;
+its Python files under those three directories were synchronized from the
+repository root on 2026-10-28. The original `Thesis/code/src/` snapshot was
+introduced by `4946358` (2026-08-20) and last updated before synchronization
+by `8eefb0d` (2026-09-08). The package's existing non-Python material was not
+changed; seven JSON test fixtures were copied into `Thesis/code/data/` so the
+packaged tests can run there.
 
 ## Removed Snapshots
 
@@ -17,6 +21,11 @@ last updated by `8eefb0d` (2026-09-08).
 | `Thesis/code/releases/highs_ld07_20261028/` | `d8bf2f4` (2026-10-28) | `46cf8fc` (2026-10-13) | `9f163e79eeaf251203bf66261801ef3914d18d42a33f9f291465567aa75e644b` | Superseded by the bounded LD07 release below. |
 
 ## Retained Release
+
+The root `Thesis/code/src/`, `Thesis/code/experiments/`, and
+`Thesis/code/tests/` Python files now mirror their repository-root
+counterparts. The nested bounded LD07 release below remains a separate,
+historical, reproducibility snapshot.
 
 `Thesis/code/releases/highs_ld07_bounded_20261028/` is retained. It was added
 by `d8bf2f4` (2026-10-28), packages code from `46cf8fc` (2026-10-13), and has

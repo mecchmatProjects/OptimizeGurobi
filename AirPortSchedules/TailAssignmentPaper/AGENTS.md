@@ -155,10 +155,13 @@ The `CPLEX.exe` and `CPLEXamp.exe` files in the old AMPL folder are identical
 large-model memory failure. CPLEX long runs require a fully licensed 64-bit
 installation; do not treat this ASL `CPLEX.exe` as an interactive CPLEX CLI.
 
-`src/`, `experiments/` and `tests/` are authoritative. `Thesis/code/` is the
-retained portable thesis snapshot, not a live mirror; use a new versioned
-release directory when packaging updated code. Removed snapshots and their
-creation commits are recorded in `Thesis/Versions.md`.
+`src/`, `experiments/` and `tests/` are authoritative. Keep the Python files in
+`Thesis/code/src/`, `Thesis/code/experiments/`, and `Thesis/code/tests/`
+identical to their repository-root counterparts; keep
+`Thesis/code/requirements.txt` aligned with the root dependency manifest.
+Nested dated releases under `Thesis/code/releases/` are historical snapshots
+and should not be silently rewritten. Removed snapshots and their creation
+commits are recorded in `Thesis/Versions.md`.
 
 ## Agent Task Prompts
 

@@ -116,9 +116,9 @@ def validate_benchmark_certificate(instance, certificate):
 def verify_milp_certificate(milp_scheduler, certificate, tolerance=1e-7, **build_options):
     """Fix a certificate in a built MILP and verify every active constraint.
 
-    The helper supports the current flight-triggered maintenance representation:
-    each maintenance event must start after a same-day assigned flight that lands
-    at its maintenance station. Events spanning more than one model day are
+    Each maintenance event must start after a same-day assigned flight that
+    lands at its maintenance station. Both aircraft-indexed and global trigger
+    formulations are supported. Events spanning more than one model day are
     rejected because the current ``y``/``mega`` variables have no independent
     maintenance-continuation state.
     """
@@ -163,7 +163,11 @@ def verify_milp_certificate(milp_scheduler, certificate, tolerance=1e-7, **build
             if assignment.get(str(flight[0])) == aircraft
             and float(flight[4]) <= float(event["start"])
             and flight[2] == event["station"]
-            and (flight[0], aircraft, day, check) in model.Z
+            and (
+                (flight[0], day, check) in model.Z
+                if milp_scheduler.use_global_maint_trigger
+                else (flight[0], aircraft, day, check) in model.Z
+            )
         ]
         if not triggers:
             mapping_errors.append(
@@ -171,7 +175,11 @@ def verify_milp_certificate(milp_scheduler, certificate, tolerance=1e-7, **build
             )
             continue
         trigger = max(triggers, key=lambda flight: flight[4])
-        model.z[trigger[0], aircraft, day, check].fix(1)
+        if milp_scheduler.use_global_maint_trigger:
+            model.z[trigger[0], day, check].fix(1)
+            model.w[trigger[0], aircraft, day, check].fix(1)
+        else:
+            model.z[trigger[0], aircraft, day, check].fix(1)
         events_by_aircraft_day[aircraft, day].append(check)
 
     for aircraft in model.P:

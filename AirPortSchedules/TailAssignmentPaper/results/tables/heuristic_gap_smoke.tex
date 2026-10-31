@@ -1,0 +1,11 @@
+\begin{tabular}{rrrrrrrrrr}
+\toprule
+Sr.\ No. & No.\ of aircraft & No.\ of airports & Planning horizon & No.\ of flights & Min.\ turn (min) & Dijkstra time (s) & Dijkstra gap & Aco time (s) & Aco gap \\
+\midrule
+1 & 4 & 5 & 7 days & 28 & 30 & 0.01 & 13.99\%$^{\dagger}$ & 0.04 & -6.33\%$^{\dagger}$ \\
+2 & 6 & 7 & 10 days & 54 & 30 & 0.13 & partial (52/54) & 0.15 & 7.49\%$^{\dagger}$ \\
+3 & 4 & 5 & 7 days & 30 & 30 & 0.02 & partial (28/30) & 0.05 & -6.12\%$^{\dagger}$ \\
+\bottomrule
+\end{tabular}
+
+% * gap against the MILP lower bound (time limit reached); dagger = schedule violates MILP constraints (see the long CSV note); partial = heuristic left flights unassigned.

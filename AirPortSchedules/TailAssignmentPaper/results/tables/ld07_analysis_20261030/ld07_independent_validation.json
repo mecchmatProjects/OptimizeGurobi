@@ -1,0 +1,21 @@
+{
+  "instance": "data\\ld07_p30_f574_h7_r1.json",
+  "method": "greedy heuristic with explicit 60-minute ferry events",
+  "flights_total": 574,
+  "flights_assigned": 574,
+  "unassigned": 0,
+  "ferry_events": 22,
+  "maintenance_events": 22,
+  "station_capacity_violations": [],
+  "max_cumulative_A_minutes_before_flight": 26982.0,
+  "A_threshold_minutes": 27000,
+  "max_cumulative_B_minutes_before_flight": 302161.0,
+  "B_threshold_minutes": 302400,
+  "max_C_elapsed_days_before_flight": 859686.6361111111,
+  "C_threshold_days": 864000,
+  "max_D_elapsed_days_before_flight": 4142886.3875,
+  "D_threshold_days": 4147200,
+  "independent_audit": "PASS",
+  "errors": [],
+  "schedule_csv": "results\\tables\\ld07_analysis_20261030\\ld07_greedy_ferry_schedule.csv"
+}

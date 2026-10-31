@@ -27,7 +27,7 @@ if hasattr(sys.stderr, 'reconfigure'):
 try:
     from pyomo.environ import (ConcreteModel, Set, Var, Objective, Constraint,
                                 ConstraintList, Binary, NonNegativeReals,
-                                minimize, value as pyo_value)
+                                Expression, minimize, value as pyo_value)
     from pyomo.opt import SolverFactory
     try:
         from .solver_utils import (parse_deferral_days, apply_time_limit, extract_bounds,
@@ -38,6 +38,9 @@ try:
     PYOMO_AVAILABLE = True
 except ImportError:
     PYOMO_AVAILABLE = False
+
+# Objective: flight cost + this cost per minute a check is done before it is due.
+DEFAULT_EARLY_CHECK_PENALTY = 5.0
 
 # ----------------------------
 # CORE SCHEDULER ENGINE
@@ -61,9 +64,11 @@ class Scheduler:
 
     def __init__(self, data_path, allow_ferry=True, heuristic='greedy+insertion',
                  aco_iterations=20, aco_ants=8, aco_evaporation=0.2,
-                 aco_beta=2.0, aco_seed=0):
+                 aco_beta=2.0, aco_seed=0,
+                 early_check_penalty=DEFAULT_EARLY_CHECK_PENALTY):
         with open(data_path, 'r') as f:
             self.data = json.load(f)
+        self.early_check_penalty = float(early_check_penalty)
 
         self.flights = {
             fl[0]: {'fid': fl[0], 'orig': fl[1], 'dest': fl[2],
@@ -220,11 +225,22 @@ class Scheduler:
                 if curr_time + m_dur > fl['dep']:                    return None
                 if self.station_cap.get(fl['orig'], 0) == 0:         return None
 
+                if needed in self.thresh_ab:
+                    counter = a if needed == 'A' else b
+                    limit = self.thresh_ab[needed]
+                else:
+                    offset = d_off if needed == 'D' else c_off
+                    counter = (offset + days_now) * 1440.0
+                    limit = self.thresh_cd[needed] * 1440.0
+                early_min = max(0.0, limit - counter)
+                penalty = self.early_check_penalty * early_min
                 events.append({
                     'kind': 'MAINT', 'check': needed,
                     'start': curr_time, 'end': curr_time + m_dur,
                     'orig': fl['orig'], 'dest': fl['orig'],
+                    'early_min': early_min, 'cost': penalty,
                 })
+                total_cost += penalty
                 curr_time += m_dur
 
                 # Apply hierarchy reset
@@ -643,7 +659,8 @@ class MILP_Sheduler:
 
     def __init__(self, data_path, maintenance_airports=None,
                  max_hour_check_deferral_days=3, enabled_checks=None,
-                 prepare_maintenance=True):
+                 prepare_maintenance=True,
+                 early_check_penalty=DEFAULT_EARLY_CHECK_PENALTY):
         """Load data from *data_path* and prepare all MILP index sets.
 
         Parameters
@@ -663,6 +680,7 @@ class MILP_Sheduler:
 
     
         self.data_path = data_path
+        self.early_check_penalty = float(early_check_penalty)
         base_checks = list(type(self).CHECK_LIST)
         if enabled_checks is None:
             active_checks = base_checks
@@ -881,6 +899,8 @@ class MILP_Sheduler:
 
         self.model = None
         self.results = None
+        self.mip_start_loaded = False
+        self.mip_start_summary = None
         self.logger = logging.getLogger(__name__)
 
     def _prepare_maintenance_domains(self):
@@ -1155,7 +1175,8 @@ class MILP_Sheduler:
                     use_strong_maint_conflicts=False,
                     use_paper_c13=False,
                     soft_coverage=False,
-                    coverage_weight=1_000_000.0):
+                    coverage_weight=1_000_000.0,
+                    objective='early_check'):
         """Construct the ConcreteModel.  Call before solve().
 
         Parameters
@@ -1205,6 +1226,9 @@ class MILP_Sheduler:
         """
         m = ConcreteModel()
         self.model = m
+        if objective not in ('early_check', 'check_days'):
+            raise ValueError("objective must be 'early_check' or 'check_days'.")
+        self.objective_mode = objective
         self.solution_loaded = False
         self.use_maintenance = bool(use_maintenance)
         self.use_global_maint_trigger = bool(use_global_maint_trigger)
@@ -1373,22 +1397,25 @@ class MILP_Sheduler:
                   self.x_var_count, self.z_var_count, self.w_var_count)
 
     def _add_objective(self, m):
-        """Minimize flight assignment cost + premature maintenance penalty.
-        
-        Maintenance cost is charged per event start (maintenance_start[j,d,c]),
-        scaled by the full check duration in days. This avoids underpricing
-        checks truncated by the planning horizon.
+        """Minimize flight cost plus the maintenance term.
+
+        ``early_check`` (default): penalty per minute a check is performed
+        before it is due. ``check_days``: historical 100 per check-start day.
         """
         assignment_cost = sum(self._flight_cost(i, j) * m.x[i, j]
                               for i, j in m.X)
-        if self.use_maintenance:
+        self._early_bounds = []
+        if not self.use_maintenance:
+            maintenance_cost = 0
+        elif getattr(self, 'objective_mode', 'early_check') == 'check_days':
             maint_cost = 100
             maintenance_cost = sum(
                 maint_cost * self.check_dur_days[c] * m.maintenance_start[j, d, c]
                 for j in m.P for d in m.D for c in m.C
             )
         else:
-            maintenance_cost = 0
+            m.early_check_minutes = Expression(expr=self._add_early_check_minutes(m))
+            maintenance_cost = self.early_check_penalty * m.early_check_minutes
         if self.soft_coverage:
             m.obj = Objective(
                 expr=(
@@ -1407,6 +1434,132 @@ class MILP_Sheduler:
             )
         if self.use_maintenance:
             self._add_maintenance_start_link(m)
+
+    def _bounded(self, m, variable, bounds):
+        """Add ``variable <= b`` rows; values are later set to min(bounds)."""
+        for bound in bounds:
+            m.early_rows.add(variable <= bound)
+        self._early_bounds.append((variable, bounds))
+
+    def _add_early_check_minutes(self, m):
+        """Return total early-check minutes over all performed checks.
+
+        Early minutes of a check are ``threshold - counter`` at the check. A
+        continuous ``counter`` variable is pushed to the elapsed amount since
+        the latest reset by the objective. A/B counters are flight minutes
+        measured exactly through the trigger flight; a reset on an earlier
+        day counts only the flights flown after that day's check. C/D
+        counters are calendar minutes at day granularity.
+        """
+        m.early_rows = ConstraintList()
+        days = sorted(self.days)
+        hour_checks = [c for c in self.CHECK_LIST if self.check_days[c] is None]
+        calendar_checks = [c for c in self.CHECK_LIST if self.check_days[c] is not None]
+        duration = {i: fd['duration'] for i, fd in self.flight_data.items()}
+        terms = []
+
+        if hour_checks:
+            flight_days = sorted(set(days) | {fd['day_departure'] for fd in self.flight_data.values()})
+            by_day = {(j, d): [] for j in m.P for d in flight_days}
+            for j in m.P:
+                for i in self._x_flights_for_aircraft(j):
+                    by_day[j, self.flight_data[i]['day_departure']].append(i)
+
+            def flown(j, flights):
+                return sum(duration[i] * m.x[i, j] for i in flights)
+
+            m.day_minutes = Var(m.P, flight_days, domain=NonNegativeReals, initialize=0)
+            for j in m.P:
+                for d in flight_days:
+                    self._bounded(m, m.day_minutes[j, d], [flown(j, by_day[j, d])])
+
+            m.post_check_minutes = Var(m.P, m.D, domain=NonNegativeReals, initialize=0)
+            trigger_arcs = [(i, j) for i in self.maint_flight_ids
+                            for j in self._x_aircrafts_for_flight(i)]
+            same_day_triggers = {}
+            for i, j in trigger_arcs:
+                same_day_triggers.setdefault((j, self.flight_data[i]['day_arrival']), []).append(i)
+            for j in m.P:
+                for d in days:
+                    bounds = [m.day_minutes[j, d]]
+                    day_total = sum(duration[i] for i in by_day[j, d])
+                    for trigger in same_day_triggers.get((j, d), ()):
+                        check_here = sum(m.z[trigger, j, d, c] for c in self.CHECK_LIST
+                                         if (trigger, j, d, c) in m.Z)
+                        if isinstance(check_here, int):
+                            continue
+                        later = [i for i in by_day[j, d]
+                                 if self.flight_data[i]['departureTime']
+                                 > self.flight_data[trigger]['arrivalTime']]
+                        bounds.append(flown(j, later) + day_total * (1 - check_here))
+                    self._bounded(m, m.post_check_minutes[j, d], bounds)
+
+            m.HourArcs = Set(dimen=2, initialize=trigger_arcs)
+            m.through_trigger_minutes = Var(m.HourArcs, domain=NonNegativeReals, initialize=0)
+            for i, j in trigger_arcs:
+                fd = self.flight_data[i]
+                same_day = [k for k in by_day[j, fd['day_departure']]
+                            if self.flight_data[k]['departureTime'] <= fd['departureTime']]
+                self._bounded(m, m.through_trigger_minutes[i, j], [flown(j, same_day)])
+
+            hour_keys = []
+            for i, j in trigger_arcs:
+                for c in hour_checks:
+                    if any((i, j, d, c) in m.Z for d in self._z_days_for(i, c)):
+                        hour_keys.append((i, j, c))
+            m.HourCounterKeys = Set(dimen=3, initialize=hour_keys)
+            m.hour_counter = Var(m.HourCounterKeys, domain=NonNegativeReals, initialize=0)
+            for i, j, c in hour_keys:
+                fd = self.flight_data[i]
+                dep_day = fd['day_departure']
+                threshold = self.check_hrs[c] * 60.0
+                performed = sum(m.z[i, j, d, c] for d in self._z_days_for(i, c)
+                                if (i, j, d, c) in m.Z)
+                through = m.through_trigger_minutes[i, j]
+                bounds = [
+                    threshold * performed,
+                    self.init_check_hrs[c].get(j, 0.0) * 60.0 + through
+                    + sum(m.day_minutes[j, d] for d in flight_days if d < dep_day),
+                ]
+                for d0 in days:
+                    if d0 >= dep_day or pyo_value(m.mega[j, d0, c].ub) == 0:
+                        continue
+                    bounds.append(
+                        m.post_check_minutes[j, d0] + through
+                        + sum(m.day_minutes[j, d] for d in flight_days if d0 < d < dep_day)
+                        + threshold * (1 - m.mega[j, d0, c])
+                    )
+                if (fd['day_arrival'] > dep_day and dep_day in m.D
+                        and pyo_value(m.mega[j, dep_day, c].ub) > 0):
+                    # Overnight trigger: a check earlier on its departure day also resets.
+                    bounds.append(m.post_check_minutes[j, dep_day]
+                                  + threshold * (1 - m.mega[j, dep_day, c]))
+                self._bounded(m, m.hour_counter[i, j, c], bounds)
+                terms.append(threshold * performed - m.hour_counter[i, j, c])
+
+        if calendar_checks:
+            calendar_keys = [(j, d, c) for j in m.P for d in days for c in calendar_checks
+                             if pyo_value(m.y[j, d, c].ub) > 0]
+            m.CalendarKeys = Set(dimen=3, initialize=calendar_keys)
+            m.calendar_counter = Var(m.CalendarKeys, domain=NonNegativeReals, initialize=0)
+            for j, d, c in calendar_keys:
+                threshold = self.check_days[c] * float(self.DAY_SHIFT)
+                start = m.maintenance_start[j, d, c]
+                cap = min(threshold,
+                          self.init_check_hrs[c].get(j, 0.0) * 60.0 + (d - 1) * self.DAY_SHIFT)
+                bounds = [cap * start]
+                for d0 in days:
+                    if d0 < d and pyo_value(m.mega[j, d0, c].ub) > 0:
+                        bounds.append((d - d0) * self.DAY_SHIFT + cap * (1 - m.mega[j, d0, c]))
+                self._bounded(m, m.calendar_counter[j, d, c], bounds)
+                terms.append(threshold * start - m.calendar_counter[j, d, c])
+
+        return sum(terms)
+
+    def _set_early_check_values(self):
+        """Give early-check accounting variables their tightest feasible values."""
+        for variable, bounds in getattr(self, '_early_bounds', []):
+            variable.set_value(max(0.0, min(pyo_value(bound) for bound in bounds)))
 
     def _add_maintenance_start_link(self, m):
         """Constrain maintenance_start[j,d,c] to detect y[j,d,c] transitions.
@@ -2119,6 +2272,132 @@ class MILP_Sheduler:
         """
         pass
 
+    def set_mip_start_from_routes(self, route_data, allow_ferry=False):
+        """Initialize every model variable from a complete heuristic route set."""
+        if self.model is None:
+            raise RuntimeError("Call build_model() before setting a MIP start.")
+        if not self.use_maintenance:
+            raise ValueError("Route-based MIP starts require maintenance variables to be enabled.")
+        if self.use_global_maint_trigger:
+            raise ValueError("MIP starts currently require aircraft-indexed maintenance triggers.")
+
+        routes = route_data.get('routes', route_data)
+        if not isinstance(routes, dict):
+            raise ValueError("MIP-start JSON must contain a 'routes' mapping.")
+        normalized_routes = {}
+        for aircraft, flights in routes.items():
+            aircraft = int(aircraft)
+            if aircraft in normalized_routes:
+                raise ValueError(f"Duplicate route for aircraft {aircraft}.")
+            normalized_routes[aircraft] = [int(flight) for flight in flights]
+        if set(normalized_routes) != set(self.aircraft_ids):
+            raise ValueError("MIP-start routes must contain every aircraft exactly once.")
+        if route_data.get('unassigned'):
+            raise ValueError("MIP-start routes must assign every flight.")
+
+        occurrences = [flight for flights in normalized_routes.values() for flight in flights]
+        if len(occurrences) != len(set(occurrences)) or set(occurrences) != set(self.flight_ids):
+            raise ValueError("MIP-start routes must assign every flight exactly once.")
+        assigned_aircraft = {
+            flight: aircraft
+            for aircraft, flights in normalized_routes.items()
+            for flight in flights
+        }
+        for flight, aircraft in assigned_aircraft.items():
+            if (flight, aircraft) not in self.model.X:
+                raise ValueError(
+                    f"MIP start assigns flight {flight} to unavailable aircraft arc {aircraft}."
+                )
+
+        scheduler = Scheduler(str(self.data_path), allow_ferry=allow_ferry, heuristic='greedy')
+        selected_triggers = set()
+        for aircraft, flights in normalized_routes.items():
+            flights = sorted(flights, key=lambda flight: scheduler.flights[flight]['dep'])
+            timeline = scheduler.get_timeline(aircraft, flights)
+            if timeline is None:
+                raise ValueError(f"MIP-start route for aircraft {aircraft} is not timeline-feasible.")
+            last_flight = None
+            for event in timeline['events']:
+                if event['kind'] == 'FERRY':
+                    raise ValueError("The MILP has no ferry variables; MIP starts cannot contain ferry events.")
+                if event['kind'] == 'FLIGHT':
+                    last_flight = event['fid']
+                    continue
+                if event['kind'] != 'MAINT':
+                    raise ValueError(f"Unsupported MIP-start event {event['kind']!r}.")
+                if not self.use_maintenance:
+                    raise ValueError("MIP-start routes contain maintenance but the model disables maintenance.")
+                check = event['check']
+                if self.check_dur_days[check] > 1:
+                    raise ValueError(
+                        f"MIP-start mapping does not support multi-day {check} checks."
+                    )
+                if last_flight is None:
+                    raise ValueError("A maintenance event before the first flight has no trigger flight.")
+                if self.flight_data[last_flight]['destination'] != event['orig']:
+                    raise ValueError("Maintenance event is not at the preceding flight's destination.")
+                day = self.flight_data[last_flight]['day_arrival']
+                trigger = (last_flight, aircraft, day, check)
+                if trigger not in self.model.Z:
+                    raise ValueError(f"Maintenance trigger {trigger} is outside the model domain.")
+                if trigger in selected_triggers:
+                    raise ValueError(f"Duplicate maintenance trigger {trigger}.")
+                selected_triggers.add(trigger)
+
+        for variable in self.model.component_data_objects(ctype=Var, active=True):
+            variable.set_value(0)
+        for flight, aircraft in assigned_aircraft.items():
+            self.model.x[flight, aircraft].set_value(1)
+        for flight, aircraft, day, check in selected_triggers:
+            self.model.z[flight, aircraft, day, check].set_value(1)
+            self.model.y[aircraft, day, check].set_value(1)
+
+        for aircraft in self.model.P:
+            for day in self.model.D:
+                for check in self.model.C:
+                    covered = (
+                        self.CHECK_HIERARCHY[check]
+                        if self.use_check_hierarchy else [check]
+                    )
+                    self.model.mega[aircraft, day, check].set_value(
+                        sum(pyo_value(self.model.y[aircraft, day, item]) for item in covered)
+                    )
+                    previous_day = day - 1
+                    previous = (
+                        pyo_value(self.model.y[aircraft, previous_day, check])
+                        if previous_day in self.model.D else 0
+                    )
+                    self.model.maintenance_start[aircraft, day, check].set_value(
+                        max(0, pyo_value(self.model.y[aircraft, day, check]) - previous)
+                    )
+        self._set_early_check_values()
+
+        infeasible = []
+        for constraint in self.model.component_data_objects(
+                ctype=Constraint, active=True):
+            body = pyo_value(constraint.body, exception=False)
+            lower = pyo_value(constraint.lower, exception=False) if constraint.has_lb() else None
+            upper = pyo_value(constraint.upper, exception=False) if constraint.has_ub() else None
+            if (body is None
+                    or (lower is not None and body < lower - 1e-6)
+                    or (upper is not None and body > upper + 1e-6)):
+                infeasible.append(constraint.name)
+                if len(infeasible) == 10:
+                    break
+        if infeasible:
+            raise ValueError(
+                "MIP-start values violate model constraints: " + ', '.join(infeasible)
+            )
+
+        self.mip_start_loaded = True
+        self.mip_start_summary = {
+            'flights_assigned': len(assigned_aircraft),
+            'maintenance_triggers': len(selected_triggers),
+            'objective': pyo_value(self.model.obj),
+            'constraint_violations': 0,
+        }
+        return dict(self.mip_start_summary)
+
     # ------------------------------------------------------------------
     # Solve
     # ------------------------------------------------------------------
@@ -2160,6 +2439,30 @@ class MILP_Sheduler:
             # ~265-408s for h=15+; cut generation further delays the first B&C
             # node.  Disable cuts so CPLEX branches immediately after root LP.
             solver.options['mip limits cutpasses'] = 0
+        if getattr(self, 'mip_start_loaded', False):
+            if _sn != 'highs':
+                raise ValueError("Route-based MIP starts are currently supported only with --solver highs.")
+            import highspy
+            import numpy as np
+
+            set_instance = getattr(solver, 'set_instance', None)
+            if not callable(set_instance):
+                raise RuntimeError("The installed HiGHS adapter does not support native MIP starts.")
+            set_instance(self.model)
+            highs_model = getattr(solver, '_solver_model', None)
+            column_map = getattr(solver, '_pyomo_var_to_solver_var_map', None)
+            if highs_model is None or column_map is None:
+                raise RuntimeError("The installed HiGHS adapter did not expose its native model mapping.")
+            variables = list(self.model.component_data_objects(Var, active=True))
+            columns = np.asarray(
+                [column_map[id(variable)] for variable in variables],
+                dtype=np.int32,
+            )
+            values = np.asarray([pyo_value(variable) for variable in variables], dtype=np.float64)
+            start_status = highs_model.setSolution(len(columns), columns, values)
+            if start_status == highspy.HighsStatus.kError:
+                raise RuntimeError("HiGHS rejected the supplied MIP-start values.")
+            self.mip_start_summary['highs_set_solution_status'] = str(start_status)
         apply_time_limit(solver, solver_name, time_limit)
         self.solution_loaded = False
         started = time.perf_counter()
@@ -2180,6 +2483,11 @@ class MILP_Sheduler:
                        primal_bound=hi, nodes=nodes,
                        solution_loaded=self.solution_loaded,
                        has_incumbent=self.solution_loaded)
+        if self.solution_loaded and hasattr(m, 'early_check_minutes'):
+            summary['early_check_minutes'] = pyo_value(m.early_check_minutes)
+        mip_start_summary = getattr(self, 'mip_start_summary', None)
+        if mip_start_summary is not None:
+            summary['mip_start'] = dict(mip_start_summary)
         self.print_report(out_path=out_path, summary=summary)
         return summary
 
@@ -2523,12 +2831,77 @@ def _heuristic_df(sc, final_ac_fids):
     ])
 
 
+def heuristic_objective(sc, routes):
+    """Flight cost + early-check penalty (+ ferry cost) of a heuristic schedule."""
+    total = 0.0
+    early_minutes = 0.0
+    for aid in sc.aircrafts:
+        timeline = sc.get_timeline(aid, routes[aid])
+        if timeline is None:
+            return None, None
+        total += timeline['cost']
+        early_minutes += sum(e.get('early_min', 0.0) for e in timeline['events']
+                             if e['kind'] == 'MAINT')
+    return total, early_minutes
+
+
+def optimality_gap_pct(objective, reference):
+    """Relative gap (objective - reference) / reference in percent."""
+    if objective is None or reference is None or abs(reference) < 1e-9:
+        return None
+    return 100.0 * (objective - reference) / abs(reference)
+
+
+def heuristic_optimality_gap(data_path, routes, unassigned, objective,
+                             solver='cplex', time_limit=300,
+                             max_hour_check_deferral_days=3,
+                             early_check_penalty=DEFAULT_EARLY_CHECK_PENALTY):
+    """Solve the MILP and measure the heuristic objective against it.
+
+    The reference is the MILP optimum, or its lower bound when the time limit
+    stops the solve (then the reported gap is an upper bound on the true gap).
+    """
+    result = {'gap_pct': None, 'reference': None, 'reference_kind': 'none',
+              'milp_status': None, 'milp_feasible': 'not checked'}
+    if unassigned or objective is None:
+        result['milp_feasible'] = 'no: incomplete schedule'
+        return result
+    optimizer = MILP_Sheduler(data_path,
+                              max_hour_check_deferral_days=max_hour_check_deferral_days,
+                              early_check_penalty=early_check_penalty)
+    optimizer.build_model()
+    optimizer.print_report = lambda out_path=None, summary=None: None
+    summary = optimizer.solve(solver_name=solver, time_limit=time_limit)
+    result['milp_status'] = summary.get('status')
+    if str(summary.get('status')).lower() == 'optimal' and summary.get('obj') is not None:
+        result['reference'], result['reference_kind'] = summary['obj'], 'optimal'
+    elif summary.get('dual_bound') is not None:
+        result['reference'], result['reference_kind'] = summary['dual_bound'], 'lower_bound'
+    result['gap_pct'] = optimality_gap_pct(objective, result['reference'])
+    try:
+        optimizer.set_mip_start_from_routes({'routes': routes, 'unassigned': []})
+        result['milp_feasible'] = 'yes'
+    except ValueError as exc:
+        result['milp_feasible'] = f'no: {exc}'
+    return result
+
+
 def run_heuristic(data_path='data18h.json', csv_path='final_schedule.csv',
                   gantt_path=None, show_gantt=True, verbose=True,
-                  allow_ferry=True, heuristic='greedy+insertion'):
+                  allow_ferry=True, heuristic='greedy+insertion',
+                  early_check_penalty=DEFAULT_EARLY_CHECK_PENALTY,
+                  with_gap=False, gap_solver='cplex', gap_time_limit=300):
     """Run a heuristic strategy and display results."""
-    sc = Scheduler(data_path, allow_ferry=allow_ferry, heuristic=heuristic)
+    sc = Scheduler(data_path, allow_ferry=allow_ferry, heuristic=heuristic,
+                   early_check_penalty=early_check_penalty)
     final_ac_fids, unassigned = sc.optimize()
+    sc.objective, sc.early_check_minutes = heuristic_objective(sc, final_ac_fids)
+    sc.optimality_gap = (
+        heuristic_optimality_gap(data_path, final_ac_fids, unassigned, sc.objective,
+                                 solver=gap_solver, time_limit=gap_time_limit,
+                                 early_check_penalty=early_check_penalty)
+        if with_gap else None
+    )
 
     n_flights  = len(sc.flights)
     n_assigned = n_flights - len(unassigned)
@@ -2581,7 +2954,9 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
              use_tight_c13_m=False,
              soft_coverage=False,
              coverage_weight=1_000_000.0, executable=None,
-             use_maint_reachability=False, use_strong_maint_conflicts=False):
+             use_maint_reachability=False, use_strong_maint_conflicts=False,
+             mip_start_path=None, objective='early_check',
+             early_check_penalty=DEFAULT_EARLY_CHECK_PENALTY):
     """Build and solve the MILP model, then display results.
 
     Parameters
@@ -2591,6 +2966,7 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
     use_maintenance: bool        When False, all maintenance constraints omitted
                                  (pure flight-assignment relaxation).
     warm_start     : bool        Legacy tuning switch; heuristic seeding is a no-op.
+    mip_start_path : str | None  JSON routes used to initialize a complete HiGHS MIP start.
     enabled_checks : list[str] | None
         Active maintenance check types to model (subset of A,B,C,D).
         None keeps all four checks active.
@@ -2606,6 +2982,7 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
         data_path,
         max_hour_check_deferral_days=max_hour_check_deferral_days,
         enabled_checks=enabled_checks,
+        early_check_penalty=early_check_penalty,
     )
     if out_txt:
         os.makedirs(os.path.dirname(os.path.abspath(out_txt)), exist_ok=True)
@@ -2627,7 +3004,13 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
                     use_strong_maint_conflicts=use_strong_maint_conflicts,
                     use_paper_c13=use_paper_c13,
                     soft_coverage=soft_coverage,
-                    coverage_weight=coverage_weight)
+                    coverage_weight=coverage_weight,
+                    objective=objective)
+    if mip_start_path is not None:
+        if str(solver).lower() != 'highs':
+            raise ValueError("--mip-start currently requires --solver highs.")
+        with open(mip_start_path, encoding='utf-8') as handle:
+            opt.set_mip_start_from_routes(json.load(handle), allow_ferry=False)
     summary = opt.solve(solver_name=solver, tee=tee, out_path=out_txt,
                         time_limit=time_limit, warm_start=warm_start, executable=executable)
     opt.plot_gantt(save_path=gantt_path, show=show_gantt, fname=f'{out_txt[:-4]}_events.txt' if out_txt else None)
@@ -2686,6 +3069,7 @@ def _run_one_heuristic(fp, out_dir, stem, show_gantt, allow_ferry=True,
         'flights': n, 'assigned': na, 'unassigned': n - na,
         'cost': round(total_cost, 2), 'obj': round(total_cost, 2),
         'gap_%': None, 'status': 'heuristic', 'cpu_s': round(cpu, 2),
+        'early_check_min': sc.early_check_minutes,
     }
 
 
@@ -2753,6 +3137,8 @@ def _run_one_milp(fp, out_dir, stem, solver, tee, show_gantt, time_limit,
         'cost': info.get('obj'), 'obj': info.get('obj'),
         'gap_%': round(info['gap'] * 100, 4) if info.get('gap') is not None else None,
         'status': info.get('status'), 'cpu_s': round(cpu, 2),
+        'dual_bound': info.get('dual_bound'),
+        'early_check_min': info.get('early_check_minutes'),
     }
 
 
@@ -2940,6 +3326,17 @@ def run_batch(input_dir='Inputs', output_dir='results/tables', mode='both',
 
     # Master summary CSV
     if all_rows:
+        milp_by_stem = {row['stem']: row for row in all_rows if row['mode'] == 'milp'}
+        for row in all_rows:
+            milp = milp_by_stem.get(row['stem'])
+            if row['mode'] != 'heuristic' or milp is None or row['unassigned']:
+                continue
+            if str(milp.get('status')).lower() == 'optimal':
+                row['gap_%'] = optimality_gap_pct(row['obj'], milp.get('obj'))
+                row['gap_reference'] = 'optimal'
+            elif milp.get('dual_bound') is not None:
+                row['gap_%'] = optimality_gap_pct(row['obj'], milp['dual_bound'])
+                row['gap_reference'] = 'lower_bound'
         master = pd.DataFrame(all_rows)
         master_path = os.path.join(output_dir, '_batch_summary.csv')
         master.to_csv(master_path, index=False)
@@ -3045,6 +3442,18 @@ def main():
                         help='Stream solver log to stdout  (MILP modes)')
     parser.add_argument('--out',         default=None,
                         help='Output path: CSV for heuristic, TXT for MILP')
+    parser.add_argument('--mip-start', default=None,
+                        help='JSON aircraft-to-flight routes used as a complete HiGHS MIP start')
+    parser.add_argument('--objective', default='early_check',
+                        choices=['early_check', 'check_days'],
+                        help='MILP maintenance term: early-check penalty (default) or '
+                             'the historical 100 per check-start day.')
+    parser.add_argument('--early-check-penalty', type=float,
+                        default=DEFAULT_EARLY_CHECK_PENALTY,
+                        help='Cost per minute a check is performed before it is due.')
+    parser.add_argument('--with-gap', action='store_true',
+                        help='Heuristic mode: also solve the MILP (--solver, --time-limit) '
+                             'and report the heuristic optimality gap.')
     parser.add_argument('--gantt',       default=None,
                         help='Save Gantt chart PNG to this path')
     parser.add_argument('--no-show',     dest='show', action='store_false',
@@ -3122,17 +3531,25 @@ def main():
                       gantt_path=args.gantt,
                       show_gantt=args.show,
                       allow_ferry=args.allow_ferry,
-                      heuristic=args.heuristic)
+                      heuristic=args.heuristic,
+                      early_check_penalty=args.early_check_penalty,
+                      with_gap=args.with_gap, gap_solver=args.solver,
+                      gap_time_limit=args.time_limit)
         n = len(sc.flights)
         na = n - len(unassigned)
-        total_cost = sum(
-            sc.get_timeline(aid, ac_fids[aid])['cost']
-            for aid in sc.aircrafts if sc.get_timeline(aid, ac_fids[aid])
-        )
+        total_cost = sc.objective if sc.objective is not None else float('nan')
         # parseable summary for run_batch.py
         print("Status  : heuristic")
         print(f"Flights : {na}/{n} assigned")
         print(f"Obj     : {total_cost:.0f}")
+        print(f"Early   : {sc.early_check_minutes or 0:.0f} min "
+              f"(penalty {args.early_check_penalty:g}/min)")
+        if sc.optimality_gap is not None:
+            gap = sc.optimality_gap
+            gap_text = f"{gap['gap_pct']:.2f}%" if gap['gap_pct'] is not None else 'n/a'
+            print(f"Gap     : {gap_text}  (vs MILP {gap['reference_kind']} "
+                  f"{gap['reference']}, status {gap['milp_status']})")
+            print(f"MILP-feasible heuristic schedule: {gap['milp_feasible']}")
     elif args.mode == 'milp':
         run_milp(data_path=args.data,
                  solver=args.solver, tee=args.tee,
@@ -3159,6 +3576,9 @@ def main():
                  use_strong_maint_link=args.use_strong_maint_link,
                  soft_coverage=args.soft_coverage,
                  coverage_weight=args.coverage_weight,
+                 mip_start_path=args.mip_start,
+                 objective=args.objective,
+                 early_check_penalty=args.early_check_penalty,
                  )
     else:  # batch
         run_batch(input_dir=args.input_dir,

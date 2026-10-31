@@ -1,0 +1,58 @@
+{
+  "solver_summary": {
+    "status": "optimal",
+    "n_vars": 197700,
+    "n_cons": 199380,
+    "gap": 0.0,
+    "cpu": 36.04581160000089,
+    "obj": 917158.8,
+    "dual_bound": 917158.8,
+    "primal_bound": 917158.8,
+    "nodes": null,
+    "solution_loaded": true,
+    "has_incumbent": true
+  },
+  "maintenance_triggers_fixed_to_heuristic_replay": 22,
+  "independent_AB_violations": [
+    {
+      "aircraft": 8,
+      "check": "A",
+      "window_start_day": null,
+      "window_end_day": 4,
+      "accumulated_min": 1802.0,
+      "threshold_min": 1641.0,
+      "excess_min": 161.0
+    },
+    {
+      "aircraft": 11,
+      "check": "A",
+      "window_start_day": null,
+      "window_end_day": 4,
+      "accumulated_min": 2387.0,
+      "threshold_min": 2321.0,
+      "excess_min": 66.0
+    },
+    {
+      "aircraft": 13,
+      "check": "A",
+      "window_start_day": null,
+      "window_end_day": 6,
+      "accumulated_min": 3029.0,
+      "threshold_min": 3002.0,
+      "excess_min": 27.0
+    },
+    {
+      "aircraft": 16,
+      "check": "A",
+      "window_start_day": null,
+      "window_end_day": 6,
+      "accumulated_min": 3175.0,
+      "threshold_min": 3002.0,
+      "excess_min": 173.0
+    }
+  ],
+  "independent_route_replay_pass": true,
+  "flights_assigned": 574,
+  "unassigned": 0,
+  "schedule_csv": "results\\tables\\ld07_analysis_20261030\\ld07_model_validated_schedule.csv"
+}

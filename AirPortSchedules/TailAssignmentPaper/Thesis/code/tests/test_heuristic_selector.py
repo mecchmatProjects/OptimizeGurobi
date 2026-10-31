@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src.model import Scheduler
+from src.model import MILP_Sheduler, Scheduler
 from experiments.validate_semantic_alignment import validate
 
 
@@ -86,6 +86,26 @@ class HeuristicSelectorTests(unittest.TestCase):
         result = validate(data_path, solver_name="highs", time_limit=120)
         self.assertEqual(result["status"], "validated")
         self.assertTrue(result["route_valid"])
+
+    def test_complete_route_mip_start_is_checked_and_used_by_highs(self):
+        data_path = ROOT / "data" / "instances" / "ABCD_no_maint_test.json"
+        scheduler = Scheduler(str(data_path), allow_ferry=False, heuristic="greedy")
+        routes, unassigned = scheduler.optimize()
+        self.assertEqual(unassigned, [])
+
+        optimizer = MILP_Sheduler(str(data_path), max_hour_check_deferral_days=3)
+        optimizer.build_model(allow_ferry=True, use_maintenance=True, use_tight_c13_m=True)
+        start = optimizer.set_mip_start_from_routes({"routes": routes, "unassigned": unassigned})
+
+        self.assertTrue(optimizer.mip_start_loaded)
+        self.assertEqual(start["flights_assigned"], len(scheduler.flights))
+        self.assertEqual(start["constraint_violations"], 0)
+        optimizer.print_report = lambda out_path=None, summary=None: None
+        summary = optimizer.solve(solver_name="highs", time_limit=30, warm_start=False)
+
+        self.assertEqual(summary["status"], "optimal")
+        self.assertTrue(summary["solution_loaded"])
+        self.assertEqual(summary["mip_start"]["flights_assigned"], len(scheduler.flights))
 
 
 

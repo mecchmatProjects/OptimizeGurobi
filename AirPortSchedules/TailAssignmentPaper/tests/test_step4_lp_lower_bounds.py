@@ -108,7 +108,8 @@ class Step4WorkflowTests(unittest.TestCase):
         self.assertEqual(baseline.max_hour_check_deferral_days, 3)
         self.assertEqual(current.max_hour_check_deferral_days, 3)
         old_model = baseline.build_model(use_sparse_maint_aircraft_domain=False)
-        new_model = current.build_model(use_sparse_maint_aircraft_domain=False)
+        new_model = current.build_model(use_sparse_maint_aircraft_domain=False,
+                                        objective='check_days')
         old_variables = [(var.name, var.lb, var.ub, var.fixed) for var in old_model.component_data_objects(Var)]
         new_variables = [(var.name, var.lb, var.ub, var.fixed) for var in new_model.component_data_objects(Var)]
         self.assertEqual(old_variables, new_variables)
@@ -122,7 +123,8 @@ class Step4WorkflowTests(unittest.TestCase):
         relax_integrality(new_model)
         self.assertNotEqual([(var.name, var.lb, var.ub, var.fixed) for var in old_model.component_data_objects(Var)],
                     [(var.name, var.lb, var.ub, var.fixed) for var in new_model.component_data_objects(Var)])
-        legacy_model = MILP_Sheduler(source).build_model(use_sparse_maint_aircraft_domain=False)
+        legacy_model = MILP_Sheduler(source).build_model(use_sparse_maint_aircraft_domain=False,
+                                                         objective='check_days')
         relax_integrality(legacy_model, legacy_unit_bounds=True)
         self.assertEqual([(var.name, var.lb, var.ub, var.fixed) for var in old_model.component_data_objects(Var)],
                  [(var.name, var.lb, var.ub, var.fixed) for var in legacy_model.component_data_objects(Var)])

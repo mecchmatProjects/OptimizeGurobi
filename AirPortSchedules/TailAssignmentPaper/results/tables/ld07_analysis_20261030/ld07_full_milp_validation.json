@@ -1,0 +1,34 @@
+{
+  "solver_summary": {
+    "status": "optimal",
+    "n_vars": 197700,
+    "n_cons": 199380,
+    "gap": 0.0,
+    "cpu": 38.06517509999685,
+    "obj": 917158.8,
+    "dual_bound": 917158.8,
+    "primal_bound": 917158.8,
+    "nodes": null,
+    "solution_loaded": true,
+    "has_incumbent": true
+  },
+  "solution_loaded": true,
+  "full_milp_constraint_violations": [],
+  "full_milp_constraint_violation_count": 0,
+  "independent_A_B_violations": [
+    {
+      "aircraft": 9,
+      "check": "A",
+      "window_start_day": null,
+      "window_end_day": 2,
+      "accumulated_min": 1136.0,
+      "threshold_min": 960.0,
+      "excess_min": 176.0
+    }
+  ],
+  "independent_route_replay_pass": true,
+  "flights_assigned": 574,
+  "unassigned": 0,
+  "heuristic_method": "aco_seed_1",
+  "validated_schedule_csv": "results/tables/ld07_analysis_20261030/ld07_validated_no_ferry_milp_schedule.csv"
+}

@@ -1,0 +1,718 @@
+
+=== MILP Aircraft Assignment Report ===
+  Status : maxTimeLimit
+  Vars   : 197700   Constraints: 199380
+  Gap    : 100.0000%   CPU: 124.43s
+  Obj    : 917158.8
+
+--- Assignment ---
+  Flight    0  -> Aircraft 0
+  Flight    1  -> Aircraft 0
+  Flight    2  -> Aircraft 17
+  Flight    3  -> Aircraft 17
+  Flight    4  -> Aircraft 18
+  Flight    5  -> Aircraft 12
+  Flight    6  -> Aircraft 27
+  Flight    7  -> Aircraft 27
+  Flight    8  -> Aircraft 27
+  Flight    9  -> Aircraft 27
+  Flight   10  -> Aircraft 4
+  Flight   11  -> Aircraft 4
+  Flight   12  -> Aircraft 20
+  Flight   13  -> Aircraft 20
+  Flight   14  -> Aircraft 21
+  Flight   15  -> Aircraft 21
+  Flight   16  -> Aircraft 21
+  Flight   17  -> Aircraft 21
+  Flight   18  -> Aircraft 22
+  Flight   19  -> Aircraft 22
+  Flight   20  -> Aircraft 22
+  Flight   21  -> Aircraft 24
+  Flight   22  -> Aircraft 23
+  Flight   23  -> Aircraft 23
+  Flight   24  -> Aircraft 23
+  Flight   25  -> Aircraft 1
+  Flight   26  -> Aircraft 8
+  Flight   27  -> Aircraft 8
+  Flight   28  -> Aircraft 8
+  Flight   29  -> Aircraft 8
+  Flight   30  -> Aircraft 9
+  Flight   31  -> Aircraft 9
+  Flight   32  -> Aircraft 9
+  Flight   33  -> Aircraft 9
+  Flight   34  -> Aircraft 2
+  Flight   35  -> Aircraft 2
+  Flight   36  -> Aircraft 12
+  Flight   37  -> Aircraft 12
+  Flight   38  -> Aircraft 3
+  Flight   39  -> Aircraft 3
+  Flight   40  -> Aircraft 3
+  Flight   41  -> Aircraft 2
+  Flight   42  -> Aircraft 20
+  Flight   43  -> Aircraft 20
+  Flight   44  -> Aircraft 18
+  Flight   45  -> Aircraft 18
+  Flight   46  -> Aircraft 29
+  Flight   47  -> Aircraft 29
+  Flight   48  -> Aircraft 29
+  Flight   49  -> Aircraft 29
+  Flight   50  -> Aircraft 14
+  Flight   51  -> Aircraft 14
+  Flight   52  -> Aircraft 14
+  Flight   53  -> Aircraft 14
+  Flight   54  -> Aircraft 15
+  Flight   55  -> Aircraft 15
+  Flight   56  -> Aircraft 15
+  Flight   57  -> Aircraft 15
+  Flight   58  -> Aircraft 16
+  Flight   59  -> Aircraft 16
+  Flight   60  -> Aircraft 16
+  Flight   61  -> Aircraft 16
+  Flight   62  -> Aircraft 25
+  Flight   63  -> Aircraft 25
+  Flight   64  -> Aircraft 17
+  Flight   65  -> Aircraft 17
+  Flight   66  -> Aircraft 26
+  Flight   67  -> Aircraft 26
+  Flight   68  -> Aircraft 26
+  Flight   69  -> Aircraft 26
+  Flight   70  -> Aircraft 19
+  Flight   71  -> Aircraft 19
+  Flight   72  -> Aircraft 19
+  Flight   73  -> Aircraft 19
+  Flight   74  -> Aircraft 12
+  Flight   75  -> Aircraft 18
+  Flight   76  -> Aircraft 4
+  Flight   77  -> Aircraft 4
+  Flight   78  -> Aircraft 5
+  Flight   79  -> Aircraft 5
+  Flight   80  -> Aircraft 5
+  Flight   81  -> Aircraft 5
+  Flight   82  -> Aircraft 6
+  Flight   83  -> Aircraft 6
+  Flight   84  -> Aircraft 6
+  Flight   85  -> Aircraft 6
+  Flight   86  -> Aircraft 7
+  Flight   87  -> Aircraft 7
+  Flight   88  -> Aircraft 7
+  Flight   89  -> Aircraft 7
+  Flight   90  -> Aircraft 24
+  Flight   91  -> Aircraft 24
+  Flight   92  -> Aircraft 24
+  Flight   93  -> Aircraft 22
+  Flight   94  -> Aircraft 1
+  Flight   95  -> Aircraft 1
+  Flight   96  -> Aircraft 1
+  Flight   97  -> Aircraft 23
+  Flight   98  -> Aircraft 10
+  Flight   99  -> Aircraft 10
+  Flight  100  -> Aircraft 10
+  Flight  101  -> Aircraft 10
+  Flight  102  -> Aircraft 11
+  Flight  103  -> Aircraft 11
+  Flight  104  -> Aircraft 11
+  Flight  105  -> Aircraft 0
+  Flight  106  -> Aircraft 28
+  Flight  107  -> Aircraft 28
+  Flight  108  -> Aircraft 28
+  Flight  109  -> Aircraft 25
+  Flight  110  -> Aircraft 13
+  Flight  111  -> Aircraft 13
+  Flight  112  -> Aircraft 13
+  Flight  113  -> Aircraft 13
+  Flight  114  -> Aircraft 22
+  Flight  115  -> Aircraft 22
+  Flight  116  -> Aircraft 22
+  Flight  117  -> Aircraft 22
+  Flight  118  -> Aircraft 28
+  Flight  119  -> Aircraft 28
+  Flight  120  -> Aircraft 17
+  Flight  121  -> Aircraft 17
+  Flight  122  -> Aircraft 0
+  Flight  123  -> Aircraft 0
+  Flight  124  -> Aircraft 6
+  Flight  125  -> Aircraft 6
+  Flight  126  -> Aircraft 1
+  Flight  127  -> Aircraft 1
+  Flight  128  -> Aircraft 15
+  Flight  129  -> Aircraft 15
+  Flight  130  -> Aircraft 16
+  Flight  131  -> Aircraft 16
+  Flight  132  -> Aircraft 16
+  Flight  133  -> Aircraft 16
+  Flight  134  -> Aircraft 19
+  Flight  135  -> Aircraft 12
+  Flight  136  -> Aircraft 2
+  Flight  137  -> Aircraft 29
+  Flight  138  -> Aircraft 20
+  Flight  139  -> Aircraft 20
+  Flight  140  -> Aircraft 20
+  Flight  141  -> Aircraft 20
+  Flight  142  -> Aircraft 29
+  Flight  143  -> Aircraft 25
+  Flight  144  -> Aircraft 25
+  Flight  145  -> Aircraft 6
+  Flight  146  -> Aircraft 8
+  Flight  147  -> Aircraft 8
+  Flight  148  -> Aircraft 8
+  Flight  149  -> Aircraft 8
+  Flight  150  -> Aircraft 17
+  Flight  151  -> Aircraft 17
+  Flight  152  -> Aircraft 23
+  Flight  153  -> Aircraft 23
+  Flight  154  -> Aircraft 27
+  Flight  155  -> Aircraft 27
+  Flight  156  -> Aircraft 27
+  Flight  157  -> Aircraft 27
+  Flight  158  -> Aircraft 4
+  Flight  159  -> Aircraft 4
+  Flight  160  -> Aircraft 4
+  Flight  161  -> Aircraft 4
+  Flight  162  -> Aircraft 13
+  Flight  163  -> Aircraft 13
+  Flight  164  -> Aircraft 21
+  Flight  165  -> Aircraft 21
+  Flight  166  -> Aircraft 24
+  Flight  167  -> Aircraft 24
+  Flight  168  -> Aircraft 14
+  Flight  169  -> Aircraft 14
+  Flight  170  -> Aircraft 7
+  Flight  171  -> Aircraft 7
+  Flight  172  -> Aircraft 7
+  Flight  173  -> Aircraft 7
+  Flight  174  -> Aircraft 11
+  Flight  175  -> Aircraft 11
+  Flight  176  -> Aircraft 11
+  Flight  177  -> Aircraft 11
+  Flight  178  -> Aircraft 23
+  Flight  179  -> Aircraft 23
+  Flight  180  -> Aircraft 9
+  Flight  181  -> Aircraft 9
+  Flight  182  -> Aircraft 26
+  Flight  183  -> Aircraft 26
+  Flight  184  -> Aircraft 5
+  Flight  185  -> Aircraft 5
+  Flight  186  -> Aircraft 18
+  Flight  187  -> Aircraft 18
+  Flight  188  -> Aircraft 18
+  Flight  189  -> Aircraft 26
+  Flight  190  -> Aircraft 5
+  Flight  191  -> Aircraft 3
+  Flight  192  -> Aircraft 3
+  Flight  193  -> Aircraft 12
+  Flight  194  -> Aircraft 11
+  Flight  195  -> Aircraft 11
+  Flight  196  -> Aircraft 11
+  Flight  197  -> Aircraft 11
+  Flight  198  -> Aircraft 28
+  Flight  199  -> Aircraft 28
+  Flight  200  -> Aircraft 28
+  Flight  201  -> Aircraft 28
+  Flight  202  -> Aircraft 29
+  Flight  203  -> Aircraft 29
+  Flight  204  -> Aircraft 27
+  Flight  205  -> Aircraft 27
+  Flight  206  -> Aircraft 14
+  Flight  207  -> Aircraft 14
+  Flight  208  -> Aircraft 14
+  Flight  209  -> Aircraft 14
+  Flight  210  -> Aircraft 7
+  Flight  211  -> Aircraft 7
+  Flight  212  -> Aircraft 8
+  Flight  213  -> Aircraft 17
+  Flight  214  -> Aircraft 3
+  Flight  215  -> Aircraft 20
+  Flight  216  -> Aircraft 0
+  Flight  217  -> Aircraft 0
+  Flight  218  -> Aircraft 26
+  Flight  219  -> Aircraft 26
+  Flight  220  -> Aircraft 3
+  Flight  221  -> Aircraft 12
+  Flight  222  -> Aircraft 22
+  Flight  223  -> Aircraft 22
+  Flight  224  -> Aircraft 22
+  Flight  225  -> Aircraft 22
+  Flight  226  -> Aircraft 23
+  Flight  227  -> Aircraft 23
+  Flight  228  -> Aircraft 23
+  Flight  229  -> Aircraft 23
+  Flight  230  -> Aircraft 4
+  Flight  231  -> Aircraft 4
+  Flight  232  -> Aircraft 4
+  Flight  233  -> Aircraft 4
+  Flight  234  -> Aircraft 6
+  Flight  235  -> Aircraft 6
+  Flight  236  -> Aircraft 21
+  Flight  237  -> Aircraft 21
+  Flight  238  -> Aircraft 25
+  Flight  239  -> Aircraft 25
+  Flight  240  -> Aircraft 25
+  Flight  241  -> Aircraft 25
+  Flight  242  -> Aircraft 15
+  Flight  243  -> Aircraft 15
+  Flight  244  -> Aircraft 1
+  Flight  245  -> Aircraft 1
+  Flight  246  -> Aircraft 16
+  Flight  247  -> Aircraft 16
+  Flight  248  -> Aircraft 16
+  Flight  249  -> Aircraft 16
+  Flight  250  -> Aircraft 9
+  Flight  251  -> Aircraft 9
+  Flight  252  -> Aircraft 9
+  Flight  253  -> Aircraft 17
+  Flight  254  -> Aircraft 10
+  Flight  255  -> Aircraft 10
+  Flight  256  -> Aircraft 19
+  Flight  257  -> Aircraft 19
+  Flight  258  -> Aircraft 2
+  Flight  259  -> Aircraft 18
+  Flight  260  -> Aircraft 26
+  Flight  261  -> Aircraft 26
+  Flight  262  -> Aircraft 13
+  Flight  263  -> Aircraft 13
+  Flight  264  -> Aircraft 13
+  Flight  265  -> Aircraft 18
+  Flight  266  -> Aircraft 22
+  Flight  267  -> Aircraft 22
+  Flight  268  -> Aircraft 7
+  Flight  269  -> Aircraft 7
+  Flight  270  -> Aircraft 17
+  Flight  271  -> Aircraft 17
+  Flight  272  -> Aircraft 17
+  Flight  273  -> Aircraft 17
+  Flight  274  -> Aircraft 27
+  Flight  275  -> Aircraft 27
+  Flight  276  -> Aircraft 0
+  Flight  277  -> Aircraft 0
+  Flight  278  -> Aircraft 21
+  Flight  279  -> Aircraft 21
+  Flight  280  -> Aircraft 18
+  Flight  281  -> Aircraft 18
+  Flight  282  -> Aircraft 24
+  Flight  283  -> Aircraft 24
+  Flight  284  -> Aircraft 24
+  Flight  285  -> Aircraft 28
+  Flight  286  -> Aircraft 7
+  Flight  287  -> Aircraft 16
+  Flight  288  -> Aircraft 1
+  Flight  289  -> Aircraft 11
+  Flight  290  -> Aircraft 11
+  Flight  291  -> Aircraft 28
+  Flight  292  -> Aircraft 9
+  Flight  293  -> Aircraft 8
+  Flight  294  -> Aircraft 8
+  Flight  295  -> Aircraft 10
+  Flight  296  -> Aircraft 10
+  Flight  297  -> Aircraft 27
+  Flight  298  -> Aircraft 2
+  Flight  299  -> Aircraft 29
+  Flight  300  -> Aircraft 20
+  Flight  301  -> Aircraft 13
+  Flight  302  -> Aircraft 12
+  Flight  303  -> Aircraft 12
+  Flight  304  -> Aircraft 14
+  Flight  305  -> Aircraft 14
+  Flight  306  -> Aircraft 25
+  Flight  307  -> Aircraft 25
+  Flight  308  -> Aircraft 9
+  Flight  309  -> Aircraft 9
+  Flight  310  -> Aircraft 22
+  Flight  311  -> Aircraft 22
+  Flight  312  -> Aircraft 23
+  Flight  313  -> Aircraft 23
+  Flight  314  -> Aircraft 23
+  Flight  315  -> Aircraft 23
+  Flight  316  -> Aircraft 5
+  Flight  317  -> Aircraft 5
+  Flight  318  -> Aircraft 5
+  Flight  319  -> Aircraft 5
+  Flight  320  -> Aircraft 26
+  Flight  321  -> Aircraft 26
+  Flight  322  -> Aircraft 26
+  Flight  323  -> Aircraft 26
+  Flight  324  -> Aircraft 18
+  Flight  325  -> Aircraft 18
+  Flight  326  -> Aircraft 3
+  Flight  327  -> Aircraft 3
+  Flight  328  -> Aircraft 1
+  Flight  329  -> Aircraft 1
+  Flight  330  -> Aircraft 15
+  Flight  331  -> Aircraft 15
+  Flight  332  -> Aircraft 19
+  Flight  333  -> Aircraft 19
+  Flight  334  -> Aircraft 19
+  Flight  335  -> Aircraft 19
+  Flight  336  -> Aircraft 4
+  Flight  337  -> Aircraft 4
+  Flight  338  -> Aircraft 20
+  Flight  339  -> Aircraft 21
+  Flight  340  -> Aircraft 8
+  Flight  341  -> Aircraft 8
+  Flight  342  -> Aircraft 8
+  Flight  343  -> Aircraft 8
+  Flight  344  -> Aircraft 17
+  Flight  345  -> Aircraft 17
+  Flight  346  -> Aircraft 1
+  Flight  347  -> Aircraft 1
+  Flight  348  -> Aircraft 13
+  Flight  349  -> Aircraft 13
+  Flight  350  -> Aircraft 9
+  Flight  351  -> Aircraft 9
+  Flight  352  -> Aircraft 18
+  Flight  353  -> Aircraft 18
+  Flight  354  -> Aircraft 6
+  Flight  355  -> Aircraft 22
+  Flight  356  -> Aircraft 28
+  Flight  357  -> Aircraft 28
+  Flight  358  -> Aircraft 28
+  Flight  359  -> Aircraft 28
+  Flight  360  -> Aircraft 15
+  Flight  361  -> Aircraft 15
+  Flight  362  -> Aircraft 11
+  Flight  363  -> Aircraft 4
+  Flight  364  -> Aircraft 22
+  Flight  365  -> Aircraft 22
+  Flight  366  -> Aircraft 7
+  Flight  367  -> Aircraft 2
+  Flight  368  -> Aircraft 1
+  Flight  369  -> Aircraft 1
+  Flight  370  -> Aircraft 23
+  Flight  371  -> Aircraft 23
+  Flight  372  -> Aircraft 19
+  Flight  373  -> Aircraft 4
+  Flight  374  -> Aircraft 5
+  Flight  375  -> Aircraft 18
+  Flight  376  -> Aircraft 0
+  Flight  377  -> Aircraft 3
+  Flight  378  -> Aircraft 3
+  Flight  379  -> Aircraft 26
+  Flight  380  -> Aircraft 26
+  Flight  381  -> Aircraft 25
+  Flight  382  -> Aircraft 19
+  Flight  383  -> Aircraft 16
+  Flight  384  -> Aircraft 14
+  Flight  385  -> Aircraft 14
+  Flight  386  -> Aircraft 7
+  Flight  387  -> Aircraft 7
+  Flight  388  -> Aircraft 24
+  Flight  389  -> Aircraft 24
+  Flight  390  -> Aircraft 27
+  Flight  391  -> Aircraft 27
+  Flight  392  -> Aircraft 27
+  Flight  393  -> Aircraft 27
+  Flight  394  -> Aircraft 5
+  Flight  395  -> Aircraft 5
+  Flight  396  -> Aircraft 29
+  Flight  397  -> Aircraft 29
+  Flight  398  -> Aircraft 10
+  Flight  399  -> Aircraft 10
+  Flight  400  -> Aircraft 13
+  Flight  401  -> Aircraft 13
+  Flight  402  -> Aircraft 21
+  Flight  403  -> Aircraft 21
+  Flight  404  -> Aircraft 21
+  Flight  405  -> Aircraft 21
+  Flight  406  -> Aircraft 20
+  Flight  407  -> Aircraft 20
+  Flight  408  -> Aircraft 0
+  Flight  409  -> Aircraft 0
+  Flight  410  -> Aircraft 16
+  Flight  411  -> Aircraft 16
+  Flight  412  -> Aircraft 15
+  Flight  413  -> Aircraft 15
+  Flight  414  -> Aircraft 9
+  Flight  415  -> Aircraft 2
+  Flight  416  -> Aircraft 2
+  Flight  417  -> Aircraft 10
+  Flight  418  -> Aircraft 12
+  Flight  419  -> Aircraft 12
+  Flight  420  -> Aircraft 25
+  Flight  421  -> Aircraft 25
+  Flight  422  -> Aircraft 6
+  Flight  423  -> Aircraft 6
+  Flight  424  -> Aircraft 6
+  Flight  425  -> Aircraft 6
+  Flight  426  -> Aircraft 17
+  Flight  427  -> Aircraft 17
+  Flight  428  -> Aircraft 17
+  Flight  429  -> Aircraft 17
+  Flight  430  -> Aircraft 26
+  Flight  431  -> Aircraft 26
+  Flight  432  -> Aircraft 2
+  Flight  433  -> Aircraft 20
+  Flight  434  -> Aircraft 0
+  Flight  435  -> Aircraft 0
+  Flight  436  -> Aircraft 0
+  Flight  437  -> Aircraft 0
+  Flight  438  -> Aircraft 14
+  Flight  439  -> Aircraft 14
+  Flight  440  -> Aircraft 28
+  Flight  441  -> Aircraft 28
+  Flight  442  -> Aircraft 4
+  Flight  443  -> Aircraft 4
+  Flight  444  -> Aircraft 4
+  Flight  445  -> Aircraft 13
+  Flight  446  -> Aircraft 2
+  Flight  447  -> Aircraft 10
+  Flight  448  -> Aircraft 8
+  Flight  449  -> Aircraft 22
+  Flight  450  -> Aircraft 27
+  Flight  451  -> Aircraft 21
+  Flight  452  -> Aircraft 21
+  Flight  453  -> Aircraft 16
+  Flight  454  -> Aircraft 11
+  Flight  455  -> Aircraft 11
+  Flight  456  -> Aircraft 11
+  Flight  457  -> Aircraft 27
+  Flight  458  -> Aircraft 7
+  Flight  459  -> Aircraft 3
+  Flight  460  -> Aircraft 3
+  Flight  461  -> Aircraft 3
+  Flight  462  -> Aircraft 12
+  Flight  463  -> Aircraft 15
+  Flight  464  -> Aircraft 15
+  Flight  465  -> Aircraft 15
+  Flight  466  -> Aircraft 28
+  Flight  467  -> Aircraft 28
+  Flight  468  -> Aircraft 7
+  Flight  469  -> Aircraft 7
+  Flight  470  -> Aircraft 8
+  Flight  471  -> Aircraft 8
+  Flight  472  -> Aircraft 23
+  Flight  473  -> Aircraft 23
+  Flight  474  -> Aircraft 18
+  Flight  475  -> Aircraft 18
+  Flight  476  -> Aircraft 13
+  Flight  477  -> Aircraft 13
+  Flight  478  -> Aircraft 25
+  Flight  479  -> Aircraft 25
+  Flight  480  -> Aircraft 25
+  Flight  481  -> Aircraft 25
+  Flight  482  -> Aircraft 5
+  Flight  483  -> Aircraft 5
+  Flight  484  -> Aircraft 20
+  Flight  485  -> Aircraft 2
+  Flight  486  -> Aircraft 19
+  Flight  487  -> Aircraft 19
+  Flight  488  -> Aircraft 19
+  Flight  489  -> Aircraft 19
+  Flight  490  -> Aircraft 24
+  Flight  491  -> Aircraft 24
+  Flight  492  -> Aircraft 24
+  Flight  493  -> Aircraft 9
+  Flight  494  -> Aircraft 1
+  Flight  495  -> Aircraft 1
+  Flight  496  -> Aircraft 1
+  Flight  497  -> Aircraft 1
+  Flight  498  -> Aircraft 10
+  Flight  499  -> Aircraft 9
+  Flight  500  -> Aircraft 18
+  Flight  501  -> Aircraft 8
+  Flight  502  -> Aircraft 16
+  Flight  503  -> Aircraft 22
+  Flight  504  -> Aircraft 27
+  Flight  505  -> Aircraft 14
+  Flight  506  -> Aircraft 9
+  Flight  507  -> Aircraft 9
+  Flight  508  -> Aircraft 9
+  Flight  509  -> Aircraft 1
+  Flight  510  -> Aircraft 1
+  Flight  511  -> Aircraft 1
+  Flight  512  -> Aircraft 4
+  Flight  513  -> Aircraft 4
+  Flight  514  -> Aircraft 4
+  Flight  515  -> Aircraft 5
+  Flight  516  -> Aircraft 5
+  Flight  517  -> Aircraft 2
+  Flight  518  -> Aircraft 7
+  Flight  519  -> Aircraft 27
+  Flight  520  -> Aircraft 18
+  Flight  521  -> Aircraft 19
+  Flight  522  -> Aircraft 16
+  Flight  523  -> Aircraft 16
+  Flight  524  -> Aircraft 10
+  Flight  525  -> Aircraft 10
+  Flight  526  -> Aircraft 10
+  Flight  527  -> Aircraft 23
+  Flight  528  -> Aircraft 21
+  Flight  529  -> Aircraft 21
+  Flight  530  -> Aircraft 29
+  Flight  531  -> Aircraft 11
+  Flight  532  -> Aircraft 11
+  Flight  533  -> Aircraft 11
+  Flight  534  -> Aircraft 20
+  Flight  535  -> Aircraft 20
+  Flight  536  -> Aircraft 20
+  Flight  537  -> Aircraft 14
+  Flight  538  -> Aircraft 14
+  Flight  539  -> Aircraft 15
+  Flight  540  -> Aircraft 28
+  Flight  541  -> Aircraft 28
+  Flight  542  -> Aircraft 28
+  Flight  543  -> Aircraft 6
+  Flight  544  -> Aircraft 6
+  Flight  545  -> Aircraft 6
+  Flight  546  -> Aircraft 17
+  Flight  547  -> Aircraft 17
+  Flight  548  -> Aircraft 17
+  Flight  549  -> Aircraft 8
+  Flight  550  -> Aircraft 8
+  Flight  551  -> Aircraft 7
+  Flight  552  -> Aircraft 26
+  Flight  553  -> Aircraft 26
+  Flight  554  -> Aircraft 26
+  Flight  555  -> Aircraft 25
+  Flight  556  -> Aircraft 25
+  Flight  557  -> Aircraft 0
+  Flight  558  -> Aircraft 0
+  Flight  559  -> Aircraft 12
+  Flight  560  -> Aircraft 12
+  Flight  561  -> Aircraft 13
+  Flight  562  -> Aircraft 22
+  Flight  563  -> Aircraft 22
+  Flight  564  -> Aircraft 22
+  Flight  565  -> Aircraft 16
+  Flight  566  -> Aircraft 3
+  Flight  567  -> Aircraft 3
+  Flight  568  -> Aircraft 24
+  Flight  569  -> Aircraft 24
+  Flight  570  -> Aircraft 24
+  Flight  571  -> Aircraft 18
+  Flight  572  -> Aircraft 29
+  Flight  573  -> Aircraft 29
+
+--- Maintenance ---
+  Aircraft 0  day   2  check A after flight:
+123 arr 2215.0 
+
+
+  Aircraft 1  day   1  check A after flight:
+25 arr 1398.0 
+
+
+  Aircraft 2  day   3  check A after flight:
+258 arr 3437.0 
+
+
+  Aircraft 3  day   2  check A after flight:
+192 arr 2524.0 
+
+
+  Aircraft 4  day   2  check A after flight:
+161 arr 2701.0 
+
+
+  Aircraft 5  day   1  check A after flight:
+81 arr 1376.0 
+
+
+  Aircraft 6  day   5  check A after flight:
+354 arr 6684.0 
+
+
+  Aircraft 7  day   2  check A after flight:
+173 arr 2780.0 
+
+
+  Aircraft 8  day   4  check A after flight:
+294 arr 4808.0 
+
+
+  Aircraft 9  day   1  check A after flight:
+33 arr 1292.0 
+
+
+  Aircraft 10  day   4  check A after flight:
+296 arr 5219.0 
+
+
+  Aircraft 11  day   4  check A after flight:
+290 arr 4898.0 
+
+
+  Aircraft 12  day   6  check A after flight:
+462 arr 7804.0 
+
+
+  Aircraft 13  day   6  check A after flight:
+477 arr 7910.0 
+
+
+  Aircraft 14  day   4  check A after flight:
+305 arr 5084.0 
+
+
+  Aircraft 15  day   2  check A after flight:
+129 arr 2634.0 
+
+
+  Aircraft 16  day   6  check A after flight:
+502 arr 7721.0 
+
+
+  Aircraft 17  day   5  check A after flight:
+345 arr 6477.0 
+
+
+  Aircraft 18  day   4  check A after flight:
+281 arr 5471.0 
+
+
+  Aircraft 22  day   6  check A after flight:
+449 arr 8356.0 
+
+
+  Aircraft 23  day   6  check A after flight:
+473 arr 8033.0 
+
+
+  Aircraft 27  day   4  check A after flight:
+297 arr 5488.0 
+
+
+y[0,2,A] = 1.0  (check A for aircraft 0 on day 2)
+z[123,0,2,A] = 1.0  (flight 123 triggers check A for aircraft 0 on day 2)
+y[1,1,A] = 1.0  (check A for aircraft 1 on day 1)
+z[25,1,1,A] = 1.0  (flight 25 triggers check A for aircraft 1 on day 1)
+y[2,3,A] = 1.0  (check A for aircraft 2 on day 3)
+z[258,2,3,A] = 1.0  (flight 258 triggers check A for aircraft 2 on day 3)
+y[3,2,A] = 1.0  (check A for aircraft 3 on day 2)
+z[192,3,2,A] = 1.0  (flight 192 triggers check A for aircraft 3 on day 2)
+y[4,2,A] = 1.0  (check A for aircraft 4 on day 2)
+z[161,4,2,A] = 1.0  (flight 161 triggers check A for aircraft 4 on day 2)
+y[5,1,A] = 1.0  (check A for aircraft 5 on day 1)
+z[81,5,1,A] = 1.0  (flight 81 triggers check A for aircraft 5 on day 1)
+y[6,5,A] = 1.0  (check A for aircraft 6 on day 5)
+z[354,6,5,A] = 1.0  (flight 354 triggers check A for aircraft 6 on day 5)
+y[7,2,A] = 1.0  (check A for aircraft 7 on day 2)
+z[173,7,2,A] = 1.0  (flight 173 triggers check A for aircraft 7 on day 2)
+y[8,4,A] = 1.0  (check A for aircraft 8 on day 4)
+z[294,8,4,A] = 1.0  (flight 294 triggers check A for aircraft 8 on day 4)
+y[9,1,A] = 1.0  (check A for aircraft 9 on day 1)
+z[33,9,1,A] = 1.0  (flight 33 triggers check A for aircraft 9 on day 1)
+y[10,4,A] = 1.0  (check A for aircraft 10 on day 4)
+z[296,10,4,A] = 1.0  (flight 296 triggers check A for aircraft 10 on day 4)
+y[11,4,A] = 1.0  (check A for aircraft 11 on day 4)
+z[290,11,4,A] = 1.0  (flight 290 triggers check A for aircraft 11 on day 4)
+y[12,6,A] = 1.0  (check A for aircraft 12 on day 6)
+z[462,12,6,A] = 1.0  (flight 462 triggers check A for aircraft 12 on day 6)
+y[13,6,A] = 1.0  (check A for aircraft 13 on day 6)
+z[477,13,6,A] = 1.0  (flight 477 triggers check A for aircraft 13 on day 6)
+y[14,4,A] = 1.0  (check A for aircraft 14 on day 4)
+z[305,14,4,A] = 1.0  (flight 305 triggers check A for aircraft 14 on day 4)
+y[15,2,A] = 1.0  (check A for aircraft 15 on day 2)
+z[129,15,2,A] = 1.0  (flight 129 triggers check A for aircraft 15 on day 2)
+y[16,6,A] = 1.0  (check A for aircraft 16 on day 6)
+z[502,16,6,A] = 1.0  (flight 502 triggers check A for aircraft 16 on day 6)
+y[17,5,A] = 1.0  (check A for aircraft 17 on day 5)
+z[345,17,5,A] = 1.0  (flight 345 triggers check A for aircraft 17 on day 5)
+y[18,4,A] = 1.0  (check A for aircraft 18 on day 4)
+z[281,18,4,A] = 1.0  (flight 281 triggers check A for aircraft 18 on day 4)
+y[22,6,A] = 1.0  (check A for aircraft 22 on day 6)
+z[449,22,6,A] = 1.0  (flight 449 triggers check A for aircraft 22 on day 6)
+y[23,6,A] = 1.0  (check A for aircraft 23 on day 6)
+z[473,23,6,A] = 1.0  (flight 473 triggers check A for aircraft 23 on day 6)
+y[27,4,A] = 1.0  (check A for aircraft 27 on day 4)
+z[297,27,4,A] = 1.0  (flight 297 triggers check A for aircraft 27 on day 4)
+
+Total cost: 917158.80

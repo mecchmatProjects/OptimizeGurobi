@@ -1,0 +1,21 @@
+{
+  "instance": "data/ld07_p30_f574_h7_r1.json",
+  "candidate_method": "aco_seed_1",
+  "fixed_assignment_milp": {
+    "status": "optimal",
+    "solver": "HiGHS",
+    "cpu_s": 38.07,
+    "all_full_model_constraints_active": true,
+    "variables": 197700,
+    "constraints": 199380
+  },
+  "flights_covered_exactly_once": true,
+  "flight_count": 574,
+  "ferry_events": 0,
+  "maintenance_events": 22,
+  "aircraft_timeline_failures": [],
+  "per_flight_AB_threshold_violations": [],
+  "station_capacity_violations": [],
+  "event_time_route_and_maintenance_replay_pass": true,
+  "caveat": "validate_maintenance.validate_solved_model reports four day-window C13b excesses because it counts same-day flights before a later check as if the check had not yet occurred. The event-time replay checks each flight against remaining hours at its actual departure and finds no per-flight exceedance. Preserve this distinction in reporting."
+}

@@ -1,0 +1,83 @@
+{
+  "instance": "data/ld07_p30_f574_h7_r1.json",
+  "candidate": "results/tables/ld07_analysis_20261030/ld07_greedy_ferry_schedule.csv",
+  "milp_feasible": false,
+  "constraint_rows_checked": {
+    "maint_start_transitions": 1680,
+    "c1": 574,
+    "c23": 17220,
+    "c_overlap": 7650,
+    "c8": 118680,
+    "c9": 48840,
+    "c10": 56,
+    "c11": 840,
+    "c_hierarchy": 840,
+    "c14": 210,
+    "c14b": 630,
+    "c13b": 360,
+    "c13": 1800
+  },
+  "violated_rows_by_group": {
+    "c23": 338,
+    "c13b": 27
+  },
+  "maintenance_events_not_representable_by_current_trigger_domain": [
+    {
+      "aircraft": 0,
+      "check": "A",
+      "day": 2,
+      "station": "D",
+      "last_flight": 124
+    },
+    {
+      "aircraft": 3,
+      "check": "A",
+      "day": 2,
+      "station": "B",
+      "last_flight": 162
+    },
+    {
+      "aircraft": 4,
+      "check": "A",
+      "day": 3,
+      "station": "G",
+      "last_flight": 250
+    },
+    {
+      "aircraft": 12,
+      "check": "A",
+      "day": 4,
+      "station": "C",
+      "last_flight": 318
+    },
+    {
+      "aircraft": 13,
+      "check": "A",
+      "day": 6,
+      "station": "D",
+      "last_flight": 482
+    },
+    {
+      "aircraft": 15,
+      "check": "A",
+      "day": 2,
+      "station": "F",
+      "last_flight": 126
+    },
+    {
+      "aircraft": 16,
+      "check": "A",
+      "day": 6,
+      "station": "E",
+      "last_flight": 430
+    },
+    {
+      "aircraft": 27,
+      "check": "A",
+      "day": 5,
+      "station": "B",
+      "last_flight": 392
+    }
+  ],
+  "note": "The model has no ferry decision variables; every active C2-C3 row is evaluated with the candidate flight assignments. Maintenance trigger mapping uses the preceding assigned arrival at the check station; unmapped physical events are listed separately."
+}

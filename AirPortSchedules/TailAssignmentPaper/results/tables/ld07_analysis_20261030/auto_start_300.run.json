@@ -1,0 +1,24 @@
+{
+  "status": "completed",
+  "process_exit_code": 0,
+  "wall_s": 427.7787764999998,
+  "wall_time_limit_s": 480.0,
+  "command": [
+    "F:\\Lectures\\Facultative\\Optimizers\\Tasks\\AirPortSchedules\\TailAssignmentPaper\\.venv\\Scripts\\python.exe",
+    "-u",
+    "F:\\Lectures\\Facultative\\Optimizers\\Tasks\\AirPortSchedules\\TailAssignmentPaper\\src\\model.py",
+    "--mode",
+    "milp",
+    "--solver",
+    "highs",
+    "--data",
+    "data/ld07_p30_f574_h7_r1.json",
+    "--time-limit",
+    "300",
+    "--out",
+    "Outputs/milp_summaryld0574.txt",
+    "--no-show"
+  ],
+  "log": "F:\\Lectures\\Facultative\\Optimizers\\Tasks\\AirPortSchedules\\TailAssignmentPaper\\results\\tables\\ld07_analysis_20261030\\auto_start_300.log",
+  "note": "Read the solver summary/log for optimization status."
+}

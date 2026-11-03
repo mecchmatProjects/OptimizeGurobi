@@ -2265,12 +2265,39 @@ class MILP_Sheduler:
     # Warm-start helpers
     # ------------------------------------------------------------------
 
-    def warm_start_from_heuristic(self):
-        """No-op: partial warm-start (x-only) causes CPLEX to reject the MIP
-        start as infeasible.  Feasibility-first tuning is applied in solve()
-        via solver.options instead.
+    def warm_start_from_heuristic(self, seeds=range(8), aco_iterations=12, aco_ants=8):
+        """Load the first complete no-ferry ACO schedule that satisfies every model row.
+
+        Returns the MIP-start summary, or None if no seed produced a valid start.
         """
-        pass
+        for seed in seeds:
+            started = time.perf_counter()
+            # Coverage matters most for a start; the MILP prices early checks itself.
+            scheduler = Scheduler(str(self.data_path), allow_ferry=False, heuristic='aco',
+                                  aco_iterations=aco_iterations, aco_ants=aco_ants,
+                                  aco_seed=seed, early_check_penalty=0.0)
+            routes, unassigned = scheduler.optimize()
+            elapsed = time.perf_counter() - started
+            if unassigned:
+                self.logger.info('Warm start: ACO seed %s left %d flights unassigned (%.1fs).',
+                                 seed, len(unassigned), elapsed)
+                print(f'[warm start] ACO seed {seed}: {len(unassigned)} flights unassigned, '
+                      f'trying next seed ({elapsed:.1f}s)', flush=True)
+                continue
+            try:
+                summary = self.set_mip_start_from_routes(
+                    {'routes': routes, 'unassigned': []}, allow_ferry=False)
+            except ValueError as exc:
+                print(f'[warm start] ACO seed {seed}: complete but rejected by the MILP '
+                      f'({exc}), trying next seed', flush=True)
+                continue
+            self.mip_start_routes = routes
+            self.mip_start_summary['source'] = f'ACO seed {seed}'
+            print(f'[warm start] ACO seed {seed}: feasible start, objective '
+                  f"{summary['objective']:.1f} ({elapsed:.1f}s)", flush=True)
+            return dict(self.mip_start_summary)
+        print('[warm start] no valid heuristic start found; solving without one.', flush=True)
+        return None
 
     def set_mip_start_from_routes(self, route_data, allow_ferry=False):
         """Initialize every model variable from a complete heuristic route set."""
@@ -2424,10 +2451,14 @@ class MILP_Sheduler:
         if self.model is None:
             raise RuntimeError("Call build_model() first.")
 
-        if warm_start:
+        solver_name = solver_name or os.environ.get('TAP_PYOMO_SOLVER', 'cplex_direct')
+        # Route-based starts need the native HiGHS interface; other solvers keep
+        # the legacy feasibility-first tuning below.
+        if (warm_start and solver_name.lower() == 'highs'
+                and not getattr(self, 'mip_start_loaded', False)
+                and self.use_maintenance and not self.use_global_maint_trigger):
             self.warm_start_from_heuristic()
 
-        solver_name = solver_name or os.environ.get('TAP_PYOMO_SOLVER', 'cplex_direct')
         solver_kwargs = {'executable': str(executable)} if executable else {}
         solver = SolverFactory(solver_name, **solver_kwargs)
 
@@ -2509,6 +2540,11 @@ class MILP_Sheduler:
             _p(f"  Vars   : {summary['n_vars']}   Constraints: {summary['n_cons']}")
             _p(f"  Gap    : {g}   CPU: {t}")
             _p(f"  Obj    : {summary['obj']}")
+            start = summary.get('mip_start')
+            if start:
+                _p(f"  MIP start: {start.get('source', 'routes file')}, "
+                   f"objective {start['objective']:.1f}, "
+                   f"{start['maintenance_triggers']} checks")
 
         if not summary or not summary.get('solution_loaded'):
             report = '\n'.join(lines)
@@ -3013,6 +3049,11 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
             opt.set_mip_start_from_routes(json.load(handle), allow_ferry=False)
     summary = opt.solve(solver_name=solver, tee=tee, out_path=out_txt,
                         time_limit=time_limit, warm_start=warm_start, executable=executable)
+    if out_txt and getattr(opt, 'mip_start_routes', None):
+        with open(f'{os.path.splitext(out_txt)[0]}_mip_start_routes.json', 'w',
+                  encoding='utf-8') as handle:
+            json.dump({'source': opt.mip_start_summary.get('source'),
+                       'routes': opt.mip_start_routes, 'unassigned': []}, handle)
     opt.plot_gantt(save_path=gantt_path, show=show_gantt, fname=f'{out_txt[:-4]}_events.txt' if out_txt else None)
     return opt, summary
 
@@ -3494,7 +3535,8 @@ def main():
     parser.add_argument('--no-sanity',   dest='use_sanity', action='store_false',
                         help='Omit sanity-fixing bound constraints from MILP.')
     parser.add_argument('--no-warm-start', dest='warm_start', action='store_false',
-                        help='Do not seed MILP with heuristic solution (warm start OFF).')
+                        help='Do not seed the HiGHS MILP with a validated ACO schedule '
+                             '(warm start is on by default).')
     parser.add_argument('--no-check-hierarchy', dest='use_check_hierarchy', action='store_false',
                         help='Omit check hierarchy constraints from MILP.')
     parser.add_argument('--max-hour-check-deferral-days', type=parse_deferral_days, default=3,

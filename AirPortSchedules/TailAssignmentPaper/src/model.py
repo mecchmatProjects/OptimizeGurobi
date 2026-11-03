@@ -2265,17 +2265,17 @@ class MILP_Sheduler:
     # Warm-start helpers
     # ------------------------------------------------------------------
 
-    def warm_start_from_heuristic(self, seeds=range(5), aco_iterations=12, aco_ants=8):
+    def warm_start_from_heuristic(self, seeds=range(8), aco_iterations=12, aco_ants=8):
         """Load the first complete no-ferry ACO schedule that satisfies every model row.
 
         Returns the MIP-start summary, or None if no seed produced a valid start.
         """
         for seed in seeds:
             started = time.perf_counter()
+            # Coverage matters most for a start; the MILP prices early checks itself.
             scheduler = Scheduler(str(self.data_path), allow_ferry=False, heuristic='aco',
                                   aco_iterations=aco_iterations, aco_ants=aco_ants,
-                                  aco_seed=seed,
-                                  early_check_penalty=self.early_check_penalty)
+                                  aco_seed=seed, early_check_penalty=0.0)
             routes, unassigned = scheduler.optimize()
             elapsed = time.perf_counter() - started
             if unassigned:

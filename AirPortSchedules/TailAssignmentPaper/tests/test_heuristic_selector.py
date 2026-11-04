@@ -107,6 +107,48 @@ class HeuristicSelectorTests(unittest.TestCase):
         self.assertTrue(summary["solution_loaded"])
         self.assertEqual(summary["mip_start"]["flights_assigned"], len(scheduler.flights))
 
+    def test_due_multiday_check_can_finish_after_schedule_horizon(self):
+        import json
+        from tempfile import TemporaryDirectory
+
+        instance = {
+            "Flights": [[1, "M", "M", 5 * 1440 + 600, 5 * 1440 + 700]],
+            "Aircrafts": [0],
+            "AIRCRAFT_INIT_POS": {"0": "M"},
+            "Initial_Checks": {
+                "A": {"0": 0}, "B": {"0": 0},
+                "C_Days": {"0": 0}, "D_Days": {"0": 0},
+            },
+            "Maintenance_Thresholds": {
+                "A": 27000, "B": 302400, "C": 600, "D": 6,
+            },
+            "Maintenance_Durations": {
+                "A": 360, "B": 2880, "C": 14400, "D": 30 * 1440,
+            },
+            "Station_Capacity": {"M": 1},
+            "Cost_Matrix": [[1000]],
+            "Parameters": {"Target_Horizon_Days": 7, "Min_Turn_Minutes": 30},
+        }
+
+        with TemporaryDirectory() as temporary:
+            data_path = Path(temporary) / "overrun_case.json"
+            data_path.write_text(json.dumps(instance), encoding="utf-8")
+            optimizer = MILP_Sheduler(str(data_path), max_hour_check_deferral_days=3)
+            optimizer.build_model(allow_ferry=True, use_maintenance=True,
+                                  allow_checks_beyond_horizon=True)
+            optimizer.print_report = lambda out_path=None, summary=None: None
+            summary = optimizer.solve(solver_name="highs", time_limit=30, warm_start=False)
+
+        self.assertEqual(summary["status"], "optimal")
+        self.assertTrue(summary["solution_loaded"])
+        d_check = next(
+            event for event in optimizer.get_events()
+            if event["type"] == "MAINT" and event["check"] == "D"
+        )
+        self.assertEqual(d_check["day"], 6)
+        self.assertTrue(d_check["ends_after_horizon"])
+        self.assertEqual(d_check["projected_end_day"], 36)
+
 
 
 if __name__ == "__main__":

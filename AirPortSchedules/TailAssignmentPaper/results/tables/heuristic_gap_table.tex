@@ -1,0 +1,31 @@
+\begin{tabular}{rrrrrrrrrr}
+\toprule
+Sr.\ No. & No.\ of aircraft & No.\ of airports & Planning horizon & No.\ of flights & Min.\ turn (min) & Dijkstra time (s) & Dijkstra gap & Aco time (s) & Aco gap \\
+\midrule
+1 & 5 & 2 & 3 days & 9 & 30 & 0.00 & partial (5/9) & 0.02 & partial (5/9) \\
+2 & 3 & 2 & 3 days & 8 & 30 & 0.00 & partial (0/8) & 0.01 & partial (0/8) \\
+3 & 4 & 2 & 4 days & 13 & 30 & 0.00 & partial (7/13) & 0.03 & partial (7/13) \\
+4 & 4 & 2 & 4 days & 16 & 30 & 0.00 & partial (4/16) & 0.03 & partial (4/16) \\
+5 & 5 & 2 & 16 days & 21 & 30 & 0.01 & partial (15/21) & 0.08 & partial (15/21) \\
+6 & 6 & 2 & 4 days & 20 & 30 & 0.01 & -41.86\%$^{\dagger}$ & 0.10 & -41.86\%$^{\dagger}$ \\
+7 & 4 & 2 & 7 days & 14 & 30 & 0.00 & 0.00\% & 0.05 & 0.00\% \\
+8 & 5 & 2 & 15 days & 14 & 30 & 0.00 & partial (9/14) & 0.04 & partial (9/14) \\
+9 & 1 & 2 & 3 days & 4 & 30 & 0.00 & partial (2/4) & 0.00 & partial (2/4) \\
+10 & 10 & 20 & 15 days & 140 & 30 & 3.02 & 0.23\% & 2.70 & 0.46\% \\
+11 & 10 & 19 & 20 days & 109 & 30 & 1.36 & -0.58\%$^{\dagger}$ & 1.72 & -0.42\%$^{\dagger}$ \\
+12 & 10 & 19 & 7 days & 102 & 30 & 0.82 & 0.64\% & 1.55 & 0.29\% \\
+13 & 10 & 9 & 15 days & 142 & 30 & 1.64 & partial (86/142) & 1.65 & partial (73/142) \\
+14 & 10 & 9 & 7 days & 66 & 30 & 0.18 & partial (43/66) & 0.57 & partial (42/66) \\
+15 & 20 & 12 & 15 days & 285 & 30 & 29.71 & partial (211/285) & 8.79 & partial (199/285) \\
+16 & 20 & 12 & 7 days & 133 & 30 & 2.47 & partial (93/133) & 2.09 & partial (83/133) \\
+17 & 10 & 9 & 15 days & 150 & 30 & 1.85 & partial (89/150) & 1.76 & partial (76/150) \\
+18 & 10 & 9 & 21 days & 210 & 30 & 6.30 & partial (134/210) & 3.24 & partial (96/210) \\
+19 & 10 & 20 & 30 days & 575 & 30 & 97.50 & partial (305/575) & 11.32 & partial (112/575) \\
+20 & 10 & 9 & 7 days & 70 & 30 & 0.19 & partial (39/70) & 0.55 & partial (38/70) \\
+21 & 20 & 12 & 15 days & 300 & 30 & 37.87 & partial (222/300) & 8.92 & partial (192/300) \\
+22 & 20 & 12 & 21 days & 420 & 30 & 110.75 & partial (321/420) & 18.07 & partial (284/420) \\
+23 & 20 & 12 & 7 days & 140 & 30 & 2.84 & partial (103/140) & 2.46 & partial (102/140) \\
+\bottomrule
+\end{tabular}
+
+% * gap against the MILP lower bound (time limit reached); dagger = schedule violates MILP constraints (see the long CSV note); partial = heuristic left flights unassigned.

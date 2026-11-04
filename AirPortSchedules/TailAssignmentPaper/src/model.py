@@ -1176,7 +1176,8 @@ class MILP_Sheduler:
                     use_paper_c13=False,
                     soft_coverage=False,
                     coverage_weight=1_000_000.0,
-                    objective='early_check'):
+                    objective='early_check',
+                    allow_checks_beyond_horizon=False):
         """Construct the ConcreteModel.  Call before solve().
 
         Parameters
@@ -1229,6 +1230,11 @@ class MILP_Sheduler:
         if objective not in ('early_check', 'check_days'):
             raise ValueError("objective must be 'early_check' or 'check_days'.")
         self.objective_mode = objective
+        self.allow_checks_beyond_horizon = bool(allow_checks_beyond_horizon)
+        if self.allow_checks_beyond_horizon and use_global_maint_trigger:
+            raise ValueError(
+                "Over-horizon checks currently require aircraft-indexed maintenance triggers."
+            )
         self.solution_loaded = False
         self.use_maintenance = bool(use_maintenance)
         self.use_global_maint_trigger = bool(use_global_maint_trigger)
@@ -1273,7 +1279,10 @@ class MILP_Sheduler:
             self._add_c11_maint_link(m)
             self._add_hierarchy(m, use_check_hierarchy)
             self._add_c14_one_check_per_day(m)
-            self._add_c14b_check_duration(m)
+            if self.allow_checks_beyond_horizon:
+                self._add_over_horizon_check_occupancy(m)
+            else:
+                self._add_c14b_check_duration(m)
             if use_day_spacing:
                 self._add_c12_day_spacing(m)
                 self._add_c12b_initial_days(m)   # enforce first C/D check within remaining-days window
@@ -1927,6 +1936,22 @@ class MILP_Sheduler:
         m.c10 = ConstraintList()
         # Direct lookup: station_cap is now {airport: capacity}
         cap = {a: self.station_cap[a] for a in self.maint_airports}
+        if self.allow_checks_beyond_horizon:
+            for day in m.D:
+                for airport in m.MA:
+                    terms = [
+                        m.z[flight, aircraft, start_day, check]
+                        for check in self.CHECK_LIST
+                        for flight in self.maint_flight_ids
+                        if self.flight_data[flight]['destination'] == airport
+                        for aircraft in m.P
+                        for start_day in self._z_days_for(flight, check)
+                        if start_day <= day < start_day + max(1, self.check_dur_days[check])
+                        and (flight, aircraft, start_day, check) in m.Z
+                    ]
+                    if terms:
+                        m.c10.add(sum(terms) <= cap[airport])
+            return
         # Pre-compute maintenance-eligible flights arriving at each maintenance airport
         
         for d in m.D:
@@ -1962,8 +1987,32 @@ class MILP_Sheduler:
                         for i in self._z_trigger_flights(d, c)
                         if (i, j, d, c) in (m.W if self.use_global_maint_trigger else m.Z)
                     ]
-                    if not (self.use_day_specific_maintenance_bounds and not terms):
+                    if self.allow_checks_beyond_horizon:
+                        m.c11.add(sum(terms) == m.maintenance_start[j, d, c])
+                    elif not (self.use_day_specific_maintenance_bounds and not terms):
                         m.c11.add(sum(terms) == m.y[j, d, c])
+
+    def _add_over_horizon_check_occupancy(self, m):
+        m.c_check_occupancy = ConstraintList()
+        days = sorted(m.D)
+        for aircraft in m.P:
+            for check in m.C:
+                span = max(1, self.check_dur_days[check])
+                for day in days:
+                    active_starts = [
+                        m.maintenance_start[aircraft, start_day, check]
+                        for start_day in days
+                        if start_day <= day < start_day + span
+                    ]
+                    for start in active_starts:
+                        m.c_check_occupancy.add(m.y[aircraft, day, check] >= start)
+                    m.c_check_occupancy.add(m.y[aircraft, day, check] <= sum(active_starts))
+                    previous_day = day - 1
+                    if previous_day in m.D:
+                        m.c_check_occupancy.add(
+                            m.maintenance_start[aircraft, day, check]
+                            <= 1 - m.y[aircraft, previous_day, check]
+                        )
 
     # ------------------------------------------------------------------
     # Check hierarchy: mega[j,d,c] = 1 if a check at level ≥c occurs on d
@@ -2013,7 +2062,7 @@ class MILP_Sheduler:
         m.c14b = ConstraintList()
         days = sorted(self.days)
         for j in m.P:
-            for c in self.CHECK_LIST:  # Only A/B have multi-day duration; C/D are single-day checks
+            for c in self.CHECK_LIST:
                 K = self.check_dur_days[c]
                 if K <= 1:
                     continue
@@ -2355,7 +2404,7 @@ class MILP_Sheduler:
                 if not self.use_maintenance:
                     raise ValueError("MIP-start routes contain maintenance but the model disables maintenance.")
                 check = event['check']
-                if self.check_dur_days[check] > 1:
+                if self.check_dur_days[check] > 1 and not self.allow_checks_beyond_horizon:
                     raise ValueError(
                         f"MIP-start mapping does not support multi-day {check} checks."
                     )
@@ -2377,7 +2426,14 @@ class MILP_Sheduler:
             self.model.x[flight, aircraft].set_value(1)
         for flight, aircraft, day, check in selected_triggers:
             self.model.z[flight, aircraft, day, check].set_value(1)
-            self.model.y[aircraft, day, check].set_value(1)
+            span = max(1, self.check_dur_days[check])
+            active_days = (
+                [active_day for active_day in self.model.D
+                 if day <= active_day < day + span]
+                if self.allow_checks_beyond_horizon else [day]
+            )
+            for active_day in active_days:
+                self.model.y[aircraft, active_day, check].set_value(1)
 
         for aircraft in self.model.P:
             for day in self.model.D:
@@ -2586,6 +2642,18 @@ class MILP_Sheduler:
               
 
         _p(f"\nTotal cost: {pyo_value(m.obj):.2f}")
+        if self.allow_checks_beyond_horizon:
+            horizon_end = max(self.days) * self.DAY_SHIFT
+            overrun_checks = [
+                event for event in self.get_events()
+                if event['type'] == 'MAINT' and event['end'] > horizon_end
+            ]
+            _p("\n--- Checks completing after planning horizon ---")
+            for event in overrun_checks:
+                _p(f"  Aircraft {event['aircraft']}  check {event['check']}  "
+                   f"starts day {event['day']}  completes day {event['projected_end_day']}")
+            if not overrun_checks:
+                _p("  None")
         text = "\n".join(lines)
         print(text)
         if out_path:
@@ -2645,6 +2713,12 @@ class MILP_Sheduler:
                                 'end':      t_start + self.check_dur[c],
                                 'day':      d,
                                 'check':    c,
+                                'projected_end_day': int(math.ceil(
+                                    (t_start + self.check_dur[c]) / self.DAY_SHIFT)),
+                                'ends_after_horizon': (
+                                    t_start + self.check_dur[c]
+                                    > max(self.days) * self.DAY_SHIFT
+                                ),
                             })
         events.sort(key=lambda e: (e['aircraft'], e['start']))
         return events
@@ -2747,7 +2821,11 @@ def _plot_gantt(events, aid_list, unassigned_flights=None, unassigned_ids=None,
                     dest = e.get('destination', '')
                     lines.append(f'  Flight  {e["label"]:6s}  {orig} -> {dest}  day {day}   start {e["start"]:7.1f} - end {e["end"]:7.1f}')
                 else:
-                    lines.append(f'  Maint   {e["label"]:6s}  day {day}   start {e["start"]:7.1f} - end {e["end"]:7.1f}')
+                    end_note = (
+                        f"  completes day {e['projected_end_day']} (after horizon)"
+                        if e.get('ends_after_horizon') else ''
+                    )
+                    lines.append(f'  Maint   {e["label"]:6s}  day {day}   start {e["start"]:7.1f} - end {e["end"]:7.1f}{end_note}')
 
             # --- Per-check-type maintenance statistics ---
             check_types_present = sorted(
@@ -2992,7 +3070,8 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
              coverage_weight=1_000_000.0, executable=None,
              use_maint_reachability=False, use_strong_maint_conflicts=False,
              mip_start_path=None, objective='early_check',
-             early_check_penalty=DEFAULT_EARLY_CHECK_PENALTY):
+             early_check_penalty=DEFAULT_EARLY_CHECK_PENALTY,
+             allow_checks_beyond_horizon=False):
     """Build and solve the MILP model, then display results.
 
     Parameters
@@ -3041,7 +3120,8 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
                     use_paper_c13=use_paper_c13,
                     soft_coverage=soft_coverage,
                     coverage_weight=coverage_weight,
-                    objective=objective)
+                    objective=objective,
+                    allow_checks_beyond_horizon=allow_checks_beyond_horizon)
     if mip_start_path is not None:
         if str(solver).lower() != 'highs':
             raise ValueError("--mip-start currently requires --solver highs.")
@@ -3492,6 +3572,9 @@ def main():
     parser.add_argument('--early-check-penalty', type=float,
                         default=DEFAULT_EARLY_CHECK_PENALTY,
                         help='Cost per minute a check is performed before it is due.')
+    parser.add_argument('--allow-checks-beyond-horizon', action='store_true',
+                        help='Allow B/C/D checks to start within the horizon and '
+                             'occupy its remaining days even when completion is later.')
     parser.add_argument('--with-gap', action='store_true',
                         help='Heuristic mode: also solve the MILP (--solver, --time-limit) '
                              'and report the heuristic optimality gap.')
@@ -3621,6 +3704,7 @@ def main():
                  mip_start_path=args.mip_start,
                  objective=args.objective,
                  early_check_penalty=args.early_check_penalty,
+                 allow_checks_beyond_horizon=args.allow_checks_beyond_horizon,
                  )
     else:  # batch
         run_batch(input_dir=args.input_dir,

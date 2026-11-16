@@ -49,6 +49,7 @@ paper/*.bbl
 paper/*.blg
 paper/*.log
 paper/*.fls
+paper/*.spl
 paper/*.fdb_latexmk
 paper/*.synctex.gz
 paper/*.out

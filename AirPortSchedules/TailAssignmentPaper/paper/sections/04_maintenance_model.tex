@@ -1,309 +1,417 @@
 %%==========================================================================
-\section{The Maintenance-Extended Model and Correction of Constraint~(13)}
+\section{Type-A Maintenance with Opening Exposure}
 \label{sec:maintenance}
 %%==========================================================================
 
-\subsection{Maintenance problem definition}
+This section adds a single maintenance type, denoted A, whose limit is
+measured in cumulative flight minutes. A check is performed after the day's
+flights at an eligible maintenance airport. As in \Cref{tab:notation}, $d_i$
+and $\bar d_i$ denote the departure and arrival days of flight $i$,
+respectively. Let $\Phi^A_j$ be aircraft $j$'s accumulated flight minutes
+since its previous type-A check at the start of the horizon. The limit
+$T^A_{\max}$ and $\Phi^A_j$ are measured in the same units.
 
-Following \citet{khaled2018compact}, we consider type-A checks triggered after
-at most $T^A_{\max}$ cumulative flight hours.  Checks take place at night
-after the last flight on a given day in an airport with maintenance capacity.
+For each aircraft $j$ and day $d$, define the assigned flight time
+\begin{equation}\label{eq:a_daily_hours}
+  q_{jd} = \sum_{i\in\F: d_i=d} \tilde{t}_i x_{ij},
+\end{equation}
+where $\tilde{t}_i$ is the duration of flight $i$. The binary variable
+$z_{ijd}$ indicates that a type-A check is triggered after flight $i$ on day
+$d$, and $y_{jd}$ indicates that aircraft $j$ receives a check on day $d$.
+The assignment, routing, and pairwise non-overlap constraints from
+\Cref{sec:basic} remain in force.
 
-Additional notation is collected in \Cref{tab:maint_notation}.
+Let $mc_{ijd}$ denote the cost of performing the check after flight $i$ on
+day $d$. The objective is
+\begin{equation}\label{eq:a_obj}
+  \min\; \sum_{i\in\F}\sum_{j\in\Pc}c_{ij}x_{ij}
+    +\sum_{i\in\F}\sum_{j\in\Pc}\sum_{d\in\D}mc_{ijd}z_{ijd}.
+\end{equation}
+
+\subsection{Check placement}
+
+Let $\D=\{1,\ldots,n_d\}$ and let $\MA\subseteq\A$ be the set of
+maintenance-capable airports. A flight can trigger a check only at its
+arrival airport on its arrival day. Define
+\begin{equation}\label{eq:a_check_candidates}
+  \mathcal{E}^A_d
+  =\{i\in\F:\ \aI{i}\in\MA,\ \bar d_i=d\},
+  \qquad d\in\D.
+\end{equation}
+In particular, an overnight flight is eligible only on its arrival day,
+not on its departure day. To retain the full indexing used in the objective
+and linking equations, all ineligible trigger variables are fixed to zero.
+The set of flights blocked by an eligible trigger is
+\begin{equation}\label{eq:a_check_later_flights}
+  F(d,i)=\{i'\in\F:\ d_{i'}=d,\ \tD{i'}\ge\tI{i}\}.
+\end{equation}
+The non-strict time comparison also blocks a departure exactly at arrival
+when the minimum turn time is zero.
+
+The check-placement constraints link a selected check to an assigned flight,
+respect same-day sequencing, and enforce airport capacity:
+\begin{align}
+  z_{ijd} &= 0,
+    && \forall j,d,\;i\in\F\setminus\mathcal{E}^A_d,
+       \label{eq:a_check_eligibility}\\
+  z_{ijd} &\le x_{ij},
+    && \forall i,j,d, \label{eq:a_check_assignment}\\
+  z_{ijd}+x_{i'j} &\le 1,
+    && \forall j,d,\;i\in\mathcal{E}^A_d,\;i'\in F(d,i),
+       \label{eq:a_check_blocking}\\
+  \sum_{i\in\F} z_{ijd} &= y_{jd},
+    && \forall j,d, \label{eq:a_check_link}\\
+  \sum_{i\in\F^{\downarrow}(m)}\sum_{j\in\Pc}z_{ijd}
+    &\le \mathrm{mcap}_{m,d},
+    && \forall m\in\MA,d. \label{eq:a_check_capacity}
+\end{align}
+Here $\F^{\downarrow}(m)=\{i\in\F:\ \aI{i}=m\}$. The variables $x$, $z$,
+and $y$ are binary. If $y_{jd}=1$, the linking equation selects exactly one
+eligible assigned arrival. With positive flight durations, the basic
+non-overlap constraints exclude flights overlapping that arrival, and
+\eqref{eq:a_check_blocking} excludes all later departures on day $d$.
+Aircraft $j$ is therefore at the selected maintenance airport after its
+last flight of that day, and the check consumes capacity at that airport
+on that same day. Neither an arrival on another day nor an arrival at a
+non-maintenance airport can provide a reset. This arrival-trigger convention
+does not represent checks on days with no assigned arrival; those would
+require a separate ground-location representation.
+
+A check on day $d$ occurs after the flights counted in $q_{jd}$, so those
+flights consume the pre-check allowance. These placement constraints establish
+the check's location and day, not that a positive-duration check can finish
+before the next flight; that requires a separate downtime condition.
+
+\subsection{Establishing maintenance executability: two options}
+\label{sec:a_executability}
+
+Two approaches can close this timing gap. The following are proposed
+extensions and assumptions for later implementation and comparison, not
+features already enforced by the executable model. Both retain the same
+arrival-trigger convention and the requirement that a check follows the
+aircraft's last flight of the day.
+
+For both approaches, specify the check duration $\tau^A_j>0$ and nonnegative
+preparation and release buffers $\eta^-_j,\eta^+_j$, all in minutes. The
+relationship of these buffers to ordinary turn time must be declared:
+the existing turn-time constraints remain applicable, and an overlap between
+turnaround work and maintenance must not be assumed implicitly. To make
+the daily capacity model sufficient, interpret each unit of
+$\mathrm{mcap}_{m,d}$ as a staffed, independent maintenance slot reserved
+for that night. A daily throughput quota alone does not guarantee available
+bays or crews at the required times; shared time-dependent resources would
+instead need explicit resource-scheduling constraints.
+
+\paragraph{Option A: enforce overnight feasibility with constraints.}
+Let $[\ell_{md},u_{md}]$ be the available service window at airport $m$
+for the night following day $d$, expressed in absolute minutes. The window
+may cross midnight but must end during day $d+1$; successive service
+windows at the same station must not overlap. The window covers the check
+itself; preparation and release buffers describe additional aircraft
+unavailability. For an eligible arrival
+$i\in\mathcal{E}^A_d$ at $m=\aI{i}$, compute
+\begin{align}
+  S_{ijd}&=\max\{\tI{i}+\eta^-_j,\ell_{md}\},
+    \label{eq:a_overnight_start}\\
+  C_{ijd}&=S_{ijd}+\tau^A_j,\qquad
+  R_{ijd}=C_{ijd}+\eta^+_j.
+    \label{eq:a_overnight_release}
+\end{align}
+Here $S_{ijd}$ is the earliest start, $C_{ijd}$ the completion time, and
+$R_{ijd}$ the release time. A proposed implementation would fix
+$z_{ijd}=0$ whenever $C_{ijd}>u_{md}$ and add
+\begin{equation}\label{eq:a_overnight_conflicts}
+  z_{ijd}+x_{i'j}\le1,
+  \qquad \forall i'\in\F:\ \tI{i}\le\tD{i'}<R_{ijd},
+\end{equation}
+for every remaining eligible $(i,j,d)$. These rows apply to departures at
+\emph{all} airports and on subsequent days, not only to departures on day
+$d$ at the maintenance station. A departure at $R_{ijd}$ is allowed.
+The basic non-overlap constraints exclude flights already in progress at
+the trigger arrival, while \eqref{eq:a_overnight_conflicts} prevents leaving
+before the check and release work finish. The same-day blocking rows remain
+in force even if the check finishes early.
+
+Under the reserved-slot interpretation, a continuous service window, and
+start-time-independent duration and cost, the earliest start suffices:
+delaying a check cannot improve its completion or release deadline. If
+these conditions are relaxed, start-time variables and resource constraints
+may be necessary. For example, a 23:30 arrival followed by a 01:00 departure
+cannot accommodate a three-hour check, even though the flights have
+different departure days and may satisfy ordinary turn time. The proposed
+rows reject that combination rather than allowing a reset between them.
+
+\paragraph{Option B: certify a protected overnight period by assumptions.}
+Alternatively, restrict the input timetable and operating policy so that
+each night has a common protected period $[\ell_d,u_d]$ contained in every
+usable station's service window. Require the following conditions to hold
+for every allowed aircraft assignment, not merely for a selected solution:
+\begin{enumerate}
+\item Flights depart and arrive on the same day. All flights on day $d$
+  finish by $\ell_d-\eta^-_j$ for every compatible aircraft $j$, and no
+  flight on day $d+1$ departs before $u_d$. Thus no flight crosses the
+  protected period, including overnight flights.
+\item The available period satisfies
+  $\tau^A_j+\eta^+_j\le u_d-\ell_d$ for every compatible aircraft.
+  A check can start at $\ell_d$ and the aircraft can be released by $u_d$.
+\item The reserved maintenance slots and required staff are available
+  throughout the protected period, with the same capacity interpretation
+  as in Option A.
+\item The final protected period is available even when it extends beyond
+  the last operating day. Any prescribed latest terminal release time
+  $b_j$ satisfies $b_j\ge u_{n_d}$ for each aircraft.
+\end{enumerate}
+These conditions must be verified from the input data. For any check
+selected by the placement rows, arrival and preparation then finish before
+$\ell_d$, and maintenance and release finish before the next possible
+departure. Hence no additional check--flight timing rows are needed on this
+certified class. This is a restrictive scheduling policy, not a
+feasible-region-preserving simplification for arbitrary timetables. An
+instance that fails the certification lies outside Option B's scope; it
+need not be infeasible under Option A.
+
+\paragraph{Reset timing and horizon boundaries.}
+Under either option, $y_{jd}$ labels the service night associated with day
+$d$, not necessarily the calendar day of completion. The physical hour
+counter resets only when the check is completed. Treating this as a reset
+between the daily flight blocks is justified only because no assigned
+flight can operate between the trigger arrival and release. Option A must
+retain the distinct departure and arrival dates of overnight flights;
+Option B excludes those flights by assumption. In both cases, specify the
+last night's completion deadline even if no later flight appears in the
+horizon, and include any required post-horizon aircraft-release commitment.
+In Option A, a last-night trigger must also be fixed to zero if
+$R_{ij,n_d}>b_j$ when a terminal release deadline $b_j$ is specified.
+Option B certifies release by $u_{n_d}\le b_j$.
+Otherwise, the absence of a next-flight row could conceal unfinished
+maintenance. Checks on days with no assigned arrival remain outside both
+proposals unless the trigger representation is extended.
+
+\paragraph{Planned comparison.}
+First compare both implementations on an identical, certified Option B
+instance set, using the same durations, buffers, service windows, capacities,
+costs, hour limits, and terminal commitments. Under these conditions every
+placement admitted by Option B has an executable realization in Option A;
+conversely, both use the same placement rules. Their feasible projections
+onto $(x,z,y)$ should therefore agree, although their LP relaxations and
+computational effort need not. Then test irregular and overnight timetables
+separately to quantify the scope lost through Option B's assumptions.
+Report independent replay of check start, completion, release and flight
+times, together with objectives, bounds, model sizes and runtimes under a
+fixed solver protocol. Unsupported instances must not be reported as
+infeasibility proofs, and improved objectives on different feasible regions
+must not be presented as an algorithmic speed or quality advantage. No
+comparative computational results for these options are claimed here.
+
+\subsection{Flight-hour limits}
+
+The type-A requirement applies to every consecutive period between checks,
+including the initial period whose accumulated hours may be nonzero. For
+days $1\le s<t\le n_d$, impose
+\begin{equation}\label{eq:a_interval_hours}
+  \sum_{r=s+1}^{t}q_{jr}
+  \le T^A_{\max}
+    +M_{st}(1-y_{js})
+    +M_{st}\sum_{r=s+1}^{t-1}y_{jr},
+  \qquad \forall j.
+\end{equation}
+If a check occurs on day $s$ and no check occurs on an intervening day, this
+row limits all flight time after that check through day $t$, including flights
+that precede a possible check on day $t$. If the row's starting day is not a
+check day, or an intervening check resets the counter, the corresponding
+window is inactive; a row starting at the most recent check enforces the
+limit instead.
+
+For the opening period, impose a separate prefix bound for every day:
+\begin{equation}\label{eq:a_opening_hours}
+  \Phi^A_j+\sum_{r=1}^{t}q_{jr}
+  \le T^A_{\max}
+    +M_{0t}\sum_{r=1}^{t-1}y_{jr},
+  \qquad \forall j,\; t=1,\ldots,n_d.
+\end{equation}
+Only checks on days strictly before $t$ relax this prefix. In particular, a
+check after the flights of day $t$ cannot relax the hours accumulated before
+that check. Choose finite nonnegative $M_{st}$ and $M_{0t}$ at least as large
+as the maximum possible excess over $T^A_{\max}$ in their respective flight
+windows.
+
+\begin{proposition}[Type-A hour-limit sufficiency]
+  Suppose checks are executable between the relevant daily flight blocks,
+  as ensured by either option in \Cref{sec:a_executability} under its stated
+  conditions. If \eqref{eq:a_interval_hours} and
+  \eqref{eq:a_opening_hours} hold, then
+  the accumulated flight minutes since the most recent type-A check (or since
+  the horizon start, including $\Phi^A_j$) do not exceed $T^A_{\max}$ at the
+  end of any operating day before a check is performed.
+\end{proposition}
+
+\begin{proof}
+  Fix aircraft $j$ and a day $t$. If no check has occurred strictly before
+  day $t$, \eqref{eq:a_opening_hours} bounds the initial exposure plus all
+  flight time through that day, including flights before a possible check on
+  day $t$. Otherwise let $s<t$ be the most recent check day before $t$. There
+  is no check in days $s+1,\ldots,t-1$, so \eqref{eq:a_interval_hours} for
+  $(s,t)$ bounds flight time accumulated
+  after the check on day $s$ through the flights of day $t$. A check on day
+  $t$ is performed only after those flights and therefore does not remove
+  them from the bound. These cases cover every day and aircraft.
+\end{proof}
+
+\subsection{Relation to Constraint~(13)}
+
+For a fixed aircraft and day pair $(s,t)$, write
+\[
+  L_{jst}=\sum_{r=s+1}^{t}q_{jr}, \qquad
+  Y_{jst}=\sum_{r=s+1}^{t-1}y_{jr}.
+\]
+The original row has the form
+\begin{equation}\label{eq:a_c13_original}
+  L_{jst}\le T^A_{\max}
+    +M_{st}(2-y_{js}-y_{jt})+M_{st}Y_{jst}.
+\end{equation}
+Its logic is conditional, not an unconditional limit on every day-pair
+window. When both endpoint days are check days and there is no intervening
+check, $y_{js}=y_{jt}=1$ and $Y_{jst}=0$, so the row reduces to
+$L_{jst}\le T^A_{\max}$. This is the intended check-to-check case, and the
+original row is valid for it. If either endpoint is not a check day, however,
+the row receives at least one full $M_{st}$ of slack; if neither endpoint is
+a check day, it receives $2M_{st}$. Such a row does not enforce a limit for
+that window. That deactivation is appropriate when the pair does not bound
+one complete interval between checks, but it means Constraint~(13) alone
+does not cover the initial open interval or every daily prefix in a finite
+horizon.
+
+The opening interval illustrates the physical omission. Let
+$T^A_{\max}=600$ minutes, let an aircraft enter with
+$\Phi^A_j=10$ minutes already accumulated, and let it fly 595 minutes before
+a check at the end of day $t$. The physical exposure immediately before that
+check is $10+595=605$ minutes, so the schedule violates the limit. A row
+whose start day is not a check day is relaxed by Constraint~(13); a split row
+that only checks the new flight time can see $595\le600$ and miss the
+violation as well. The opening bound~\eqref{eq:a_opening_hours} instead
+compares $\Phi^A_j+595=605$ with 600. Because the check is performed after
+day $t$'s flights, $y_{jt}$ must not deactivate this prefix bound.
+
+The alternative two-row endpoint split has a different failure. Its rows
+replace $2-y_{js}-y_{jt}$ by $y_{js}$ and $y_{jt}$ separately:
+\begin{align}
+  L_{jst}&\le T^A_{\max}+M_{st}Y_{jst}+M_{st}y_{js},
+    \label{eq:a_split_start}\\
+  L_{jst}&\le T^A_{\max}+M_{st}Y_{jst}+M_{st}y_{jt}.
+    \label{eq:a_split_end}
+\end{align}
+If both endpoints are checked and there is no intervening check, both
+right-hand sides equal $T^A_{\max}+M_{st}$. This observation alone does not
+establish that the full split family accepts a violating schedule: other
+windows must also be checked. The following construction verifies all of them.
+
+\paragraph{A complete counterexample.}
+Consider one aircraft, indexed by $j=1$, initially at airport $X$, a
+five-day horizon, $T^A_{\max}=600$ minutes, $\Phi^A_1=0$, and a minimum
+turn time of 30 minutes. Airport $M$ is the only maintenance-capable airport,
+with capacity one on each day. Assign all three flights in
+\Cref{tab:a_split_witness} to the aircraft. Times are clock times on the
+specified day; absolute times add $1440(d-1)$ minutes on day $d$.
 
 \begin{table}[t]
 \centering\small
-\caption{Additional notation for the maintenance model.}
-\label{tab:maint_notation}
-\begin{tabular}{ll}
+\caption{Flight data for the endpoint-split counterexample. There are no
+  flights on days 3 and 5.}
+\label{tab:a_split_witness}
+\begin{tabular}{ccccccr}
 \toprule
-Symbol & Meaning \\
+Flight & Day & Origin & Destination & Departure & Arrival & Minutes \\
 \midrule
-$\D = \{1,\ldots,n_d\}$      & Planning days \\
-$d_i$                         & Departure day of flight $i$ \\
-$\MA \subseteq \A$            & Maintenance-capable airports \\
-$\text{mcap}_{m,d}$           & Maintenance capacity of airport $m$ on day $d$ \\
-$mc_{ijd}$                    & Cost of night maintenance at arrival airport of
-                                flight $i$, aircraft $j$, day $d$ \\
-$F(d,i)$                      & $\{i' : \tD{i'} > \tI{i},\; d_{i'} = d_i\}$ \\
-$T^A_{\max}$                  & Max cumulative flight minutes before type-A check \\
-$d_{\max}$                    & Max calendar-day interval between checks \\
-$M_{dd'}$                     & Big-$M$ for day pair $(d,d')$ \\
-$F_{d,d'}$                    & Flights departing strictly between days $d$ and $d'$ \\
+1 & 1 & $X$ & $M$ & 08:00 & 09:00 & 60 \\
+2 & 2 & $M$ & $N$ & 08:00 & 18:00 & 600 \\
+3 & 4 & $N$ & $M$ & 08:00 & 18:00 & 600 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\subsection{Additional decision variables}
+Place checks after flights 1 and 3, on days 1 and 4, respectively. Thus
+$x_{i1}=1$ for all three flights, $z_{1,1,1}=z_{3,1,4}=1$, and every other
+trigger is zero. The resulting daily data are
+\begin{align}
+  (q_{11},q_{12},q_{13},q_{14},q_{15})&=(60,600,0,600,0),
+    \label{eq:a_split_witness_hours}\\
+  (y_{11},y_{12},y_{13},y_{14},y_{15})&=(1,0,0,1,0).
+    \label{eq:a_split_witness_checks}
+\end{align}
+The route $X\to M\to N\to M$ respects continuity and turn times. Both
+checks follow assigned arrivals at $M$ on the correct days, have no later
+same-day departure, and respect capacity. Hence the routing and
+check-placement constraints do not exclude this witness.
 
-\begin{align*}
-  z_{ijd} &= \begin{cases}1 & \text{night maintenance at arrival airport of } i,\;
-               \text{aircraft } j,\;\text{day } d, \\ 0 & \text{else;}\end{cases}\\
-  y_{jd}  &= \begin{cases}1 & \text{maintenance of aircraft } j \text{ on day } d,
-               \\ 0 & \text{else.}\end{cases}
-\end{align*}
-
-\subsection{Extended model}
-
-The objective becomes:
-\begin{equation}\label{eq:obj_ext}
-  \min\; \sum_{i \in \F}\sum_{j \in \Pc} c_{ij} x_{ij}
-  + \sum_{m \in \MA}\sum_{i \in \F^{\downarrow}(m)}\sum_{j \in \Pc}\sum_{d \in \D}
-    mc_{ijd}\, z_{ijd}.
+Use data-derived interval bounds, including opening prefixes, as follows:
+\begin{equation}\label{eq:a_split_witness_bounds}
+  U_{st}=\sum_{i\in\F:\ s<d_i\le t}\tilde t_i,
+  \qquad M_{st}=\max\{0,U_{st}-600\},
+  \qquad 0\le s<t\le5.
 \end{equation}
+These bounds are valid because $U_{st}$ includes every flight in the
+corresponding window and $\Phi^A_1=0$. All flights are assigned here, so
+$L_{1st}=U_{st}$ for $s\ge1$.
 
-Constraints~\eqref{eq:c1}--\eqref{eq:c3} are retained.  Additional
-constraints:
+There are ten pairs $1\le s<t\le5$, hence twenty split inequalities.
+Only $(1,4)$ and $(1,5)$ have $L_{1st}>600$; both have
+$L_{1st}=1200$ and $M_{st}=600$. For $(1,4)$, $Y_{1,1,4}=0$ and both
+endpoint indicators equal one, so both split right-hand sides equal 1200.
+For $(1,5)$, the day-4 check is interior: $Y_{1,1,5}=1$, $y_{11}=1$, and
+$y_{15}=0$. Its two split right-hand sides are 1800 and 1200. Thus these
+four inequalities hold. Every other window has $L_{1st}\le600$ and a
+right-hand side at least 600, proving that \emph{all twenty} split rows hold.
 
-\paragraph{C8 — Maintenance blocks same-day subsequent flights.}
-\begin{equation}\label{eq:c8}
-  z_{ijd} + x_{i'j} \le 1,
-  \qquad \forall i \in \F,\; i' \in F(d,i),\; j \in \Pc,\; d \in \D.
-\end{equation}
+The opening-prefix inequalities~\eqref{eq:a_opening_hours} also hold:
+the day-1 prefix is 60, and every later prefix contains the earlier day-1
+check, which supplies the relaxation in \eqref{eq:a_split_witness_bounds}.
+The example does not rely on removing the original calendar-spacing
+condition either. With $d_{\max}=4$, the two four-day windows $[1,4]$ and
+$[2,5]$ each contain a check. Moreover, $(s,t)=(1,4)$ belongs to the
+published index range $2\le t-s\le d_{\max}-1$, $t<n_d$ of
+Constraint~(13) in \citet{khaled2018compact}.
 
-\paragraph{C9 — Maintenance requires assignment.}
-\begin{equation}\label{eq:c9}
-  x_{ij} \ge z_{ijd},
-  \qquad \forall i \in \F,\; j \in \Pc,\; d \in \D.
-\end{equation}
+After the day-1 check, the aircraft accumulates 600 minutes on day 2 and
+another 600 on day 4, with no intervening reset. The 1200 minutes before
+the day-4 check violate the 600-minute limit. For $(1,4)$, both the original
+row~\eqref{eq:a_c13_original} and the revised
+row~\eqref{eq:a_interval_hours} impose $1200\le600$ and reject the
+schedule. The split therefore fails even when its entire day-pair family,
+the opening prefixes, and the check-placement conditions are imposed.
+This is a self-contained analytical counterexample, not a computational
+audit result.
 
-\paragraph{C10 — Capacity.}
-\begin{equation}\label{eq:c10}
-  \sum_{i \in \F^{\downarrow}(m)} \sum_{j \in \Pc} z_{ijd}
-  \le \text{mcap}_{m,d},
-  \qquad \forall d \in \D,\; m \in \MA.
-\end{equation}
+\begin{table}[t]
+\centering\small
+\caption{Activation of the original row, endpoint split, and explicit
+  type-A windows. ``Active'' means the row enforces the $T^A_{\max}$ limit.}
+\label{tab:c13_activation}
+\begin{tabularx}{\textwidth}{p{0.25\textwidth}XX}
+\toprule
+Physical situation & Original Constraint~(13) & Endpoint split / explicit windows \\
+\midrule
+Two consecutive checks at $s,t$, no check in between
+  & Active; enforces $L_{jst}\le T^A_{\max}$
+  & Both split rows relax; the explicit $(s,t)$ interval is active \\
+Opening exposure; check after day-$t$ flights
+  & A row without a checked start is relaxed
+  & Split flight-only row omits $\Phi^A_j$; explicit opening prefix includes it and does not relax on $y_{jt}$ \\
+Window crosses an intervening check
+  & Relaxed, since it is not one check-to-check interval
+  & Explicit row from the most recent check enforces the post-reset interval \\
+\bottomrule
+\end{tabularx}
+\end{table}
 
-\paragraph{C11 — Aggregation ($z \to y$).}
-\begin{equation}\label{eq:c11}
-  \sum_{i \in \F} z_{ijd} = y_{jd},
-  \qquad \forall d \in \D,\; j \in \Pc.
-\end{equation}
-
-\paragraph{C12 — Maximum-spacing constraint.}
-\begin{equation}\label{eq:c12}
-  \sum_{r \in [d, d']} y_{jr} \ge 1,
-  \qquad \forall d, d' \in \D \text{ s.t.\ } d' - d = d_{\max} - 1,\;
-  \forall j \in \Pc.
-\end{equation}
-
-\paragraph{C14 — At most one maintenance event per aircraft per day.}
-\begin{equation}\label{eq:c14}
-  \sum_{i \in \F} z_{ijd} \le 1,
-  \qquad \forall j \in \Pc,\; d \in \D.
-\end{equation}
-
-\subsection{Impact of corrected C2--C4 feasibility on C8--C14}
-\label{subsec:c2c4_impact_maintenance}
-
-The correction introduced in \Cref{sec:basic} (non-overlap
-constraint~\eqref{eq:c4_overlap}) changes the admissible assignment set for
-$x$, and therefore the interpretation of all maintenance constraints layered on
-top of $x$.
-
-\paragraph{C8.}
-No algebraic change is required in~\eqref{eq:c8}; however, with
-\eqref{eq:c4_overlap} active, the blocking relation now operates on physically
-realizable trajectories only. This removes spurious cases where maintenance
-placement was evaluated on infeasible simultaneous departures.
-
-\paragraph{C9--C12 and C14.}
-Constraints~\eqref{eq:c9}--\eqref{eq:c12}, \eqref{eq:c14} remain structurally unchanged. Their
-feasible region is tightened indirectly because $z$ and $y$ are linked to a
-strictly smaller, physically valid $x$-space.
-
-\paragraph{C13 and onward.}
-Hour-accumulation constraints are now evaluated along executable flight paths;
-this avoids artificial inflation/deflation of cumulative hours caused by
-simultaneous assignments that cannot occur in operations.
-
-In summary, the C2--C4 correction propagates to C8--C14 primarily as a
-\emph{domain correction}: the maintenance constraints keep their form, but are
-enforced over a physically consistent assignment polytope.
-
-\subsection{Rigorous feasibility theorem for C1--C14}
-\label{subsec:feasibility_theorem_c1_c14}
-
-We now state the corrected sufficiency result for the type-A maintenance model.
-Consider the constraint family
-\eqref{eq:c1}--\eqref{eq:c3}, \eqref{eq:c4_overlap}, \eqref{eq:c8}--\eqref{eq:c12},
-\eqref{eq:c13_new_a}--\eqref{eq:c13_new_b}, \eqref{eq:c14}, and binary domains.
-
-\begin{theorem}[Physical feasibility under corrected C1--C14]
-  \label{thm:physical_feasibility_c1_c14}
-  Any binary solution satisfying the above constraints induces, for each
-  aircraft $j$, a physically executable trajectory over the planning horizon:
-  flights assigned to $j$ are temporally non-overlapping, satisfy airport
-  continuity and turn time, and admit a day-by-day maintenance schedule
-  satisfying capacity and hour-spacing rules.
-\end{theorem}
-
-\begin{proof}
-  Fix an aircraft $j$ and let
-  $S_j=\{i\in\F: x_{ij}=1\}$ ordered by nondecreasing departure time.
-
-  \textbf{(i) Flight assignment and continuity.}
-  By~\eqref{eq:c1}, every flight is assigned to exactly one aircraft.
-  By~\eqref{eq:c2}--\eqref{eq:c3}, each departure assigned to $j$ has sufficient
-  prior balance at its departure airport, with the initial unit at $a^0_j$.
-  Therefore airport continuity holds along $S_j$.
-
-  \textbf{(ii) Temporal executability.}
-  For any overlapping pair $(i_1,i_2)\in\mathcal{O}$,
-  \eqref{eq:c4_overlap} enforces $x_{i_1j}+x_{i_2j}\le 1$.
-  Hence no two flights assigned to $j$ overlap once turn time is included.
-  Combined with (i), this yields a realizable single-aircraft flight timeline.
-
-  \textbf{(iii) Maintenance event consistency.}
-  By~\eqref{eq:c9}, maintenance trigger variables can only be activated on
-  assigned flights. By~\eqref{eq:c11}, $y_{jd}=1$ iff exactly one daily trigger
-  is selected in aggregate; by~\eqref{eq:c14}, at most one maintenance event is
-  attached to aircraft $j$ on day $d$.
-
-  \textbf{(iv) Maintenance capacity and blocking.}
-  By~\eqref{eq:c10}, airport-day capacities are respected. By~\eqref{eq:c8}, if
-  maintenance is triggered after flight $i$ on day $d$, then any subsequent
-  same-day flight is forbidden for the same aircraft, so the end-of-day
-  maintenance action is operationally executable.
-
-  \textbf{(v) Hour/day maintenance admissibility.}
-  By~\eqref{eq:c12}, checks cannot be spaced farther than $d_{\max}$ days.
-  By corrected constraints~\eqref{eq:c13_new_a}--\eqref{eq:c13_new_b},
-  cumulative flight time between relevant maintenance delimiters is bounded by
-  $T^A_{\max}$ (cf. \Cref{thm:c13_valid}).
-
-  Steps (i)--(v) show that every aircraft has a consistent, non-overlapping
-  flight sequence with feasible maintenance placement and resource usage.
-  Therefore the global solution is physically feasible.
-\end{proof}
-
-\subsection{Constraint~(13): original formulation and its flaw}
-\label{subsec:c13_flaw}
-
-The original paper's cumulative-flight-time constraint is:
-\begin{equation}\label{eq:c13_paper}
-  \tag{13$_{\mathrm{paper}}$}
-  \sum_{i \in F_{d,d'}} x_{ij}\,\tilde{t}_i
-  \;\le\;
-  T^A_{\max}
-  + M_{dd'}\Bigl(2 - y_{jd} - y_{jd'}\Bigr)
-  + M_{dd'}\!\sum_{r \in [d+1,d'-1]} y_{jr},
-\end{equation}
-for all $j \in \Pc$, all pairs $(d, d')$ with $2 \le d'-d \le d_{\max}-1$,
-$d < n_d$, where $\tilde{t}_i$ is the flight duration of leg $i$.
-
-\begin{lemma}[Flaw in~\eqref{eq:c13_paper}]
-  \label{lem:c13_flaw}
-  Consider two consecutive maintenance events at days $d$ and $d'$ with no
-  check between them ($y_{jr} = 0$ for $r \in (d, d')$).  Then the RHS
-  of~\eqref{eq:c13_paper} equals $T^A_{\max} + M_{dd'}(2 - 1 - 1) +
-  M_{dd'} \cdot 0 = T^A_{\max}$, which correctly imposes the flight-hour
-  limit between the two checks.
-
-  However, if $y_{jd} = 0$ (no maintenance at the start day) and $y_{jd'} =
-  1$ (maintenance only at the end day), the RHS becomes $T^A_{\max} +
-  M_{dd'}(2 - 0 - 1) = T^A_{\max} + M_{dd'}$, which is vacuously large and
-  imposes \emph{no limit} on cumulative flight hours before the first check of
-  the period.  Hence the constraint fails to enforce the check-interval bound
-  for the opening sub-period.
-\end{lemma}
-
-\begin{proof}
-  Direct substitution of $y_{jd} = 0$, $y_{jd'} = 1$, $\sum_{r} y_{jr} = 0$
-  into~\eqref{eq:c13_paper} gives the stated RHS.  Since $M_{dd'}$ is chosen
-  as the maximum possible cumulative flight time over the horizon (a large
-  positive constant), the resulting constraint is trivially satisfied regardless
-  of the actual flight hours flown.
-\end{proof}
-
-\subsection{Corrected Constraint~(13)}
-\label{subsec:c13_corrected}
-
-We propose replacing~\eqref{eq:c13_paper} with two separate constraints, each
-anchored to one endpoint:
-
-\begin{equation}\label{eq:c13_new_a}
-  \tag{13a}
-  \sum_{i \in F_{d,d'}} x_{ij}\,\tilde{t}_i
-  \;\le\;
-  T^A_{\max}
-  + M_{dd'}\, y_{jd}
-  + M_{dd'}\!\sum_{r \in [d+1,d'-1]} y_{jr},
-\end{equation}
-\begin{equation}\label{eq:c13_new_b}
-  \tag{13b}
-  \sum_{i \in F_{d,d'}} x_{ij}\,\tilde{t}_i
-  \;\le\;
-  T^A_{\max}
-  + M_{dd'}\, y_{jd'}
-  + M_{dd'}\!\sum_{r \in [d+1,d'-1]} y_{jr},
-\end{equation}
-for all $j \in \Pc$, $(d,d') \in \D^2$ with $2 \le d'-d \le d_{\max}-1$,
-$d < n_d$.
-
-\begin{theorem}[Validity of corrected Constraint~(13)]
-  \label{thm:c13_valid}
-  A feasible assignment satisfying \eqref{eq:c13_new_a}--\eqref{eq:c13_new_b}
-  for all aircraft and all day pairs correctly enforces the cumulative
-  flight-hour bound $T^A_{\max}$ between every pair of consecutive maintenance
-  events, regardless of whether either endpoint day $d$ or $d'$ hosts a check.
-\end{theorem}
-
-\begin{proof}
-  Let $d^* < d^{**}$ be two consecutive maintenance days for aircraft $j$
-  (i.e., $y_{jd^*} = 1$, $y_{jd^{**}} = 1$, $y_{jr} = 0$ for $r \in
-  (d^*, d^{**})$).  For the pair $(d, d') = (d^*, d^{**})$:
-  \begin{itemize}
-    \item In \eqref{eq:c13_new_a}: RHS $= T^A_{\max} + M_{dd'} \cdot 1 +
-      M_{dd'} \cdot 0 = T^A_{\max} + M_{dd'}$, which does not constrain.
-    \item In \eqref{eq:c13_new_b}: RHS $= T^A_{\max} + M_{dd'} \cdot 1 +
-      M_{dd'} \cdot 0 = T^A_{\max} + M_{dd'}$, same.
-  \end{itemize}
-  Now consider a sub-interval $(d, d')$ where $y_{jd} = 0$ and $y_{jd'} = 0$
-  (no check at either end):
-  \begin{itemize}
-    \item Both \eqref{eq:c13_new_a} and \eqref{eq:c13_new_b} give
-      RHS $\le T^A_{\max} + M_{dd'}\sum_r y_{jr}$.  If no check exists in
-      $(d, d')$ either ($\sum_r y_{jr} = 0$), both constraints impose LHS
-      $\le T^A_{\max}$, correctly bounding the sub-period flight hours.
-  \end{itemize}
-  In all cases the constraints are active precisely when they should be,
-  confirming validity.
-\end{proof}
-
-\begin{remark}[Tightness]
-  The corrected formulation \eqref{eq:c13_new_a}--\eqref{eq:c13_new_b} is no
-  weaker than \eqref{eq:c13_paper} (both are implied by the same underlying
-  combinatorial condition), but is \emph{strictly tighter} when one endpoint
-  indicator is zero: the original constraint admits an $M_{dd'}$ slack at one
-  endpoint, which the corrected pair does not.  This yields smaller LP
-  relaxation bounds and fewer branch-and-bound nodes (confirmed
-  computationally in \Cref{sec:computational}).
-\end{remark}
-
-\subsection{Pre-horizon accumulated hours (Constraint~13b)}
-\label{subsec:c13b}
-
-The original paper does not account for maintenance hours accumulated before
-the planning horizon begins.  We add a constraint for the opening sub-period
-$[0, d']$:
-\begin{equation}\label{eq:c13b}
-  \tag{13c}
-  \sum_{i \in F_{0,d'}} x_{ij}\,\tilde{t}_i
-  \;\le\;
-  \bigl(T^A_{\max} - \Phi^A_j\bigr)
-  + M_{0d'}\, y_{jd'}
-  + M_{0d'}\!\sum_{r \in [1, d'-1]} y_{jr},
-\end{equation}
-where $\Phi^A_j \ge 0$ is the pre-horizon accumulated flight time for aircraft
-$j$ toward its next type-A check.  This constraint is only generated when
-$\Phi^A_j > 0$.
-
-\subsection{Integrality constraints}
-
-\begin{equation}
-  x_{ij} \in \{0,1\},\quad
-  z_{ijd} \in \{0,1\},\quad
-  y_{jd} \in \{0,1\},
-  \qquad \forall i,j,d.
-\end{equation}
+Conditional on executable resets, the formulation in
+\eqref{eq:a_interval_hours}--\eqref{eq:a_opening_hours}
+is preferable as a complete representation of the stated flight-hour rule
+because each row corresponds to a specific post-check interval or opening
+prefix, uses the reset indicator only for checks strictly before the period
+being bounded, and counts all flights on the day a check is performed. This
+is a coverage and semantics advantage, not a claim that the equations are
+automatically stronger in the LP relaxation: that depends on the valid
+interval-specific values of $M_{st}$ and $M_{0t}$ and should be measured
+separately. The bounds must dominate the maximum possible excess in their
+respective windows; choosing them too small can cut off legal schedules, and
+choosing them unnecessarily large can weaken the relaxation.

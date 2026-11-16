@@ -33,7 +33,7 @@ $\Fd{k}{\theta}$             & $\{i \in \F : \aD{i} = k,\; \tD{i} < \theta\}$ \\
 \subsection{Decision variables and objective}
 
 Let us define the decision variables and constraints for the basic tail assignment model.
-\paragraph{C1 — Binary assignment domain.}
+\paragraph{Binary assignment.}
 The decision variable $x_{ij}$ indicates whether flight $i$ is assigned to aircraft $j$.
 \begin{equation}\label{eq:c0}
   x_{ij} = \begin{cases} 1 & \text{if flight } i \text{ is operated by aircraft } j, \\ 0 & \text{otherwise,} \end{cases}
@@ -182,40 +182,26 @@ with Levin's $O(n_f^2n_p)$-variable model; \citet{khaled2018compact} also
 report that the time-space network formulation uses approximately
 $1.25$--$2$ times as many variables and constraints on their test instances.
 
-\subsection{Corrected proposition and its proof.}
+\subsection{Feasibility of the corrected basic model}
 
-The issue with the proof of feasibility in the original model is that it does not account for simultaneous departures 
-of overlapping flights. Moreover, the logic of the published proof goes in the wrong direction, 
-and instead of proving that any solution of C1--C4 defines correct 
-feasibility, it proves that any feasible assignment flights satisfy C1-C4. 
-
-
-The corrected proposition and its accompanying proof look like the following:
-
-\begin{proposition}[Proposition~1]
-  Any feasible solution to \eqref{eq:c0}--\eqref{eq:c4_overlap}
-  corresponds to a feasible flight plan satisfying the original continuity and turn-time
-  conditions.
+\begin{proposition}
+  Any binary solution to \eqref{eq:c1}--\eqref{eq:c3} and
+  \eqref{eq:c4_overlap} defines a physically executable flight sequence for
+  each aircraft, under the stated deterministic turn-time assumptions.
 \end{proposition}
 
 \begin{proof}
-
-  Let's formally prove it by induction on the number of planes.
-  For the base case of one plane, any feasible assignment trivially satisfies the continuity and turn-time conditions:
-\begin{itemize}
-\item The single plane can start only for the airport it is assigned form the start, which is follows form the condition \ref{eq:c3}.
-Let's define this assigned flight as $f_1$, so the time of departure and arrival are $t_{\text{dep}}(f_1)$ and $t_{\text{arr}}(f_1)$, respectively.
-\item Any next $k$-th flight of this plane with time of departure $t_{\text{dep}}(f_k)$ must satisfy the turn-time condition $t_{\text{dep}}(f_k) \ge t_{\text{arr}}(f_{k-1}) + \tau$, where $\tau$ is the required turn time.
-This follows directly from the turn-time condition \eqref{eq:c2} and overlap constraints \eqref{eq:c4_overlap}.
-\end{itemize}
-  This completes the base case.
-
-  For the induction step, assume that any feasible assignment for $n-1$ planes satisfies the continuity and turn-time conditions. 
-  Consider a feasible assignment for $n$ planes. 
-  Select one plane and consider its sequence of assigned flights. 
-  By the same argument as in the base case, this plane's flights satisfy the continuity and turn-time conditions. 
-  Removing this plane from the assignment leaves a feasible assignment for the remaining $n-1$ planes, which by the induction hypothesis satisfies the continuity and turn-time conditions. Therefore, the entire assignment for $n$ planes satisfies the continuity and turn-time conditions.
-  This completes the induction step.
+  Fix an aircraft $j$ and order its assigned flights by departure time. At
+  each assigned departure from airport $k$, constraints~\eqref{eq:c2}--
+  \eqref{eq:c3} require at least one unit of aircraft availability at $k$,
+  computed from the initial position and arrivals that meet the turn-time
+  requirement, less departures from $k$ at strictly earlier times. Thus each
+  departure can be reached from the initial position or from a previously
+  operated flight. Constraint~\eqref{eq:c4_overlap} excludes any pair of
+  assigned flights whose operating intervals, including turn time, overlap.
+  Applying these facts in chronological order yields a continuous executable
+  sequence for aircraft $j$. Since $j$ was arbitrary, the result holds for
+  every aircraft.
 \end{proof}
 
 

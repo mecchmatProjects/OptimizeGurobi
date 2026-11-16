@@ -8,15 +8,20 @@ type-A flight-hour maintenance. The simultaneous-departure example shows that
 strict-time balance inequalities need explicit pairwise non-overlap rows to
 exclude assignments that cannot be operated by one aircraft. For maintenance,
 we distinguish limits between consecutive checks from the opening-period
-limit implied by an aircraft's accumulated hours at the start of the horizon.
-An endpoint-split replacement for Constraint~(13) is not asserted to be
-valid; the interval conditions must be activated only when their boundary
-conditions support that interpretation.
+limit implied by an aircraft's accumulated hours at the start of the horizon,
+and show that the published index range of Constraint~(13) also leaves
+consecutive-day checks, checks $d_{\max}$ days apart, and the closing period
+without a flight-hour bound.
+The endpoint-split replacement for Constraint~(13) is invalid: the explicit
+counterexample in \Cref{sec:maintenance} satisfies every split row while
+violating the flight-hour limit. The interval conditions instead activate
+the bound on each check-to-check period and opening prefix.
 
 The computational evidence currently available does not support a reliable
 evaluation of the formulation. The instance generator in this
-repository creates synthetic data rather than the real timetable used by
-\citet{khaled2018compact}; older tables also mix formulations and contain
+repository creates synthetic data, whereas \citet{khaled2018compact}
+generated their test instances from a real airline data set; older tables
+also mix formulations and contain
 infeasible or incomplete runs. The A-only solver outputs presently in the
 workspace are not accompanied by a complete, matching source-and-input
 provenance package. Consequently, this manuscript makes no claim to reproduce

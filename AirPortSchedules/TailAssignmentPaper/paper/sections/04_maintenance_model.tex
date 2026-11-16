@@ -150,7 +150,7 @@ for every allowed aircraft assignment, not merely for a selected solution:
 \item Flights depart and arrive on the same day. All flights on day $d$
   finish by $\ell_d-\eta^-_j$ for every compatible aircraft $j$, and no
   flight on day $d+1$ departs before $u_d$. Thus no flight crosses the
-  protected period, including overnight flights.
+  protected period.
 \item The available period satisfies
   $\tau^A_j+\eta^+_j\le u_d-\ell_d$ for every compatible aircraft.
   A check can start at $\ell_d$ and the aircraft can be released by $u_d$.
@@ -233,7 +233,15 @@ Only checks on days strictly before $t$ relax this prefix. In particular, a
 check after the flights of day $t$ cannot relax the hours accumulated before
 that check. Choose finite nonnegative $M_{st}$ and $M_{0t}$ at least as large
 as the maximum possible excess over $T^A_{\max}$ in their respective flight
-windows.
+windows. In particular, the opening-period bound must include the initial
+accumulated hours: if $U^{\max}_{jt}$ is an upper bound on
+$\sum_{r=1}^{t}q_{jr}$, choose
+\[
+  M_{0t}\ge \max_{j\in\Pc}
+  \max\{0,\Phi^A_j+U^{\max}_{jt}-T^A_{\max}\}.
+\]
+A bound based only on new flight minutes may be too small when
+$\Phi^A_j>0$.
 
 \begin{proposition}[Type-A hour-limit sufficiency]
   Suppose checks are executable between the relevant daily flight blocks,
@@ -269,17 +277,58 @@ The original row has the form
   L_{jst}\le T^A_{\max}
     +M_{st}(2-y_{js}-y_{jt})+M_{st}Y_{jst}.
 \end{equation}
-Its logic is conditional, not an unconditional limit on every day-pair
+In \citet{khaled2018compact}, the prose gives the day-pair range
+$1\le t-s\le d_{\max}-1$, while displayed equation~(13) uses
+$2\le t-s\le d_{\max}-1$ and $s<n_d$. The paper is internally inconsistent
+on the lower bound. Our comparison takes the displayed equation as the
+formulation actually imposed and reports separately which consecutive-day
+gap the prose range would cover.
+
+The row's logic is conditional, not an unconditional limit on every day-pair
 window. When both endpoint days are check days and there is no intervening
 check, $y_{js}=y_{jt}=1$ and $Y_{jst}=0$, so the row reduces to
 $L_{jst}\le T^A_{\max}$. This is the intended check-to-check case, and the
-original row is valid for it. If either endpoint is not a check day, however,
+original row is valid for it whenever $(s,t)$ lies in the published index
+range. If either endpoint is not a check day, however,
 the row receives at least one full $M_{st}$ of slack; if neither endpoint is
 a check day, it receives $2M_{st}$. Such a row does not enforce a limit for
 that window. That deactivation is appropriate when the pair does not bound
-one complete interval between checks, but it means Constraint~(13) alone
-does not cover the initial open interval or every daily prefix in a finite
-horizon.
+one complete interval between checks.
+
+\paragraph{Coverage gaps of the published rows.}
+Because the rows are conditional and restricted in index, four kinds of
+exposure period receive no flight-hour bound from Constraint~(13):
+\begin{enumerate}
+\item the opening period before the first check in the horizon, discussed
+  below;
+\item consecutive check days, $t=s+1$, where the flights of day $t$ lie
+  between two checks (the prose range $1\le t-s$ would cover this case, but
+  displayed equation~(13) excludes it);
+\item checks exactly $d_{\max}$ days apart: calendar spacing~(12) requires a
+  check in every $d_{\max}$ consecutive days and therefore permits this gap,
+  while Constraint~(13) stops at $t-s=d_{\max}-1$;
+\item the closing period after the last check in the horizon, which has no
+  checked end day. A row ending at $t=n_d$ can be indexed when its other
+  conditions hold, but it is relaxed when $y_{j,n_d}=0$.
+\end{enumerate}
+For example, let $d_{\max}=3$, $T^A_{\max}=600$, $\Phi^A_j=0$, and $n_d=6$.
+The following daily data violate the limit, yet satisfy~(12) and every
+published Constraint~(13) row:
+\begin{itemize}
+\item consecutive checks: $y_j=(1,1,0,1,0,0)$ and $q_{j2}=700$, with
+  zero flight time on the other days, give 700 minutes between the checks on
+  days 1 and 2;
+\item checks $d_{\max}$ apart: $y_j=(1,0,0,1,0,0)$ and
+  $q_{j3}=q_{j4}=400$ give 800 minutes between the checks on days 1 and 4;
+\item closing period: $y_j=(1,0,0,1,0,0)$ and $q_{j5}=q_{j6}=400$ give
+  800 minutes after the day-4 check.
+\end{itemize}
+The interval rows~\eqref{eq:a_interval_hours}, imposed for all
+$1\le s<t\le n_d$, reject these schedules through the pairs $(1,2)$,
+$(1,4)$, and $(4,6)$, respectively; the opening
+prefix~\eqref{eq:a_opening_hours} covers the first case. The revised
+family therefore requires no assumption relating $T^A_{\max}$ to
+$d_{\max}$ or to the horizon length.
 
 The opening interval illustrates the physical omission. Let
 $T^A_{\max}=600$ minutes, let an aircraft enter with
@@ -391,8 +440,12 @@ audit result.
 Physical situation & Original Constraint~(13) & Endpoint split / explicit windows \\
 \midrule
 Two consecutive checks at $s,t$, no check in between
-  & Active; enforces $L_{jst}\le T^A_{\max}$
+  & Active only if $2\le t-s\le d_{\max}-1$ and $t<n_d$; no row for
+    $t-s=1$, $t-s=d_{\max}$, or $t=n_d$
   & Both split rows relax; the explicit $(s,t)$ interval is active \\
+Closing period after the last check
+  & A row may be indexed, but is relaxed when the end day is not checked
+  & The explicit interval from the last check is active \\
 Opening exposure; check after day-$t$ flights
   & A row without a checked start is relaxed
   & Split flight-only row omits $\Phi^A_j$; explicit opening prefix includes it and does not relax on $y_{jt}$ \\

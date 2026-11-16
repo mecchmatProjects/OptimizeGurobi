@@ -47,13 +47,19 @@ The objective minimises total assignment cost:
 
 \subsection{Constraints}
 
-\paragraph{C2 — Flight coverage.}
+We follow the condition labels of \citet{khaled2018compact}: C1 flight
+coverage, C2 equipment continuity, C3 initial conditions, and C4 turn time.
+In that paper, C1 is expressed by constraint~(3), C2--C4 by
+constraints~(4)--(5), and constraint~(6) only declares $x$ binary.
+
+\paragraph{C1 — Flight coverage (constraint~(3) of \citealt{khaled2018compact}).}
 Each flight must be assigned to exactly one aircraft:
 \begin{equation}\label{eq:c1}
   \sum_{j \in \Pc} x_{ij} = 1, \qquad \forall i \in \F.
 \end{equation}
 
-\paragraph{C3,C4 — Equipment continuity (home/non-home airports).}
+\paragraph{C2--C4 — Continuity, initial position, and turn time
+  (constraints~(4)--(5) of \citealt{khaled2018compact}).}
 For any aircraft $j$, any non-home airport $k \ne a^0_j$, and any flight
 $i$ departing from $k$, aircraft $j$ can be assigned to flight $i$ only if
 it has already landed at $k$ early enough,
@@ -76,9 +82,10 @@ but at the home airport ($k = a^0_j$), one free unit is available at time zero
 
 \subsection{Validity}
 
-Constraints~\eqref{eq:c2}--\eqref{eq:c3} are intended to encode both equipment
-continuity (C2 of \citet{khaled2018compact}) and turn-time feasibility
-(constraint~(6) of that paper).
+Constraints~\eqref{eq:c2}--\eqref{eq:c3} are intended to encode equipment
+continuity (C2), initial conditions (C3), and turn-time feasibility (C4) of
+\citet{khaled2018compact}; turn time enters through the arrival cut-off
+$\tD{i}-\dt$ in $\Fl{k}{\tD{i}}$.
 The set $\Fl{k}{\tD{i}}$ counts only arrivals at least $\dt$ minutes before
 the departure of flight $i$, so a prior arrival can supply flight $i$ only
 after the required turn time. This mechanism is valid when departures are
@@ -155,7 +162,7 @@ overlap:
   \label{eq:overlap_set}
 \end{equation}
 For every pair in this conflict set, impose
-\paragraph{C5 — Pairwise non-overlap.}
+\paragraph{C5 (added here) — Pairwise non-overlap.}
 \begin{equation}\label{eq:c4_overlap}
   x_{i_1 j} + x_{i_2 j} \le 1,
   \qquad \forall \{i_1,i_2\}\in\mathcal{O},\; \forall j\in\Pc.
@@ -179,8 +186,10 @@ $O(n_fn_p+|\mathcal{O}|n_p)$ constraints. In the worst case
 $|\mathcal{O}|=O(n_f^2)$, although timetable sparsity normally makes the
 conflict set much smaller. The original variable count compares favourably
 with Levin's $O(n_f^2n_p)$-variable model; \citet{khaled2018compact} also
-report that the time-space network formulation uses approximately
-$1.25$--$2$ times as many variables and constraints on their test instances.
+note that re-expressing their compact model with time-space network variables
+would typically increase both the variable and constraint counts by a factor
+of approximately $1.25$--$2$. This is a formulation-size comparison, not a
+measurement reported for their computational test instances.
 
 \subsection{Feasibility of the corrected basic model}
 

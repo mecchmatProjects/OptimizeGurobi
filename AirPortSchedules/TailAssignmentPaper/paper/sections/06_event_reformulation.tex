@@ -333,10 +333,12 @@ capacity is represented directly by the timestamp sums E15.
 
 Several families can be reduced without changing the integer feasible set.
 With one maintenance type, event-type exclusivity is implied by the binary
-domain of $z_{rj}$. The prefix-state bound $h_{rj}\le T_F$ can be imposed as a
-variable bound, which makes the row repeating it in E13 redundant. Identical
-E15 active-event sets are emitted once, and a capacity row is dropped when its
-number of binary terms does not exceed the capacity. Finally, maximal
+domain of $z_{rj}$. The unconditional bound $0\le h_{rj}\le T_F$ can be
+imposed as variable bounds, but this does not replace the E13 row
+$h_{rj}\le T_F(1-z_{rj})$: that row forces the post-event state to zero and
+remains necessary. Identical E15 active-event sets are emitted once, and a
+capacity row is dropped when its number of binary terms does not exceed the
+capacity. Finally, maximal
 interval-clique rows replace the pairwise rows in E7; every conflicting pair
 lies in a maximal clique, so the integer feasible set is unchanged. The
 reduced form is used in all experiments of \Cref{sec:computational}.

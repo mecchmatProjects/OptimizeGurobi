@@ -546,8 +546,10 @@ labelled day; they are not sufficient for arbitrary intra-day flexible resets.
 Since the prefix flow equations uniquely determine $Q$ from the
 assignment variables and the rows above are exactly the telescoped interval
 expressions, this substitution preserves the projection onto the common
-variables and the bound-preserving LP objective. It does not assert LP
-equivalence with the stronger day-indexed reset-state formulation $h_{jd}$.
+variables and the bound-preserving LP objective. No general LP-strength
+ordering with the day-indexed reset-state formulation $h_{jd}$ is asserted;
+the two relaxations use different big-$M$ rows and their relative strength
+depends on the valid constants and bounds used.
 
 \subsection{Why the corrected formulations close every gap}
 \label{subsec:c13_exactness}

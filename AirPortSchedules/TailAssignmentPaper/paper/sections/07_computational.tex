@@ -501,9 +501,10 @@ relaxation. All interval and prefix LPs and MILPs terminated optimally on these
 four cases. The prefix projection reproduces the interval LP objective to
 numerical precision, as expected from the telescoping reformulation in
 \Cref{subsec:c13_prefix_equivalence}, and the two formulations return identical integer
-objectives. The exact day-state model has a stronger LP bound on all four
-instances, so prefix-versus-interval equivalence should not be misread as
-equivalence to that stronger relaxation. The P=15 LP ablation is excluded:
+objectives. In this four-instance ablation, the exact day-state model has a
+stronger LP bound on each instance; this empirical comparison does not imply
+a general LP-strength ordering. Prefix-versus-interval equivalence should not
+be misread as equivalence to the day-state relaxation. The P=15 LP ablation is excluded:
 several solver runs reached their iteration limit and returned no reliable LP
 objective.
 

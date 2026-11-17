@@ -23,6 +23,7 @@ hour-state violation; this is not a full event-model solve.
 Run:  python experiments/c13_loophole_validation.py
 """
 
+import argparse
 import csv
 import hashlib
 import json
@@ -261,10 +262,17 @@ def run_scenario(label, mega_on_days):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=ROOT / "results" / "tables" / "c13_conditional_rows_20261021.csv",
+    )
+    args = parser.parse_args()
     both_endpoints = run_scenario("both endpoints checked (lem:c13_split_limit)", {1, 4})
     one_endpoint = run_scenario("ending check; opening interval (lem:c13_opening_gap)", {4})
 
-    out_path = ROOT / "results" / "tables" / "c13_conditional_rows_20261021.csv"
+    out_path = args.output
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fieldnames = list(both_endpoints.keys())
     with open(out_path, "w", newline="", encoding="utf-8") as f:

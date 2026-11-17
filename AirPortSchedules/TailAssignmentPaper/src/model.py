@@ -1,4 +1,5 @@
 import json
+import glob
 import math
 import os
 import random
@@ -35,6 +36,24 @@ except ImportError:
 
 # Objective: flight cost + this cost per minute a check is done before it is due.
 DEFAULT_EARLY_CHECK_PENALTY = 5.0
+
+def _resolve_solver_executable(solver_name, executable=None):
+    executable = executable or os.environ.get('TAP_PYOMO_SOLVER_EXECUTABLE')
+    if executable or solver_name.lower() != 'gurobi':
+        return executable
+
+    gurobi_home = os.environ.get('GUROBI_HOME')
+    if gurobi_home and os.path.isdir(gurobi_home):
+        runners = sorted(glob.glob(os.path.join(
+            gurobi_home, 'python*', 'bin', 'python.exe'
+        )), reverse=True)
+        for runner in runners:
+            api_dir = os.path.join(
+                os.path.dirname(os.path.dirname(runner)), 'lib', 'gurobipy'
+            )
+            if os.path.isdir(api_dir):
+                return runner
+    return None
 
 # ----------------------------
 # CORE SCHEDULER ENGINE
@@ -636,6 +655,7 @@ class MILP_Sheduler:
     Cost_Matrix       : [[cost per (fid-1, aid_index)]]
     """
 
+    FORMULATION_ID = 'legacy_endpoint_split'
     CHECK_LIST = ['A', 'B', 'C', 'D']
     DAY_SHIFT  = 24 * 60   # minutes in one planning day
     MIN_TURN   = 30        # minimum ground turnaround (minutes)

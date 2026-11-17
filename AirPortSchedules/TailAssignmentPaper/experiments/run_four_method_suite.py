@@ -714,6 +714,12 @@ def main() -> None:
     parser.add_argument("--suite-dir", default=None)
     parser.add_argument("--output", default=None)
     parser.add_argument(
+        "--checkpoint",
+        type=Path,
+        default=None,
+        help="Save and resume completed solves using a configuration-checked checkpoint.",
+    )
+    parser.add_argument(
         "--pattern",
         default="*.json",
         help="Case filename glob used during --run; manifest.json is always excluded.",
@@ -782,6 +788,7 @@ def main() -> None:
             args.lp_relaxation,
             args.formulations,
             args.append,
+            checkpoint_path=args.checkpoint,
         )
 
 

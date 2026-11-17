@@ -313,12 +313,17 @@ studied here does not impose Khaled et al.'s maximum-spacing rule, and this
 omission does not imply that A checks have no calendar requirement.
 
 The daily indicator $y_{jd}$ is not a primitive variable of the event model.
-Where a day-level count is needed, it is defined as the expression
+For the immediate-start model, where an event starts on arrival, a day-level
+count uses the one-based arrival day
+$\bar d_{i_r}=1+\lfloor\tI{i_r}/1440\rfloor$:
 \begin{equation}
-n_{jd}=\sum_{r:\,\lfloor\tI{i_r}/1440\rfloor=d}z_{rj},
-\qquad n_{jd}\in\mathbb{Z}_{+}.
+n_{jd}=\sum_{r:\,\bar d_{i_r}=d}z_{rj},
+\qquad j\in\Pc,\ d\in\D,\quad n_{jd}\in\mathbb{Z}_{+}.
 \label{eq:ordered_c11_recovery}
 \end{equation}
+An arrival exactly at midnight belongs to the new day. The historical
+implementation indexes these auxiliary arrival-day buckets from zero, so its
+bucket $d-1$ corresponds to day $d$ in this notation.
 No E-row or objective term uses $n_{jd}$ in the immediate-start model, so it
 can be recovered after solution. The uniform flexible model of
 \Cref{subsec:uniform_flexible} replaces it by a binary actual-start-day
@@ -356,7 +361,7 @@ C6--C7 & Maintenance variables $z,y$ & Event indicator $z_{rj}$; the daily indic
 C8 & Maintenance blocks later flights & Timestamp blocking using $\delta_A+\dt$; the flexible variant blocks until the deferred completion. \\
 C9 & Maintenance requires assignment & The event-assignment inequality above. \\
 C10 & Maintenance capacity & Direct timestamp-overlap rows at event starts; exact grid-based overlap-indicator rows in the flexible variant. \\
-C11 & Aggregate events by aircraft and day & Integer event count $n_{jd}=\sum_{r:\,d(i_r)=d}z_{rj}$. \\
+C11 & Aggregate events by aircraft and day & Immediate-start count $n_{jd}=\sum_{r:\,\bar d_{i_r}=d}z_{rj}$. \\
 C12 & Calendar-time spacing & Omitted by choice in this hour-only extension; present in Khaled's A policy. \\
 C13 & Paper cumulative-flight-time row & Replaced by the exact ordered prefix state. \\
 C13a & Daily assigned flight time & Implicit in the ordered flight sequence. \\

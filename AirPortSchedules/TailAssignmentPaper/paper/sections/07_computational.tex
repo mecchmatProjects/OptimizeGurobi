@@ -22,15 +22,18 @@ on this choice.
 The instance families are generated deterministically from a seeded
 round-trip-rotation generator that certifies each designated rotation with an
 independent maintenance counter. This certifies the generated rotations only;
-MILP objectives, statuses and schedules always come from the solver, and every
-returned schedule is audited by an independent chronological replay. The
-replay counts a \emph{violation} for every flight after which the replayed
-flight-hour counter exceeds the threshold, and one violation for each timing,
-capacity, blocking, coverage or continuity requirement that the schedule
-breaks. A single overdue stretch with many flights therefore produces many
-violations, so counts indicate the severity of an overdue schedule rather than
-the number of distinct defects; the indicator that matters for validity is
-whether the count is zero. File names, hashes and raw outputs
+MILP objectives, statuses and schedules come from the solver. Selected
+schedules are checked by an independent chronological replay, with coverage
+and checked requirements reported for each experiment. In particular, all
+loaded uniform-study incumbents are replayed, but the four time-limited
+Event-based incumbents in the historical CPLEX study were not replayed.
+Where performed, the replay counts a \emph{violation} for every flight after
+which the flight-hour counter exceeds the threshold and, when applicable, for
+timing, capacity, blocking, coverage or continuity failures. A single overdue
+stretch with many flights therefore produces many violations, so counts indicate
+the severity of an overdue schedule rather than the number of distinct defects;
+the indicator that matters for a given audit is whether its count is zero.
+File names, hashes and raw outputs
 are listed in \Cref{app:artifacts}. The experiments below are an extended
 instance family and not a reproduction of the tables of Khaled et
 al.~\citep{khaled2018compact}.
@@ -104,8 +107,9 @@ the C1--C4 optimum was already executable. Adding C5 increases the number of
 rows by 9--121\% in these instances (clique rows), without a measurable
 effect on solution time (all solves took below 3\,s). We conclude that C5
 should be included whenever departure times can coincide, because it removes
-non-executable schedules at negligible computational cost, but we do not claim
-that it changes the optimum of the shipped instances.
+non-executable schedules. This small-instance result does not establish a
+negligible cost at larger scales, nor does it show that C5 changes the optimum
+of the shipped instances.
 
 To check that this finding persists at larger scale, we repeated the
 experiment on twelve feasible instances with 300--452 flights and 20 or 30
@@ -693,9 +697,11 @@ Uniform flexible event & 3/12 & 582.0 & 1.52 & Pass, 6/12; 6 not run \\
 \subsection{Discussion and limitations}
 \label{subsec:robustness}
 
-Three findings are robust across the experiments. First, C5 removes
-non-executable schedules at negligible cost, and the corner case it addresses
-is common in the timetables used (\Cref{subsec:c5_impact}). Second, schedules
+Three findings are supported by the experiments. First, C5 removes the
+non-executable assignments addressed by the corner case, which occurs in the
+timetables used. Its computational cost depends on instance size and costs:
+larger instances have more rows and can require more solution time
+(\Cref{subsec:c5_impact}). Second, schedules
 produced by the published cumulative-flight-time row and its endpoint split in
 isolation violate the flight-hour limit in every replayed instance, with both
 solvers, whereas the exact-state formulations never do

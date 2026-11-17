@@ -898,28 +898,33 @@ class MILP_Sheduler:
         self.c8_check_day_departures_feasible = {}
         for fid in self.maint_flight_ids:
             fd_i = self.flight_data[fid]
-            apt = fd_i['destination']
             d_i = fd_i['day_arrival']
             arr_i = fd_i['arrivalTime']
-            same_day_deps = tuple(self._dep_flights_by_day_airport[(d_i, apt)])
-            escape = tuple(fid2 for fid2 in same_day_deps if self.flight_data[fid2]['departureTime'] > arr_i)
+            same_day_deps = tuple(
+                fid2 for fid2, fd2 in self.flight_data.items()
+                if fd2['day_departure'] == d_i
+            )
+            after_trigger = tuple(
+                fid2 for fid2 in same_day_deps
+                if fid2 != fid and self.flight_data[fid2]['departureTime'] >= arr_i
+            )
             for ck in self.CHECK_LIST:
-                dur = self.check_dur[ck]
-                same_day_block = tuple(
-                    fid2 for fid2 in same_day_deps
-                    if arr_i < self.flight_data[fid2]['departureTime'] <= arr_i + dur
-                )
-                self.c8_same_day_block[(fid, ck)] = same_day_block
-                self.c8_escape[(fid, ck)] = escape
+                self.c8_same_day_block[(fid, ck)] = after_trigger
+                self.c8_escape[(fid, ck)] = after_trigger
                 for aid in self.aircraft_ids:
                     self.c8_same_day_block_feasible[(fid, ck, aid)] = tuple(
-                        fid2 for fid2 in same_day_block if self._x_has_arc(fid2, aid)
+                        fid2 for fid2 in after_trigger if self._x_has_arc(fid2, aid)
                     )
                     self.c8_escape_feasible[(fid, ck, aid)] = tuple(
-                        fid2 for fid2 in escape if self._x_has_arc(fid2, aid)
+                        fid2 for fid2 in after_trigger if self._x_has_arc(fid2, aid)
                     )
             for day in self.days:
-                day_deps = tuple(self._dep_flights_by_day_airport[(day, apt)])
+                day_deps = tuple(
+                    fid2 for fid2, fd2 in self.flight_data.items()
+                    if fd2['day_departure'] == day
+                    and fid2 != fid
+                    and fd2['departureTime'] >= arr_i
+                )
                 for aid in self.aircraft_ids:
                     self.c8_check_day_departures_feasible[(fid, day, aid)] = tuple(
                         fid2 for fid2 in day_deps if self._x_has_arc(fid2, aid)
@@ -1603,9 +1608,9 @@ class MILP_Sheduler:
                 m.c5_clique_overlap.add(sum(m.x[i, j] for i in clique) <= 1)
 
     # ------------------------------------------------------------------
-    # Constraint C8 – maintenance check blocks subsequent same-day flights
-    # z[i,j,d,c]=1 means aircraft j does check c on day d after flight i;
-    # any flight i2 that departs the same day AFTER flight i is blocked.
+    # Constraint C8 – maintenance check blocks later departures on its day.
+    # z[i,j,d,c]=1 blocks each distinct flight departing on day d at or after
+    # the trigger arrival, as in the paper's F(d,i) definition.
     # ------------------------------------------------------------------
 
     def _add_c8_maint_blocks_flights(self, m):
@@ -1615,33 +1620,28 @@ class MILP_Sheduler:
 
         (a) z==0 for d < d_arr_i  — sanity: can't trigger before arrival.
 
-        (b) Same-day trigger (d == d_arr_i): if the check STARTS on the same
-            day the trigger flight lands, block departures from the maintenance
-            airport that fall WITHIN the check window [t_arr_i, t_arr_i+dur(c)].
-            Flights departing AFTER the check ends are NOT blocked here — the
-            aircraft is free once maintenance is finished.
+        (b) Same-day trigger (d == d_arr_i): block every distinct flight
+            departing on that day at or after the trigger arrival, regardless
+            of origin or check duration, as specified by F(d,i).
 
         (c) Deferred trigger (d > d_arr_i): if the check START is pushed to a
             later day d, the aircraft must wait at the maintenance airport from
             t_arr_i until day d.  Block:
-              c1) escapes on d_arr_i after t_arr_i (can't fly away while waiting)
-              c2) all departures from the maintenance airport on day d (check day)
+              c1) departures on d_arr_i at or after t_arr_i (can't fly away while waiting)
+              c2) all departures on day d (check day)
         """
         m.c8 = ConstraintList()
 
         for c in self.CHECK_LIST:
-            dur = self.check_dur[c]
             for i in m.FM:
                 fd_i  = self.flight_data[i]
                 d_i   = fd_i['day_arrival']
                 arr_i = fd_i['arrivalTime']
-                apt   = fd_i['destination']   # maintenance airport
 
-                # (b) same-day blocking: WITHIN check window only
+                # (b) same-day blocking follows the paper's F(d,i) exactly.
                 same_day_block = self.c8_same_day_block[(i, c)]
 
-                # (c1) escape list: all maint-airport departures on d_arr_i after arr_i
-                #      used for deferred triggers (waiting-period escape prevention)
+                # (c1) departures in F(d_arr_i,i), used for deferred triggers.
                 escape = self.c8_escape[(i, c)]
 
                 for j in m.P:
@@ -1649,7 +1649,7 @@ class MILP_Sheduler:
                         (i, j, day, c) in m.Z for day in self._z_days_for(i, c)
                     ):
                         continue
-                    # (b) same-day: block in-window departures from maint airport
+                    # (b) same-day: block all departures in F(d_i,i).
                     same_day_block_j = self.c8_same_day_block_feasible[(i, c, j)]
                     if same_day_block_j and (i, j, d_i, c) in m.Z:
                         m.c8.add(

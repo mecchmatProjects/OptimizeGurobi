@@ -41,28 +41,37 @@ al.~\citep{khaled2018compact}.
 \subsection{Cumulative-flight-time row verification}
 
 The original C13 row, its endpoint-split alternative, and the legacy opening
-companion were evaluated on the hand-built four-day counterexample (instance \texttt{c13\_loophole\_test}, \Cref{app:artifacts}). The instance fixes one
-aircraft, $T^A_{\max}=600$ minutes, $M_{14}=1200$ minutes, 1,200 minutes of
-flying in $(1,4]$, and two check patterns: checks at both endpoints, and a
-check only at the end. The table reports the C13-family result and, for exact
-state methods, the corresponding hour-state result; \Cref{tab:c13_loophole} is not a test of every
-other model constraint. With both endpoints checked, C13 is active and the
-split rows are relaxed. With only the ending check, C13 is inactive by design;
-the legacy opening companion is separately tested for whether it protects
-pre-check exposure. The exact state formulations reject both overdue
-schedules. Thus, the both-endpoints case is a counterexample to the split,
-whereas the one-endpoint case illustrates why a practical model needs a
-separate opening-hour condition, not why C13 should be active without two
-checked endpoints. The results test
+companion were evaluated by
+\texttt{c13\_loophole\_validation.py}, using the hand-built four-day input
+\texttt{c13\_loophole\_test} as the base (\Cref{app:artifacts}). The
+both-endpoints scenario uses that input unchanged: one aircraft,
+$T^A_{\max}=600$ minutes, and 1,200 minutes of flying in $(1,4]$. For the
+ending-only opening-gap scenario, the script creates a temporary transformed
+copy, changing the day-2 and day-4 flight durations to 590 and 20 minutes,
+respectively, for 610 minutes in $(1,4]$. Thus the two rows are not check
+patterns on one unchanged duration input. Both runs use $d_{\max}=4$. The
+value $M_{14}=1200$ is a valid illustrative bound for these witnesses; the
+script evaluates the built model using its configured big-$M$. The table
+reports the C13-family result and, for exact-state methods, the corresponding
+hour-state result; \Cref{tab:c13_loophole} is not a test of every other model
+constraint. With both endpoints checked, C13 is active and the split rows are
+relaxed. With only the ending check, C13 is inactive by design; the legacy
+opening companion is separately tested for whether it protects pre-check
+exposure. The exact state formulations reject both overdue schedules. Thus,
+the both-endpoints case is a counterexample to the split, whereas the
+one-endpoint case illustrates why a practical model needs a separate
+opening-hour condition, not why C13 should be active without two checked
+endpoints. The results test
 \Cref{subsec:c13_opening_coverage,subsec:c11_corrected}.
 
 \begin{table}[t]
 \centering\small
 \caption{Row-family numerical verification of conditional C13 and opening-hour
-protection.
-The fixed counterexample has $T^A_{\max}=600$, $M_{14}=1200$, and LHS
-$\sum_{i\in F_{1,4}}x_{ij}\tilde t_i=1200$. C13 status is row-local;
-opening status tests companion C13b and independent replay.}
+protection. The both-endpoints witness has $T^A_{\max}=600$ and
+$\sum_{i\in F_{1,4}}x_{ij}\tilde t_i=1200$; the ending-only opening-gap
+scenario uses a temporary transformed input with 610 minutes in the same
+window. Both use $d_{\max}=4$. C13 status is row-local; opening status tests
+companion C13b and independent replay.}
 \label{tab:c13_loophole}
 \resizebox{\linewidth}{!}{%
 \begin{tabular}{lccccc}

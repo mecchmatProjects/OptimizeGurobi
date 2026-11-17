@@ -16,6 +16,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from src.model import (
+    LegacyEndpointSplitMILPScheduler,
     LegacyCorrectedMILPScheduler,
     LegacyCorrectedStrengthenedMILPScheduler,
     LegacyHourPrefixMILPScheduler,
@@ -38,7 +39,7 @@ class C13FormulationTests(unittest.TestCase):
             scheduler = LegacyPaperC13MILPScheduler(
                 str(fixture), enabled_checks=["A"], max_hour_check_deferral_days=0
             )
-            model = scheduler.build_model(use_paper_c13=True)
+            model = scheduler.build_model(use_paper_c13=True, c13_dmax=4)
             for variable in model.x.values():
                 variable.set_value(1)
             for variable in model.z.values():
@@ -60,6 +61,31 @@ class C13FormulationTests(unittest.TestCase):
             self.assertGreater(len(validate_solved_model(scheduler)), 0)
         finally:
             fixture.unlink(missing_ok=True)
+
+    def test_paper_and_split_rows_use_configured_day_pair_range(self):
+        expected_pairs = 5  # dmax=4; intervals cross day 4 and have gaps 2 or 3
+        for scheduler_type, use_paper, expected_rows in (
+            (LegacyPaperC13MILPScheduler, True, expected_pairs),
+            (LegacyEndpointSplitMILPScheduler, False, 2 * expected_pairs),
+        ):
+            with self.subTest(scheduler=scheduler_type.__name__):
+                scheduler = scheduler_type(str(ROOT / "data" / "instances" / "c13_loophole_test.json"), enabled_checks=["A"])
+                scheduler._f_dep_between_days = lambda first, last: [3] if first < 4 <= last else []
+                model = scheduler.build_model(c13_dmax=4, use_paper_c13=use_paper)
+                self.assertEqual(len(model.c13), expected_rows)
+
+        strict_scheduler = LegacyStrictIntervalMILPScheduler(
+            str(ROOT / "data" / "instances" / "c13_loophole_test.json"),
+            enabled_checks=["A"],
+        )
+        strict_scheduler._f_dep_between_days = lambda first, last: [3] if first < 4 <= last else []
+        strict_model = strict_scheduler.build_model(c13_dmax=4)
+        self.assertEqual(len(strict_model.c13), 15)
+
+    def test_paper_c13_requires_explicit_dmax(self):
+        scheduler = LegacyPaperC13MILPScheduler(str(SOURCE), enabled_checks=["A"])
+        with self.assertRaisesRegex(ValueError, "requires an explicit c13_dmax"):
+            scheduler.build_model()
 
     def test_strict_opening_without_first_day_flights_stays_symbolic(self):
         scheduler = LegacyStrictIntervalMILPScheduler(str(SOURCE), enabled_checks=["A"])
@@ -323,12 +349,14 @@ class C13FormulationTests(unittest.TestCase):
             allow_ferry=False,
             use_overlap=False,
             use_paper_c13=False,
+            c13_dmax=4,
         )
         paper_scheduler = MILP_Sheduler(str(SOURCE), enabled_checks=["A"])
         paper = paper_scheduler.build_model(
             allow_ferry=False,
             use_overlap=False,
             use_paper_c13=True,
+            c13_dmax=4,
         )
 
         # Split builds two rows per window; paper builds one.

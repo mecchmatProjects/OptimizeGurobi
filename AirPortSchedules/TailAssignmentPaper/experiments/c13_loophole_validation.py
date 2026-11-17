@@ -40,12 +40,13 @@ INSTANCE = ROOT / "data" / "instances" / "c13_loophole_test.json"
 AIRCRAFT = 0
 CHECK = "A"
 WINDOW = (1, 4)
+C13_DMAX = 4
 
 
 def build_model(mega_on_days, use_paper_c13=False, instance=INSTANCE):
     """Build the legacy model and fix variables to the given check pattern."""
     sched = LegacyEndpointSplitMILPScheduler(str(instance), enabled_checks=[CHECK])
-    sched.build_model(use_paper_c13=use_paper_c13)
+    sched.build_model(use_paper_c13=use_paper_c13, c13_dmax=C13_DMAX)
     m = sched.model
 
     for (i, j) in m.X:
@@ -179,6 +180,7 @@ def run_scenario(label, mega_on_days):
         "scenario": label,
         "window_start_day": d,
         "window_end_day": d_,
+        "c13_dmax": C13_DMAX,
         "real_flight_minutes": t_sum,
         "T_max_minutes": t_max,
         "paper_c13_rows_satisfied": paper_satisfied,

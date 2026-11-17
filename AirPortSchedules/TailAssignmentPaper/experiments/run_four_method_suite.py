@@ -139,6 +139,7 @@ def write_run_metadata(
     configuration: str,
     warm_start: bool,
     legacy_deferral_days: int | None,
+    c13_dmax: int | None,
     lp_relaxation: bool,
     formulations: list[str],
     append: bool,
@@ -179,6 +180,7 @@ def write_run_metadata(
             "presolve_configuration": configuration,
             "warm_start": warm_start,
             "legacy_max_hour_check_deferral_days": legacy_deferral_days,
+            "legacy_c13_dmax": c13_dmax,
             "lp_relaxation": lp_relaxation,
             "event_based_optimized_policy": "immediate-after-trigger-flight",
             "event_based_flex_max_deferral_minutes": (
@@ -290,6 +292,7 @@ def model_size(model) -> tuple[int, int]:
 def run_case(path: Path, formulation: str, solver: str, executable: str | None, limit: int,
              configuration: str, warm_start: bool, threads: int,
              legacy_deferral_days: int | None,
+             c13_dmax: int | None,
              lp_relaxation: bool) -> dict[str, object]:
     data = json.loads(path.read_text(encoding="utf-8"))
     row: dict[str, object] = {
@@ -304,6 +307,10 @@ def run_case(path: Path, formulation: str, solver: str, executable: str | None, 
         "warm_start": warm_start,
         "legacy_max_hour_check_deferral_days": (
             legacy_deferral_days if formulation.startswith("legacy_") else "not-applicable"
+        ),
+        "legacy_c13_dmax": (
+            c13_dmax if formulation in {"legacy_paper_c13", "legacy_endpoint_split"}
+            else "not-applicable"
         ),
         "lp_relaxation": lp_relaxation,
         "status": "",
@@ -336,7 +343,10 @@ def run_case(path: Path, formulation: str, solver: str, executable: str | None, 
         else:
             scheduler = scheduler_type(str(path))
         with contextlib.redirect_stdout(io.StringIO()):
-            scheduler.build_model()
+            if formulation.startswith("legacy_"):
+                scheduler.build_model(c13_dmax=c13_dmax)
+            else:
+                scheduler.build_model()
         if lp_relaxation:
             TransformationFactory("core.relax_integer_vars").apply_to(scheduler.model)
         row["build_s"] = round(time.perf_counter() - started, 6)
@@ -415,7 +425,7 @@ def run_case(path: Path, formulation: str, solver: str, executable: str | None, 
 
 
 def checkpointed_cases(paths, active, solver, executable, limit, configuration,
-                       warm_start, threads, legacy_deferral_days, lp_relaxation,
+                       warm_start, threads, legacy_deferral_days, c13_dmax, lp_relaxation,
                        solver_version, checkpoint_path=None):
     signature = {
         "sources": {str(path.relative_to(ROOT)): sha256_file(path) for path in PROVENANCE_SOURCES},
@@ -424,6 +434,7 @@ def checkpointed_cases(paths, active, solver, executable, limit, configuration,
         "executable_sha256": sha256_file(Path(executable)) if executable else None,
         "limit": limit, "configuration": configuration, "warm_start": warm_start,
         "threads": threads, "legacy_deferral_days": legacy_deferral_days,
+        "c13_dmax": c13_dmax,
         "lp_relaxation": lp_relaxation, "methods": active,
     } if checkpoint_path else None
     saved = {}
@@ -450,7 +461,7 @@ def checkpointed_cases(paths, active, solver, executable, limit, configuration,
                 print(f"SOLVE {path.stem} / {formulation}", flush=True)
                 row = run_case(
                     path, formulation, solver, executable, limit, configuration,
-                    warm_start, threads, legacy_deferral_days, lp_relaxation,
+                    warm_start, threads, legacy_deferral_days, c13_dmax, lp_relaxation,
                 )
                 saved[key] = row
                 if checkpoint_path:
@@ -479,10 +490,16 @@ def checkpointed_cases(paths, active, solver, executable, limit, configuration,
 
 def run_suite(solver: str, executable: str | None, limit: int, threads: int,
               solver_version: str | None, configuration: str, warm_start: bool, pattern: str,
-              legacy_deferral_days: int | None, lp_relaxation: bool,
+              legacy_deferral_days: int | None, c13_dmax: int | None, lp_relaxation: bool,
               formulations: list[str] | None = None, append: bool = False,
               checkpoint_path: Path | None = None) -> None:
     active = formulations or list(DEFAULT_FORMULATIONS)
+    paper_indexed = {"legacy_paper_c13", "legacy_endpoint_split"}.intersection(active)
+    if paper_indexed and c13_dmax is None:
+        raise ValueError(
+            "Paper-C13 and endpoint-split runs require --c13-dmax; "
+            "the trigger-to-check deferral limit is a different parameter."
+        )
     paths = sorted(
         path for path in SUITE_DIR.glob(pattern) if path.name != "manifest.json"
     )
@@ -490,7 +507,7 @@ def run_suite(solver: str, executable: str | None, limit: int, threads: int,
         raise SystemExit("Suite is empty; run with --generate first.")
     rows = checkpointed_cases(
         paths, active, solver, executable, limit, configuration, warm_start,
-        threads, legacy_deferral_days, lp_relaxation, solver_version, checkpoint_path,
+        threads, legacy_deferral_days, c13_dmax, lp_relaxation, solver_version, checkpoint_path,
     )
     RESULTS_PATH.parent.mkdir(parents=True, exist_ok=True)
     schedules_path = RESULTS_PATH.with_suffix(".schedules.json")
@@ -530,6 +547,7 @@ def run_suite(solver: str, executable: str | None, limit: int, threads: int,
         configuration,
         warm_start,
         legacy_deferral_days,
+        c13_dmax,
         lp_relaxation,
         active,
         append,
@@ -670,6 +688,12 @@ def main() -> None:
         help="Maximum trigger-to-check day difference for legacy methods; omit for the historical unbounded setting.",
     )
     parser.add_argument(
+        "--c13-dmax",
+        type=int,
+        default=None,
+        help="Paper C13 day-span index limit; required for paper-C13 and endpoint-split runs.",
+    )
+    parser.add_argument(
         "--lp-relaxation",
         action="store_true",
         help="Relax integrality with Pyomo's bound-preserving transformation.",
@@ -715,6 +739,11 @@ def main() -> None:
         parser.error("--replicates must be a positive integer")
     if args.legacy_deferral_days is not None and args.legacy_deferral_days < 0:
         parser.error("--legacy-deferral-days must be nonnegative")
+    if args.c13_dmax is not None and args.c13_dmax < 1:
+        parser.error("--c13-dmax must be positive")
+    active_formulations = args.formulations or list(DEFAULT_FORMULATIONS)
+    if args.run and {"legacy_paper_c13", "legacy_endpoint_split"}.intersection(active_formulations) and args.c13_dmax is None:
+        parser.error("--c13-dmax is required for paper-C13 and endpoint-split runs")
     performance_grid = EXTENDED_PERFORMANCE_GRID if args.extended else DEFAULT_PERFORMANCE_GRID
     if args.fleet_sizes is not None or args.horizons is not None:
         default_p = sorted({p for p, _ in performance_grid})
@@ -749,6 +778,7 @@ def main() -> None:
             args.warm_start,
             args.pattern,
             args.legacy_deferral_days,
+            args.c13_dmax,
             args.lp_relaxation,
             args.formulations,
             args.append,

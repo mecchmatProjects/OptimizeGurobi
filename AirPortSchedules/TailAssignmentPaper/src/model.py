@@ -29,12 +29,6 @@ try:
                                 ConstraintList, Binary, NonNegativeReals,
                                 Expression, minimize, value as pyo_value)
     from pyomo.opt import SolverFactory
-    try:
-        from .solver_utils import (parse_deferral_days, apply_time_limit, extract_bounds,
-                                   termination_of, solve_and_load)
-    except ImportError:
-        from solver_utils import (parse_deferral_days, apply_time_limit, extract_bounds,
-                                  termination_of, solve_and_load)
     PYOMO_AVAILABLE = True
 except ImportError:
     PYOMO_AVAILABLE = False
@@ -655,9 +649,7 @@ class MILP_Sheduler:
     }
 
     def __init__(self, data_path, maintenance_airports=None,
-                 max_hour_check_deferral_days=3nabled_checks=None,,
-                 prepare_maintenance=True,
-                 early_check_penalty=DEFAULT_EARLY_CHECK_PENALTY):
+                 max_hour_check_deferral_days=None, enabled_checks=None,
                  prepare_maintenance=True,
                  early_check_penalty=DEFAULT_EARLY_CHECK_PENALTY):
         """Load data from *data_path* and prepare all MILP index sets.
@@ -968,6 +960,7 @@ class MILP_Sheduler:
                     use_event_bridge_strict=False,
                     use_event_only_block_capacity=False,
                     use_paper_c13=False,
+                    c13_dmax=None,
                     use_tight_c13_m=False,
                     use_strict_hour_state=False,
                     use_strict_c13_intervals=False,
@@ -1005,13 +998,18 @@ class MILP_Sheduler:
             blocks remain active.
         use_paper_c13 : bool
             When *True*, build the original Khaled et al. (2018) Eq. (13)
-            single-constraint form (vacuous whenever either endpoint
-            indicator is 0; see paper/sections/04_maintenance_model.tex,
-            Lemma ``lem:c11_flaw``) instead of the corrected two-row split.
+            single-constraint form on its published day-pair range; this
+            requires ``c13_dmax``. It is vacuous whenever either endpoint
+            indicator is 0 (see paper/sections/04_maintenance_model.tex).
             Default *False* uses the split formulation that is the base of
             this codebase (still provably insufficient in isolation; see
             Lemma ``lem:c11_split_limit`` and
             ``experiments/c13_loophole_validation.py``).
+        c13_dmax : int, optional
+            Maximum day interval used to index the historical paper-C13 or
+            endpoint-split rows. The indexed pairs satisfy
+            ``2 <= d' - d <= c13_dmax - 1``. Required with ``use_paper_c13``;
+            when omitted for the split form, the all-pairs extension is used.
         use_tight_c13_m : bool
             When *True*, replace the global ``M_BIG`` constant in paper C13 with
             an interval-specific valid upper bound (the real maximum
@@ -1041,6 +1039,14 @@ class MILP_Sheduler:
             raise ValueError("Select only one exact-hour formulation.")
         if use_paper_c13 and (use_strict_c13_intervals or use_hour_state_flow):
             raise ValueError("Paper C13 cannot be combined with strict interval rows.")
+        if c13_dmax is not None and (
+            isinstance(c13_dmax, bool)
+            or not isinstance(c13_dmax, int)
+            or c13_dmax < 1
+        ):
+            raise ValueError("c13_dmax must be a positive integer.")
+        if use_paper_c13 and c13_dmax is None:
+            raise ValueError("use_paper_c13 requires an explicit c13_dmax.")
         m = ConcreteModel()
         self.model = m
         self.prune_unneeded_hour_checks = bool(prune_unneeded_hour_checks)
@@ -1086,6 +1092,7 @@ class MILP_Sheduler:
                 self._add_c13_hr_accumulation(
                     m,
                     use_paper_c13=use_paper_c13,
+                    c13_dmax=c13_dmax,
                     use_tight_m=use_tight_c13_m,
                     use_strict_state=(use_strict_c13_intervals or use_hour_state_flow),
                     use_hour_state_flow=use_hour_state_flow,
@@ -1953,6 +1960,7 @@ class MILP_Sheduler:
         self,
         m,
         use_paper_c13=False,
+        c13_dmax=None,
         use_tight_m=False,
         use_strict_state=False,
         use_hour_state_flow=False,
@@ -1973,6 +1981,12 @@ class MILP_Sheduler:
                     first_end = si + 1 if use_strict_state else si + 2
                     for ei in range(first_end, n):
                         d,  d_ = days[si], days[ei]
+                        if (
+                            c13_dmax is not None
+                            and not use_strict_state
+                            and d_ - d > c13_dmax - 1
+                        ):
+                            continue
                         interval_flights = self._f_dep_between_days(d, d_)
                         if not any(self._x_has_arc(flight, j) for flight in interval_flights):
                             continue
@@ -2838,7 +2852,8 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
              use_check_hierarchy=True, use_sanity=False, use_overlap=True,
              allow_ferry=True, use_maintenance=True, warm_start=True,
              max_hour_check_deferral_days=None, enabled_checks=None,
-             executable=None, use_paper_c13=False, use_tight_c13_m=False,
+             executable=None, use_paper_c13=False, c13_dmax=None,
+             use_tight_c13_m=False,
              use_event_maintenance=False, use_event_bridge_strict=False,
              use_event_only_block_capacity=False):
     """Build and solve the MILP model, then display results.
@@ -2871,6 +2886,7 @@ def run_milp(data_path='data18h.json', solver='cplex', tee=False,
                     use_event_bridge_strict=use_event_bridge_strict,
                     use_event_only_block_capacity=use_event_only_block_capacity,
                     use_paper_c13=use_paper_c13,
+                    c13_dmax=c13_dmax,
                     use_tight_c13_m=use_tight_c13_m)
     summary = opt.solve(solver_name=solver, tee=tee, out_path=out_txt,
                         time_limit=time_limit, warm_start=warm_start,
@@ -2938,7 +2954,7 @@ def _run_one_milp(fp, out_dir, stem, solver, tee, show_gantt, time_limit,
                   allow_ferry=True, use_maintenance=True,
                   use_overlap=True, use_sanity=False, warm_start=True,
                   use_check_hierarchy=True, max_hour_check_deferral_days=None,
-                  enabled_checks=None, use_event_maintenance=False,
+                  enabled_checks=None, c13_dmax=None, use_event_maintenance=False,
                   use_event_bridge_strict=False,
                   use_event_only_block_capacity=False, executable=None):
     """Run MILP on a single file; return metrics dict."""
@@ -2958,6 +2974,7 @@ def _run_one_milp(fp, out_dir, stem, solver, tee, show_gantt, time_limit,
         use_check_hierarchy=use_check_hierarchy,
         max_hour_check_deferral_days=max_hour_check_deferral_days,
         enabled_checks=enabled_checks,
+        c13_dmax=c13_dmax,
         use_event_maintenance=use_event_maintenance,
         use_event_bridge_strict=use_event_bridge_strict,
         use_event_only_block_capacity=use_event_only_block_capacity,
@@ -3049,7 +3066,7 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
               use_maintenance=True,
               use_overlap=True, use_sanity=False, warm_start=True,
               use_check_hierarchy=True, max_hour_check_deferral_days=None,
-              enabled_checks=None, use_event_maintenance=False,
+              enabled_checks=None, c13_dmax=None, use_event_maintenance=False,
               use_event_bridge_strict=False,
               use_event_only_block_capacity=False, executable=None):
     """Process every JSON file in *input_dir* and write results to *output_dir*.
@@ -3105,6 +3122,8 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
     print(f"[batch] ferry={ferry_label}  maintenance={maint_label}  overlap={over_label}  sanity={san_label}  check_hierarchy={check_label}  event_maint_scaffold={event_label}  event_bridge_strict={strict_bridge_label}  event_only_block_capacity={event_only_bc_label}")
     if max_hour_check_deferral_days is not None:
         print(f"[batch] max_hour_check_deferral_days={max_hour_check_deferral_days}")
+    if c13_dmax is not None:
+        print(f"[batch] c13_dmax={c13_dmax}")
     if enabled_checks is not None:
         print(f"[batch] enabled_checks={','.join(enabled_checks)}")
     print(f"[batch] output -> '{output_dir}'\n")
@@ -3138,6 +3157,7 @@ def run_batch(input_dir='Inputs', output_dir='Outputs', mode='both',
                                     use_check_hierarchy=use_check_hierarchy,
                                     max_hour_check_deferral_days=max_hour_check_deferral_days,
                                     enabled_checks=enabled_checks,
+                                    c13_dmax=c13_dmax,
                                     use_event_maintenance=use_event_maintenance,
                                     use_event_bridge_strict=use_event_bridge_strict,
                                     use_event_only_block_capacity=use_event_only_block_capacity,
@@ -3278,6 +3298,8 @@ def main():
     parser.add_argument('--max-hour-check-deferral-days', type=int, default=None,
                         help='Cap how many days after arrival an A/B check may be deferred. '
                              'Use 0 for same-day only; default keeps the full horizon.')
+    parser.add_argument('--c13-dmax', type=int, default=None,
+                        help='Index paper-C13 and endpoint-split rows only for day gaps <= dmax-1.')
     parser.add_argument('--only-checks', nargs='+', default=None,
                         metavar='CHECK',
                         help='Enable only selected maintenance check types (A B C D). '
@@ -3298,6 +3320,8 @@ def main():
                         use_event_only_block_capacity=False)
     args = parser.parse_args()
     enabled_checks = _resolve_enabled_checks(args.only_checks, args.disable_checks)
+    if args.c13_dmax is not None and args.c13_dmax < 1:
+        parser.error('--c13-dmax must be positive')
 
     if args.mode == 'heuristic':
         run_heuristic(data_path=args.data,
@@ -3319,6 +3343,7 @@ def main():
                  use_check_hierarchy=args.use_check_hierarchy,
                  max_hour_check_deferral_days=args.max_hour_check_deferral_days,
                  enabled_checks=enabled_checks,
+                 c13_dmax=args.c13_dmax,
                  use_event_maintenance=args.use_event_maintenance,
                  use_event_bridge_strict=args.use_event_bridge_strict,
                  use_event_only_block_capacity=args.use_event_only_block_capacity,
@@ -3340,6 +3365,7 @@ def main():
                   use_check_hierarchy=args.use_check_hierarchy,
                   max_hour_check_deferral_days=args.max_hour_check_deferral_days,
                   enabled_checks=enabled_checks,
+                  c13_dmax=args.c13_dmax,
                   use_event_maintenance=args.use_event_maintenance,
                   use_event_bridge_strict=args.use_event_bridge_strict,
                   use_event_only_block_capacity=args.use_event_only_block_capacity,

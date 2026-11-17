@@ -60,6 +60,7 @@ def run_one(
     solver: str,
     executable: str,
     limit: int,
+    c13_dmax: int,
     build_only: bool = False,
 ):
     row = metadata(path)
@@ -72,7 +73,11 @@ def run_one(
             )
         else:
             scheduler = FORMULATIONS[formulation](str(path))
-        scheduler.build_model()
+        if formulation.startswith("legacy_"):
+            scheduler.build_model(c13_dmax=c13_dmax)
+        else:
+            scheduler.build_model()
+        row["c13_dmax"] = c13_dmax
         build_s = time.perf_counter() - started
         model = scheduler.model
         if model is None:
@@ -147,6 +152,12 @@ def main() -> None:
     )
     parser.add_argument("--time-limit", type=int, default=60)
     parser.add_argument(
+        "--c13-dmax",
+        type=int,
+        required=True,
+        help="Explicit paper index parameter used by legacy C13 comparisons.",
+    )
+    parser.add_argument(
         "--build-only",
         action="store_true",
         help="Build models and record size without invoking the solver.",
@@ -165,6 +176,7 @@ def main() -> None:
             args.solver,
             args.executable,
             args.time_limit,
+            args.c13_dmax,
             build_only=args.build_only,
         )
         for path in paths

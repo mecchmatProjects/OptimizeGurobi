@@ -15,7 +15,10 @@ points from ``paper/sections/04_maintenance_model.tex``:
 The patterns are evaluated against actual built C13 and C13b rows. The
 both-endpoints pattern is a counterexample to the split. The one-endpoint
 pattern checks opening protection when original C13 is intentionally inactive.
-The exact-state recursion is evaluated on the same assignments.
+For each fixed schedule, the script also builds the optimized ordered event
+model, fixes the same assignments and events, fixes the induced prefix states,
+and checks the actual E9--E13 rows. A violated row is reported as an
+hour-state violation; this is not a full event-model solve.
 
 Run:  python experiments/c13_loophole_validation.py
 """
@@ -33,6 +36,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from src.compact_a_event_model import OptimizedPaperEventBasedMILPScheduler
 from src.model import LegacyEndpointSplitMILPScheduler
 from src.validate_maintenance import validate_solved_model
 
@@ -119,6 +123,49 @@ def exact_state_recursion(sched, mega_on_days):
     return h, t_max, violations
 
 
+def build_fixed_event_state_check(mega_on_days, instance=INSTANCE):
+    """Build the ordered event model and fix it to the diagnostic schedule."""
+    scheduler = OptimizedPaperEventBasedMILPScheduler(
+        str(instance), enabled_checks=[CHECK]
+    )
+    model = scheduler.build_model()
+    selected_triggers = set()
+    for day in mega_on_days:
+        candidates = [
+            flight for flight in model.F
+            if scheduler.flight_data[flight]["day_arrival"] == day
+            and scheduler.flight_data[flight]["destination"] in scheduler.maint_airports
+        ]
+        if not candidates:
+            raise ValueError(f"No event-model trigger flight exists on day {day}")
+        selected_triggers.add(
+            max(candidates, key=lambda flight: scheduler.flight_data[flight]["arrivalTime"])
+        )
+
+    for flight, aircraft in model.X:
+        model.x[flight, aircraft].fix(1 if aircraft == AIRCRAFT else 0)
+    for flight, aircraft, check in model.Z:
+        model.z[flight, aircraft, check].fix(
+            1 if aircraft == AIRCRAFT and flight in selected_triggers else 0
+        )
+
+    ordered_flights = sorted(
+        scheduler._x_flights_for_aircraft(AIRCRAFT),
+        key=lambda flight: (
+            scheduler.flight_data[flight]["departureTime"], flight
+        ),
+    )
+    state = scheduler.init_check_hrs[CHECK][AIRCRAFT] * 60.0
+    for position, flight in enumerate(ordered_flights):
+        state += scheduler.flight_data[flight]["duration"]
+        if flight in selected_triggers:
+            state = 0.0
+        model.q[position, AIRCRAFT, CHECK].fix(state)
+
+    checked, violated = count_violations_on(model.e9_e13_prefix_state)
+    return scheduler, model, checked, violated
+
+
 def run_scenario(label, mega_on_days):
     d, d_ = WINDOW
     print(f"\n{'=' * 70}\nScenario: {label}  (checks on days {sorted(mega_on_days)})\n{'=' * 70}")
@@ -163,6 +210,14 @@ def run_scenario(label, mega_on_days):
     h, _, violations = exact_state_recursion(sched, mega_on_days)
     print("Exact-state h_jd: " + ", ".join(f"h[{k}]={v:.0f}" for k, v in sorted(h.items())))
 
+    _event_sched, _event_model, event_rows, event_violations = (
+        build_fixed_event_state_check(mega_on_days, scenario_instance)
+    )
+    print(
+        f"Exact event-state: {event_rows} E9-E13 rows, "
+        f"{event_violations} violated."
+    )
+
     split_missed_it = split_satisfied and t_sum > t_max
     paper_row_inactive = not ({1, 4} <= mega_on_days)
     opening_gap = paper_satisfied and paper_c13b_violated == 0 and bool(violations)
@@ -189,6 +244,9 @@ def run_scenario(label, mega_on_days):
         "legacy_split_rows_satisfied": split_satisfied,
         "exact_state_h_at_end_day": h[d_],
         "exact_state_violation": d_ in violations,
+        "event_state_rows_checked": event_rows,
+        "event_state_rows_violated": event_violations,
+        "exact_event_state_violation": event_violations > 0,
         "split_missed_it": split_missed_it,
         "paper_c13_inactive_by_design": paper_row_inactive,
         "opening_gap_detected": opening_gap,
@@ -219,6 +277,8 @@ def main():
     assert both_endpoints["split_missed_it"], "Expected split to miss the both-endpoints-checked violation"
     assert not one_endpoint["split_missed_it"], "Expected split to enforce the one-endpoint interval"
     assert both_endpoints["exact_state_violation"] and one_endpoint["exact_state_violation"]
+    assert both_endpoints["exact_event_state_violation"]
+    assert one_endpoint["exact_event_state_violation"]
     assert one_endpoint["paper_c13_inactive_by_design"]
     assert one_endpoint["opening_gap_detected"]
     assert one_endpoint["independent_replay_violations"] > 0

@@ -199,9 +199,11 @@ The corrected model retains $n_fn_p$ binary variables and has
 $O(n_fn_p+|\mathcal{O}|n_p)$ constraints. In the worst case
 $|\mathcal{O}|=O(n_f^2)$, although timetable sparsity normally makes the
 conflict set much smaller. The original variable count compares favourably
-with Levin's $O(n_f^2n_p)$-variable model; \citet{khaled2018compact} also
-report that the time-space network formulation uses approximately
-$1.25$--$2$ times as many variables and constraints on their test instances.
+with Levin's $O(n_f^2n_p)$-variable model. As a structural comparison,
+\citet{khaled2018compact} note that re-expressing their compact model with
+time-space network variables would typically increase both variable and
+constraint counts by a factor of approximately $1.25$--$2$; this is not
+reported as a measurement on their computational test instances.
 
 \subsection{Corrected proposition and its proof.}
 
@@ -216,6 +218,7 @@ The corrected proposition follows by considering the flights assigned to each
 aircraft in chronological order.
 
 \begin{proposition}[Proposition~1]
+  \label{prop:corrected_basic_feasibility}
   Any feasible solution to \eqref{eq:c0}--\eqref{eq:c5_overlap}
   corresponds to a feasible flight plan satisfying the original continuity and turn-time
   conditions.

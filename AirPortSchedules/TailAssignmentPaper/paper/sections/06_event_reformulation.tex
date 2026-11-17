@@ -506,8 +506,9 @@ The ordered formulation combines event-triggered maintenance with a global
 flight order and aircraft-local prefix states. It removes the day-pair
 accumulation ambiguity of the legacy cumulative-flight-time row, avoids successor-variable
 expansion, and keeps the physical route constraints needed for valid tail
-assignments. For type-A maintenance, C12's calendar-spacing role is inactive:
-the flight-hour limit is enforced by the exact prefix-state recursion. The
+assignments. The uniform type-A models omit C12 by choice: the exact
+prefix-state recursion enforces the flight-hour limit, but does not impose
+Khaled's separate calendar-spacing requirement. The
 computational study in
 \Cref{sec:computational} evaluates this formulation against the legacy 
 model on matched horizon and fleet-size grids.

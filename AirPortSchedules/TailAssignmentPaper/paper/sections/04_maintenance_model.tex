@@ -43,7 +43,7 @@ $\text{mcap}_{m,d}$           & Maintenance capacity of airport $m$ on day $d$ \
 $mc_{ijd}$                    & Cost of night maintenance at arrival airport of
                                 flight $i$, aircraft $j$, day $d$ \\
 $F_d^{\downarrow}(m)$         & Flights arriving at airport $m$ on day $d$ \\
-$F(d,i)$                      & $\{i' : d_{i'}=d,\; \tD{i'} > \tI{i}\}$ \\
+$F(d,i)$                      & $\{i' : i'\ne i,\; d_{i'}=d,\; \tD{i'} \geq \tI{i}\}$ \\
 $T^A_{\max}$                  & Max cumulative flight minutes before type-A check \\
 $d_{\max}$                    & Max calendar-day interval between checks \\
 $M_{dd'}$                     & Big-$M$ for day pair $(d,d')$ \\
@@ -63,8 +63,29 @@ $F_{d,d'}$                    & Flights with departure day in $(d,d']$ \\
 
 The variable $z_{ijd}$ is instantiated only when flight $i$ arrives at a
 maintenance-capable airport on day $d$. Thus its admissible domain is
-$i\in\bigcup_{m\in\MA}F_d^{\downarrow}(m)$. We assume in this type-A model
-that a night check fits within the overnight ground period.
+$i\in\bigcup_{m\in\MA}F_d^{\downarrow}(m)$.
+
+\paragraph{Overnight executability assumption.}
+Let $\tau_A>0$ be the check duration and let $[L_{md},U_{md}]$ be the
+available service window at maintenance airport $m$ on the night following
+day $d$, measured in the same absolute time units as the flight timestamps.
+Interpret $\mathrm{mcap}_{m,d}$ as the number of independent, staffed check
+slots reserved for that night, not merely as a daily throughput quota. For
+every selected trigger $z_{ijd}=1$, assume there exists a check start time
+$s_{ijd}$ such that
+\begin{align}
+  s_{ijd}&\geq \tI{i}, &
+  L_{md}&\leq s_{ijd}, &
+  s_{ijd}+\tau_A&\leq U_{md},
+  \label{eq:c_night_window}
+\end{align}
+and, for every distinct flight $i'\ne i$ assigned to aircraft $j$ that departs
+at or after the trigger arrival, $\tD{i'}\geq s_{ijd}+\tau_A+\dt$. C8
+excludes same-day departures at or after the trigger arrival; this last
+condition also covers the first assigned
+departure on a subsequent day. If these conditions are not guaranteed by the
+input timetable and operating policy, the constraints listed here alone do
+not establish check completion before the aircraft's next departure.
 
 \subsection{Extended model}
 
@@ -146,8 +167,9 @@ placement was evaluated on infeasible simultaneous departures.
 
 \paragraph{C9--C12.}
 Constraints~\eqref{eq:c9}--\eqref{eq:c12} remain structurally unchanged. Their
-feasible region is tightened indirectly because $z$ and $y$ are linked to a
-strictly smaller, physically valid $x$-space.
+feasible region cannot expand because $x$ is restricted by C5. It is strictly
+smaller only when the original rows admitted an assignment that uses at least
+one overlapping flight pair on the same aircraft.
 
 \paragraph{C13 and cumulative-hour rows.}
 Hour-accumulation constraints are evaluated over a physically executable
@@ -166,15 +188,17 @@ operationally intuitive, gives clear modeling semantics, but it has the followin
 \begin{itemize}
 \item The day-indexed formulation requires a large number of big-$M$ constants
   $M_{dd'}$ to cover all day pairs $(d,d')$ with $2\le d'-d\le d_{\max}-1$.
-  This is a combinatorial number of rows, and the big-$M$ values are
-  necessarily loose because they must cover all possible flight-hour
-  accumulations over the horizon.
+  The number of such pairs is polynomial, at most
+  $O(n_d\min\{n_d,d_{\max}\})$. Each $M_{dd'}$ must bound the possible
+  excess only for its own flight window $F_{d,d'}$; its required magnitude
+  depends on that window and on the available assignment bounds, not on all
+  flight hours over the entire horizon.
 
-  \item The day-indexed formulation does not propagate the flight-hour state
-  exactly.  The big-$M$ relaxation allows the flight-hour counter to be reset
-  prematurely, leading to potential violations of the intended maintenance
-  intervals. For example, if a maintenance night is scheduled on day $d$ and the next maintenance night is 
-  scheduled on day $d'$, the big-$M$ constraints only enforce that the cumulative flight hours between $d$ and $d'$ do not exceed $T^A_{\max}$, but they do not prevent excessive flight hours before day $d$.
+  \item The C13 rows do not propagate a flight-hour state. Each row bounds
+  one day window only under a particular endpoint pattern, so exposure that
+  falls outside every active window is unbounded; the five resulting gaps are
+  analysed in \Cref{subsec:c13_opening_coverage}. An exact day-indexed state
+  recursion does exist and is given in \Cref{subsec:c11_state}.
 
   \item A calendar-day limit is not a rolling 24-hour limit. Checks on either
   side of midnight may be less than 24 hours apart; two starts on the same
@@ -184,49 +208,148 @@ operationally intuitive, gives clear modeling semantics, but it has the followin
   successor variables. Their total size and runtime depend on event conflicts
   and do not imply computational superiority over day-indexed decisions.
 
-  \item C13 is conditional on successive checked endpoints. As a row by
-  itself it does not initialize pre-horizon exposure or protect the opening
-  interval to the first check; a practical model needs separate history and
-  opening-window rules.
+  \item C13 is conditional on successive checked endpoints and is indexed
+  only for $2\le d'-d\le d_{\max}-1$. It contains no pre-horizon exposure and
+  no row for the opening period, for consecutive-day checks, or for checks
+  $d_{\max}$ days apart, and it relaxes every closing window.
 \end{itemize}
 
 
-\subsection{Legacy cumulative-flight-time row: valid conditional, incomplete practical model}
+\subsection{Coverage gaps of the published cumulative-flight-time row}
 \label{subsec:c13_opening_coverage}
 
-Constraint~\eqref{eq:c13_paper} is a valid conditional bound for an interval
-whose two endpoints are successive maintenance days: when both endpoints are
-checks and there is no intervening check, its right-hand side is
-$T^A_{\max}$. Relaxing it when an endpoint is not a check is intentional.
-It is not, however, a complete practical flight-hour model over a finite
-planning horizon. In particular, it contains no initial state $\Phi^A_j$ and
-no opening-window bound from the horizon start to the first selected check.
-Practical use therefore needs an initial counter value and an opening
-condition tied to that exposure; an exact counter state is a robust way to
-handle the opening and every subsequent reset. The implementation-level
-opening example below diagnoses a separate gap in the companion C13b code,
-not an invalid conditional deactivation in Khaled's C13. The practical fix
-is to augment C13 with history/opening constraints or use an exact state
-formulation; C13 should remain as the between-check interval row when that
-conditional structure is useful.
+Throughout this subsection, checks follow the flights of their labelled day,
+as in C8. Write $v_{jd}$ for the flying time of aircraft $j$ on day $d$
+(formalised in~\eqref{eq:daily_flight_time}),
+$L_{jdd'}=\sum_{r=d+1}^{d'}v_{jr}$ for the left-hand side of C13, and
+$I_{jdd'}=\sum_{r=d+1}^{d'-1}y_{jr}$ for its interior check count.
 
-\begin{lemma}[The implemented opening companion can miss prior exposure]
-  \label{lem:c13_opening_gap}
-  In the legacy implementation's opening C13b row, a check on the ending day
-  can relax the upper bound on all flights from the horizon start through day
-  $d'$. If that exposure exceeds the remaining allowance before the day-$d'$
-  check, the combined C13/C13b implementation can accept an overdue
-  pre-check schedule. This is an implementation gap in the opening companion,
-  not a flaw in C13's conditional interval logic.
+\paragraph{Physical rule.}
+The accumulated exposure of aircraft $j$ immediately before the possible
+check of night $d$ is
+\begin{equation}\label{eq:physical_exposure}
+  H_{jd}=\begin{cases}
+    \Phi^A_j+\sum_{r=1}^{d}v_{jr}, & \text{if } y_{jr}=0 \text{ for all } r<d,\\[2pt]
+    L_{jsd}, & \text{otherwise, where } s=\max\{r<d:\ y_{jr}=1\}.
+  \end{cases}
+\end{equation}
+The type-A hour limit requires $H_{jd}\le T^A_{\max}$ for every aircraft and
+every day $d\in\D$. Flights of a check day count toward the exposure before
+that check.
+
+\begin{lemma}[Validity of the published and split rows]
+  \label{lem:c13_validity}
+  Let $y$ be binary, $v\ge0$, and let every $M_{dd'}$ be at least the largest
+  possible excess of $L_{jdd'}$ over $T^A_{\max}$. Every schedule satisfying
+  the physical rule satisfies~\eqref{eq:c13_paper} and the split
+  rows~\eqref{eq:c11_split_a}--\eqref{eq:c11_split_b} below.
 \end{lemma}
 
 \begin{proof}
-  Direct substitution of $y_{jd}=0$, $y_{jd'}=1$, and no intermediate check
-  relaxes C13 by design. In C13b, the ending-day indicator contributes a
-  big-$M$ term that can similarly release the opening sum. The regression
-  evaluates both built row families and independently replays the schedule;
-  only the replay exposes the pre-check excess.
+  A row whose right-hand side contains a positive multiple of $M_{dd'}$ is
+  satisfied by the choice of $M_{dd'}$. Each of the three rows has right-hand
+  side $T^A_{\max}$ only if $I_{jdd'}=0$. Then no check occurs on days
+  $d+1,\ldots,d'-1$, so the last check before day $d'$, if any, occurs on or
+  before day $d$. Since $v\ge0$, \eqref{eq:physical_exposure} gives
+  $L_{jdd'}\le H_{jd'}\le T^A_{\max}$.
 \end{proof}
+
+Thus C13 never cuts off a physically valid schedule; its defect is
+incomplete coverage. The physical rule must be bounded on day $d$ by some
+active row, but C13 is active only for a window $(d,d']$ that satisfies all
+of the following: both endpoints are checks, there is no interior check,
+$2\le d'-d\le d_{\max}-1$, and $d<n_d$. Every exposure not of this form is
+unbounded by C13.
+
+\begin{proposition}[Coverage gaps of Constraint~(13)]
+  \label{prop:c13_gaps}
+  Even together with calendar spacing~\eqref{eq:c12}, the published rows do
+  not bound the following exposures:
+  \begin{enumerate}
+    \item[G1] pre-horizon exposure $\Phi^A_j$, which appears in no row;
+    \item[G2] the opening period before the first check, because every row
+      with $y_{jd}=0$ at its start is relaxed and no row starts before day~1;
+    \item[G3] consecutive check days, $d'-d=1$, which are outside the index
+      range (the paper's prose range $1\le d'-d$ would cover this case, but
+      the displayed equation excludes it);
+    \item[G4] successive checks exactly $d_{\max}$ days apart, which
+      \eqref{eq:c12} permits but the index range $d'-d\le d_{\max}-1$
+      excludes;
+    \item[G5] the closing period after the last check, because its end day
+      is not a check day and the row is relaxed.
+  \end{enumerate}
+\end{proposition}
+
+\begin{proof}
+  \Cref{tab:c13_gap_witnesses} gives, for each gap, daily data with
+  $T^A_{\max}=600$ and $n_d=6$ that satisfy~\eqref{eq:c12} and every row
+  of~\eqref{eq:c13_paper}, yet violate the physical rule. Each check day
+  carries positive flying time, so every check can follow an arrival, for
+  example on loops from a single maintenance base. Acceptance holds for every
+  valid choice of $M_{dd'}$, because a relaxed row needs only $M_{dd'}$ at
+  least its own excess. The entries were verified by evaluating all indexed
+  rows and~\eqref{eq:physical_exposure}.
+\end{proof}
+
+\begin{table}[t]
+\centering\scriptsize
+\caption{Witnesses for the coverage gaps of Constraint~(13)
+  ($T^A_{\max}=600$, $n_d=6$). ``Accepts'' means that every indexed row is
+  satisfied; ``rejects'' means that some row is violated. G0 is the
+  check-to-check case on which the endpoint split fails. Exact means the
+  state recursion of \Cref{subsec:c11_state} or, equivalently, the
+  interval-prefix rows of \Cref{subsec:c13_prefix_equivalence}.}
+\label{tab:c13_gap_witnesses}
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{llrllrllll}
+\toprule
+Gap & $d_{\max}$ & $\Phi^A_j$ & $(v_{j1},\ldots,v_{j6})$ & $(y_{j1},\ldots,y_{j6})$ &
+  Overrun & C13 & Split & C13 + split & Exact \\
+\midrule
+G0 & 4 & 0   & $(10,600,0,600,0,0)$   & $(1,0,0,1,0,0)$ & $H_{j4}=1200$ & rejects & accepts & rejects & rejects \\
+G1 & 3 & 590 & $(0,20,0,10,0,0)$      & $(0,1,0,1,0,0)$ & $H_{j2}=610$  & accepts & accepts & accepts & rejects \\
+G2 & 3 & 0   & $(400,400,10,0,0,10)$  & $(0,0,1,0,0,1)$ & $H_{j2}=800$  & accepts & accepts & accepts & rejects \\
+G3 & 3 & 0   & $(10,700,0,10,0,0)$    & $(1,1,0,1,0,0)$ & $H_{j2}=700$  & accepts & accepts & accepts & rejects \\
+G4 & 3 & 0   & $(10,400,0,410,0,0)$   & $(1,0,0,1,0,0)$ & $H_{j4}=810$  & accepts & accepts & accepts & rejects \\
+G5 & 3 & 0   & $(10,0,0,10,400,400)$  & $(1,0,0,1,0,0)$ & $H_{j6}=800$  & accepts & rejects & rejects & rejects \\
+\bottomrule
+\end{tabular}}
+\end{table}
+
+\paragraph{Historical opening companion.}
+Gaps G1--G2 suggest adding an opening row. The companion used with C13 in
+the historical implementation reads
+\begin{equation}\label{eq:c13b_legacy}
+  \Phi^A_j+\sum_{r=1}^{t}v_{jr}
+  \le T^A_{\max}+M^0\sum_{r=1}^{t}y_{jr},
+  \qquad t=2,\ldots,n_d,
+\end{equation}
+with $M^0$ a valid bound on the opening excess.
+
+\begin{lemma}[The historical opening companion does not close G1--G2]
+  \label{lem:c13_opening_gap}
+  Constraints~\eqref{eq:c12}, \eqref{eq:c13_paper} and~\eqref{eq:c13b_legacy}
+  together admit schedules that violate the physical rule before the first
+  check.
+\end{lemma}
+
+\begin{proof}
+  The companion has two defects. First, its sum includes the end-day indicator
+  $y_{jt}$, although the flights of day $t$ precede that night's check. Take
+  $d_{\max}=4$, $\Phi^A_j=0$, $v_j=(0,590,0,20,0,0)$ and
+  $y_j=(0,0,0,1,0,0)$. Spacing holds, every C13 row has an unchecked endpoint
+  and is relaxed, rows $t=2,3$ read $590\le600$, and rows $t\ge4$ are relaxed
+  by $y_{j4}$. Nevertheless, $H_{j4}=610>600$. Second, no row exists for
+  $t=1$. Take $\Phi^A_j=590$, $v_j=(20,0,0,10,0,0)$ and
+  $y_j=(1,0,0,1,0,0)$. Every companion row is relaxed by $y_{j1}$, the only
+  active C13 row is $(1,4)$ with $L_{j14}=10$, and $H_{j1}=610>600$.
+\end{proof}
+
+Both defects disappear if the end-day indicator is excluded, i.e.\ the sum
+on the right runs to $t-1$, and the row is imposed from $t=1$. This is the
+opening row~\eqref{eq:c13_prefix_opening}. Together with the interval rows,
+it closes G1 and G2 only; G3--G5 are interval gaps and remain under the
+published index range.
 
 \subsection{Legacy cumulative-flight-time row: endpoint-split strengthening and limitation}
 \label{subsec:c11_corrected}
@@ -275,6 +398,28 @@ The original and split formulations are therefore not ordered by strength:
 the original row is active when both endpoints contain checks, whereas the
 split rows are active when at least one corresponding endpoint indicator is
 zero. Neither pattern alone gives an exact cumulative counter.
+
+\paragraph{What the split repairs and what it does not.}
+For binary $y$ and a common valid $M_{dd'}$, the published row and the two
+split rows for the same pair are jointly equivalent to the strict interval row
+\begin{equation}\label{eq:c13_strict_pair}
+  L_{jdd'}\le T^A_{\max}+M_{dd'}I_{jdd'}.
+\end{equation}
+Indeed, if $I_{jdd'}\ge1$ all four rows are relaxed. If $I_{jdd'}=0$, the
+strict row reads $L_{jdd'}\le T^A_{\max}$; this is the published row when
+$y_{jd}=y_{jd'}=1$, the second split row when $y_{jd'}=0$, and the first
+split row when $y_{jd}=0$. Conversely, each of the three rows is implied
+by~\eqref{eq:c13_strict_pair}. The split alone detects the G5 witness within
+the indexed pair range, but does not close the trailing period in general:
+it misses a one-day tail, for which no row is indexed, and loses G0, as shown
+in \Cref{lem:c11_split_limit}. Even adding the split to C13 yields
+strict interval rows only on $2\le d'-d\le d_{\max}-1$. G1 and G2 remain
+because neither family contains $\Phi^A_j$ or a row starting at the horizon,
+and G3 and G4 remain because their windows are outside the index range
+(\Cref{tab:c13_gap_witnesses}). Rearranging endpoint indicators cannot
+remove G1--G4: closing G3--G4 requires interval rows for every pair
+$d<d'$, and closing G1--G2 requires an opening state that includes
+$\Phi^A_j$.
 
 \subsection{Exact cumulative-state formulation for cumulative flight hours}
 \label{subsec:c11_state}
@@ -404,6 +549,60 @@ expressions, this substitution preserves the projection onto the common
 variables and the bound-preserving LP objective. It does not assert LP
 equivalence with the stronger day-indexed reset-state formulation $h_{jd}$.
 
+\subsection{Why the corrected formulations close every gap}
+\label{subsec:c13_exactness}
+
+\begin{proposition}[Exactness of the corrected hour rows]
+  \label{prop:c13_exactness}
+  Let $y$ be binary, $v\ge0$, $0\le\Phi^A_j\le T^A_{\max}$, and let all
+  big-$M$ values be valid. Under the day-boundary policy, each of the
+  following is satisfied if and only if the physical rule
+  $H_{jd}\le T^A_{\max}$ holds for every $j$ and $d$:
+  \begin{enumerate}
+    \item the state recursion~\eqref{eq:c11_state_lower}--\eqref{eq:c11_state_bound}
+      with $h_{j0}=\Phi^A_j$;
+    \item the strict interval rows~\eqref{eq:c13_prefix_interval} for all
+      $1\le d<d'\le n_d$, together with the opening
+      rows~\eqref{eq:c13_prefix_opening} for all $d'\in\D$.
+  \end{enumerate}
+\end{proposition}
+
+\begin{proof}
+  (1) The case analysis following~\eqref{eq:c11_state_bound} shows by
+  induction that $h_{jd}$ is forced to equal $H_{jd}$
+  in~\eqref{eq:physical_exposure}: without a check on night $d-1$ it adds
+  $v_{jd}$, and with one it restarts from $v_{jd}$. Hence the bound
+  $h_{jd}\le T^A_{\max}$ is exactly the physical rule.
+
+  (2) Necessity follows from the argument of \Cref{lem:c13_validity}: an
+  interval row is active only when $I_{jdd'}=0$, and then
+  $L_{jdd'}\le H_{jd'}$. An active opening row for $d'$ has no check before
+  $d'$, so its left-hand side plus $\Phi^A_j$ equals $H_{jd'}$. For
+  sufficiency, fix $d$. If no check precedes $d$, the opening row for $d$ is
+  active and gives $H_{jd}\le T^A_{\max}$. Otherwise let $s$ be the last
+  check before $d$. The interval row $(s,d)$ has no interior check, so it is
+  active and gives $L_{jsd}=H_{jd}\le T^A_{\max}$.
+\end{proof}
+
+The proof also explains why the corrected families are physically more
+faithful than C13 and its split. They are anchored to the state that the
+limit concerns, the exposure since the last completed check, rather than to
+the indicator pattern at the ends of a window. Specifically:
+(i) $\Phi^A_j$ enters through $h_{j0}$ or the opening row, closing G1;
+(ii) the opening rows relax only on checks strictly before $d'$, closing G2
+and the end-day defect of~\eqref{eq:c13b_legacy};
+(iii) interval rows exist for every pair $d<d'$, including adjacent days and
+gaps of any length, closing G3, G4 and G0;
+(iv) a row is active whenever its window contains no interior check,
+irrespective of its endpoints, closing G5; and
+(v) flights of a check day are counted before that day's reset.
+No assumption linking $T^A_{\max}$, $d_{\max}$ and the horizon is needed, and
+calendar spacing can be imposed separately without affecting hour coverage.
+The state recursion achieves this with $O(n_pn_d)$ continuous variables and
+rows, whereas the interval family uses $O(n_pn_d^2)$ rows. Both remain exact
+only under the stated day-boundary policy and executable checks; flexible
+intra-day resets require the event state of \Cref{sec:event_reformulation}.
+
 \subsection{Integrality constraints}
 \begin{align}
   x_{ij}&\in\{0,1\}, && i\in\F,\ j\in\Pc,\\
@@ -434,6 +633,9 @@ Consider the day-boundary reference constraint family
 variable domains. Constraint C12 is deliberately omitted in this hour-only
 extension: hour spacing is enforced by the cumulative-state rows, but the
 original type-A calendar-spacing rule is outside this theorem's assumptions.
+The theorem also assumes the overnight executability conditions
+in~\eqref{eq:c_night_window} and the accompanying next-departure condition; these
+are operational assumptions, not consequences of C8 or C10 alone.
 
 \begin{theorem}[Physical feasibility under day-boundary C1--C13f]
   \label{thm:physical_feasibility_c1_c13}
@@ -450,10 +652,11 @@ original type-A calendar-spacing rule is outside this theorem's assumptions.
   $S_j=\{i\in\F: x_{ij}=1\}$ ordered by nondecreasing departure time.
 
   \textbf{(i) Flight assignment and continuity.}
-  By~\eqref{eq:c1}, every flight is assigned to exactly one aircraft.
-  By~\eqref{eq:c2}--\eqref{eq:c3}, each departure assigned to $j$ has sufficient
-  prior balance at its departure airport, with the initial unit at $a^0_j$.
-  Therefore airport continuity holds along $S_j$.
+  By Proposition~\ref{prop:corrected_basic_feasibility}, constraints
+  C1--C5, including pairwise non-overlap, give each aircraft a continuous,
+  turn-time-feasible route. This conclusion does not follow from the balance
+  rows~\eqref{eq:c2}--\eqref{eq:c3} alone, as the simultaneous-departure
+  counterexample in~\Cref{sec:basic} demonstrates.
 
   \textbf{(ii) Temporal executability.}
   For any overlapping pair $\{i_1,i_2\}\in\mathcal{O}$,
@@ -472,9 +675,11 @@ original type-A calendar-spacing rule is outside this theorem's assumptions.
   \textbf{(iv) Maintenance capacity and blocking.}
   By~\eqref{eq:c10}, airport-day capacities are respected. By~\eqref{eq:c8}, if
   maintenance is triggered after flight $i$ on day $d$, then any subsequent
-  same-day flight is forbidden for the same aircraft. Under the stated
-  overnight-duration assumption, the maintenance action is operationally
-  executable.
+  same-day flight is forbidden for the same aircraft. By
+  Assumption~\eqref{eq:c_night_window}, the selected check fits in a staffed
+  slot at its arrival airport, and it completes with the required turn time
+  before the next assigned departure. Thus the maintenance action is
+  operationally executable under that explicit assumption.
 
   \textbf{(v) Hour/day maintenance admissibility.}
   By~\eqref{eq:c11_state_lower}--\eqref{eq:c11_state_bound}, the cumulative

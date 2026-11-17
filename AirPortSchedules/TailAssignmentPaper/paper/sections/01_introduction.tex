@@ -55,13 +55,15 @@ changes an optimum.
 
 
 \item \textbf{Cumulative-flight-time modeling.} Constraint~(13) in
-  \citet{khaled2018compact} is a valid conditional bound between successive
-  checked endpoints, but it is not by itself a complete finite-horizon
-  maintenance-hour model: prior exposure and the opening interval to the first
-  check need separate protection. We demonstrate an opening gap in the
-  implementation's companion row, test a two-row endpoint split on its own
-  counterexample, and give exact state formulations for the stated
-  day-boundary policy.
+  \citet{khaled2018compact} never cuts off a valid schedule, but it bounds
+  only checked windows of length $2$ to $d_{\max}-1$. We show five coverage
+  gaps: pre-horizon exposure, the opening period, consecutive-day checks,
+  checks $d_{\max}$ days apart, and the closing period. An endpoint split
+  detects some closing-window overruns but misses tails outside its indexed
+  pair range, and it loses the checked-window case; a natural opening
+  companion row still misses pre-check exposure. We give
+  exact state and interval-prefix formulations and prove that they enforce
+  the hour limit precisely under the stated day-boundary policy.
 
 \item \textbf{Event-based reformulation.}  The day-indexed type-A model
   above uses calendar-day maintenance decisions. We study two exact encodings

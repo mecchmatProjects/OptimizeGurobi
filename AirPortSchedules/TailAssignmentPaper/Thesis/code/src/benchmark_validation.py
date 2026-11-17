@@ -12,6 +12,46 @@ CHECKS = ("A", "B", "C", "D")
 COUNTER_KEYS = {"A": "A", "B": "B", "C": "C_Days", "D": "D_Days"}
 
 
+def validate_a_hour_exposure(instance, certificate, tolerance=1e-7):
+    """Replay type-A flight minutes at arrivals and reset at check completion.
+
+    The instance and certificate use minutes. This checks exposure only;
+    validate route and maintenance timing separately.
+    """
+    threshold = float(instance["Maintenance_Thresholds"]["A"])
+    initial = instance.get("Initial_Checks", {}).get("A", {})
+    assignment = certificate["assignment"]
+    activities = defaultdict(list)
+    for flight in instance["Flights"]:
+        aircraft = assignment[str(flight[0])]
+        duration = float(flight[4]) - float(flight[3])
+        if duration <= 0:
+            raise ValueError(f"flight {flight[0]} must have positive duration")
+        activities[aircraft].append((float(flight[4]), 0, flight[0], duration))
+    for index, event in enumerate(certificate.get("maintenance_events", [])):
+        if event["check"] == "A":
+            if float(event["end"]) <= float(event["start"]):
+                raise ValueError("maintenance must have positive duration")
+            activities[event["tail"]].append((float(event["end"]), 1, index, 0.0))
+
+    violations = []
+    for aircraft in instance["Aircrafts"]:
+        exposure = float(initial.get(str(aircraft), 0.0))
+        if exposure > threshold + tolerance:
+            violations.append({"aircraft": aircraft, "flight": None,
+                               "exposure_minutes": exposure, "limit_minutes": threshold})
+        for timestamp, kind, identifier, duration in sorted(activities[aircraft]):
+            if kind == 1:
+                exposure = 0.0
+                continue
+            exposure += duration
+            if exposure > threshold + tolerance:
+                violations.append({"aircraft": aircraft, "flight": identifier,
+                                   "time": timestamp, "exposure_minutes": exposure,
+                                   "limit_minutes": threshold})
+    return violations
+
+
 def validate_benchmark_certificate(instance, certificate):
     """Validate a complete no-ferry certificate against the shared benchmark contract.
 

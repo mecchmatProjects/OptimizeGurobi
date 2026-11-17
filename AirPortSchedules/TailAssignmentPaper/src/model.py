@@ -1177,7 +1177,8 @@ class MILP_Sheduler:
                     soft_coverage=False,
                     coverage_weight=1_000_000.0,
                     objective='early_check',
-                    allow_checks_beyond_horizon=False):
+                    allow_checks_beyond_horizon=False,
+                    hour_formulation='legacy'):
         """Construct the ConcreteModel.  Call before solve().
 
         Parameters
@@ -1220,11 +1221,24 @@ class MILP_Sheduler:
             maintenance windows. The default preserves aggregate C8 rows.
         use_paper_c13 : bool
             When *True*, add the original Khaled et al. (2018) Eq. (13)
-            single-constraint form (vacuous when either endpoint indicator
-            is 0; see docs/model_math.tex, Lemma on Constraint (13)) instead
-            of the corrected split formulation.  Default *False* uses the
-            corrected constraint.
+            single-row form instead of the legacy endpoint-split rows.
+            The endpoint split is not a valid correction.
+        hour_formulation : {'legacy', 'paper_interval'}
+            Select the legacy hour rows or the paper's type-A interval and
+            opening-prefix rows. The latter requires only A and does not by
+            itself implement the paper's placement or overnight policies.
         """
+        if hour_formulation not in ('legacy', 'paper_interval'):
+            raise ValueError("hour_formulation must be 'legacy' or 'paper_interval'.")
+        if hour_formulation == 'paper_interval':
+            if self.CHECK_LIST != ['A'] or not use_maintenance:
+                raise ValueError("paper_interval requires maintenance with only check A enabled.")
+            if use_paper_c13 or not use_existing_hrs:
+                raise ValueError("paper_interval requires opening hours and excludes use_paper_c13.")
+            if self.check_hrs['A'] <= 0 or any(
+                flight['duration'] <= 0 for flight in self.flight_data.values()
+            ) or any(hours < 0 for hours in self.init_check_hrs['A'].values()):
+                raise ValueError("paper_interval requires positive flight durations and threshold and nonnegative initial hours.")
         m = ConcreteModel()
         self.model = m
         if objective not in ('early_check', 'check_days'):
@@ -1286,13 +1300,16 @@ class MILP_Sheduler:
             if use_day_spacing:
                 self._add_c12_day_spacing(m)
                 self._add_c12b_initial_days(m)   # enforce first C/D check within remaining-days window
-            if use_existing_hrs:
-                self._add_c13b_existing_hrs(m)
-            self._add_c13_hr_accumulation(
-                m,
-                use_paper_c13=use_paper_c13,
-                use_tight_m=use_tight_c13_m,
-            )
+            if hour_formulation == 'paper_interval':
+                self._add_c13_paper_intervals(m)
+            else:
+                if use_existing_hrs:
+                    self._add_c13b_existing_hrs(m)
+                self._add_c13_hr_accumulation(
+                    m,
+                    use_paper_c13=use_paper_c13,
+                    use_tight_m=use_tight_c13_m,
+                )
             self._add_c15_no_flight_during_maint(m)
         if use_sanity:
             self._add_sanity(m)
@@ -2177,6 +2194,35 @@ class MILP_Sheduler:
         )
         threshold = self.check_hrs[c] * 60.0
         return max(0.0, upper_bound - threshold)
+
+    def _add_c13_paper_intervals(self, m):
+        """Add the paper's A-hour windows and opening prefixes, in minutes."""
+        m.c13 = ConstraintList()
+        m.c13b = ConstraintList()
+        days = sorted(self.days)
+        threshold = self.check_hrs['A'] * 60.0
+        for aircraft in m.P:
+            initial = self.init_check_hrs['A'].get(aircraft, 0.0) * 60.0
+            for end_index, end_day in enumerate(days):
+                flights = [flight for flight in self._f_dep_between_days(0, end_day)
+                           if self._x_has_arc(flight, aircraft)]
+                total = sum(self.flight_data[flight]['duration'] * m.x[flight, aircraft]
+                            for flight in flights) + 0 * m.y[aircraft, end_day, 'A']
+                upper = sum(self.flight_data[flight]['duration'] for flight in flights)
+                big_m = max(0.0, initial + upper - threshold)
+                earlier = sum(m.y[aircraft, day, 'A'] for day in days[:end_index])
+                m.c13b.add(initial + total <= threshold + big_m * earlier)
+                for start_index in range(end_index):
+                    start_day = days[start_index]
+                    flights = [flight for flight in self._f_dep_between_days(start_day, end_day)
+                               if self._x_has_arc(flight, aircraft)]
+                    total = sum(self.flight_data[flight]['duration'] * m.x[flight, aircraft]
+                                for flight in flights) + 0 * m.y[aircraft, end_day, 'A']
+                    big_m = self._c13_big_m('A', aircraft, start_day, end_day)
+                    middle = sum(m.y[aircraft, day, 'A']
+                                 for day in days[start_index + 1:end_index])
+                    m.c13.add(total <= threshold + big_m * (
+                        1 - m.y[aircraft, start_day, 'A'] + middle))
 
     def _add_c13_hr_accumulation(self, m, use_paper_c13=False,
                                  use_tight_m=False):

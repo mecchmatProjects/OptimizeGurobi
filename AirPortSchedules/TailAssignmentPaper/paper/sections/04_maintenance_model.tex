@@ -312,8 +312,10 @@ exposure period receive no flight-hour bound from Constraint~(13):
   conditions hold, but it is relaxed when $y_{j,n_d}=0$.
 \end{enumerate}
 For example, let $d_{\max}=3$, $T^A_{\max}=600$, $\Phi^A_j=0$, and $n_d=6$.
-The following daily data violate the limit, yet satisfy~(12) and every
-published Constraint~(13) row:
+The following aggregate daily patterns violate the limit, yet satisfy~(12)
+and every published Constraint~(13) row. They illustrate the hour-row
+logic only; they are not claimed to satisfy the flight-trigger placement
+constraints, which require an assigned arrival on every check day:
 \begin{itemize}
 \item consecutive checks: $y_j=(1,1,0,1,0,0)$ and $q_{j2}=700$, with
   zero flight time on the other days, give 700 minutes between the checks on
@@ -325,8 +327,9 @@ published Constraint~(13) row:
 \end{itemize}
 The interval rows~\eqref{eq:a_interval_hours}, imposed for all
 $1\le s<t\le n_d$, reject these schedules through the pairs $(1,2)$,
-$(1,4)$, and $(4,6)$, respectively; the opening
-prefix~\eqref{eq:a_opening_hours} covers the first case. The revised
+$(1,4)$, and $(4,6)$, respectively. The opening
+prefix~\eqref{eq:a_opening_hours} instead covers exposure before the first
+check, as illustrated below. The revised
 family therefore requires no assumption relating $T^A_{\max}$ to
 $d_{\max}$ or to the horizon length.
 
@@ -417,7 +420,7 @@ check, which supplies the relaxation in \eqref{eq:a_split_witness_bounds}.
 The example does not rely on removing the original calendar-spacing
 condition either. With $d_{\max}=4$, the two four-day windows $[1,4]$ and
 $[2,5]$ each contain a check. Moreover, $(s,t)=(1,4)$ belongs to the
-published index range $2\le t-s\le d_{\max}-1$, $t<n_d$ of
+published index range $2\le t-s\le d_{\max}-1$, $s<n_d$ of
 Constraint~(13) in \citet{khaled2018compact}.
 
 After the day-1 check, the aircraft accumulates 600 minutes on day 2 and
@@ -440,8 +443,8 @@ audit result.
 Physical situation & Original Constraint~(13) & Endpoint split / explicit windows \\
 \midrule
 Two consecutive checks at $s,t$, no check in between
-  & Active only if $2\le t-s\le d_{\max}-1$ and $t<n_d$; no row for
-    $t-s=1$, $t-s=d_{\max}$, or $t=n_d$
+  & Active only if $2\le t-s\le d_{\max}-1$ and $s<n_d$; no row for
+    $t-s=1$ or $t-s=d_{\max}$
   & Both split rows relax; the explicit $(s,t)$ interval is active \\
 Closing period after the last check
   & A row may be indexed, but is relaxed when the end day is not checked

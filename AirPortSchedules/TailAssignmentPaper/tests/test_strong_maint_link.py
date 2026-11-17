@@ -1,6 +1,10 @@
 import json
 import sys
+from itertools import product
 from pathlib import Path
+
+import pytest
+from pyomo.environ import Binary, ConcreteModel, Set, Var, value
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
@@ -9,6 +13,62 @@ from model import MILP_Sheduler, Scheduler
 
 
 SOURCE = ROOT / "data" / "feasible_family_smoke" / "A" / "DataCplex_density=0.5_p=4_h=7_test_0.json"
+
+
+def test_paper_hour_rows_match_independent_daily_counter():
+    scheduler = MILP_Sheduler.__new__(MILP_Sheduler)
+    scheduler.days = [1, 2, 3]
+    scheduler.flight_data = {
+        day: {"day_departure": day, "duration": 2} for day in scheduler.days
+    }
+    scheduler.x_arcs_set = {(day, 0) for day in scheduler.days}
+    scheduler.check_hrs = {"A": 3 / 60}
+    for initial in range(4):
+        scheduler.init_check_hrs = {"A": {0: initial / 60}}
+        model = ConcreteModel()
+        model.P = Set(initialize=[0])
+        model.D = Set(initialize=scheduler.days)
+        model.x = Var(model.D, model.P, domain=Binary)
+        model.y = Var(model.P, model.D, ["A"], domain=Binary)
+        scheduler._add_c13_paper_intervals(model)
+        assert len(model.c13) == 3
+        assert len(model.c13b) == 3
+        for assigned, checks in product(product((0, 1), repeat=3), repeat=2):
+            for day in scheduler.days:
+                model.x[day, 0].set_value(assigned[day - 1])
+                model.y[0, day, "A"].set_value(checks[day - 1])
+            exposure = initial
+            expected = True
+            for day in scheduler.days:
+                exposure += 2 * assigned[day - 1]
+                if exposure > 3:
+                    expected = False
+                if checks[day - 1]:
+                    exposure = 0
+            rows = list(model.c13.values()) + list(model.c13b.values())
+            actual = all(value(row.body) <= value(row.upper) + 1e-8 for row in rows)
+            assert actual == expected, (initial, assigned, checks)
+
+
+def test_paper_hour_profile_requires_a_only_and_opening_hours():
+    scheduler = MILP_Sheduler(str(SOURCE), enabled_checks=["A"])
+    with pytest.raises(ValueError, match="requires opening hours"):
+        scheduler.build_model(hour_formulation="paper_interval", use_existing_hrs=False)
+    with pytest.raises(ValueError, match="excludes use_paper_c13"):
+        scheduler.build_model(hour_formulation="paper_interval", use_paper_c13=True)
+    with pytest.raises(ValueError, match="only check A"):
+        scheduler.build_model(hour_formulation="paper_interval", use_maintenance=False)
+    scheduler.flight_data[scheduler.flight_ids[0]]["duration"] = -1
+    with pytest.raises(ValueError, match="positive flight durations"):
+        scheduler.build_model(hour_formulation="paper_interval")
+
+
+def test_paper_hour_profile_builds_all_day_pairs_and_prefixes():
+    scheduler = MILP_Sheduler(str(SOURCE), enabled_checks=["A"])
+    model = scheduler.build_model(hour_formulation="paper_interval", objective="check_days")
+    day_count = len(scheduler.days)
+    assert len(model.c13) == len(model.P) * day_count * (day_count - 1) // 2
+    assert len(model.c13b) == len(model.P) * day_count
 
 
 def test_memory_efficient_formulation_is_default(tmp_path):

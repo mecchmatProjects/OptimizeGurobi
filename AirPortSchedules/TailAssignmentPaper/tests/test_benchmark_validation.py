@@ -8,6 +8,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from benchmark_validation import (
+    validate_a_hour_exposure,
     validate_benchmark_certificate,
     verify_milp_certificate,
 )
@@ -32,6 +33,32 @@ def _instance():
         },
         "Parameters": {"Min_Turn_Minutes": 45},
     }
+
+
+def test_a_hour_replay_resets_consecutive_checks_and_includes_initial_hours():
+    instance = _instance()
+    instance["Flights"] = [
+        [0, "A", "A", 100, 200],
+        [1, "A", "A", 1540, 1640],
+        [2, "A", "A", 2980, 3080],
+    ]
+    instance["Maintenance_Thresholds"]["A"] = 150
+    certificate = {
+        "assignment": {"0": 0, "1": 0, "2": 0},
+        "maintenance_events": [
+            {"tail": 0, "check": "A", "station": "A", "start": 200, "end": 230},
+            {"tail": 0, "check": "A", "station": "A", "start": 1640, "end": 1670},
+        ],
+    }
+    assert validate_a_hour_exposure(instance, certificate) == []
+    certificate["maintenance_events"].pop()
+    violations = validate_a_hour_exposure(instance, certificate)
+    assert [(item["flight"], item["exposure_minutes"]) for item in violations] == [(2, 200)]
+    instance["Initial_Checks"]["A"]["0"] = 60
+    violations = validate_a_hour_exposure(instance, certificate)
+    assert [(item["flight"], item["exposure_minutes"]) for item in violations] == [
+        (0, 160), (2, 200)
+    ]
 
 
 def test_certificate_respects_configured_turn_and_is_milp_representable():

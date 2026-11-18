@@ -1,0 +1,43 @@
+[
+  {
+    "assignment": {
+      "1": 0,
+      "2": 0,
+      "3": 0
+    },
+    "maintenance_events": [
+      {
+        "tail": 0,
+        "check": "A",
+        "station": "M",
+        "start": 1320.0,
+        "end": 1350.0,
+        "release": 1355.0,
+        "trigger_flight": 1,
+        "model_day": 1
+      },
+      {
+        "tail": 0,
+        "check": "A",
+        "station": "M",
+        "start": 2760.0,
+        "end": 2790.0,
+        "release": 2795.0,
+        "trigger_flight": 2,
+        "model_day": 2
+      },
+      {
+        "tail": 0,
+        "check": "A",
+        "station": "M",
+        "start": 4200.0,
+        "end": 4230.0,
+        "release": 4235.0,
+        "trigger_flight": 3,
+        "model_day": 3
+      }
+    ],
+    "case": "option_ab_certified",
+    "profile_id": "option_b"
+  }
+]

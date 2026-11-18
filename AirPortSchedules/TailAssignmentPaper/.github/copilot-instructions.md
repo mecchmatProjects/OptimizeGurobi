@@ -43,20 +43,27 @@ constraint index, variable naming, the constraint (13) correction, and code conv
 - Decision variables: $x_{ij}$, $z_{ijdc}$, $y_{jdc}$, $\gamma_{jdc}$ (mega)
 - Big-M: $M_{dd'}$ (computed per day-pair, not a global constant)
 
-## Constraint (13) — Always Use the Corrected Version
+## Constraint (13) — Use Explicit Profiles
 
-When writing or suggesting code for the cumulative flight-hour constraint,
-**always use the corrected split formulation** (two constraints), not the
-original single-constraint version from the paper:
+Do not silently replace the published row or the historical endpoint split with
+a claimed correction. Preserve them as named controlled profiles:
+
+- `khaled_printed`: original single row on the printed day-pair domain;
+- `endpoint_split`: the historical two-row alternative, not an exact fix;
+- `corrected_a_interval`: all day pairs plus an opening prefix for exact A-hour
+  coverage under the day-boundary policy;
+- `option_a` / `option_b`: corrected A-only hour rows plus their timing policy.
+
+For corrected A-only code, use strict interval rows and opening prefixes:
 
 ```python
-# WRONG (original paper eq. 13):
-m.c13.add(t_sum <= T_max + M*(2 - y[j,d] - y[j,d_]) + M*y_sum)
-
-# CORRECT (use this):
-m.c13.add(t_sum <= T_max + M*y_sum + M*y[j,d])   # anchored at start
-m.c13.add(t_sum <= T_max + M*y_sum + M*y[j,d_])  # anchored at end
+m.c13.add(t_sum <= T_max + M * interior_checks)
+m.c13b.add(initial + prefix <= T_max + M0 * earlier_checks)
 ```
+
+The corrected prefix relaxes only on checks strictly before its end day. Its
+big-M must include pre-horizon exposure. Validate profile-specific results with
+the independent certificate replay, not with row satisfaction alone.
 
 ## Experiment Conventions
 

@@ -40,26 +40,25 @@ docs/heuristic_math.tex       Formal derivation of the greedy/insertion heuristi
 | `T_max`| Maximum cumulative flight hours between A/B checks |
 | `d_max`| Maximum calendar days between C/D checks |
 
-## Constraint (13) — The Correction (Central Paper Claim)
+## Constraint (13) — Profile-Specific Policy
 
-**Khaled et al. (2018) original** (eq. 13):
-```
-  Σ_{i ∈ F_{d,d'}} x_{ij} t_i  ≤  T_max + M*(2 − y_{jd} − y_{jd'}) + M * Σ_{r∈[d+1,d'−1]} y_{jr}
-```
-**Problem**: When `y[j,d]=0` (no check at start) and `y[j,d']=0` (no check at end),
-the big-M term `M*(2−0−0) = 2M` makes the constraint vacuous even in the case where
-two consecutive maintenance windows bound the interval. Flights in between are
-incorrectly allowed to exceed `T_max`.
+The printed Khaled row and the historical endpoint split are diagnostic legacy
+profiles, not exact A-hour models. The split repairs some endpoint patterns but
+misses the both-endpoints-checked interval. Preserve both only for controlled
+comparisons under an explicit printed day-pair range and calendar `d_max`.
 
-**Corrected formulation** (two constraints, each anchored at one endpoint):
+The shared corrected A-only profile is:
 ```
-  Σ x_{ij} t_i  ≤  T_max + M * y_sum + M * y[j,d]      (anchored at start)
-  Σ x_{ij} t_i  ≤  T_max + M * y_sum + M * y[j,d']     (anchored at end)
+  L_{d,d'} <= T_max + M_{dd'} * sum(y[r], r=d+1..d'-1)
+  Phi + P_t <= T_max + M0_t * sum(y[r], r=1..t-1)
 ```
-where `y_sum = Σ_{r ∈ [d+1,d'−1]} y_{jr}` (any intermediate check).
+for every `1 <= d < d' <= n_d` and every `t`. The opening prefix includes
+pre-horizon hours in both the left side and its big-M. Option A and Option B
+reuse these hour rows and differ only by overnight executability policy.
 
-Implementation: `src/model.py`, `MILP_Sheduler._add_c13_hr_accumulation()`,
-toggle via `use_paper_c13=True/False`.
+Implementation and named profiles are in `src/model.py`. Treat
+`event_historical_unverified` as audit-only until it passes the shared replay
+and counterexample battery.
 
 ## Code Conventions
 

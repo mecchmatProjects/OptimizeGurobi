@@ -645,6 +645,9 @@ class MILP_Sheduler:
     Cost_Matrix       : [[cost per (fid-1, aid_index)]]
     """
 
+    FORMULATION_ID = 'legacy_endpoint_split'
+    PROFILE_ID = 'legacy_base'
+    PAPER_ARRIVAL_DAY_PLACEMENT = False
     CHECK_LIST = ['A', 'B', 'C', 'D']
     DAY_SHIFT  = 24 * 60   # minutes in one planning day
     MIN_TURN   = 30        # minimum ground turnaround (minutes)
@@ -948,14 +951,29 @@ class MILP_Sheduler:
             apt = fd_i['destination']
             d_i = fd_i['day_arrival']
             arr_i = fd_i['arrivalTime']
-            same_day_deps = tuple(self._dep_flights_by_day_airport[(d_i, apt)])
-            escape = tuple(fid2 for fid2 in same_day_deps if self.flight_data[fid2]['departureTime'] > arr_i)
-            for ck in self.CHECK_LIST:
-                dur = self.check_dur[ck]
+            if self.PAPER_ARRIVAL_DAY_PLACEMENT:
+                same_day_deps = tuple(
+                    fid2 for fid2, other in self.flight_data.items()
+                    if other['day_departure'] == d_i
+                )
                 same_day_block = tuple(
                     fid2 for fid2 in same_day_deps
-                    if arr_i < self.flight_data[fid2]['departureTime'] <= arr_i + dur
+                    if fid2 != fid and self.flight_data[fid2]['departureTime'] >= arr_i
                 )
+                escape = same_day_block
+            else:
+                same_day_deps = tuple(self._dep_flights_by_day_airport[(d_i, apt)])
+                escape = tuple(
+                    fid2 for fid2 in same_day_deps
+                    if self.flight_data[fid2]['departureTime'] > arr_i
+                )
+            for ck in self.CHECK_LIST:
+                if not self.PAPER_ARRIVAL_DAY_PLACEMENT:
+                    dur = self.check_dur[ck]
+                    same_day_block = tuple(
+                        fid2 for fid2 in same_day_deps
+                        if arr_i < self.flight_data[fid2]['departureTime'] <= arr_i + dur
+                    )
                 self.c8_same_day_block[(fid, ck)] = same_day_block
                 self.c8_escape[(fid, ck)] = escape
                 for aid in self.aircraft_ids:
@@ -1178,7 +1196,9 @@ class MILP_Sheduler:
                     coverage_weight=1_000_000.0,
                     objective='early_check',
                     allow_checks_beyond_horizon=False,
-                    hour_formulation='legacy'):
+                    hour_formulation='legacy',
+                    c13_dmax=None,
+                    a_calendar_dmax=None):
         """Construct the ConcreteModel.  Call before solve().
 
         Parameters
@@ -1227,7 +1247,23 @@ class MILP_Sheduler:
             Select the legacy hour rows or the paper's type-A interval and
             opening-prefix rows. The latter requires only A and does not by
             itself implement the paper's placement or overnight policies.
+        c13_dmax : int | None
+            Explicit maximum calendar-day gap for legacy Khaled/split C13
+            indexing. ``None`` preserves the historical all-pairs extension.
+        a_calendar_dmax : int | None
+            Explicit A-check calendar-spacing window. ``None`` preserves the
+            historical A-hour-only behavior of this branch.
         """
+        if c13_dmax is not None and (isinstance(c13_dmax, bool) or c13_dmax < 2):
+            raise ValueError("c13_dmax must be an integer of at least 2.")
+        if a_calendar_dmax is not None and (
+            isinstance(a_calendar_dmax, bool) or a_calendar_dmax < 1
+        ):
+            raise ValueError("a_calendar_dmax must be a positive integer.")
+        self.c13_dmax = int(c13_dmax) if c13_dmax is not None else None
+        self.a_calendar_dmax = (
+            int(a_calendar_dmax) if a_calendar_dmax is not None else None
+        )
         if hour_formulation not in ('legacy', 'paper_interval'):
             raise ValueError("hour_formulation must be 'legacy' or 'paper_interval'.")
         if hour_formulation == 'paper_interval':
@@ -1297,9 +1333,10 @@ class MILP_Sheduler:
                 self._add_over_horizon_check_occupancy(m)
             else:
                 self._add_c14b_check_duration(m)
-            if use_day_spacing:
+            if use_day_spacing or self.a_calendar_dmax is not None:
                 self._add_c12_day_spacing(m)
-                self._add_c12b_initial_days(m)   # enforce first C/D check within remaining-days window
+                if self.a_calendar_dmax is None:
+                    self._add_c12b_initial_days(m)   # enforce first C/D check within remaining-days window
             if hour_formulation == 'paper_interval':
                 self._add_c13_paper_intervals(m)
             else:
@@ -1309,6 +1346,7 @@ class MILP_Sheduler:
                     m,
                     use_paper_c13=use_paper_c13,
                     use_tight_m=use_tight_c13_m,
+                    c13_dmax=self.c13_dmax,
                 )
             self._add_c15_no_flight_during_maint(m)
         if use_sanity:
@@ -1316,6 +1354,17 @@ class MILP_Sheduler:
         
         #input("Model built. Press Enter to continue...")  # Debug pause to inspect model before solving
         return m
+
+    def profile_settings(self):
+        """Return the formulation identity needed for provenance records."""
+        return {
+            "formulation_id": self.FORMULATION_ID,
+            "profile_id": self.PROFILE_ID,
+            "enabled_checks": list(self.CHECK_LIST),
+            "c13_dmax": getattr(self, "c13_dmax", None),
+            "a_calendar_dmax": getattr(self, "a_calendar_dmax", None),
+            "max_hour_check_deferral_days": self.max_hour_check_deferral_days,
+        }
 
     def _add_sets_and_variables(self, m):
         """Define Pyomo Sets and Var declarations on model m."""
@@ -2115,8 +2164,10 @@ class MILP_Sheduler:
         m.c12 = ConstraintList()
         days = sorted(self.days)
         n    = len(days)
-        for c in self.CHECK_LIST:  # Only C/D have calendar-day intervals; A/B are flight-hour types
+        for c in self.CHECK_LIST:
             ival = self.check_days[c]
+            if c == 'A' and self.a_calendar_dmax is not None:
+                ival = self.a_calendar_dmax
             if ival is None:        # flight-hour threshold type: skip
                 continue
             if ival >= n:           # interval >= horizon: window never filled, skip
@@ -2225,7 +2276,7 @@ class MILP_Sheduler:
                         1 - m.y[aircraft, start_day, 'A'] + middle))
 
     def _add_c13_hr_accumulation(self, m, use_paper_c13=False,
-                                 use_tight_m=False):
+                                 use_tight_m=False, c13_dmax=None):
         m.c13 = ConstraintList()
         days  = sorted(self.days)
         n     = len(days)
@@ -2241,6 +2292,8 @@ class MILP_Sheduler:
                 for si in range(n - 1):
                     for ei in range(si + 2, n):
                         d,  d_ = days[si], days[ei]
+                        if c13_dmax is not None and d_ - d > c13_dmax - 1:
+                            continue
                         t_sum  = sum(
                             self.flight_data[i]['duration'] * m.x[i, j]
                             for i in self._f_dep_between_days(d, d_)
@@ -2532,7 +2585,8 @@ class MILP_Sheduler:
     # ------------------------------------------------------------------
 
     def solve(self, solver_name='cplex', tee=False, out_path=None,
-              time_limit=None, warm_start=False, executable=None):
+              time_limit=None, warm_start=False, executable=None,
+              solver_options=None):
         """Invoke the solver on the built model.
 
         Parameters
@@ -2563,6 +2617,8 @@ class MILP_Sheduler:
 
         solver_kwargs = {'executable': str(executable)} if executable else {}
         solver = SolverFactory(solver_name, **solver_kwargs)
+        for option, option_value in (solver_options or {}).items():
+            solver.options[option] = option_value
 
         # --- solver-specific time-limit options ---
         _sn = solver_name.lower()
@@ -2611,7 +2667,11 @@ class MILP_Sheduler:
         lo, hi, gap, nodes = extract_bounds(res)
         cpu = time.perf_counter() - started
 
-        summary = dict(status=str(tc), n_vars=n_var, n_cons=n_con,
+        summary = dict(formulation=self.FORMULATION_ID,
+                       profile_id=self.PROFILE_ID,
+                       c13_dmax=getattr(self, "c13_dmax", None),
+                       a_calendar_dmax=getattr(self, "a_calendar_dmax", None),
+                       status=str(tc), n_vars=n_var, n_cons=n_con,
                        gap=gap, cpu=cpu, obj=obj_v, dual_bound=lo,
                        primal_bound=hi, nodes=nodes,
                        solution_loaded=self.solution_loaded,
@@ -2789,6 +2849,211 @@ class MILP_Sheduler:
         aid_list  = sorted(self.aircraft_ids)
         _plot_gantt(events, aid_list, unassigned_ids=[], save_path=save_path,
                     show=show, title=f'MILP Aircraft Schedule ({termination_of(self.results)})', fname=fname)
+
+
+class KhaledPrintedC13Scheduler(MILP_Sheduler):
+    """A-only control profile for the displayed Khaled C13 row."""
+
+    FORMULATION_ID = 'khaled_published_a'
+    PROFILE_ID = 'khaled_printed'
+    CHECK_LIST = ['A']
+
+    def __init__(self, data_path, a_calendar_dmax, **kwargs):
+        if isinstance(a_calendar_dmax, bool) or int(a_calendar_dmax) < 2:
+            raise ValueError("a_calendar_dmax must be an integer of at least 2.")
+        self.legacy_a_dmax = int(a_calendar_dmax)
+        kwargs['enabled_checks'] = ['A']
+        kwargs['max_hour_check_deferral_days'] = 0
+        super().__init__(data_path, **kwargs)
+
+    def build_model(self, **kwargs):
+        kwargs.setdefault('use_existing_hrs', False)
+        kwargs.setdefault('use_overlap', False)
+        kwargs['hour_formulation'] = 'legacy'
+        kwargs['use_paper_c13'] = True
+        kwargs['c13_dmax'] = self.legacy_a_dmax
+        kwargs['a_calendar_dmax'] = self.legacy_a_dmax
+        return super().build_model(**kwargs)
+
+
+class EndpointSplitC13Scheduler(MILP_Sheduler):
+    """A-only endpoint split matched to the Khaled control profile."""
+
+    FORMULATION_ID = 'endpoint_split_a'
+    PROFILE_ID = 'endpoint_split'
+    CHECK_LIST = ['A']
+
+    def __init__(self, data_path, a_calendar_dmax, **kwargs):
+        if isinstance(a_calendar_dmax, bool) or int(a_calendar_dmax) < 2:
+            raise ValueError("a_calendar_dmax must be an integer of at least 2.")
+        self.legacy_a_dmax = int(a_calendar_dmax)
+        kwargs['enabled_checks'] = ['A']
+        kwargs['max_hour_check_deferral_days'] = 0
+        super().__init__(data_path, **kwargs)
+
+    def build_model(self, **kwargs):
+        kwargs.setdefault('use_existing_hrs', False)
+        kwargs.setdefault('use_overlap', False)
+        kwargs['hour_formulation'] = 'legacy'
+        kwargs['use_paper_c13'] = False
+        kwargs['c13_dmax'] = self.legacy_a_dmax
+        kwargs['a_calendar_dmax'] = self.legacy_a_dmax
+        return super().build_model(**kwargs)
+
+
+class CorrectedAOnlyScheduler(MILP_Sheduler):
+    """Shared corrected A-only day-boundary model for Option A/B work."""
+
+    FORMULATION_ID = 'corrected_a_interval'
+    PROFILE_ID = 'corrected_a_interval'
+    CHECK_LIST = ['A']
+    PAPER_ARRIVAL_DAY_PLACEMENT = True
+
+    def __init__(self, data_path, a_calendar_dmax=None, **kwargs):
+        if a_calendar_dmax is not None:
+            if isinstance(a_calendar_dmax, bool) or int(a_calendar_dmax) < 2:
+                raise ValueError("a_calendar_dmax must be an integer of at least 2.")
+            a_calendar_dmax = int(a_calendar_dmax)
+        self.corrected_calendar_dmax = a_calendar_dmax
+        kwargs['enabled_checks'] = ['A']
+        kwargs['max_hour_check_deferral_days'] = 0
+        super().__init__(data_path, **kwargs)
+
+    def build_model(self, **kwargs):
+        kwargs['hour_formulation'] = 'paper_interval'
+        kwargs['use_existing_hrs'] = True
+        kwargs['use_paper_c13'] = False
+        kwargs['use_overlap'] = True
+        kwargs['use_global_maint_trigger'] = False
+        kwargs['use_day_spacing'] = self.corrected_calendar_dmax is not None
+        kwargs['c13_dmax'] = None
+        kwargs['a_calendar_dmax'] = self.corrected_calendar_dmax
+        return super().build_model(**kwargs)
+
+
+class OptionAExecutableScheduler(CorrectedAOnlyScheduler):
+    """Corrected A-only model with fixed-earliest overnight executability."""
+
+    FORMULATION_ID = 'corrected_a_option_a'
+    PROFILE_ID = 'option_a'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        try:
+            from .benchmark_validation import certify_option_a_input
+        except ImportError:
+            from benchmark_validation import certify_option_a_input
+        self.option_certification = certify_option_a_input(self.data)
+
+    def _unsupported_summary(self):
+        return {
+            'formulation': self.FORMULATION_ID,
+            'profile_id': self.PROFILE_ID,
+            'status': 'unsupported',
+            'n_vars': 0,
+            'n_cons': 0,
+            'gap': None,
+            'cpu': 0.0,
+            'obj': None,
+            'dual_bound': None,
+            'primal_bound': None,
+            'nodes': None,
+            'solution_loaded': False,
+            'has_incumbent': False,
+            'errors': list(self.option_certification['errors']),
+        }
+
+    def build_model(self, **kwargs):
+        if self.option_certification['status'] == 'UNSUPPORTED':
+            self.model = None
+            return None
+        kwargs['use_capacity'] = False
+        model = super().build_model(**kwargs)
+        model.c_option_a_timing = ConstraintList()
+        model.c_option_a_capacity = ConstraintList()
+        buffers = self.data['Maintenance_Buffers']['A']
+        windows = self.data['Maintenance_Service_Windows']
+        terminal = self.data.get('Terminal_Release_Minutes', {})
+        duration = self.check_dur['A']
+        self.option_a_events = {}
+        events_by_station = {}
+
+        for index in model.Z:
+            flight, aircraft, day, check = index
+            if check != 'A':
+                continue
+            station = self.flight_data[flight]['destination']
+            arrival = self.flight_data[flight]['arrivalTime']
+            aircraft_buffer = buffers[str(aircraft)]
+            lower, upper = windows[station][str(day)]
+            start = max(arrival + float(aircraft_buffer['preparation']), float(lower))
+            completion = start + duration
+            release = completion + float(aircraft_buffer['release'])
+            deadline = terminal.get(str(aircraft))
+            invalid = completion > float(upper) or (
+                deadline is not None and release > float(deadline)
+            )
+            if invalid:
+                model.z[index].fix(0)
+                continue
+
+            self.option_a_events[index] = {
+                'station': station,
+                'start': start,
+                'completion': completion,
+                'release': release,
+            }
+            events_by_station.setdefault(station, []).append((index, start, completion))
+            for following, assigned_aircraft in model.X:
+                departure = self.flight_data[following]['departureTime']
+                if assigned_aircraft == aircraft and arrival <= departure < release:
+                    model.c_option_a_timing.add(
+                        model.z[index] + model.x[following, aircraft] <= 1
+                    )
+
+        for station, events in events_by_station.items():
+            emitted = set()
+            for _index, start, _completion in events:
+                active = tuple(
+                    index for index, other_start, other_completion in events
+                    if other_start <= start < other_completion
+                )
+                signature = tuple(sorted(active, key=str))
+                if signature in emitted:
+                    continue
+                emitted.add(signature)
+                model.c_option_a_capacity.add(
+                    sum(model.z[index] for index in active)
+                    <= self.station_cap[station]
+                )
+        return model
+
+    def solve(self, *args, **kwargs):
+        if self.model is None and self.option_certification['status'] == 'UNSUPPORTED':
+            return self._unsupported_summary()
+        return super().solve(*args, **kwargs)
+
+
+class OptionBProtectedScheduler(OptionAExecutableScheduler):
+    """Option A equations on inputs certified for a protected night."""
+
+    FORMULATION_ID = 'corrected_a_option_b'
+    PROFILE_ID = 'option_b'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        try:
+            from .benchmark_validation import certify_option_b_input
+        except ImportError:
+            from benchmark_validation import certify_option_b_input
+        self.option_b_certification = certify_option_b_input(self.data)
+
+    def build_model(self, **kwargs):
+        if self.option_b_certification['status'] == 'UNSUPPORTED':
+            self.option_certification = self.option_b_certification
+            self.model = None
+            return None
+        return super().build_model(**kwargs)
 
 
 # ----------------------------

@@ -8,6 +8,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from benchmark_validation import (
+    certify_option_a_input,
+    certify_option_b_input,
     validate_a_hour_exposure,
     validate_benchmark_certificate,
     verify_milp_certificate,
@@ -71,6 +73,96 @@ def test_certificate_respects_configured_turn_and_is_milp_representable():
 
     assert report["status"] == "PASS"
     assert report["milp_representable"]
+
+
+def test_certificate_strict_a_hour_mode_rejects_pre_check_overrun():
+    instance = _instance()
+    instance["Maintenance_Thresholds"]["A"] = 100
+    certificate = {
+        "assignment": {"0": 0, "1": 0},
+        "maintenance_events": [
+            {"tail": 0, "check": "A", "station": "A", "start": 225, "end": 255}
+        ],
+    }
+
+    legacy = validate_benchmark_certificate(instance, certificate)
+    corrected = validate_benchmark_certificate(
+        instance, certificate, strict_a_hour_limit=True
+    )
+
+    assert legacy["status"] == "PASS"
+    assert corrected["status"] == "FAIL"
+    assert any("A-hour limit" in error for error in corrected["errors"])
+
+
+def test_certificate_checks_duration_release_turn_and_capacity_semantics():
+    instance = _instance()
+    instance["Aircrafts"] = [0, 1]
+    instance["AIRCRAFT_INIT_POS"] = {"0": "A", "1": "B"}
+    instance["Cost_Matrix"] = [[1, 1], [1, 1]]
+    instance["Initial_Checks"]["A"] = {"0": 0, "1": 0}
+    certificate = {
+        "assignment": {"0": 0, "1": 0},
+        "maintenance_events": [
+            {"tail": 0, "check": "A", "station": "B", "start": 120, "end": 150},
+            {"tail": 1, "check": "A", "station": "B", "start": 120, "end": 150},
+        ],
+    }
+
+    release_report = validate_benchmark_certificate(
+        instance, certificate, post_maintenance_turn=20
+    )
+    duration_report = validate_benchmark_certificate(
+        instance,
+        {**certificate, "maintenance_events": [
+            {"tail": 0, "check": "A", "station": "B", "start": 120, "end": 140},
+            certificate["maintenance_events"][1],
+        ]},
+    )
+    simultaneous_report = validate_benchmark_certificate(
+        instance,
+        {"assignment": {"0": 0, "1": 0}, "maintenance_events": [
+            {"tail": 0, "check": "A", "station": "B", "start": 120, "end": 150},
+            {"tail": 1, "check": "A", "station": "B", "start": 150, "end": 180},
+        ]},
+        capacity_semantics="simultaneous",
+    )
+    daily_report = validate_benchmark_certificate(
+        instance,
+        {"assignment": {"0": 0, "1": 0}, "maintenance_events": [
+            {"tail": 0, "check": "A", "station": "B", "start": 120, "end": 150},
+            {"tail": 1, "check": "A", "station": "B", "start": 150, "end": 180},
+        ]},
+        capacity_semantics="daily",
+    )
+
+    assert any("overlapping activity" in error for error in release_report["errors"])
+    assert any("expected 30" in error for error in duration_report["errors"])
+    assert simultaneous_report["status"] == "PASS"
+    assert daily_report["status"] == "FAIL"
+    assert any("daily capacity" in error for error in daily_report["errors"])
+
+
+def test_option_a_and_b_certification_are_explicit_and_independent():
+    instance = _instance()
+    instance["Maintenance_Buffers"] = {
+        "A": {"0": {"preparation": 0, "release": 5}}
+    }
+    instance["Maintenance_Service_Windows"] = {
+        "A": {"1": [300, 400]},
+        "B": {"1": [300, 400]},
+    }
+    instance["Protected_Maintenance_Periods"] = {"1": [300, 360]}
+    instance["Terminal_Release_Minutes"] = {"0": 360}
+
+    assert certify_option_a_input(instance)["status"] == "SUPPORTED"
+    assert certify_option_b_input(instance)["status"] == "SUPPORTED"
+
+    unsupported = json.loads(json.dumps(instance))
+    unsupported["Flights"][0][3:5] = [100, 320]
+    report = certify_option_b_input(unsupported)
+    assert report["status"] == "UNSUPPORTED"
+    assert any("protected period" in error for error in report["errors"])
 
 
 def test_day_start_maintenance_is_flagged_as_not_milp_representable():

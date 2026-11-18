@@ -3,23 +3,168 @@
 \label{sec:computational}
 %%==========================================================================
 
-No computational performance claims are made in this manuscript. Although
-the workspace contains exploratory A-only solver outputs, the current
-executable model does not implement the interval and opening-period rows
-\eqref{eq:a_interval_hours}--\eqref{eq:a_opening_hours} as stated here.
-Those outputs therefore cannot validate the formulation presented in this
-paper. The available records also do not provide a complete, matching bundle
-of source revision, instance hashes, solver configuration, and independently
-replayed schedules for the reported runs.
+\subsection{Controlled profile validation}
 
-The older tables have consequently been removed rather than presented as
-reproductions: the repository's instance generator produces synthetic
-instances, whereas the published study generated its 400 test instances from
-a real airline data set that is not available here, and the two generation
-procedures have not been shown to match.
-A valid evaluation requires implementing the stated formulation, freezing
-the exact source and input files, and recording solver version, time limit,
-termination status, incumbent and bound, model size, runtime, and independent
-schedule-validation results for each instance. Until those checks are
-complete, this section makes no claims about solution quality, scalability, or
-comparative performance.
+The first validated run for this branch is a controlled formulation check on
+\path{data/validation/option_ab_certified.json}. The instance has one aircraft,
+three flights, a three-day horizon, $T^A_{\max}=100$ minutes, a 30-minute
+check duration, and protected nightly windows. It is certified for Option~B.
+The Khaled and endpoint-split profiles use $d_{\max}=4$, zero-day check
+deferral, no opening-hour row, no overlap correction, and the printed A-policy
+calendar-spacing domain. The corrected, Option~A, and Option~B profiles use
+arrival-day triggers, overlap rows, all interval pairs and opening prefixes,
+including initial exposure. This is a shared-input formulation audit, not a
+reproduction of the generated or real-data grids in
+\citet{khaled2018compact}.
+
+All five runs use CPLEX~12.9.0.0, one thread, presolve on, and a 60-second
+wall-clock limit. The driver records input and source hashes, solver settings,
+model dimensions, bounds, termination status, and saved decisions. Every
+loaded schedule is independently replayed for coverage, continuity, turn
+time, maintenance timing, release, capacity and accumulated type-A hours;
+Option~A and Option~B use simultaneous-bay replay. The results are summarized
+in \Cref{tab:profile_validation}.
+
+\begin{table}[t]
+\centering\small
+\caption{Controlled profile validation on the Option-B-certified fixture.
+The single-instance agreement is not a proof of general equivalence and does
+not support a runtime ranking.}
+\label{tab:profile_validation}
+\begin{tabular}{lrrrrl}
+\toprule
+Profile & Status & Objective & Variables & Constraints & Replay \\
+\midrule
+Khaled printed & optimal & 300 & 15 & 25 & pass \\
+Endpoint split & optimal & 300 & 15 & 26 & pass \\
+Corrected A interval & optimal & 300 & 15 & 30 & pass \\
+Option A & optimal & 300 & 15 & 30 & pass \\
+Option B & optimal & 300 & 15 & 30 & pass \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The identical objective is a consequence of the chosen fixture: the 100-minute
+limit makes a check on each of the three nights necessary, regardless of the
+hour-row formulation. It therefore tests implementation identity, replay and
+Option~A/Option~B projection on a certified input, not the C13 counterexamples.
+On this instance the Option~A and Option~B models have the same assignment,
+trigger and hour-row domains and return the same objective. No statistical or
+performance conclusion follows from one instance or from sub-second solve
+times.
+
+\subsection{Paired CPLEX timing comparison}
+
+For a timing comparison, we generated 10 deterministic instances in each of
+four fleet/horizon cells $(|P|,H)\in\{(3,4),(3,5),(5,4),(5,5)\}$ using
+\texttt{experiments/generate\_profile\_timing.py}. The instances have
+route-connected spoke--MRO rotations, varied seeded costs, $T^A_{\max}=180$
+minutes, a four-day A-calendar spacing limit, and service/protected periods
+that certify Option~B. Each generated assignment certificate was independently
+replayed before it entered the timing family. All five profiles used identical
+JSON inputs within each replicate, CPLEX~12.9.0.0, one thread, presolve on,
+the \texttt{early\_check} objective, and a 180-second limit. Each input and
+profile output records SHA256 input/source hashes, solver details, bounds,
+model size, timings and replay status.
+
+\begin{table*}[t]
+\centering\scriptsize
+\caption{Paired CPLEX timing study over 10 certified inputs per fleet/horizon
+cell. Wall time is mean $\pm$ sample standard deviation in seconds; all 10
+runs per profile were optimal. Replay counts are shown as pass/fail. Times are
+descriptive for this small synthetic family, not a general speed ranking.}
+\label{tab:profile_timing}
+\begin{tabular}{rrlrrr}
+\toprule
+$|P|$ & $H$ & Profile & Wall time (s) & Replay pass & Replay fail \\
+\midrule
+3 & 4 & Khaled printed & $0.0533\pm0.0142$ & 5 & 5 \\
+3 & 4 & Endpoint split & $0.0630\pm0.0111$ & 10 & 0 \\
+3 & 4 & Corrected A interval & $0.0578\pm0.0078$ & 10 & 0 \\
+3 & 4 & Option A & $0.0580\pm0.0079$ & 10 & 0 \\
+3 & 4 & Option B & $0.0599\pm0.0072$ & 10 & 0 \\
+3 & 5 & Khaled printed & $0.0620\pm0.0035$ & 0 & 10 \\
+3 & 5 & Endpoint split & $0.0724\pm0.0170$ & 0 & 10 \\
+3 & 5 & Corrected A interval & $0.0669\pm0.0016$ & 10 & 0 \\
+3 & 5 & Option A & $0.0658\pm0.0018$ & 10 & 0 \\
+3 & 5 & Option B & $0.0669\pm0.0013$ & 10 & 0 \\
+5 & 4 & Khaled printed & $0.0841\pm0.0168$ & 0 & 10 \\
+5 & 4 & Endpoint split & $0.1013\pm0.0188$ & 10 & 0 \\
+5 & 4 & Corrected A interval & $0.0834\pm0.0033$ & 10 & 0 \\
+5 & 4 & Option A & $0.0882\pm0.0089$ & 10 & 0 \\
+5 & 4 & Option B & $0.0833\pm0.0022$ & 10 & 0 \\
+5 & 5 & Khaled printed & $0.1013\pm0.0026$ & 0 & 10 \\
+5 & 5 & Endpoint split & $0.1139\pm0.0057$ & 0 & 10 \\
+5 & 5 & Corrected A interval & $0.1089\pm0.0025$ & 10 & 0 \\
+5 & 5 & Option A & $0.1138\pm0.0054$ & 10 & 0 \\
+5 & 5 & Option B & $0.1079\pm0.0016$ & 10 & 0 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{figures/profile_timing_20261118.png}
+\caption{Per-seed CPLEX wall times for the five profiles in each fleet/horizon
+cell. Colored points denote independent inputs; red crosses mark schedules
+that failed strict A-hour replay. Black diamonds and whiskers show the mean and
+one sample standard deviation. Replay counts appear beneath each profile.}
+\label{fig:profile_timing_distributions}
+\end{figure}
+
+On the common certified inputs, Option~A and Option~B returned the same
+objective in all 40 pairs; Option~A was faster in 18 of 40 pairs, with mixed
+cell-level signs. Their geometric-mean wall-time ratios (Option~A over
+Option~B) by $(|P|,H)$ were 0.967, 0.983, 1.054 and 1.054. This is a
+descriptive comparison on one constructed family, not evidence that either
+policy is generally faster. The Khaled and split profiles solved all cases
+optimally but their schedules failed the strict A-hour replay in 35 and 20
+cases, respectively; their runtimes are therefore diagnostic and are not
+feasible-quality baselines. Raw per-run records and certificates are stored in
+\path{results/tables/profile_timing_*_cplex129_20261118.csv} with matching
+metadata, schedules and source archives.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.88\linewidth]{figures/option_a_b_paired_timing_20261118.png}
+\caption{Paired Option A and Option B wall times on the same certified inputs.
+The dashed diagonal denotes equal runtime. Every pair had equal optimal
+objectives and both schedules passed independent replay; point position is
+descriptive and does not establish a general runtime advantage.}
+\label{fig:option_a_b_timing}
+\end{figure}
+
+\subsection{Unsupported-input control}
+
+A second fixture, \path{data/validation/option_b_unsupported.json}, contains a
+day-1 flight whose arrival is too late for the declared protected period.
+The Option~B pre-solve certificate returns ``unsupported'' with the reason
+that the flight is not finished before the protected period. The runner
+records zero variables, zero constraints and no incumbent. This is deliberately
+not labelled infeasible: the same input need not be rejected by Option~A if an
+executable service time exists.
+
+\subsection{Event-model audit status}
+
+The historical event formulation has been recovered from the paperEJOR branch
+as an audit-only profile, \texttt{event\_historical\_unverified}. A fixed
+schedule in which 120 accumulated minutes exceed a 100-minute A limit before a
+check is rejected by an actual E-hour constraint and by independent replay.
+This closes the specific known-bad-schedule regression, but it does not
+establish full event-model equivalence. Event objectives and timings remain
+excluded from result tables until the same route, capacity, calendar and
+counterexample battery passes on a wider certified fixture set.
+
+\subsection{Artifacts and limitations}
+
+The five supported outputs are stored as
+\path{results/tables/profile_*_20261118.csv}, with matching
+\path{.metadata.json}, \path{.schedules.json} and \path{.sources.zip}
+sidecars. The unsupported control is stored as
+\path{profile_option_b_unsupported_20261118.csv}. The final test baseline is
+87 passing tests, including independent certificate, C13, C8, Option~A,
+Option~B and event-counterexample tests. The current experiment does not
+cover larger fleets, heterogeneous airport networks, multiple maintenance
+bays, overnight flights, Gurobi, or solver-runtime variability. Synthetic
+instances remain distinct from the real-airline-derived study in
+\citet{khaled2018compact}; no claim of reproducing that benchmark is made.

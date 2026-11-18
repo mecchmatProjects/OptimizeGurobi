@@ -1,0 +1,43 @@
+[
+  {
+    "assignment": {
+      "1": 0,
+      "2": 0,
+      "3": 0
+    },
+    "maintenance_events": [
+      {
+        "tail": 0,
+        "check": "A",
+        "station": "M",
+        "start": 160.0,
+        "end": 190.0,
+        "release": 190.0,
+        "trigger_flight": 1,
+        "model_day": 1
+      },
+      {
+        "tail": 0,
+        "check": "A",
+        "station": "M",
+        "start": 1600.0,
+        "end": 1630.0,
+        "release": 1630.0,
+        "trigger_flight": 2,
+        "model_day": 2
+      },
+      {
+        "tail": 0,
+        "check": "A",
+        "station": "M",
+        "start": 3040.0,
+        "end": 3070.0,
+        "release": 3070.0,
+        "trigger_flight": 3,
+        "model_day": 3
+      }
+    ],
+    "case": "option_ab_certified",
+    "profile_id": "endpoint_split"
+  }
+]

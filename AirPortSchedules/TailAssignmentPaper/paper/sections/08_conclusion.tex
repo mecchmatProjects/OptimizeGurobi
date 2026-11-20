@@ -36,19 +36,17 @@ flight-hour violations for the six
 strengthened legacy optima and the four optimal schedules from each Event-based
 method in the CPLEX run. The original paper-C13 and endpoint-split
 formulations produce 663 and 183 flight-hour replay violations, respectively,
-across the six CPLEX-selected schedules. A matched Gurobi~11.0.3 rerun returns
-the same objective values but yields 672 and 200 violations, respectively.
-These differing totals show that replay counts depend on the selected optimal
-schedule and should not be interpreted as invariant formulation properties.
-Nevertheless, every replayed schedule from these two formulations fails the
-independent hour audit. All six corrected schedules and the four optimal
-Event-based schedules per method pass in the CPLEX run; all six Gurobi
-schedules per corrected or Event-based method pass. Gurobi also proves
-optimality for the four larger Event-based cases that reached the CPLEX time
-limit, and those Gurobi schedules pass replay. The audit checks event timing,
-capacity, flight blocking, and flight-hour feasibility. New uniform runs
-replay every loaded incumbent, including time-limited ones, and save the
-decisions for a separate artifact-level cost and feasibility audit.
+across the six CPLEX-selected schedules. An archival Gurobi~11.0.3 batch has
+the same all-fail pattern for those two deficient rows and an all-pass pattern
+for the exact/event rows, but its six input SHA256 values differ from the
+current paperEJOR JSON files. It is therefore not a matched solver comparison
+and is excluded from paired numerical claims. The branch-compatible Gurobi
+scale batches do, however, reproduce the exact-state feasibility conclusion:
+all returned strengthened-legacy and optimized-event incumbents pass replay.
+The audit checks event timing, capacity, flight blocking, and flight-hour
+feasibility. New uniform runs replay every loaded incumbent, including
+time-limited ones, and save the decisions for artifact-level cost and
+feasibility checks.
 
 The larger A-only runs extend the scale check to 752 flights and 50 aircraft.
 They reinforce the need for independent replay: the original row and endpoint
@@ -71,17 +69,20 @@ the P=5/10 cells returns identical optima for the two uniform encodings in all
 per cell, with modest effect sizes and a contrary sign in the earlier CPLEX
 three-seed subset. This evidence is descriptive and does not
 establish a statistical performance ranking or solver-independent dominance.
-A matched Gurobi run supports the objective and feasibility conclusions, but
-its solver-selected replay counts differ for the two deficient hour
-formulations. The computational evidence uses one configuration per solver;
-timings remain descriptive and do not establish solver-independent or
-statistically isolated performance differences.
+Branch-compatible Gurobi files support the retained feasibility and scale
+claims, but the archival five-method files cannot establish a matched
+cross-solver comparison because their exact inputs are unavailable. The
+computational evidence uses one configuration per solver; timings remain
+descriptive and do not establish solver-independent or statistically isolated
+performance differences.
 
 \paragraph{Reproducibility.}
 The project contains the model implementations, deterministic instance
-generator, benchmark scripts, result tables, source snapshots, saved schedules,
-provenance sidecars and plotting scripts needed to reproduce the reported
-snapshots. The legacy, event, and
+generator, benchmark scripts, audited CPLEX tables, hash-audited Gurobi CSVs,
+source snapshots, saved schedules, provenance sidecars and plotting scripts.
+The Gurobi provenance audit identifies 64 current-match input hashes and 66
+missing unique input hashes; these 66 JSON snapshots are the remaining artifact
+requirement for full replay of every supplied Gurobi batch. The legacy, event, and
 ordered A-only builders remain separately selectable so comparisons can
 distinguish model semantics from implementation choices.
 
@@ -91,10 +92,10 @@ distinguish model semantics from implementation choices.
   \item \textbf{Larger A-only benchmark families:} repeat the horizon and
     fleet-size experiments over multiple seeds and heterogeneous timetable
     structures, reporting solver variability and confidence intervals.
-  \item \textbf{Solver and configuration robustness:} extend the initial
-    CPLEX--Gurobi cross-check across multiple solver configurations, including
-    presolve, time limits, and warm-start policies, and report variability in
-    both runtimes and replay outcomes.
+  \item \textbf{Solver and configuration robustness:} first restore the 66
+    missing Gurobi input JSON hashes identified by the provenance audit, then
+    rerun input-matched CPLEX--Gurobi comparisons across presolve, time-limit,
+    and warm-start policies and report runtime and replay variability.
   \item \textbf{Integrated fleet assignment and routing:} extend the corrected
     compact model while retaining physically executable route constraints.
   \item \textbf{Robust and recoverable variants:} study uncertainty in flight

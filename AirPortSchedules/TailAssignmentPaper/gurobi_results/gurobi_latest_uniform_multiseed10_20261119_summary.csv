@@ -1,0 +1,2 @@
+formulation,cases,performance_cases,performance_optimal,performance_infeasible,mean_vars,mean_constraints,mean_cpu_s,mean_wall_s
+uniform_flexible_event,40,40,40,0,4418.5,13934.25,1.500318,2.110838

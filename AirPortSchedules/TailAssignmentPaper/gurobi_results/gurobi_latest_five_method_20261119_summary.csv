@@ -1,0 +1,3 @@
+formulation,cases,performance_cases,performance_optimal,performance_infeasible,mean_vars,mean_constraints,mean_cpu_s,mean_wall_s
+event_based_optimized,6,6,6,0,4458.333,13934.167,2.176989,2.942177
+event_based_flex,6,6,6,0,6486.0,21551.833,23.237689,24.388201

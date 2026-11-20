@@ -1,0 +1,3 @@
+instance,scenario,window_start_day,window_end_day,real_flight_minutes,T_max_minutes,paper_c13_rows_satisfied,paper_c13b_rows_violated,legacy_split_c13b_rows_violated,legacy_split_rows_satisfied,exact_state_h_at_end_day,exact_state_violation,split_missed_it,paper_c13_inactive_by_design,opening_gap_detected,independent_replay_violations,input_sha256
+c13_loophole_test.json,both endpoints checked (lem:c13_split_limit),1,4,1200.0,600.0,False,0,0,True,1200.0,True,True,False,False,1,98e2c25d0d7d8d8e287c476b872e0acbb035a87a16e2f21f98ff17cc6f9c36a5
+c13_loophole_test.json,ending check; opening interval (lem:c13_opening_gap),1,4,610.0,600.0,True,0,0,False,620.0,True,False,True,True,1,db59af059737389cc1d248c0e904c689ea30cb9d99bc60e5abc162b4fbcdebdd

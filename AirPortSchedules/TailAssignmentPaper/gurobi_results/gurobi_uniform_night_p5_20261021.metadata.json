@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "runs": [
+    {
+      "git_revision": "50baafc932551874c9b7b2fa84bf1b7812d65260",
+      "python": "3.12.4",
+      "pyomo": "6.10.1",
+      "sources": {
+        "experiments\\run_four_method_suite.py": "920a0b25fdec3f4333d19307a88462f33e26e326ca041547f40b2bdedd219e82",
+        "src\\model.py": "2e2f4a11b218716c2f8073eacefe01e74bb9e9a7c241b11437949ffda8a8a14b",
+        "src\\compact_a_event_model.py": "69b7e2336dd2a09fa9513dc5ad1e6feb9014c33f7e382b340ee2d8e7886d983c",
+        "src\\generate_feasible_instances.py": "111b2a7a58c16e45c3c6792a48ec62544c5b5bafe80e4622635528c650c2faf0",
+        "src\\generate_instances.py": "dbf75cf082f1789d52cf844ef4aa53c56b70bd8a27e9a626191d25f83d7e0377",
+        "src\\validate_maintenance.py": "9f8494b6e191e329c75d82f5e9ce7168895327c5f261e857c5bf912692a776d8"
+      },
+      "inputs": {
+        "data\\five_method_longflight_e14_e21_compact\\perf_p=5_h=29.json": {
+          "sha256": "6637f61c198838443deffd52d90c0bfd18d703929afd08faebd0740148969e24",
+          "P": 5,
+          "observed_H": 30,
+          "F": 74,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\five_method_longflight_e14_e21_compact\\perf_p=5_h=49.json": {
+          "sha256": "15e245a720efe10ed60ded983fca4e2680dde8f0e4ff6ca8aab4c6cc7a817dbc",
+          "P": 5,
+          "observed_H": 48,
+          "F": 80,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        }
+      },
+      "configuration": {
+        "methods": [
+          "uniform_night_day",
+          "uniform_night_event"
+        ],
+        "effective_enabled_checks": [
+          "A"
+        ],
+        "solver": "gurobi",
+        "solver_version": "11.0.3",
+        "executable": "C:\\gurobi1103\\win64\\python311\\bin\\python.exe",
+        "time_limit_s": 180,
+        "threads": 1,
+        "presolve_configuration": "presolve_on",
+        "warm_start": false,
+        "legacy_max_hour_check_deferral_days": null,
+        "lp_relaxation": false,
+        "event_based_optimized_policy": "immediate-after-trigger-flight",
+        "event_based_flex_max_deferral_minutes": 1440.0,
+        "policies": {
+          "uniform_night_day": {
+            "policy_id": "fixed_2200_start_day_cap_v1",
+            "day_indexed_z": true,
+            "maximum_start_deferral_minutes": 1440.0,
+            "time_grid_minutes": 1.0,
+            "one_check_per": "aircraft_actual_start_calendar_day",
+            "capacity": "simultaneous_half_open_bay_occupancy",
+            "calendar_spacing_requirement": null,
+            "night_start_minute": 1320
+          },
+          "uniform_night_event": {
+            "policy_id": "fixed_2200_start_day_cap_v1",
+            "day_indexed_z": false,
+            "maximum_start_deferral_minutes": 1440.0,
+            "time_grid_minutes": 1.0,
+            "one_check_per": "aircraft_actual_start_calendar_day",
+            "capacity": "simultaneous_half_open_bay_occupancy",
+            "calendar_spacing_requirement": null,
+            "night_start_minute": 1320
+          }
+        }
+      },
+      "result_csv_sha256": "85eb11351a76f2728ff02b67e769a8cd2e317885905c12c0a245c1459cfef2d8",
+      "source_snapshot": "gurobi_uniform_night_p5_20261021.sources.zip",
+      "source_snapshot_sha256": "2f7b1e3c9592d4bcf0b916a79165d31eb5309106f4c747a7164f0a2e4df9183c",
+      "schedule_sha256": "e8a4792829bda76491d39cff43daf0ead1ac7fc34e2b9c8acee3005c4cae8069"
+    }
+  ]
+}

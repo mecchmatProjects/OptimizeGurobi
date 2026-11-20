@@ -1,0 +1,45 @@
+{
+  "git_revision": "50baafc932551874c9b7b2fa84bf1b7812d65260",
+  "python": "3.12.4",
+  "pyomo": "6.10.1",
+  "source_sha256": "2e2f4a11b218716c2f8073eacefe01e74bb9e9a7c241b11437949ffda8a8a14b",
+  "original_input": "D:\\Optimize\\TailAssignmentPaper\\data\\instances\\event_vs_legacy_clean_test.json",
+  "original_input_sha256": "cf895d399308ec8797500951372e8b311dc8373a61cf886ca3f6b5e961ba1878",
+  "transformed_input_sha256": "86023fc26e0ff06864d90d546dc4f474355e88b5020a8293cda866e89f819a54",
+  "profile": {
+    "maintenance_families": [
+      "A"
+    ],
+    "initial_a_hours": {
+      "0": 0.0,
+      "1": 0.0
+    },
+    "a_threshold_minutes": 100000.0,
+    "legacy_deferral_days": 0,
+    "pruning_precondition": "initial A hours plus total assignable A-only flight hours <= threshold",
+    "tail_bounds": {
+      "0": {
+        "initial_a_hours": 0.0,
+        "max_assignable_flight_hours": 20.0,
+        "sum_hours": 20.0,
+        "threshold_hours": 1666.6666666666667,
+        "precondition_holds": true
+      },
+      "1": {
+        "initial_a_hours": 0.0,
+        "max_assignable_flight_hours": 20.0,
+        "sum_hours": 20.0,
+        "threshold_hours": 1666.6666666666667,
+        "precondition_holds": true
+      }
+    }
+  },
+  "solver": {
+    "name": "gurobi",
+    "version": "11.0.3",
+    "executable": "C:\\gurobi1103\\win64\\python311\\bin\\python.exe",
+    "time_limit_s": 60,
+    "threads": 1
+  },
+  "results_csv_sha256": "d0e0ae3f1c9b07b2bb5297d7e447257106f9853b0590d7d0c2a1558a33540d16"
+}

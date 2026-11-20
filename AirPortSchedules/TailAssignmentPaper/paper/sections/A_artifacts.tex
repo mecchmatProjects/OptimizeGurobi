@@ -7,10 +7,11 @@
 All instances, model code, drivers, raw result tables, saved schedules and
 provenance sidecars (input hashes, solver configuration, source snapshots) are
 part of the replication package. \Cref{tab:artifacts} maps each experiment of
-\Cref{sec:computational} to its inputs and raw outputs. Result files are in
-\path{results/tables/} and carry the suffix \path{.metadata.json} (provenance)
-and \path{.schedules.json} (saved decisions) where applicable; drivers are in
-\path{experiments/}.
+\Cref{sec:computational} to its inputs and raw outputs. CPLEX and non-Gurobi
+results are in \path{results/tables/}; Gurobi CSVs, schedules, source snapshots
+and metadata are in \path{gurobi_results/}. Result files carry the suffix
+\path{.metadata.json} (provenance) and \path{.schedules.json} (saved decisions)
+where applicable; drivers are in \path{experiments/}.
 
 \begin{table}[h]
 \centering\scriptsize
@@ -18,7 +19,7 @@ and \path{.schedules.json} (saved decisions) where applicable; drivers are in
 \label{tab:artifacts}
 \begin{tabularx}{\linewidth}{p{0.27\linewidth} p{0.21\linewidth} X}
 \toprule
-Experiment & Inputs (\path{data/}) & Raw results (\path{results/tables/}) \\
+Experiment & Inputs (\path{data/}) & Raw results (directory named in row) \\
 \midrule
 C13 row verification & \path{instances/c13_loophole_test.json} & \path{c13_conditional_rows_20261021.csv}; Gurobi fixed-schedule check \path{gurobi_c13_fixed_schedules_20261021.csv} \\
 C5 impact & matched instances (below) and \path{feasible_instances/} & \path{c5_impact_20261021.csv} (driver \path{c5_impact_study.py}) \\
@@ -35,7 +36,17 @@ A-check pruning & modified six-flight control & \path{a_check_pruning_20261020.c
 Uniform flexible study & matched instances & \path{uniform_flexible_main_20261021.csv}; Gurobi: \path{gurobi_uniform_flexible_20261021.csv} \\
 Fixed 22:00 restriction & matched instances (P=5/10) & \path{uniform_night_subset_20261021.csv}; Gurobi: \path{gurobi_uniform_night_p5_20261021.csv}, \path{gurobi_uniform_night_p10_20261021.csv} \\
 Three-seed uniform study & \path{a_only_multiseed_20261020/} & \path{uniform_flexible_multiseed_20261021.csv}; Gurobi: \path{gurobi_uniform_multiseed_20261021.csv} \\
-Ten-seed uniform study (Gurobi) & \path{a_only_multiseed10_20261021/} & \path{gurobi_uniform_multiseed10_20261021.csv} \\
+Ten-seed uniform study (Gurobi) & \path{a_only_multiseed10_20261021/} & \path{gurobi_results/gurobi_uniform_multiseed10_20261021.csv} \\
 \bottomrule
 \end{tabularx}
 \end{table}
+
+The complete Gurobi folder contains older branch-compatible artifacts and
+20261119 refreshes. CSV and sidecar hashes validate for all 22 metadata records.
+Only the A-only 20/30-aircraft, 40/50-aircraft, uniform-large and ten-seed batches
+match 64 distinct current-branch input hashes and support the quantitative
+Gurobi claims. The other records reference 66 distinct missing JSON hashes.
+The five-method Gurobi table is therefore retained as an archival diagnostic,
+not as an input-matched CPLEX comparison. The machine-readable exception list
+is \path{gurobi_results/provenance_audit.json}; rerunning every supplied
+Gurobi batch requires restoring those exact JSON bytes.

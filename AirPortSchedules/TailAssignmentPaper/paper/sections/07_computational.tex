@@ -9,15 +9,16 @@
 All models are implemented in Python with Pyomo~\citep{pyomo2023}. The
 primary exact solves use IBM ILOG CPLEX~12.6~\citep{cplex2023} through Pyomo's
 AMPL interface, one thread, presolve enabled and a 180-second wall-clock limit
-unless stated otherwise. A complete cross-check with Gurobi~11.0.3
-\citep{gurobi2024} (one thread, default presolve, same limit) is reported in
-\Cref{subsec:solver_sensitivity}. On Windows, Pyomo's Gurobi shell interface
-runs through the Python interpreter bundled with Gurobi, and a model without
-a feasible incumbent returns no solution; our drivers preserve that
-termination status and do not extract a schedule in that case. The CPLEX
-version is old, so absolute timings should not be read as state-of-the-art
-solver performance; the Gurobi runs show that objective values do not depend
-on this choice.
+unless stated otherwise. Gurobi~11.0.3 \citep{gurobi2024} is used for the
+large-scale and replication batches identified in
+\Cref{subsec:p4050,subsec:large_a_only,subsec:ten_seed}. On Windows, Pyomo's Gurobi shell
+interface runs through the Python interpreter bundled with Gurobi, and a model
+without a feasible incumbent returns no solution; the drivers preserve that
+termination status and do not extract a schedule. The CPLEX version is old, so
+absolute timings are not state-of-the-art solver benchmarks. Gurobi artifacts
+are not pooled blindly: \Cref{subsec:gurobi_provenance} separates batches
+whose 64 distinct input hashes are present on this branch from archival runs
+whose exact JSON inputs are missing.
 
 The instance families are generated deterministically from a seeded
 round-trip-rotation generator that certifies each designated rotation with an
@@ -314,58 +315,53 @@ that agreement is not an optimality certificate. The original-paper and
 endpoint-split models return lower objectives, but their CPLEX-selected
 schedules exceed the A-hour threshold (663 and 183 replay violations across
 the six cases, respectively); those objectives are not feasible-quality
-comparisons. The solver sensitivity of these counts is examined below.
+comparisons. The archival Gurobi diagnostic below is not an input-matched
+solver-sensitivity estimate for these CPLEX schedules.
 The optimized Event-based model has fewer variables than strengthened legacy
 on three of six cells; averaged over all six, its variable count is slightly
 higher. Neither Event-based formulation consistently reduces constraints or
 timing. These results are limited to this generated family and solver setup.
 
-\subsubsection{Cross-solver check with Gurobi}
+\subsubsection{Archival Gurobi five-method diagnostic}
 \label{subsec:solver_sensitivity}
-To assess whether the replay counts depend on the optimizer-selected
-schedule, we reran the same six hashed instances with Gurobi~11.0.3, one
-thread, presolve enabled, and the same 180-second limit. All 30 runs returned
-incumbents and terminated with an optimal status under the solver's default
-MIP-gap tolerance; the event-flex run at $P=15$, $H=49$ had a residual gap of
-0.0041\%. A separate zero-gap run closed this gap at the same objective.
-Objectives for each formulation-instance pair matched the CPLEX results.
-Table~\ref{tab:replay_solver_sensitivity} compares the independent
-flight-hour replay counts for the two formulations whose returned schedules
-failed that audit.
+The supplied \texttt{gurobi\_results} directory contains a 30-run Gurobi~11.0.3
+five-method batch with valid CSV, schedule and source-snapshot hashes. All 30
+runs report an optimal status under the solver's default MIP-gap tolerance;
+the event-flex run at $P=15$, $H=49$ has a residual gap of 0.0041\%, and a
+separate zero-gap rerun closes it at the same objective. However, the six input
+SHA256 values in that batch do not match the six current paperEJOR inputs, and
+the exact JSON files are not present in the source snapshot. It is therefore an
+archival, Gurobi-only sensitivity result, not a matched CPLEX--Gurobi comparison
+and not part of the audited input package.
+
+All 12 original-C13 and endpoint-split Gurobi incumbents fail the independent
+hour audit, whereas all 18 strengthened-legacy and Event-based incumbents pass.
+\Cref{tab:replay_solver_sensitivity} reports the Gurobi-only violation counts
+for the two deficient rows. The counts characterize the selected schedules;
+they must not be compared numerically with the CPLEX table on the current six
+JSON files.
 
 \begin{table}[t]
 \centering\small
-\caption{Flight-hour replay violations in solver-selected optimal schedules
-on the six matched A-only instances. Counts characterize the returned
-schedules, not the formulations alone.}
+\caption{Archival Gurobi-only replay violations for the two deficient hour
+rows. These six inputs are metadata-hashed but their exact JSON files are not
+available in the paperEJOR package; the table is not a matched solver pairing.}
 \label{tab:replay_solver_sensitivity}
-\begin{tabular}{rrrrrr}
+\begin{tabular}{rrrr}
 \toprule
- & & \multicolumn{2}{c}{Original paper C13} &
- \multicolumn{2}{c}{Endpoint split} \\
-\cmidrule(lr){3-4}\cmidrule(lr){5-6}
-$|P|$ & $H$ & CPLEX & Gurobi & CPLEX & Gurobi \\
+$|P|$ & $H$ & Original paper C13 & Endpoint split \\
 \midrule
-5  & 30 & 51  & 51  & 17 & 15 \\
-5  & 48 & 60  & 60  & 15 & 15 \\
-10 & 30 & 106 & 106 & 30 & 30 \\
-10 & 49 & 120 & 117 & 30 & 37 \\
-15 & 30 & 158 & 158 & 46 & 47 \\
-15 & 49 & 168 & 180 & 45 & 56 \\
+5  & 30 & 51  & 15 \\
+5  & 48 & 60  & 15 \\
+10 & 30 & 106 & 30 \\
+10 & 49 & 117 & 37 \\
+15 & 30 & 158 & 47 \\
+15 & 49 & 180 & 56 \\
 \midrule
-Total & & 663 & 672 & 183 & 200 \\
+Total & & 672 & 200 \\
 \bottomrule
 \end{tabular}
 \end{table}
-
-The totals differ between solvers despite matching objective values,
-demonstrating that multiple optimal schedules can yield different replay
-counts. In both runs, however, every original-C13 and endpoint-split
-incumbent failed the independent hour audit, while all strengthened-legacy
-and Event-based incumbents passed. The Gurobi run also proved optimality for
-the four P=15 Event-based cases that reached the CPLEX time limit; their
-schedules passed replay. Raw results, schedules and provenance for these runs
-are listed in \Cref{app:artifacts}.
 
 \subsubsection{Ten-seed Gurobi replication of the uniform encodings}
 \label{subsec:ten_seed}
@@ -645,6 +641,28 @@ independent schedule validation.
 
 
 
+\subsection{Gurobi provenance coverage}
+\label{subsec:gurobi_provenance}
+
+The Gurobi export was audited before use. All 22 metadata records hash their
+corresponding CSV, schedule and source-snapshot files. Of 130 distinct input
+SHA256 values referenced by those records, 64 are present in the current
+paperEJOR data and 66 are not. The metadata-bearing, branch-compatible Gurobi
+evidence consists of the 20261021 A-only 20/30-aircraft runs, the 20261021
+uniform large runs, the 20261022 40/50-aircraft runs, and the 20261021 ten-seed
+uniform replication. These are the Gurobi files retained for formulation and
+scale claims below; the separate C5 raw studies are identified in the artifact
+index but do not have metadata sidecars.
+
+The 20261021 five-method, historical multiseed, repaired-prefix, uniform-flexible,
+and night-policy batches, together with every 20261119 \texttt{latest} batch,
+refer to absent JSON bytes or to a regeneration that differs from the current
+paperEJOR files. Their source snapshots are not substitutes for the input
+JSON. They remain archival diagnostics, with the five-method diagnostic
+reported only as Gurobi-only sensitivity in
+\Cref{subsec:solver_sensitivity}. The exact missing hashes and affected
+metadata records are listed in \path{gurobi_results/provenance_audit.json}.
+
 \subsection{Scale check with 40 and 50 aircraft}
 \label{subsec:p4050}
 
@@ -654,12 +672,13 @@ with Gurobi, one thread and a 200\,s limit per solve. Replay rows count
 violations in the returned incumbent. The published row alone
 (\emph{legacy paper}) was solved to optimality in all 12 cases but violates
 the flight-hour limit in every one (mean 480 violations); the endpoint split
-was optimal in 6 of 12 cases and its incumbents violate the limit in all 12;
-the exact-state row with a pre-check guard was optimal in 6 of 12 and
-otherwise stopped with a mean gap of 0.86\%, and its incumbents were
-violation-free throughout; the event-indexed model returned a violation-free
-incumbent in all 12 cases but proved none optimal within the limit (mean gap
-1.5\%). Solution times of the exact formulations therefore grow faster with
+was optimal in 6 of 12 cases and returned nine incumbents, all of which fail
+the hour audit, while three runs returned no incumbent. The exact-state row
+with a pre-check guard was optimal in 6 of 12 and otherwise stopped with a
+mean gap of 0.86\%; all 12 returned incumbents were violation-free. The
+event-indexed model returned nine violation-free incumbents and no schedule in
+three cases, proved none optimal within the limit, and had a mean gap of 1.5\%
+on the returned incumbents. Solution times of the exact formulations therefore grow faster with
 fleet size than those of the unsafe rows, which solve quickly because they
 admit infeasible plans. At this scale the claim that exact-state formulations
 never violate the limit holds for every incumbent returned, but optimality
@@ -711,17 +730,19 @@ Uniform flexible event & 3/12 & 582.0 & 1.52 & Pass, 6/12; 6 not run \\
 \subsection{Discussion and limitations}
 \label{subsec:robustness}
 
-Three findings are supported by the experiments. First, C5 removes the
-non-executable assignments addressed by the corner case, which occurs in the
-timetables used. Its computational cost depends on instance size and costs:
-larger instances have more rows and can require more solution time
-(\Cref{subsec:c5_impact}). Second, schedules
-produced by the published cumulative-flight-time row and its endpoint split in
-isolation violate the flight-hour limit in every replayed instance, with both
-solvers, whereas the exact-state formulations never do
-(\Cref{subsec:solver_sensitivity}). Third, the day- and event-indexed uniform
-encodings return identical optima and, on this family, comparable solution
-times (\Cref{subsec:ten_seed}).
+Three findings are supported by the auditable experiments. First, C5 removes
+the non-executable assignments addressed by the corner case, which occurs in
+the timetables used. Its computational cost depends on instance size and
+costs: larger instances have more rows and can require more solution time
+(\Cref{subsec:c5_impact}). Second, every schedule returned by the published
+cumulative-flight-time row and endpoint split fails the audited CPLEX hour
+replay. The branch-compatible 20/30-aircraft Gurobi batch independently has the
+same failure pattern, whereas the exact-state formulations pass on every
+returned incumbent. The archival five-method Gurobi sensitivity batch is
+consistent but is excluded from a direct solver pairing because its inputs are
+absent (\Cref{subsec:solver_sensitivity}). Third, the day- and event-indexed
+uniform encodings return identical optima and, on the 40-input branch-compatible
+family, comparable solution times (\Cref{subsec:ten_seed}).
 
 The study has clear limits. All instances are synthetic. The matched families
 contain at most 240 flights and 15 aircraft; selected scale checks extend to
@@ -730,8 +751,9 @@ benchmark protocol. The experiments use a single maintenance hub and A checks
 only, and no real airline timetable has been evaluated. The six
 matched cells use one seed each; the replication subsets cover only the
 P=5/10 cells. CPLEX~12.6 and Gurobi~11.0.3 are used with one configuration
-each, so timing comparisons are descriptive, and the replay counts depend on
-which optimal schedule the solver returns. Larger fleets, varied airport
+each, so timing comparisons are descriptive. The provenance audit finds 66
+unique missing input hashes for otherwise archived Gurobi runs; those runs are
+excluded from input-matched claims. Larger fleets, varied airport
 networks and station capacities, non-zero initial flight-hour counters, B/C/D
 checks, and the full nightly and calendar-spacing policy of Khaled et al.\ are
 not covered.

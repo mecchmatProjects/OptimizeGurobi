@@ -1,0 +1,7 @@
+scenario,formulation,gurobi_status,has_solution,objective,replay_violations,scope
+both_endpoints_checked,paper_c13,infeasible,False,,,fixed whole-model schedule
+both_endpoints_checked,endpoint_split,infeasible,False,,,fixed whole-model schedule; C13 row itself is relaxed
+both_endpoints_checked,exact_state,infeasible,False,,,fixed whole-model schedule
+ending_check_only,paper_c13,optimal,True,400.0,1,fixed whole-model schedule accepted; independent replay finds hour violation
+ending_check_only,endpoint_split,infeasible,False,,,fixed whole-model schedule
+ending_check_only,exact_state,infeasible,False,,,fixed whole-model schedule

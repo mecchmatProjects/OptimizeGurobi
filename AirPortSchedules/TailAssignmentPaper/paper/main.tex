@@ -83,7 +83,7 @@
 \item The published flight-hour row alone yields schedules that fail an audit
 \item Exact hour-state and event-based A-check formulations are proved correct
 \item Day- and event-indexed encodings give equal optima in 80 Gurobi runs
-\item Results cross-checked with CPLEX and Gurobi; code and data are released
+\item Branch-compatible Gurobi replication and scale artifacts are hash-audited
 \end{highlights}
 
 \begin{abstract}
@@ -98,16 +98,19 @@ non-executable plans in four of seven instances, and in all twelve instances
 with 300--452 flights. Second, we show that the
 published cumulative-flight-time row is a valid conditional bound but, alone or
 in a two-row endpoint split, does not enforce the flight-hour limit: on six
-matched instances every schedule returned by CPLEX and by Gurobi for these rows
-fails an independent replay audit, whereas exact-state formulations with
-pre-horizon exposure and a pre-check guard never do. Third, we give
+audited CPLEX instances every returned schedule for these rows fails an
+independent replay audit, whereas exact-state formulations with pre-horizon
+exposure and a pre-check guard never do. A separate archival Gurobi batch has
+the same pass/fail pattern but is not used as a matched cross-solver study
+because its exact input JSON files are unavailable. Third, we give
 flexible-start, hour-limited A-check formulations indexed by day or by event,
 prove them equivalent by substitution, and find identical optima and
 comparable solution times in 80 Gurobi runs. Selected synthetic scale checks
 extend to 752 flights and 50 aircraft, but do not reproduce the full Khaled
 benchmark protocol; the study uses A checks only and no real airline timetable.
 Khaled et al.'s full nightly and calendar-spacing policy is not modelled. Code,
-instances, raw results and provenance data are provided.
+instances, raw results and provenance sidecars are provided; a Gurobi-specific
+audit identifies the exact missing JSON hashes for archival-only reruns.
 \end{abstract}
 
 \begin{keyword}

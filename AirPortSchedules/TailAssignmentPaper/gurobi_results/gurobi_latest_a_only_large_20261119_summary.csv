@@ -1,0 +1,2 @@
+formulation,cases,performance_cases,performance_optimal,performance_infeasible,mean_vars,mean_constraints,mean_cpu_s,mean_wall_s
+event_based_optimized,12,12,9,0,24412.5,74230.5,135.572597,139.701479

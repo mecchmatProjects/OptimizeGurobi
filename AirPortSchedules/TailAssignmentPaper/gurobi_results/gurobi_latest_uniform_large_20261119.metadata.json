@@ -1,0 +1,202 @@
+{
+  "schema_version": 1,
+  "runs": [
+    {
+      "git_revision": "68034b0ec2742b99e220621ef80c2ee6e5b4eb9a",
+      "python": "3.12.4",
+      "pyomo": "6.10.1",
+      "sources": {
+        "experiments\\run_four_method_suite.py": "a9dca6e38f29439ab5507023cdf64f3fb85ecd08d573eeef444ff170dd6813a2",
+        "experiments\\refresh_cplex_study.py": "2ec174a368ea75274ebb453e71276260cf4ebad8fef870830eddb00e1dde5b29",
+        "experiments\\report_uniform_study.py": "b33bfcabc36158de42fede9bde2885f371f4319d2d9816d3e4109ab41fb7ca00",
+        "src\\model.py": "773750ce59f7d3adaca4e6f086878addad8dce2f8c41008a90a004aff789c5ac",
+        "src\\compact_a_event_model.py": "69b7e2336dd2a09fa9513dc5ad1e6feb9014c33f7e382b340ee2d8e7886d983c",
+        "src\\generate_feasible_instances.py": "111b2a7a58c16e45c3c6792a48ec62544c5b5bafe80e4622635528c650c2faf0",
+        "src\\generate_instances.py": "dbf75cf082f1789d52cf844ef4aa53c56b70bd8a27e9a626191d25f83d7e0377",
+        "src\\validate_maintenance.py": "034ec4d364a6bd378e73b9aa05b4c24843071618297b48e479ac6041d30a5b88"
+      },
+      "inputs": {
+        "data\\a_only_large_20261021\\perf_p=20_h=15_r=0.json": {
+          "sha256": "530f9654a7bfc2b4d13763a409401ed2c145a12eb068f6fdc88ba16109fb8c7c",
+          "P": 20,
+          "observed_H": 16,
+          "F": 300,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_large_20261021\\perf_p=20_h=15_r=1.json": {
+          "sha256": "8198a65dea9c5d8abbfff6cdb70f03161809afbfd09a56b6189d2f04b652d010",
+          "P": 20,
+          "observed_H": 16,
+          "F": 300,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_large_20261021\\perf_p=20_h=15_r=2.json": {
+          "sha256": "1ee932a7bf5e6a4898f5472ccd52e3df0677d9372673f429439456d210bc7125",
+          "P": 20,
+          "observed_H": 16,
+          "F": 300,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_large_20261021\\perf_p=20_h=30_r=0.json": {
+          "sha256": "70b564b5169596c211331098c5f85944c33c489a0f0a980f62d01f594dee86bb",
+          "P": 20,
+          "observed_H": 31,
+          "F": 300,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_large_20261021\\perf_p=20_h=30_r=1.json": {
+          "sha256": "4dc9b762a8fb67824fb027405a438699f55ee953f6103f9a00eb94931608b47d",
+          "P": 20,
+          "observed_H": 31,
+          "F": 300,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_large_20261021\\perf_p=20_h=30_r=2.json": {
+          "sha256": "46884d23f1f1e0df5c9972470e45ae19c9fe6c8fc0d3927fc8cb7b1db2d6852a",
+          "P": 20,
+          "observed_H": 31,
+          "F": 300,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_large_20261021\\perf_p=30_h=15_r=0.json": {
+          "sha256": "bd7f642793229d6fc5a722dd7c1b0948d4967b4eca5479cf8fbb16331a1d31d0",
+          "P": 30,
+          "observed_H": 16,
+          "F": 450,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_large_20261021\\perf_p=30_h=15_r=1.json": {
+          "sha256": "be0e226caf459bb476ca3b5e1235c04be2de69277667c05f2781785ee5efa24d",
+          "P": 30,
+          "observed_H": 16,
+          "F": 450,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_large_20261021\\perf_p=30_h=15_r=2.json": {
+          "sha256": "5931a627f1756b76a1c8d9c0d52a76042aa8a775152181537e846130895f9633",
+          "P": 30,
+          "observed_H": 16,
+          "F": 450,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_large_20261021\\perf_p=30_h=30_r=0.json": {
+          "sha256": "cd1eaf50a562a7a9294d8a9c64d1f53ce5908070796a9af2f4bfacfc19a21d3b",
+          "P": 30,
+          "observed_H": 31,
+          "F": 452,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_large_20261021\\perf_p=30_h=30_r=1.json": {
+          "sha256": "9b36646145bdc869fb1b610e3f652ff30bcbf845fc7357aff93196c164d7a0c2",
+          "P": 30,
+          "observed_H": 31,
+          "F": 452,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\a_only_large_20261021\\perf_p=30_h=30_r=2.json": {
+          "sha256": "28fd539f149031cd391bca3f2c5a99d778d5bd1dfa703022e32d2bf57163861d",
+          "P": 30,
+          "observed_H": 31,
+          "F": 452,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        }
+      },
+      "configuration": {
+        "methods": [
+          "uniform_flexible_event"
+        ],
+        "effective_enabled_checks": [
+          "A"
+        ],
+        "solver": "gurobi",
+        "solver_version": "11.0.3",
+        "executable": "C:\\gurobi1103\\win64\\python311\\bin\\python.exe",
+        "time_limit_s": 600,
+        "threads": 1,
+        "presolve_configuration": "presolve_on",
+        "warm_start": false,
+        "legacy_max_hour_check_deferral_days": null,
+        "legacy_c13_dmax": null,
+        "lp_relaxation": false,
+        "event_based_optimized_policy": "immediate-after-trigger-flight",
+        "event_based_flex_max_deferral_minutes": 1440.0,
+        "policies": {
+          "uniform_flexible_event": {
+            "policy_id": "flexible_start_day_cap_v1",
+            "day_indexed_z": false,
+            "maximum_start_deferral_minutes": 1440.0,
+            "time_grid_minutes": 1.0,
+            "one_check_per": "aircraft_actual_start_calendar_day",
+            "capacity": "simultaneous_half_open_bay_occupancy",
+            "calendar_spacing_requirement": null,
+            "night_start_minute": null
+          }
+        }
+      },
+      "result_csv_sha256": "67884fc3d371cac1bd96c45daff49a3cd9db9a999156f6432127b634b964a6c0",
+      "source_snapshot": "gurobi_latest_uniform_large_20261119.sources.zip",
+      "source_snapshot_sha256": "157c73bc9a6e56be4e4e56472ee82626c019079f9d7e252d863e317a0724e102",
+      "schedule_sha256": "93ea57540e268263ace8bb95a1be468d1faa9d315f9294f9c3c665dcf9c19c04"
+    }
+  ]
+}

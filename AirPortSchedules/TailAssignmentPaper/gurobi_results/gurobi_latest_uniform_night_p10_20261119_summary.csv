@@ -1,0 +1,2 @@
+formulation,cases,performance_cases,performance_optimal,performance_infeasible,mean_vars,mean_constraints,mean_cpu_s,mean_wall_s
+uniform_night_event,2,2,2,0,7090.5,23119.5,1.243156,2.156276

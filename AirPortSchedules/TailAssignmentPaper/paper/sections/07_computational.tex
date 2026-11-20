@@ -112,32 +112,181 @@ one sample standard deviation. Replay counts appear beneath each profile.}
 \label{fig:profile_timing_distributions}
 \end{figure}
 
-On the common certified inputs, Option~A and Option~B returned the same
-objective in all 40 pairs; Option~A was faster in 18 of 40 pairs, with mixed
-cell-level signs. Their geometric-mean wall-time ratios (Option~A over
-Option~B) by $(|P|,H)$ were 0.967, 0.983, 1.054 and 1.054. This is a
-descriptive comparison on one constructed family, not evidence that either
-policy is generally faster. The Khaled and split profiles solved all cases
-optimally but their schedules failed the strict A-hour replay in 35 and 20
-cases, respectively; their runtimes are therefore diagnostic and are not
-feasible-quality baselines. Raw per-run records and certificates are stored in
-\path{results/tables/profile_timing_*_cplex129_20261118.csv} with matching
-metadata, schedules and source archives.
+The 40-input comparison above contains one solve per input/profile and is
+suitable for formulation and replay control, but not for attributing small
+runtime differences. To estimate within-input variability, the exact
+corrected, Option~A and Option~B profiles were therefore solved three times on
+every input, giving 120 runs per profile and 30 paired observations per
+fleet/horizon cell. All 360 runs were optimal and all loaded schedules passed
+independent replay. \Cref{tab:profile_timing_repeats} reports mean and sample
+standard deviation over those 30 observations; these values remain
+workstation timings rather than isolated microbenchmarks.
+
+\begin{table*}[t]
+\centering\scriptsize
+\caption{Three-solve repeat study for exact formulations. Each
+fleet/horizon cell contains 10 inputs and three solves per input; all 30 runs
+per profile were optimal and replay-passing.}
+\label{tab:profile_timing_repeats}
+\begin{tabular}{rrlrrrr}
+\toprule
+$|P|$ & $H$ & Profile & Runs & Optimal & Replay pass & Mean $\pm$ SD (s) \\
+\midrule
+3 & 4 & Corrected A & 30 & 30 & 30 & $0.0585\pm0.0057$ \\
+3 & 4 & Option A & 30 & 30 & 30 & $0.0600\pm0.0097$ \\
+3 & 4 & Option B & 30 & 30 & 30 & $0.0600\pm0.0110$ \\
+3 & 5 & Corrected A & 30 & 30 & 30 & $0.0664\pm0.0026$ \\
+3 & 5 & Option A & 30 & 30 & 30 & $0.0708\pm0.0050$ \\
+3 & 5 & Option B & 30 & 30 & 30 & $0.0693\pm0.0061$ \\
+5 & 4 & Corrected A & 30 & 30 & 30 & $0.0850\pm0.0085$ \\
+5 & 4 & Option A & 30 & 30 & 30 & $0.0877\pm0.0091$ \\
+5 & 4 & Option B & 30 & 30 & 30 & $0.0866\pm0.0096$ \\
+5 & 5 & Corrected A & 30 & 30 & 30 & $0.1096\pm0.0058$ \\
+5 & 5 & Option A & 30 & 30 & 30 & $0.1149\pm0.0127$ \\
+5 & 5 & Option B & 30 & 30 & 30 & $0.1090\pm0.0026$ \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+For the direct Option~A/Option~B comparison, all 120 pairs returned the same
+objective. A paired two-sided Wilcoxon test on log wall-time ratios was applied
+within each fleet/horizon cell, followed by Holm correction across the four
+cells. Median A/B ratios were 1.012, 1.038, 1.021 and 1.022, with Holm-adjusted
+$p$-values 0.524, 0.157, 0.524 and 0.015. Only the $(5,5)$ cell survives the
+four-cell correction, indicating a small A-over-B runtime increase in that
+cell, while the other three show no resolved difference. The result is not a
+claim of a general speed advantage: solve times are below 0.12 seconds and the
+sign varies by cell. It does establish, on this certified class, that the
+simplified Option~B constraints preserve the returned objectives and replayed
+feasibility under the matched protocol.
+
+The Khaled and split profiles solved all original timing cases optimally, but
+their schedules failed strict A-hour replay in 35 and 20 cases, respectively;
+their runtimes therefore remain diagnostic rather than feasible-quality
+baselines. Raw per-run records and certificates for both the single-run and
+repeat studies are stored under \path{results/tables} with these basename
+patterns:
+\begin{quote}\small
+\path{profile_timing_*_cplex129_20261118.csv}\\
+\path{profile_timing_*_cplex129_repeats3_20261118.csv}
+\end{quote}
+Each pattern has matching metadata, schedules and source archives.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=0.88\linewidth]{figures/option_a_b_paired_timing_20261118.png}
-\caption{Paired Option A and Option B wall times on the same certified inputs.
-The dashed diagonal denotes equal runtime. Every pair had equal optimal
-objectives and both schedules passed independent replay; point position is
-descriptive and does not establish a general runtime advantage.}
+\includegraphics[width=0.88\linewidth]{figures/option_a_b_paired_timing_repeats3_20261118.png}
+\caption{Thirty paired Option A/Option B wall-time observations per
+fleet/horizon cell (10 inputs, three solves each). The dashed diagonal denotes
+equal runtime. Every pair had equal optimal objectives and both schedules
+passed independent replay. After Holm adjustment across four cells, only the
+$(5,5)$ comparison is resolved, with a small Option-A-over-Option-B runtime
+increase; this does not establish a general speed ranking.}
 \label{fig:option_a_b_timing}
 \end{figure}
 
+\subsection{Scale boundary}
+
+Twelve independently certified scale inputs extended the three exact profiles
+to fleet/horizon settings $(10,7)$, $(10,15)$, $(20,7)$ and $(20,15)$, with
+three seeded inputs per cell. The 120, 280, 240 and 560 flights in those cells
+were solved under the same CPLEX~12.9.0.0, one-thread, 180-second protocol,
+giving 36 profile/input runs. All profiles returned the same objective for
+optimal inputs and the same incumbent objective for capped inputs.
+
+\begin{table}[t]
+\centering\small
+\caption{Scale ladder across three exact profiles and three seeded inputs per
+fleet/horizon cell. Mean wall time includes all nine profile/input runs in a
+cell, including capped solves. Replay certification is independent of solver
+optimality.}
+\label{tab:profile_scale_boundary}
+\begin{tabular}{rrrrrrr}
+\toprule
+$|P|$ & $H$ & $|F|$ & Optimal & Replay pass & Mean wall (s) & Gap range (\%) \\
+\midrule
+10 & 7  & 120 & 9/9 & 9/9 & 12.723 & 0.000 \\
+10 & 15 & 280 & 9/9 & 9/9 & 92.803 & 0.000 \\
+20 & 7  & 240 & 9/9 & 9/9 & 49.142 & 0.000 \\
+20 & 15 & 560 & 0/9 & 9/9 & 187.711 & 40.493--42.796 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Thus 27 of 36 scale runs proved optimality and all 36 saved schedules passed
+independent replay. The remaining nine runs were all in the 20-aircraft,
+15-day cell: each reached its 180-second limit with a replay-passing incumbent
+and a substantial nonzero gap. These are feasibility evidence, not optimality
+evidence or a claim of scale advantage. A generated 40-aircraft cell was not
+solved after this P20/H15 boundary failed to close, so the reported scale claim
+stops at 20 aircraft and separates a 15-day incumbent result from solved cases.
+
+\subsection{Heterogeneous repeated cross-solver study}
+
+A second generated family varies shared spoke assignments, hub capacity,
+flight duration and departure timing across four multi-hub cells. Each of the
+four inputs was solved three times for every exact profile under CPLEX~12.9 and
+HiGHS~1.15, one thread and a 120-second limit, giving 72 runs. All 72
+runs were optimal and all 72 schedules passed independent replay. For each
+input/repeat key, the six profile/solver objectives agreed within
+$3.1\times10^{-6}$ of absolute spread. \Cref{tab:heterogeneous_repeat} reports
+mean wall time, which remains descriptive rather than a general backend
+ranking.
+
+\begin{table}[t]
+\centering\small
+\caption{Heterogeneous multi-hub repeated study. Each solver mean contains
+three repeats over three exact profiles for one input; each cell therefore
+contains 18 runs, all optimal and replay-passing.}
+\label{tab:heterogeneous_repeat}
+\begin{tabular}{rrrrr}
+\toprule
+$|P|$ & $H$ & $|F|$ & CPLEX mean (s) & HiGHS mean (s) \\
+\midrule
+4 & 4 & 24 & 0.138 & 0.362 \\
+4 & 5 & 32 & 0.234 & 1.216 \\
+6 & 4 & 36 & 0.427 & 3.501 \\
+6 & 5 & 48 & 1.514 & 24.271 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Cross-midnight Option A study}
+
+Four Option A-only families use flights that depart shortly before midnight
+and arrive after midnight. Option B correctly rejects every input at pre-solve
+certification because its protected-period policy requires same-day flights.
+Option A was run three times on each input under both solvers, producing 24
+rows. All 24 incumbents passed strict replay, including the timestamp-level
+A-hour limit. CPLEX proved all 12 solves optimal. HiGHS proved the nine
+P4/P10-H4 and P4-H7 runs optimal; its three P10/H7 repeats reached the
+120-second limit with the same 18.265\% gap. Their incumbent objectives agreed
+with the CPLEX optima within $2.1\times10^{-9}$, so those three HiGHS rows are
+cross-solver incumbent evidence, not independent optimality proofs.
+\Cref{tab:overnight_repeat} makes that boundary explicit.
+
+\begin{table}[t]
+\centering\small
+\caption{Cross-midnight Option A study. Each cell contains three CPLEX and
+three HiGHS repeats on one input. CPLEX proved every objective; HiGHS stopped
+at the cap in the final cell. Every saved schedule passed strict replay.}
+\label{tab:overnight_repeat}
+\begin{tabular}{rrrrr}
+\toprule
+$|P|$ & $H$ & Optimal & CPLEX mean (s) & HiGHS mean (s) \\
+\midrule
+4 & 4 & 6/6 & 0.098 & 0.147 \\
+4 & 7 & 6/6 & 0.305 & 0.526 \\
+10 & 4 & 6/6 & 1.138 & 8.462 \\
+10 & 7 & 3/6 & 8.946 & 129.017 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \subsection{Unsupported-input control}
 
-A second fixture, \path{data/validation/option_b_unsupported.json}, contains a
-day-1 flight whose arrival is too late for the declared protected period.
+The unsupported fixture is
+\path{data/validation/option_b_unsupported.json}. It contains a day-1 flight
+whose arrival is too late for the declared protected period.
 The Option~B pre-solve certificate returns ``unsupported'' with the reason
 that the flight is not finished before the protected period. The runner
 records zero variables, zero constraints and no incumbent. This is deliberately
@@ -161,10 +310,18 @@ The five supported outputs are stored as
 \path{results/tables/profile_*_20261118.csv}, with matching
 \path{.metadata.json}, \path{.schedules.json} and \path{.sources.zip}
 sidecars. The unsupported control is stored as
-\path{profile_option_b_unsupported_20261118.csv}. The final test baseline is
-87 passing tests, including independent certificate, C13, C8, Option~A,
-Option~B and event-counterexample tests. The current experiment does not
-cover larger fleets, heterogeneous airport networks, multiple maintenance
-bays, overnight flights, Gurobi, or solver-runtime variability. Synthetic
-instances remain distinct from the real-airline-derived study in
+{\small\path{profile_option_b_unsupported_20261118.csv}}.
+The versioned submission artifact is built at
+\path{results/archive/profile_evidence_20261120/}. It contains the source,
+input JSON, result CSVs, sidecars, figures, manuscript, a fixed-timestamp ZIP and
+a SHA256 file manifest. A persistent repository deposit and its DOI remain a
+submission-time external action; the archive is already content-addressed and
+ready for deposit without regenerating results.
+The final test baseline is 91 passing tests, including independent certificate,
+C13, C8, Option~A,
+Option~B and event-counterexample tests. The current experiment still does
+not cover heterogeneous or cross-midnight fleets above the reported cells,
+fleets above 20 aircraft, real operational disruption data, Gurobi, or broad
+hardware-level runtime variability. Synthetic instances remain distinct from
+the real-airline-derived study in
 \citet{khaled2018compact}; no claim of reproducing that benchmark is made.

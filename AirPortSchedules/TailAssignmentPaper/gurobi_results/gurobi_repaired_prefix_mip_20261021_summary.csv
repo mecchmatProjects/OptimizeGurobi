@@ -1,0 +1,4 @@
+formulation,cases,performance_cases,performance_optimal,performance_infeasible,mean_vars,mean_constraints,mean_cpu_s,mean_wall_s
+legacy_corrected_strengthened,4,4,4,0,2646.25,4855.25,0.489223,0.867259
+legacy_strict_interval,4,4,4,0,2343.75,11579.0,2.716199,4.202519
+legacy_hour_prefix,4,4,4,0,2653.75,11881.5,1.47131,2.322173

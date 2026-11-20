@@ -22,6 +22,8 @@ if str(ROOT) not in sys.path:
 from src.benchmark_validation import extract_milp_certificate, validate_benchmark_certificate
 from src.event_model import EventMILPScheduler
 from src.model import (
+    CorrectedAOnlyLegacyPlacementScheduler,
+    CorrectedAOnlyNoOverlapScheduler,
     CorrectedAOnlyScheduler,
     EndpointSplitC13Scheduler,
     KhaledPrintedC13Scheduler,
@@ -34,6 +36,8 @@ PROFILE_BUILDERS = {
     "khaled_printed": KhaledPrintedC13Scheduler,
     "endpoint_split": EndpointSplitC13Scheduler,
     "corrected_a_interval": CorrectedAOnlyScheduler,
+    "ablation_no_overlap": CorrectedAOnlyNoOverlapScheduler,
+    "ablation_legacy_placement": CorrectedAOnlyLegacyPlacementScheduler,
     "option_a": OptionAExecutableScheduler,
     "option_b": OptionBProtectedScheduler,
     "event_historical_unverified": EventMILPScheduler,
@@ -80,7 +84,9 @@ def create_scheduler(profile: str, path: Path, a_calendar_dmax: int | None):
         if a_calendar_dmax is None:
             raise ValueError(f"{profile} requires --a-calendar-dmax")
         return builder(str(path), a_calendar_dmax=a_calendar_dmax)
-    if profile == "corrected_a_interval":
+    if profile in {
+        "corrected_a_interval", "ablation_no_overlap", "ablation_legacy_placement"
+    }:
         return builder(str(path), a_calendar_dmax=a_calendar_dmax)
     if profile in {"option_a", "option_b"}:
         return builder(str(path), a_calendar_dmax=a_calendar_dmax)
@@ -95,6 +101,7 @@ def run_one(args, path: Path) -> tuple[dict, dict | None]:
     profile = input_profile(path)
     row = {
         "stem": path.stem,
+        "repeat": "",
         "file": path.name,
         "P": profile["P"],
         "H": profile["H"],
@@ -179,6 +186,8 @@ def main() -> None:
     parser.add_argument("--solver-version", default="not-specified")
     parser.add_argument("--threads", type=int, default=1)
     parser.add_argument("--time-limit", type=int, default=180)
+    parser.add_argument("--repeats", type=int, default=1,
+                        help="Solve every profile/input pair this many times.")
     parser.add_argument("--objective", choices=("early_check", "check_days"), default="check_days")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
@@ -188,14 +197,19 @@ def main() -> None:
     paths = sorted(path.resolve() for path in args.input_dir.glob(args.pattern))
     if not paths:
         parser.error("no matching inputs")
+    if args.repeats < 1:
+        parser.error("--repeats must be positive")
     args.output.parent.mkdir(parents=True, exist_ok=True)
     rows = []
     certificates = []
-    for path in paths:
-        row, certificate = run_one(args, path)
-        rows.append(row)
-        if certificate is not None:
-            certificates.append(certificate)
+    for repeat in range(args.repeats):
+        for path in paths:
+            row, certificate = run_one(args, path)
+            row["repeat"] = repeat
+            rows.append(row)
+            if certificate is not None:
+                certificate["repeat"] = repeat
+                certificates.append(certificate)
     fieldnames = list(rows[0])
     with args.output.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
@@ -218,6 +232,7 @@ def main() -> None:
         "executable": args.executable,
         "threads": args.threads,
         "time_limit_s": args.time_limit,
+        "repeats": args.repeats,
         "inputs": {
             str(path.relative_to(ROOT)): {"sha256": sha256(path)} for path in paths
         },

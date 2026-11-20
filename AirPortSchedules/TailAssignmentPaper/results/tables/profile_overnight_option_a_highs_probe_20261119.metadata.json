@@ -1,0 +1,27 @@
+{
+  "git_revision": "f71166c80f81c0f73a85087df2a1d12e7db038b2",
+  "python": "3.12.0",
+  "profile": "option_a",
+  "a_calendar_dmax": 4,
+  "solver": "highs",
+  "solver_version": "1.15.1",
+  "executable": null,
+  "threads": 1,
+  "time_limit_s": 60,
+  "repeats": 1,
+  "inputs": {
+    "data\\validation\\profile_overnight_20261119\\profile_option_a_overnight_p=4_h=4_r=0.json": {
+      "sha256": "b9e21f9115faadea81a468e299b2d6a742e1844f2f4e747360375bd4ae19f1fc"
+    }
+  },
+  "sources": {
+    "src\\model.py": "7df81aa6e6ef3a8450863ec542f7ff1e220f50d7ced7cdec103db68e94e84992",
+    "src\\event_model.py": "faba90dc2d24a3126c833fa6f81951b59631d7f077e846b059f4f0b9c89a428f",
+    "src\\benchmark_validation.py": "f4e5e800603e397538b6c48026cf3fbb4cbe1eb10afa5ecb3888dd5b9db38580",
+    "experiments\\run_profile_matrix.py": "1508186c3bf3b06efe850c6f924c89d4d04e064c8f6123d0704f6c22ff572536"
+  },
+  "result_csv_sha256": "71443311b2d2b2d6ea318af44d08bcafe10d925639708241e2e3ff48f294b71a",
+  "schedule_sha256": "2dc16b195616370c27711a451b1000a7f6d9061a0ef843414fd1f25cd767612a",
+  "source_snapshot": "profile_overnight_option_a_highs_probe_20261119.sources.zip",
+  "source_snapshot_sha256": "feeb6e69117e618a7006f9ce3565042646c68b206e16d5daa7483fd1461ab315"
+}

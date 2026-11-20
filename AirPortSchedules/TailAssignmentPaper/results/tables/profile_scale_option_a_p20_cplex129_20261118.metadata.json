@@ -1,0 +1,42 @@
+{
+  "git_revision": "f71166c80f81c0f73a85087df2a1d12e7db038b2",
+  "python": "3.12.0",
+  "profile": "option_a",
+  "a_calendar_dmax": 4,
+  "solver": "cplex",
+  "solver_version": "12.9.0.0",
+  "executable": "F:\\LT\\IJOC_SDDP_for_Multi-Echelon_Lot-Sizing_with_Component_Substitution\\cplex\\CPLEX_Studio\\cplex\\bin\\x64_win64\\cplex.exe",
+  "threads": 1,
+  "time_limit_s": 180,
+  "repeats": 1,
+  "inputs": {
+    "data\\validation\\profile_scale_20261118\\profile_p=20_h=15_r=0.json": {
+      "sha256": "340b2a567aa2385739b3ff7aa89ad97b6687f0ada105acb446c5da006b10192f"
+    },
+    "data\\validation\\profile_scale_20261118\\profile_p=20_h=15_r=1.json": {
+      "sha256": "b4034aa91cb88f3ca375fd0989ea3433e3fec954f6e4c20997f327c20c93c4ca"
+    },
+    "data\\validation\\profile_scale_20261118\\profile_p=20_h=15_r=2.json": {
+      "sha256": "a6ec4e5e3e742d8c9411b4d35b1d7971e0f3dca2dc22d9f4bc4b1f584888724a"
+    },
+    "data\\validation\\profile_scale_20261118\\profile_p=20_h=7_r=0.json": {
+      "sha256": "8189fc1c9b1313fd143577bc67eac1dcbf8cd9aebfaf962baccb356df8d09a15"
+    },
+    "data\\validation\\profile_scale_20261118\\profile_p=20_h=7_r=1.json": {
+      "sha256": "ce701593e772b751f70ee5a12d2839c6c0250ead10e7c8d6eb3859228b23322c"
+    },
+    "data\\validation\\profile_scale_20261118\\profile_p=20_h=7_r=2.json": {
+      "sha256": "73ba3e700f82cc9f62ba17c4b0044319f4a74ffde15680805f7e486bb8a06c67"
+    }
+  },
+  "sources": {
+    "src\\model.py": "e87ad711b0b3dc0b044a8a8ecdda87409f71954016ce8b31fd5d8687854d6a44",
+    "src\\event_model.py": "faba90dc2d24a3126c833fa6f81951b59631d7f077e846b059f4f0b9c89a428f",
+    "src\\benchmark_validation.py": "f4e5e800603e397538b6c48026cf3fbb4cbe1eb10afa5ecb3888dd5b9db38580",
+    "experiments\\run_profile_matrix.py": "1508186c3bf3b06efe850c6f924c89d4d04e064c8f6123d0704f6c22ff572536"
+  },
+  "result_csv_sha256": "9b807bbede685433ab1b420a4f524be8239842f2c50166f8da824653b3ea4a45",
+  "schedule_sha256": "a9fbaa361c5f5c14fc1015eaf1a4fdf7fe822e91ed50166dc6239ae34b780f93",
+  "source_snapshot": "profile_scale_option_a_p20_cplex129_20261118.sources.zip",
+  "source_snapshot_sha256": "4bf52767936368ed89a7f75baaab83a5a31e256986e7e5e8d4db36a629971e2e"
+}

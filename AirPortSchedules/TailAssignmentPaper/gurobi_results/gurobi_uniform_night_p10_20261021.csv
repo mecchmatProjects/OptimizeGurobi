@@ -1,0 +1,5 @@
+case,stem,file,P,H,F,formulation,solver_configuration,warm_start,legacy_max_hour_check_deferral_days,lp_relaxation,status,objective,vars,constraints,cpu_s,wall_s,build_s,replay_status,replay_violation_count,replay_violation_types,replay_error,error,has_solution,lower_bound,upper_bound,gap_pct,nodes_max
+perf_p=10_h=29,perf_p=10_h=29,perf_p=10_h=29.json,10,30,146,uniform_night_day,presolve_on,False,not-applicable,False,optimal,74150.0,6188,21950,1.9339628219604492,3.106851,1.052938,pass,0,,,,True,74150.0,74150.0,0.0,
+perf_p=10_h=29,perf_p=10_h=29,perf_p=10_h=29.json,10,30,146,uniform_night_event,presolve_on,False,not-applicable,False,optimal,74150.0,6918,22680,2.3731813430786133,3.538787,1.138914,pass,0,,,,True,74150.0,74150.0,0.0,
+perf_p=10_h=49,perf_p=10_h=49,perf_p=10_h=49.json,10,49,160,uniform_night_day,presolve_on,False,not-applicable,False,optimal,81391.0,6463,22759,1.0494253635406494,2.464787,1.925613,pass,0,,,,True,81391.0,81391.0,0.0,
+perf_p=10_h=49,perf_p=10_h=49,perf_p=10_h=49.json,10,49,160,uniform_night_event,presolve_on,False,not-applicable,False,optimal,81391.0,7263,23559,0.899277925491333,1.940912,1.324864,pass,0,,,,True,81391.0,81391.0,0.0,

@@ -1,0 +1,2 @@
+case,formulation,solver,solver_version,threads,time_limit_s,MIPGap,status,objective,lower_bound,upper_bound,gap_pct,cpu_s,replay_violation_count,input_sha256
+perf_p=15_h=49.json,event_based_flex,gurobi,11.0.3,1,180,0,optimal,122169.0,122169.0,122169.0,0.0,72.36665034294128,0,a305243d948be1ce7bae492411e1a9257305f9b6b136dde5dd3e010d1b754fd7

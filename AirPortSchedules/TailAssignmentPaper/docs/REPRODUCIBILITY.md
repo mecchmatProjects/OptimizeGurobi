@@ -271,6 +271,39 @@ not guarantee optimality or sufficient RAM on every 30-day model.
 HiGHS remains an explicit alternative. Never mix solver versions, thread
 settings, caps or revised source hashes in a paired comparison.
 
+### A-only heterogeneous and overnight profile evidence
+
+Generate the certified heterogeneous repeat family and the Option A-only
+cross-midnight family with the same deterministic seed function:
+
+```powershell
+& $py experiments/generate_profile_timing.py --output-dir data/validation/profile_heterogeneous_repeat_20261120 --fleet-sizes 4 6 --horizons 4 5 --replicates 2 --family heterogeneous
+& $py experiments/generate_profile_timing.py --output-dir data/validation/profile_overnight_20261119 --fleet-sizes 4 10 --horizons 4 7 --replicates 2 --family option_a_overnight
+```
+
+Run the three exact profiles (`corrected_a_interval`, `option_a`, `option_b`)
+on `profile_heterogeneous_p=*_h=*_r=0.json` with three repeats, one thread,
+`--objective early_check` and `--time-limit 120`. Repeat the identical matrix
+with CPLEX 12.9.0.0 and HiGHS 1.15.1, changing only solver, solver version,
+executable and output basename. For cross-midnight inputs, run only Option A
+with the same protocol and pattern `profile_option_a_overnight_p=*_h=*_r=0.json`;
+Option B is expected to reject those inputs as unsupported by certificate.
+Every accepted incumbent must pass the runner's independent replay.
+
+After all six heterogeneous and two overnight CSVs plus sidecars have been
+produced, create the immutable content-addressed snapshot:
+
+```powershell
+& $py experiments/package_profile_evidence.py --output-dir results/archive/profile_evidence_20261120
+```
+
+The command refuses to overwrite an existing directory, verifies that all six
+heterogeneous repeated CSVs are present, writes a fixed-timestamp ZIP, and
+records per-file SHA256 values plus the archive SHA256 in `manifest.json` and
+`SHA256SUMS.txt`. Deposit the generated ZIP and manifest together in the chosen
+persistent repository, then replace the draft DOI placeholder in the paper only
+with the DOI returned by that repository.
+
 ### Baseline-commit reproduction with CPLEX 12.9
 
 The routine protocol below now matches the model defaults of commit `828d3f0`

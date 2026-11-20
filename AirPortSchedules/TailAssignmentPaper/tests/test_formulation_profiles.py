@@ -5,9 +5,18 @@ import sys
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 
+from experiments.generate_profile_timing import build_option_a_overnight_instance
+from benchmark_validation import (
+    extract_milp_certificate,
+    validate_benchmark_certificate,
+    verify_milp_certificate,
+)
 from model import (
+    CorrectedAOnlyLegacyPlacementScheduler,
+    CorrectedAOnlyNoOverlapScheduler,
     CorrectedAOnlyScheduler,
     EndpointSplitC13Scheduler,
     KhaledPrintedC13Scheduler,
@@ -64,6 +73,26 @@ def test_corrected_a_only_profile_forces_shared_exact_domains(tmp_path):
     assert len(model.c13b) == len(model.P) * day_count
     assert all(index[2] == scheduler.flight_data[index[0]]["day_arrival"] for index in model.Z)
     assert not any("c12" == component.local_name for component in model.component_objects())
+
+
+def test_corrected_a_only_one_factor_ablations(tmp_path):
+    fixture = _option_ab_fixture(tmp_path)
+    reference = CorrectedAOnlyScheduler(str(fixture), a_calendar_dmax=4)
+    reference_model = reference.build_model(objective="check_days")
+    no_overlap = CorrectedAOnlyNoOverlapScheduler(str(fixture), a_calendar_dmax=4)
+    no_overlap_model = no_overlap.build_model(objective="check_days")
+    legacy_placement = CorrectedAOnlyLegacyPlacementScheduler(
+        str(fixture), a_calendar_dmax=4
+    )
+    legacy_model = legacy_placement.build_model(objective="check_days")
+
+    assert len(no_overlap_model.c13) == len(reference_model.c13)
+    assert len(no_overlap_model.c13b) == len(reference_model.c13b)
+    assert hasattr(reference_model, "c_overlap")
+    assert not hasattr(no_overlap_model, "c_overlap")
+    assert legacy_placement.PAPER_ARRIVAL_DAY_PLACEMENT is False
+    assert len(legacy_model.c13) == len(reference_model.c13)
+    assert len(legacy_model.c13b) == len(reference_model.c13b)
 
 
 def test_corrected_a_only_profile_allows_explicit_calendar_policy(tmp_path):
@@ -128,9 +157,38 @@ def test_option_a_and_certified_option_b_have_same_projection_domain(tmp_path):
     assert len(model_a.Z) == len(model_b.Z)
     assert len(model_a.c13) == len(model_b.c13)
     assert len(model_a.c13b) == len(model_b.c13b)
-    assert len(model_a.c_option_a_capacity) == len(model_b.c_option_a_capacity)
+    assert hasattr(model_a, "c_option_a_timing")
+    assert hasattr(model_a, "c_option_a_capacity")
+    assert not hasattr(model_b, "c_option_a_timing")
+    assert not hasattr(model_b, "c_option_a_capacity")
+    assert len(list(model_a.component_data_objects())) >= len(
+        list(model_b.component_data_objects())
+    )
     assert option_a.profile_settings()["profile_id"] == "option_a"
     assert option_b.profile_settings()["profile_id"] == "option_b"
+
+
+def test_option_a_exact_timing_admits_cross_midnight_certificate(tmp_path):
+    instance, certificate = build_option_a_overnight_instance(4, 4, 0)
+    fixture = tmp_path / "option_a_overnight.json"
+    fixture.write_text(json.dumps(instance))
+    scheduler = OptionAExecutableScheduler(str(fixture), a_calendar_dmax=4)
+
+    report = verify_milp_certificate(scheduler, certificate, objective="early_check")
+
+    assert report["status"] == "PASS"
+    assert not hasattr(scheduler.model, "c8")
+
+    summary = scheduler.solve(solver_name="highs", time_limit=60)
+    solved_certificate = extract_milp_certificate(scheduler)
+    replay = validate_benchmark_certificate(
+        instance,
+        solved_certificate,
+        capacity_semantics="simultaneous",
+        strict_a_hour_limit=True,
+    )
+    assert summary["status"] == "optimal"
+    assert replay["status"] == "PASS"
 
 
 def test_option_b_uncertified_input_is_unsupported_not_infeasible(tmp_path):

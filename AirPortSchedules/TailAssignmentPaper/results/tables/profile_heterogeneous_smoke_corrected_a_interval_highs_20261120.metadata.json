@@ -1,0 +1,27 @@
+{
+  "git_revision": "f71166c80f81c0f73a85087df2a1d12e7db038b2",
+  "python": "3.12.0",
+  "profile": "corrected_a_interval",
+  "a_calendar_dmax": 4,
+  "solver": "highs",
+  "solver_version": "1.15.1",
+  "executable": null,
+  "threads": 1,
+  "time_limit_s": 120,
+  "repeats": 1,
+  "inputs": {
+    "data\\validation\\profile_heterogeneous_repeat_20261120\\profile_heterogeneous_p=6_h=5_r=1.json": {
+      "sha256": "f445818b43d4519cdbff80f1d85eaf5a1dd1648fd995049379ebbf852a825790"
+    }
+  },
+  "sources": {
+    "src\\model.py": "921b5b33618e50323123fad78836063ee03b67f4286b99463b653f05c226d6d0",
+    "src\\event_model.py": "faba90dc2d24a3126c833fa6f81951b59631d7f077e846b059f4f0b9c89a428f",
+    "src\\benchmark_validation.py": "f4e5e800603e397538b6c48026cf3fbb4cbe1eb10afa5ecb3888dd5b9db38580",
+    "experiments\\run_profile_matrix.py": "1508186c3bf3b06efe850c6f924c89d4d04e064c8f6123d0704f6c22ff572536"
+  },
+  "result_csv_sha256": "1c6598cea15cc5db3ae24e8f1525fcd6f2ee1d9cf73a66d5007b7882b8936b76",
+  "schedule_sha256": "086362e05bfbf628ca4648613317166bb9b42edc5609aaeb96382688d032ea40",
+  "source_snapshot": "profile_heterogeneous_smoke_corrected_a_interval_highs_20261120.sources.zip",
+  "source_snapshot_sha256": "d1b1009eedcd826395698d000c771ecc957ec082f38df13fe59914776de00963"
+}

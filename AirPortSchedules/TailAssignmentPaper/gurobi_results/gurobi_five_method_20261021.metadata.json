@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "runs": [
+    {
+      "git_revision": "50baafc932551874c9b7b2fa84bf1b7812d65260",
+      "python": "3.12.4",
+      "pyomo": "6.10.1",
+      "sources": {
+        "experiments\\run_four_method_suite.py": "920a0b25fdec3f4333d19307a88462f33e26e326ca041547f40b2bdedd219e82",
+        "src\\model.py": "2e2f4a11b218716c2f8073eacefe01e74bb9e9a7c241b11437949ffda8a8a14b",
+        "src\\compact_a_event_model.py": "69b7e2336dd2a09fa9513dc5ad1e6feb9014c33f7e382b340ee2d8e7886d983c",
+        "src\\generate_feasible_instances.py": "111b2a7a58c16e45c3c6792a48ec62544c5b5bafe80e4622635528c650c2faf0",
+        "src\\generate_instances.py": "dbf75cf082f1789d52cf844ef4aa53c56b70bd8a27e9a626191d25f83d7e0377",
+        "src\\validate_maintenance.py": "9f8494b6e191e329c75d82f5e9ce7168895327c5f261e857c5bf912692a776d8"
+      },
+      "inputs": {
+        "data\\five_method_longflight_e14_e21_compact\\perf_p=10_h=29.json": {
+          "sha256": "ccfad5da2c06ec37adf28d56977509f34c970dd716a8285744d1c7528305d618",
+          "P": 10,
+          "observed_H": 30,
+          "F": 146,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\five_method_longflight_e14_e21_compact\\perf_p=10_h=49.json": {
+          "sha256": "7d4c396026ab6ad823a4cb631f0c83091b9eaa040b8de078eed8dfe1894ae2b2",
+          "P": 10,
+          "observed_H": 49,
+          "F": 160,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\five_method_longflight_e14_e21_compact\\perf_p=15_h=29.json": {
+          "sha256": "3afdc750c551f5f5d0cf46894ec160f2ea7de488745b6f0d4f426c18efb3dd46",
+          "P": 15,
+          "observed_H": 30,
+          "F": 218,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\five_method_longflight_e14_e21_compact\\perf_p=15_h=49.json": {
+          "sha256": "a305243d948be1ce7bae492411e1a9257305f9b6b136dde5dd3e010d1b754fd7",
+          "P": 15,
+          "observed_H": 49,
+          "F": 240,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\five_method_longflight_e14_e21_compact\\perf_p=5_h=29.json": {
+          "sha256": "6637f61c198838443deffd52d90c0bfd18d703929afd08faebd0740148969e24",
+          "P": 5,
+          "observed_H": 30,
+          "F": 74,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\five_method_longflight_e14_e21_compact\\perf_p=5_h=49.json": {
+          "sha256": "15e245a720efe10ed60ded983fca4e2680dde8f0e4ff6ca8aab4c6cc7a817dbc",
+          "P": 5,
+          "observed_H": 48,
+          "F": 80,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        }
+      },
+      "configuration": {
+        "methods": [
+          "legacy_paper_c13",
+          "legacy_endpoint_split",
+          "legacy_corrected_strengthened",
+          "event_based_optimized",
+          "event_based_flex"
+        ],
+        "effective_enabled_checks": [
+          "A"
+        ],
+        "solver": "gurobi",
+        "solver_version": "11.0.3",
+        "executable": "C:\\gurobi1103\\win64\\python311\\bin\\python.exe",
+        "time_limit_s": 180,
+        "threads": 1,
+        "presolve_configuration": "presolve_on",
+        "warm_start": false,
+        "legacy_max_hour_check_deferral_days": 0,
+        "lp_relaxation": false,
+        "event_based_optimized_policy": "immediate-after-trigger-flight",
+        "event_based_flex_max_deferral_minutes": 1440.0,
+        "policies": {}
+      },
+      "result_csv_sha256": "16b6ffa373cd8b737378eb60ae1d2078c0f678baadd4505998723dd7a6897db0",
+      "source_snapshot": "gurobi_five_method_20261021.sources.zip",
+      "source_snapshot_sha256": "2f7b1e3c9592d4bcf0b916a79165d31eb5309106f4c747a7164f0a2e4df9183c",
+      "schedule_sha256": "d0baa3ade0b79ae6b95910d9d11d43120ee309a25835d434c40bc652651ae3df"
+    }
+  ]
+}

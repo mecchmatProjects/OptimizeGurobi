@@ -29,8 +29,9 @@ runs.
 
 \subsection*{Our contributions}
 
-This paper studies two issues in the compact formulation, with maintenance
-restricted to type-A checks triggered by cumulative flight hours:
+This paper studies the compact formulation through named, independently
+validated A-only profiles, with maintenance restricted to type-A checks
+triggered by cumulative flight hours:
 
 \begin{enumerate}
 \item \textbf{Basic feasibility correction (conditions C2--C4,
@@ -45,11 +46,22 @@ restricted to type-A checks triggered by cumulative flight hours:
 \item \textbf{Type-A maintenance over a finite horizon.} We distinguish the
   conditional interval bound in Constraint~(13) of
   \citet{khaled2018compact} from the opening-state bound needed when an
-  aircraft enters the planning horizon with accumulated flight hours, and
-  we identify check-to-check and closing periods that fall outside the
-  published index range of Constraint~(13). We formulate the interval and
-  opening-period requirements separately and do not claim that an
-  endpoint-split substitute is valid.
+  aircraft enters the planning horizon with accumulated flight hours. We
+  prove the coverage-exact interval/prefix family and preserve the printed
+  row and endpoint split as controlled legacy profiles, not as exact fixes.
+
+\item \textbf{Executable overnight placement.} We implement two maintenance
+  timing policies on the same corrected A-hour model: Option~A adds explicit
+  service-window, release and simultaneous-capacity constraints; Option~B
+  certifies a protected-period input class and omits timing rows made
+  redundant by that certificate. Failed Option~B certification is reported
+  as unsupported, not infeasible.
+
+\item \textbf{Independent model and result validation.} We use a shared
+  certificate/replay contract, named profile identities, source/input hashes,
+  solver metadata, matched objectives, repeated paired timing observations and
+  independent schedule replay. The historical event model is recovered for
+  audit but remains explicitly unverified for broader equivalence claims.
 \end{enumerate}
 
 \subsection*{Paper organisation}

@@ -1,0 +1,36 @@
+{
+  "git_revision": "f71166c80f81c0f73a85087df2a1d12e7db038b2",
+  "python": "3.12.0",
+  "profile": "option_a",
+  "a_calendar_dmax": 4,
+  "solver": "cplex",
+  "solver_version": "12.9.0.0",
+  "executable": "F:\\LT\\IJOC_SDDP_for_Multi-Echelon_Lot-Sizing_with_Component_Substitution\\cplex\\CPLEX_Studio\\cplex\\bin\\x64_win64\\cplex.exe",
+  "threads": 1,
+  "time_limit_s": 120,
+  "repeats": 3,
+  "inputs": {
+    "data\\validation\\profile_overnight_20261119\\profile_option_a_overnight_p=10_h=4_r=0.json": {
+      "sha256": "ffbe702e2430d8411533744a736819f06f7449652dd8e1c57a985ba18075923a"
+    },
+    "data\\validation\\profile_overnight_20261119\\profile_option_a_overnight_p=10_h=7_r=0.json": {
+      "sha256": "2ce830efac0582b2ffcf2fb4e17b32ddb9d1532d33550943a848286b5b977345"
+    },
+    "data\\validation\\profile_overnight_20261119\\profile_option_a_overnight_p=4_h=4_r=0.json": {
+      "sha256": "b9e21f9115faadea81a468e299b2d6a742e1844f2f4e747360375bd4ae19f1fc"
+    },
+    "data\\validation\\profile_overnight_20261119\\profile_option_a_overnight_p=4_h=7_r=0.json": {
+      "sha256": "8720eb4a1cd6f3da828c2b0188411d7bfbf59012b9879657ea99b114397677da"
+    }
+  },
+  "sources": {
+    "src\\model.py": "921b5b33618e50323123fad78836063ee03b67f4286b99463b653f05c226d6d0",
+    "src\\event_model.py": "faba90dc2d24a3126c833fa6f81951b59631d7f077e846b059f4f0b9c89a428f",
+    "src\\benchmark_validation.py": "f4e5e800603e397538b6c48026cf3fbb4cbe1eb10afa5ecb3888dd5b9db38580",
+    "experiments\\run_profile_matrix.py": "1508186c3bf3b06efe850c6f924c89d4d04e064c8f6123d0704f6c22ff572536"
+  },
+  "result_csv_sha256": "e96384516d4e385dfc6047d2a247fc8beadb94ee41454d9f6b3add48917a3bf0",
+  "schedule_sha256": "96288b2e4babf9351ab3738466df508eacea94fed971ef3932623907e6d88dee",
+  "source_snapshot": "profile_overnight_option_a_cplex_repeats3_20261120.sources.zip",
+  "source_snapshot_sha256": "d1b1009eedcd826395698d000c771ecc957ec082f38df13fe59914776de00963"
+}

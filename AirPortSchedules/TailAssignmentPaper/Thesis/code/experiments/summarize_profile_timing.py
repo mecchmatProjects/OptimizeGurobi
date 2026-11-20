@@ -8,8 +8,9 @@ import hashlib
 import json
 import math
 import statistics
-from collections import defaultdict
 from pathlib import Path
+
+from scipy.stats import wilcoxon
 
 ROOT = Path(__file__).resolve().parents[1]
 PROFILES = (
@@ -25,11 +26,11 @@ def digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def read_rows(directory: Path, suffix: str) -> tuple[dict, dict[str, dict]]:
+def read_rows(directory: Path, suffix: str, profiles=PROFILES) -> tuple[dict, dict[str, dict]]:
     all_rows = {}
     input_hashes = {}
     protocols = {}
-    for profile in PROFILES:
+    for profile in profiles:
         path = directory / f"profile_timing_{profile}_cplex129_{suffix}.csv"
         with path.open(newline="", encoding="utf-8") as handle:
             rows = list(csv.DictReader(handle))
@@ -39,7 +40,10 @@ def read_rows(directory: Path, suffix: str) -> tuple[dict, dict[str, dict]]:
             metadata[key]
             for key in ("solver", "solver_version", "threads", "time_limit_s", "a_calendar_dmax")
         )
-        keyed = {(int(row["P"]), int(row["H"]), row["stem"]): row for row in rows}
+        keyed = {
+            (int(row["P"]), int(row["H"]), row["stem"], int(row.get("repeat", 0) or 0)): row
+            for row in rows
+        }
         if len(keyed) != len(rows):
             raise ValueError(f"duplicate profile/input rows in {path}")
         all_rows[profile] = keyed
@@ -49,7 +53,7 @@ def read_rows(directory: Path, suffix: str) -> tuple[dict, dict[str, dict]]:
         raise ValueError(f"solver protocol differs across profile runs: {protocols}")
     reference_keys = set(all_rows["corrected_a_interval"])
     reference_hashes = input_hashes["corrected_a_interval"]
-    for profile in PROFILES:
+    for profile in profiles:
         if set(all_rows[profile]) != reference_keys:
             raise ValueError(f"input grid mismatch for profile {profile}")
         if input_hashes[profile] != reference_hashes:
@@ -57,8 +61,19 @@ def read_rows(directory: Path, suffix: str) -> tuple[dict, dict[str, dict]]:
     return all_rows, reference_hashes
 
 
-def summarize(directory: Path, suffix: str, output: Path) -> tuple[Path, Path]:
-    rows_by_profile, input_hashes = read_rows(directory, suffix)
+def holm_adjust(rows):
+    adjusted = {}
+    ordered = sorted(enumerate(float(row["wilcoxon_p_two_sided"]) for row in rows), key=lambda item: item[1])
+    running = 0.0
+    for rank, (index, p_value) in enumerate(ordered):
+        candidate = min(1.0, p_value * (len(ordered) - rank))
+        running = max(running, candidate)
+        adjusted[index] = running
+    return adjusted
+
+
+def summarize(directory: Path, suffix: str, output: Path, profiles=PROFILES) -> tuple[Path, Path]:
+    rows_by_profile, input_hashes = read_rows(directory, suffix, profiles)
     groups = sorted({(key[0], key[1]) for key in input_hashes})
     summary_rows = []
     paired_rows = []
@@ -68,7 +83,7 @@ def summarize(directory: Path, suffix: str, output: Path) -> tuple[Path, Path]:
             key for key in input_hashes if key[:2] == (fleet, horizon)
         )
         baseline = rows_by_profile["corrected_a_interval"]
-        for profile in PROFILES:
+        for profile in profiles:
             profile_rows = [rows_by_profile[profile][key] for key in keys]
             times = [float(row["wall_s"]) for row in profile_rows]
             summary_rows.append({
@@ -96,6 +111,8 @@ def summarize(directory: Path, suffix: str, output: Path) -> tuple[Path, Path]:
                 and float(baseline[key]["wall_s"]) > 0
             ]
             ratios = [float(left["wall_s"]) / float(right["wall_s"]) for left, right in paired]
+            log_ratios = [math.log(ratio) for ratio in ratios]
+            p_value = wilcoxon(log_ratios, zero_method="wilcox", alternative="two-sided").pvalue
             same_objective = sum(
                 math.isclose(float(left["objective"]), float(right["objective"]), rel_tol=0, abs_tol=1e-5)
                 for left, right in paired
@@ -108,6 +125,8 @@ def summarize(directory: Path, suffix: str, output: Path) -> tuple[Path, Path]:
                 "paired_optimal_n": len(paired),
                 "same_objective_n": same_objective,
                 "profile_faster_n": sum(ratio < 1 for ratio in ratios),
+                "median_wall_ratio": statistics.median(ratios) if ratios else "",
+                "wilcoxon_p_two_sided": p_value if ratios else "",
                 "geomean_wall_ratio_profile_over_baseline": (
                     math.exp(statistics.mean(math.log(ratio) for ratio in ratios))
                     if ratios else ""
@@ -136,6 +155,10 @@ def summarize(directory: Path, suffix: str, output: Path) -> tuple[Path, Path]:
             float(left["wall_s"]) / float(right["wall_s"])
             for left, right in option_pairs
         ]
+        option_log_ratios = [math.log(ratio) for ratio in option_ratios]
+        option_p_value = wilcoxon(
+            option_log_ratios, zero_method="wilcox", alternative="two-sided"
+        ).pvalue
         paired_rows.append({
             "P": fleet,
             "H": horizon,
@@ -147,6 +170,8 @@ def summarize(directory: Path, suffix: str, output: Path) -> tuple[Path, Path]:
                 for left, right in option_pairs
             ),
             "profile_faster_n": sum(ratio < 1 for ratio in option_ratios),
+            "median_wall_ratio": statistics.median(option_ratios) if option_ratios else "",
+            "wilcoxon_p_two_sided": option_p_value if option_ratios else "",
             "geomean_wall_ratio_profile_over_baseline": (
                 math.exp(statistics.mean(math.log(ratio) for ratio in option_ratios))
                 if option_ratios else ""
@@ -161,6 +186,13 @@ def summarize(directory: Path, suffix: str, output: Path) -> tuple[Path, Path]:
             ),
         })
 
+    comparison_profiles = sorted({row["profile"] for row in paired_rows})
+    for comparison in comparison_profiles:
+        subset = [row for row in paired_rows if row["profile"] == comparison]
+        adjusted = holm_adjust(subset)
+        for index, row in enumerate(subset):
+            row["holm_p_four_cells"] = adjusted[index]
+
     output.parent.mkdir(parents=True, exist_ok=True)
     paired_output = output.with_name(output.stem + "_paired.csv")
     for path, rows in ((output, summary_rows), (paired_output, paired_rows)):
@@ -169,14 +201,15 @@ def summarize(directory: Path, suffix: str, output: Path) -> tuple[Path, Path]:
             writer.writeheader()
             writer.writerows(rows)
     metadata = {
-        "profiles": list(PROFILES),
+        "profiles": list(profiles),
         "reference_profile": "corrected_a_interval",
         "input_hashes": {
-            key[2]: value for key, value in sorted(input_hashes.items())
+            f"{key[2]}_repeat_{key[3]}": value
+            for key, value in sorted(input_hashes.items())
         },
         "source_csv_hashes": {
             profile: digest(directory / f"profile_timing_{profile}_cplex129_{suffix}.csv")
-            for profile in PROFILES
+            for profile in profiles
         },
         "summary_csv_sha256": digest(output),
         "paired_csv_sha256": digest(paired_output),
@@ -195,13 +228,14 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--directory", type=Path, default=ROOT / "results" / "tables")
     parser.add_argument("--suffix", default="20261118")
+    parser.add_argument("--profiles", nargs="+", choices=PROFILES, default=list(PROFILES))
     parser.add_argument(
         "--output",
         type=Path,
         default=ROOT / "results" / "tables" / "profile_timing_summary_20261118.csv",
     )
     args = parser.parse_args()
-    summary, paired = summarize(args.directory, args.suffix, args.output)
+    summary, paired = summarize(args.directory, args.suffix, args.output, tuple(args.profiles))
     print(f"Wrote per-profile timing summary: {summary}")
     print(f"Wrote paired comparison to corrected profile: {paired}")
 

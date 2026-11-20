@@ -85,9 +85,9 @@ before the next flight; that requires a separate downtime condition.
 \subsection{Establishing maintenance executability: two options}
 \label{sec:a_executability}
 
-Two approaches can close this timing gap. The following are proposed
-extensions and assumptions for later implementation and comparison, not
-features already enforced by the executable model. Both retain the same
+Two implemented approaches close this timing gap. Option~A encodes
+executability explicitly; Option~B certifies a protected-period input class
+and omits timing rows made redundant by that certificate. Both retain the same
 arrival-trigger convention and the requirement that a check follows the
 aircraft's last flight of the day.
 
@@ -118,8 +118,8 @@ $i\in\mathcal{E}^A_d$ at $m=\aI{i}$, compute
     \label{eq:a_overnight_release}
 \end{align}
 Here $S_{ijd}$ is the earliest start, $C_{ijd}$ the completion time, and
-$R_{ijd}$ the release time. A proposed implementation would fix
-$z_{ijd}=0$ whenever $C_{ijd}>u_{md}$ and add
+$R_{ijd}$ the release time. The Option~A implementation fixes $z_{ijd}=0$
+whenever $C_{ijd}>u_{md}$ and adds
 \begin{equation}\label{eq:a_overnight_conflicts}
   z_{ijd}+x_{i'j}\le1,
   \qquad \forall i'\in\F:\ \tI{i}\le\tD{i'}<R_{ijd},
@@ -140,6 +140,29 @@ may be necessary. For example, a 23:30 arrival followed by a 01:00 departure
 cannot accommodate a three-hour check, even though the flights have
 different departure days and may satisfy ordinary turn time. The proposed
 rows reject that combination rather than allowing a reset between them.
+
+\begin{proposition}[Option A executability for selected triggers]
+  Let $(x,z,y)$ satisfy C1--C5, C9--C11, the Option A fixed trigger-domain
+  restrictions, \eqref{eq:a_overnight_conflicts}, and the simultaneous bay
+  capacity rows. If a trigger $z_{ijd}=1$, it has a reserved interval
+  $[S_{ijd},C_{ijd})$ inside its declared service window, no selected flight
+  departs from trigger arrival until $R_{ijd}$, and at most
+  $\mathrm{mcap}_{m,d}$ selected intervals overlap at any instant at station
+  $m$. Therefore every selected reset is attached to an executable maintenance
+  action and its physical completion precedes the next assigned flight.
+\end{proposition}
+
+\begin{proof}
+  C9 links the trigger to its assigned flight and C11 selects at most one
+  trigger per aircraft-day. Triggers with $C_{ijd}>u_{md}$ or a terminal
+  deadline violation are fixed to zero. For a selected trigger, Option A's
+  conflict rows forbid every otherwise selected departure with
+  $\tI{i}\le\tD{i'}<R_{ijd}$; C1--C5 supply one continuous, non-overlapping
+  route for the remaining departures. Simultaneous occupancy is checked at
+  every event start, which is sufficient for equal and unequal fixed intervals
+  because occupancy can increase only at a start. Thus the release and bay
+  conditions hold directly, not as an unstated nightly assumption.
+\end{proof}
 
 \paragraph{Option B: certify a protected overnight period by assumptions.}
 Alternatively, restrict the input timetable and operating policy so that
@@ -187,21 +210,72 @@ Otherwise, the absence of a next-flight row could conceal unfinished
 maintenance. Checks on days with no assigned arrival remain outside both
 proposals unless the trigger representation is extended.
 
-\paragraph{Planned comparison.}
-First compare both implementations on an identical, certified Option B
-instance set, using the same durations, buffers, service windows, capacities,
-costs, hour limits, and terminal commitments. Under these conditions every
-placement admitted by Option B has an executable realization in Option A;
-conversely, both use the same placement rules. Their feasible projections
-onto $(x,z,y)$ should therefore agree, although their LP relaxations and
-computational effort need not. Then test irregular and overnight timetables
-separately to quantify the scope lost through Option B's assumptions.
-Report independent replay of check start, completion, release and flight
-times, together with objectives, bounds, model sizes and runtimes under a
-fixed solver protocol. Unsupported instances must not be reported as
-infeasibility proofs, and improved objectives on different feasible regions
-must not be presented as an algorithmic speed or quality advantage. No
-comparative computational results for these options are claimed here.
+Option A also retains timestamp-level flight-hour rows. For every aircraft $j$
+and every candidate flight $i$, let $\mathcal{I}_{ji}$ contain the flights
+assigned to $j$ whose arrivals do not exceed $\tI{i}$, and let
+$\mathcal{E}_{ji}$ contain check completions no later than $\tI{i}$.
+The opening-exposure row is
+\begin{equation}
+  \Phi^A_j+\sum_{r\in\mathcal{I}_{ji}}t_r x_{rj}
+  \le T^A_{\max}+M_0\sum_{e\in\mathcal{E}_{ji}}z_e.
+  \label{eq:option_a_opening_timestamp}
+\end{equation}
+For each candidate check event $e$ completed at $C_e\le\tI{i}$, Option A adds
+\begin{equation}
+  \sum_{\substack{r\in\mathcal{I}_{ji}\\ C_e<\tI{r}}} t_r x_{rj}
+  \le T^A_{\max}
+    +M_e\left(1-z_e+
+      \sum_{\substack{e'\ne e\\ C_e<C_{e'}\le\tI{i}}}z_{e'}\right).
+  \label{eq:option_a_event_timestamp}
+\end{equation}
+If $e$ is the last selected completion before flight $i$, the second row
+bounds the exact exposure after that reset. If it is not selected, or a later
+reset occurs, the big-$M$ term relaxes the row. These rows are necessary for
+cross-midnight flights because a departure later on the arrival day of a
+check may occur after its completion, while the historical daily aggregation
+can omit that same-day departure from an interval. On the protected same-day
+Option B class, the timestamp rows are implied by the separation of the last
+flight block, the protected period, and the first next-day departure.
+
+\paragraph{Option A/B projection.}
+
+\begin{proposition}[Equivalent placement projection on certified Option B inputs]
+  \label{prop:option_ab_projection}
+  Let an input pass the Option B certificate. Use the same assignment cost,
+  check cost, A-hour constraints, arrival-day triggers, calendar policy,
+  buffers and terminal deadlines in both models. Then every feasible
+  $(x,z,y)$ projection of Option B has an executable timing realization in
+  Option A, and every feasible Option A placement is feasible in Option B.
+  Consequently the two models have the same integer projection onto
+  $(x,z,y)$, although their constraint matrices and LP relaxations may differ.
+\end{proposition}
+
+\begin{proof}
+  Certification places every compatible flight outside the protected period,
+  and every selected trigger arrival reaches its station before the protected
+  period after accounting for preparation. Therefore Option A's earliest
+  start is exactly the protected-period start. The period contains check and
+  release work, the terminal deadline contains the final release, and no
+  selected departure can fall inside the Option A release interval. Thus every
+  Option A timing conflict row is implied by the certificate and no selected
+  Option B placement can violate one. C10 bounds the number of checks on an
+  airport-day. Since all certified checks start in the common protected period
+  with equal A duration, this count also dominates simultaneous occupancy.
+  In the same certificate, all flights finish before a reset and all next-day
+  flights start after release, so the day interval and prefix rows imply the
+  timestamp-level exposure rows in \eqref{eq:option_a_opening_timestamp} and
+  \eqref{eq:option_a_event_timestamp}. Hence the additional Option A timing,
+  capacity and timestamp-hour rows are redundant on the certified class. The
+  shared rows remain identical, proving both inclusions.
+\end{proof}
+
+The implementation keeps Option A's timing rows and simultaneous occupancy
+rows explicitly, while Option B relies on the successful certificate and
+ordinary airport-day C10 capacity. Failed certification returns
+\texttt{unsupported}; it is not an infeasibility proof. Computational
+comparisons on this class must still replay completion, release and objective
+reconstruction rather than inferring physical feasibility from projection
+identity alone.
 
 \subsection{Flight-hour limits}
 
@@ -243,26 +317,36 @@ $\sum_{r=1}^{t}q_{jr}$, choose
 A bound based only on new flight minutes may be too small when
 $\Phi^A_j>0$.
 
-\begin{proposition}[Type-A hour-limit sufficiency]
-  Suppose checks are executable between the relevant daily flight blocks,
-  as ensured by either option in \Cref{sec:a_executability} under its stated
-  conditions. If \eqref{eq:a_interval_hours} and
-  \eqref{eq:a_opening_hours} hold, then
-  the accumulated flight minutes since the most recent type-A check (or since
-  the horizon start, including $\Phi^A_j$) do not exceed $T^A_{\max}$ at the
-  end of any operating day before a check is performed.
+\begin{proposition}[Exactness of the corrected A-hour rows]
+  \label{prop:a_hour_exactness}
+  Suppose resets are executable between the relevant daily flight blocks,
+  $q_{jd}\ge0$, $0\le\Phi^A_j\le T^A_{\max}$, and every big-$M$ is at least
+  the maximum possible excess in its own window. Then the rows
+  \eqref{eq:a_interval_hours}--\eqref{eq:a_opening_hours}, imposed over all
+  $1\le s<t\le n_d$ and all $t\in\D$, hold if and only if the physical
+  accumulated A exposure is at most $T^A_{\max}$ immediately before every
+  possible check, including the opening exposure.
 \end{proposition}
 
 \begin{proof}
-  Fix aircraft $j$ and a day $t$. If no check has occurred strictly before
-  day $t$, \eqref{eq:a_opening_hours} bounds the initial exposure plus all
-  flight time through that day, including flights before a possible check on
-  day $t$. Otherwise let $s<t$ be the most recent check day before $t$. There
-  is no check in days $s+1,\ldots,t-1$, so \eqref{eq:a_interval_hours} for
-  $(s,t)$ bounds flight time accumulated
-  after the check on day $s$ through the flights of day $t$. A check on day
-  $t$ is performed only after those flights and therefore does not remove
-  them from the bound. These cases cover every day and aircraft.
+  (Sufficiency.) Fix aircraft $j$ and day $t$. If no check occurred on a day
+  strictly before $t$, the active opening row bounds
+  $\Phi^A_j+\sum_{r=1}^{t}q_{jr}$ and hence the pre-check exposure on day $t$.
+  Otherwise let $s<t$ be the last completed check day. The interval row
+  $(s,t)$ has no interior reset and therefore bounds
+  $\sum_{r=s+1}^{t}q_{jr}$, exactly the physical post-reset exposure.
+  Flights on day $t$ are counted before its reset because only earlier checks
+  appear in the relaxation sums.
+
+  (Necessity.) Assume the physical exposure rule holds. Any opening row with
+  an earlier check is relaxed by a coefficient selected large enough for
+  $\Phi^A_j+\sum_{r=1}^{t}q_{jr}-T^A_{\max}$; without an earlier check, its
+  left side is exactly the physical exposure. Similarly, an interval row is
+  relaxed by a valid $M_{st}$ whenever the start is not a check or an interior
+  check exists. If $s$ is a check and no interior check exists, its left side is
+  exactly the physical exposure through day $t$ and cannot exceed $T^A_{\max}$.
+  Thus every row is satisfied. The two directions prove exactness under the
+  stated reset, nonnegativity and valid-big-$M$ assumptions.
 \end{proof}
 
 \subsection{Relation to Constraint~(13)}

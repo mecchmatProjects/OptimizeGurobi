@@ -1,0 +1,42 @@
+{
+  "git_revision": "f71166c80f81c0f73a85087df2a1d12e7db038b2",
+  "python": "3.12.0",
+  "profile": "corrected_a_interval",
+  "a_calendar_dmax": 4,
+  "solver": "cplex",
+  "solver_version": "12.9.0.0",
+  "executable": "F:\\LT\\IJOC_SDDP_for_Multi-Echelon_Lot-Sizing_with_Component_Substitution\\cplex\\CPLEX_Studio\\cplex\\bin\\x64_win64\\cplex.exe",
+  "threads": 1,
+  "time_limit_s": 180,
+  "repeats": 1,
+  "inputs": {
+    "data\\validation\\profile_scale_20261118\\profile_p=10_h=15_r=0.json": {
+      "sha256": "f9a827ca12251b1694e98bc9a1e59f545c9d3404bdafa994da225dd28a6a07e8"
+    },
+    "data\\validation\\profile_scale_20261118\\profile_p=10_h=15_r=1.json": {
+      "sha256": "a4b4f4254481ca8c25e1cead9013cee22cabc61e10ae9fc2d2dceeda1922a4f9"
+    },
+    "data\\validation\\profile_scale_20261118\\profile_p=10_h=15_r=2.json": {
+      "sha256": "15e850e0d621e9d4e43b70fbd4e660a3e5c8c1edc8d7777402cbce7395197b35"
+    },
+    "data\\validation\\profile_scale_20261118\\profile_p=10_h=7_r=0.json": {
+      "sha256": "a5ac4f290f797c665ef9ddff5f0b0b5c6232aa7997519786a9d5ed7121cdf859"
+    },
+    "data\\validation\\profile_scale_20261118\\profile_p=10_h=7_r=1.json": {
+      "sha256": "1509ed957523950d013d9917ba774f778385bdc75a4b1493d3e41e5589157e96"
+    },
+    "data\\validation\\profile_scale_20261118\\profile_p=10_h=7_r=2.json": {
+      "sha256": "7b36671aa6368159991e3eb7deee6eff4b51bcca54c4a80871d12237ff04afa4"
+    }
+  },
+  "sources": {
+    "src\\model.py": "e87ad711b0b3dc0b044a8a8ecdda87409f71954016ce8b31fd5d8687854d6a44",
+    "src\\event_model.py": "faba90dc2d24a3126c833fa6f81951b59631d7f077e846b059f4f0b9c89a428f",
+    "src\\benchmark_validation.py": "f4e5e800603e397538b6c48026cf3fbb4cbe1eb10afa5ecb3888dd5b9db38580",
+    "experiments\\run_profile_matrix.py": "1508186c3bf3b06efe850c6f924c89d4d04e064c8f6123d0704f6c22ff572536"
+  },
+  "result_csv_sha256": "b3787011ed72075b5a77bf5d14701e8d62fd4046f283f8ef2db61032ca204510",
+  "schedule_sha256": "b8971c242da3baad93890df0ee6f6eaa75f5d98b5dbcc6a60cf0ee175a1fe07a",
+  "source_snapshot": "profile_scale_corrected_a_interval_p10_cplex129_20261118.sources.zip",
+  "source_snapshot_sha256": "d38cb91247b2da9451c694f9b8276abf4ca2d288d772d6116ec3f13944b3dc69"
+}

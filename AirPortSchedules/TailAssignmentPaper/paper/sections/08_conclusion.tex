@@ -17,29 +17,36 @@ counterexample in \Cref{sec:maintenance} satisfies every split row while
 violating the flight-hour limit. The interval conditions instead activate
 the bound on each check-to-check period and opening prefix.
 
-The computational evidence currently available does not support a reliable
-evaluation of the formulation. The instance generator in this
-repository creates synthetic data, whereas \citet{khaled2018compact}
-generated their test instances from a real airline data set; older tables
-also mix formulations and contain
-infeasible or incomplete runs. The A-only solver outputs presently in the
-workspace are not accompanied by a complete, matching source-and-input
-provenance package. Consequently, this manuscript makes no claim to reproduce
-the published computational tables or to establish comparative solver
-performance.
+The current computational package is reproducible but deliberately limited.
+The executable model now contains named printed-Khaled, endpoint-split,
+corrected interval/prefix, Option~A and Option~B profiles. Runs record source
+and input hashes, solver configuration, status, bounds, model size and saved
+certificates; loaded schedules are independently replayed. The original
+40-instance timing family is synthetic, route-connected and small, with
+sub-second solves suitable for implementation and projection checks. A
+separate scale ladder reaches 20 aircraft and 560 flights: 27 of 36 solves
+proved optimality and all 36 incumbents passed replay. Every 20-aircraft,
+15-day solve reached the 180-second cap with a 40.49--42.80\% gap, so the
+ladder supports a measured feasibility and tractability boundary, not a
+large-scale optimality claim. A heterogeneous multi-hub matrix now contributes
+72 repeated CPLEX/HiGHS solves, all optimal and replay-passing, with matched
+objectives. The cross-midnight Option A matrix contributes 24 replay-passing
+runs; CPLEX proves all 12, while HiGHS caps three P10/H7 repeats but returns the
+same incumbent objectives. Legacy Khaled/split timings are diagnostic because
+their selected schedules often fail strict A-hour replay. The manuscript still
+does not reproduce the real-airline-derived computational tables of
+\citet{khaled2018compact}.
 
 \subsection*{Future work}
 
-The next step is to implement the stated A-only interval and opening-period
-constraints in the executable model, preserve the exact source revision and
-input hashes for each run, and independently replay every returned schedule.
-Maintenance executability will be addressed through the two proposals in
-\Cref{sec:a_executability}: explicit overnight timing constraints and a
-protected-period policy certified by restrictive input assumptions. Neither
-has yet been implemented or computationally compared. The initial comparison
-will use common certified instances; a separate study of irregular and
-overnight timetables will assess the restrictions of the assumption-based
-approach without conflating different feasible regions with solver performance.
-Computational comparisons should then use a feasible, documented instance
-family and report solver version, termination status, bounds, runtime, and
-validation outcomes.
+The next evidence steps are a heterogeneous and overnight ladder beyond 20
+aircraft, real operational timetables, additional commercial solver backends,
+and persistent-repository deposit of the immutable artifact. Option~A and
+Option~B have now been
+implemented distinctly and compared on certified protected-period inputs:
+Option~A retains explicit release conflicts and simultaneous-occupancy rows,
+whereas Option~B relies on successful certification plus ordinary daily
+capacity. Outside that certified class, failed certification remains
+unsupported rather than infeasible. The historical event profile remains
+audit-only until it passes the same shared replay and counterexample battery
+at scale.

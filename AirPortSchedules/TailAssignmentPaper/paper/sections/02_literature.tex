@@ -40,7 +40,27 @@ types are outside its scope.
 
 \subsection{Position of the present paper}
 
-The contribution is limited to two questions within the compact model:
-whether its strict-time balance inequalities alone exclude simultaneous
-departures, and how type-A flight-hour limits should be represented when
-initial accumulated hours are nonzero.
+The compact model in \citet{khaled2018compact} is attractive because it uses
+flight--aircraft variables rather than route columns or explicit connection
+arcs. That economy, however, makes three modeling boundaries especially
+important: strict departure ordering, finite-horizon maintenance state, and
+the operational gap between a selected night trigger and an executable check.
+The present work preserves the compact assignment core but separates the
+printed publication model, a historical endpoint split and an exact day-based
+A-hour formulation, so that controlled corrections are not silently merged.
+
+Unlike route or column-generation formulations, the corrected compact model
+cannot rely on a path state to carry aircraft equipment and accumulated hours
+implicitly. The paper therefore supplies explicit overlap rows, strict
+interval/prefix rows and a check-completion/replay contract. Unlike a purely
+algebraic correction, the Option A/B contribution also addresses whether a
+selected reset can actually be completed before the aircraft's next assigned
+departure. This distinction is necessary when comparing objective values from
+models with different operational feasible regions.
+
+The contribution is consequently positioned at the intersection of compact
+formulation correction, executable maintenance timing and reproducible
+computational validation. It does not claim a decomposition or fleet-routing
+speedup over column generation, network or Benders formulations. The
+historical event encoding is included only as an audit target until the shared
+route, timing, capacity and hour certificate test establishes equivalence.

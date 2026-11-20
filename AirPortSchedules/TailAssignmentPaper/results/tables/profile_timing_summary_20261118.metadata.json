@@ -54,9 +54,9 @@
     "endpoint_split": "9cac666aff4d469a993ed3bea8f17877df6009506f36d7b3a511506590d26e7e",
     "corrected_a_interval": "0ce4b2e08e67e4e02234af6bff7324a383a82163ec2b04bc5c1a2650c6c291d2",
     "option_a": "948aa985d40a75314d38d189f246587081e61d104ecb1ab85f7166073376e2ab",
-    "option_b": "84b3a78b44832467f68879a6738b49ea21b84fd46aeb10cdc5801358f0ad3849"
+    "option_b": "a4c7e617e793ff9a7571b246d79ab8d2134733f84b43ec38d35b5140d54f6ec5"
   },
-  "summary_csv_sha256": "9adf0969990cfae69ceee8cccc622d9275a0cc171378a0e2f323383c4fe3cda6",
-  "paired_csv_sha256": "d49e035fe59f1b6b6e8871a8f117ca0c817c09ce11f103a11b239743397455e0",
+  "summary_csv_sha256": "b64032b4109536da157023d4d98e997878ad992a58fda0592c767930214bf58f",
+  "paired_csv_sha256": "968a1b8a817d5a1d7b87e63629d24b1429061e5b80f80185cacb7813de88167f",
   "interpretation": "Descriptive paired solve timings. Objective parity is reported only for jointly optimal runs. Profiles with replay failures are not feasible-quality comparisons."
 }

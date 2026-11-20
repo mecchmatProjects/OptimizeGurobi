@@ -1,3 +1,4 @@
+import bisect
 import json
 import math
 import os
@@ -1182,6 +1183,7 @@ class MILP_Sheduler:
                     use_clique_overlap=True,
                     allow_ferry=True,
                     use_maintenance=True,
+                    use_maintenance_flight_blocks=True,
                     use_strong_maint_link=False,
                     use_sparse_maint_aircraft_domain=True,
                     use_global_maint_trigger=False,
@@ -1319,10 +1321,11 @@ class MILP_Sheduler:
             else:
                 self._add_overlap(m)
         if self.use_maintenance:
-            self._add_c8_maint_blocks_flights(
-                m,
-                strong_conflicts=use_strong_maint_conflicts,
-            )
+            if use_maintenance_flight_blocks:
+                self._add_c8_maint_blocks_flights(
+                    m,
+                    strong_conflicts=use_strong_maint_conflicts,
+                )
             self._add_c9_maint_assignment(m, strong_link=use_strong_maint_link)
             if use_capacity:
                 self._add_c10_capacity(m)
@@ -2908,6 +2911,7 @@ class CorrectedAOnlyScheduler(MILP_Sheduler):
     PROFILE_ID = 'corrected_a_interval'
     CHECK_LIST = ['A']
     PAPER_ARRIVAL_DAY_PLACEMENT = True
+    USE_OVERLAP = True
 
     def __init__(self, data_path, a_calendar_dmax=None, **kwargs):
         if a_calendar_dmax is not None:
@@ -2923,12 +2927,28 @@ class CorrectedAOnlyScheduler(MILP_Sheduler):
         kwargs['hour_formulation'] = 'paper_interval'
         kwargs['use_existing_hrs'] = True
         kwargs['use_paper_c13'] = False
-        kwargs['use_overlap'] = True
+        kwargs['use_overlap'] = self.USE_OVERLAP
         kwargs['use_global_maint_trigger'] = False
         kwargs['use_day_spacing'] = self.corrected_calendar_dmax is not None
         kwargs['c13_dmax'] = None
         kwargs['a_calendar_dmax'] = self.corrected_calendar_dmax
         return super().build_model(**kwargs)
+
+
+class CorrectedAOnlyNoOverlapScheduler(CorrectedAOnlyScheduler):
+    """Controlled ablation: corrected hour rows without C5 overlap rows."""
+
+    FORMULATION_ID = 'corrected_a_no_overlap'
+    PROFILE_ID = 'ablation_no_overlap'
+    USE_OVERLAP = False
+
+
+class CorrectedAOnlyLegacyPlacementScheduler(CorrectedAOnlyScheduler):
+    """Controlled ablation: corrected hours with historical placement/C8."""
+
+    FORMULATION_ID = 'corrected_a_legacy_placement'
+    PROFILE_ID = 'ablation_legacy_placement'
+    PAPER_ARRIVAL_DAY_PLACEMENT = False
 
 
 class OptionAExecutableScheduler(CorrectedAOnlyScheduler):
@@ -2968,15 +2988,31 @@ class OptionAExecutableScheduler(CorrectedAOnlyScheduler):
             self.model = None
             return None
         kwargs['use_capacity'] = False
+        kwargs['use_maintenance_flight_blocks'] = False
         model = super().build_model(**kwargs)
         model.c_option_a_timing = ConstraintList()
         model.c_option_a_capacity = ConstraintList()
+        model.c_option_a_hour_exposure = ConstraintList()
         buffers = self.data['Maintenance_Buffers']['A']
         windows = self.data['Maintenance_Service_Windows']
         terminal = self.data.get('Terminal_Release_Minutes', {})
         duration = self.check_dur['A']
         self.option_a_events = {}
         events_by_station = {}
+        events_by_aircraft = {aircraft: [] for aircraft in model.P}
+        departures_by_aircraft = {}
+        for aircraft in model.P:
+            candidates = sorted(
+                (
+                    self.flight_data[flight]['departureTime'], flight
+                )
+                for flight, candidate_aircraft in model.X
+                if candidate_aircraft == aircraft
+            )
+            departures_by_aircraft[aircraft] = (
+                [departure for departure, _flight in candidates],
+                [flight for _departure, flight in candidates],
+            )
 
         for index in model.Z:
             flight, aircraft, day, check = index
@@ -3004,12 +3040,14 @@ class OptionAExecutableScheduler(CorrectedAOnlyScheduler):
                 'release': release,
             }
             events_by_station.setdefault(station, []).append((index, start, completion))
-            for following, assigned_aircraft in model.X:
-                departure = self.flight_data[following]['departureTime']
-                if assigned_aircraft == aircraft and arrival <= departure < release:
-                    model.c_option_a_timing.add(
-                        model.z[index] + model.x[following, aircraft] <= 1
-                    )
+            events_by_aircraft[aircraft].append((index, completion))
+            departure_times, departure_flights = departures_by_aircraft[aircraft]
+            first = bisect.bisect_left(departure_times, arrival)
+            last = bisect.bisect_left(departure_times, release)
+            for following in departure_flights[first:last]:
+                model.c_option_a_timing.add(
+                    model.z[index] + model.x[following, aircraft] <= 1
+                )
 
         for station, events in events_by_station.items():
             emitted = set()
@@ -3026,6 +3064,66 @@ class OptionAExecutableScheduler(CorrectedAOnlyScheduler):
                     sum(model.z[index] for index in active)
                     <= self.station_cap[station]
                 )
+
+        threshold = self.check_hrs['A'] * 60.0
+        for aircraft in model.P:
+            candidate_flights = sorted(
+                {
+                    flight for flight, candidate_aircraft in model.X
+                    if candidate_aircraft == aircraft
+                },
+                key=lambda flight: self.flight_data[flight]['arrivalTime'],
+            )
+            events = sorted(events_by_aircraft[aircraft], key=lambda item: item[1])
+            initial = self.init_check_hrs['A'].get(aircraft, 0.0) * 60.0
+            for target in candidate_flights:
+                target_arrival = self.flight_data[target]['arrivalTime']
+                opening_flights = [
+                    flight for flight in candidate_flights
+                    if self.flight_data[flight]['arrivalTime'] <= target_arrival
+                ]
+                opening_exposure = initial + sum(
+                    self.flight_data[flight]['duration'] * model.x[flight, aircraft]
+                    for flight in opening_flights
+                )
+                earlier_checks = sum(
+                    model.z[index]
+                    for index, completion in events
+                    if completion <= target_arrival
+                )
+                opening_upper = initial + sum(
+                    self.flight_data[flight]['duration'] for flight in opening_flights
+                )
+                opening_big_m = max(0.0, opening_upper - threshold)
+                model.c_option_a_hour_exposure.add(
+                    opening_exposure <= threshold + opening_big_m * earlier_checks
+                )
+
+                for event_index, event_completion in events:
+                    if event_completion > target_arrival:
+                        continue
+                    exposure_flights = [
+                        flight for flight in opening_flights
+                        if self.flight_data[flight]['arrivalTime'] > event_completion
+                    ]
+                    exposure = sum(
+                        self.flight_data[flight]['duration'] * model.x[flight, aircraft]
+                        for flight in exposure_flights
+                    )
+                    later_checks = sum(
+                        model.z[later_index]
+                        for later_index, later_completion in events
+                        if event_completion < later_completion <= target_arrival
+                    )
+                    exposure_upper = sum(
+                        self.flight_data[flight]['duration']
+                        for flight in exposure_flights
+                    )
+                    big_m = max(0.0, exposure_upper - threshold)
+                    model.c_option_a_hour_exposure.add(
+                        exposure <= threshold
+                        + big_m * (1 - model.z[event_index] + later_checks)
+                    )
         return model
 
     def solve(self, *args, **kwargs):
@@ -3034,8 +3132,8 @@ class OptionAExecutableScheduler(CorrectedAOnlyScheduler):
         return super().solve(*args, **kwargs)
 
 
-class OptionBProtectedScheduler(OptionAExecutableScheduler):
-    """Option A equations on inputs certified for a protected night."""
+class OptionBProtectedScheduler(CorrectedAOnlyScheduler):
+    """Protected-night policy on independently certified inputs."""
 
     FORMULATION_ID = 'corrected_a_option_b'
     PROFILE_ID = 'option_b'
@@ -3047,13 +3145,54 @@ class OptionBProtectedScheduler(OptionAExecutableScheduler):
         except ImportError:
             from benchmark_validation import certify_option_b_input
         self.option_b_certification = certify_option_b_input(self.data)
+        self.option_certification = self.option_b_certification
+
+    def _unsupported_summary(self):
+        return {
+            'formulation': self.FORMULATION_ID,
+            'profile_id': self.PROFILE_ID,
+            'status': 'unsupported',
+            'n_vars': 0,
+            'n_cons': 0,
+            'gap': None,
+            'cpu': 0.0,
+            'obj': None,
+            'dual_bound': None,
+            'primal_bound': None,
+            'nodes': None,
+            'solution_loaded': False,
+            'has_incumbent': False,
+            'errors': list(self.option_b_certification['errors']),
+        }
 
     def build_model(self, **kwargs):
         if self.option_b_certification['status'] == 'UNSUPPORTED':
-            self.option_certification = self.option_b_certification
             self.model = None
             return None
-        return super().build_model(**kwargs)
+        kwargs['use_capacity'] = True
+        kwargs['use_maintenance_flight_blocks'] = False
+        model = super().build_model(**kwargs)
+        duration = self.check_dur['A']
+        buffers = self.data['Maintenance_Buffers']['A']
+        periods = self.data['Protected_Maintenance_Periods']
+        self.option_a_events = {}
+        for index in model.Z:
+            flight, aircraft, day, check = index
+            if check != 'A':
+                continue
+            lower, _upper = map(float, periods[str(day)])
+            self.option_a_events[index] = {
+                'station': self.flight_data[flight]['destination'],
+                'start': lower,
+                'completion': lower + duration,
+                'release': lower + duration + float(buffers[str(aircraft)]['release']),
+            }
+        return model
+
+    def solve(self, *args, **kwargs):
+        if self.model is None and self.option_b_certification['status'] == 'UNSUPPORTED':
+            return self._unsupported_summary()
+        return super().solve(*args, **kwargs)
 
 
 # ----------------------------

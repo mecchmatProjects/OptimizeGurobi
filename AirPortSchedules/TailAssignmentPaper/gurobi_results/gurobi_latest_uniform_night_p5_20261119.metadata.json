@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "runs": [
+    {
+      "git_revision": "68034b0ec2742b99e220621ef80c2ee6e5b4eb9a",
+      "python": "3.12.4",
+      "pyomo": "6.10.1",
+      "sources": {
+        "experiments\\run_four_method_suite.py": "a9dca6e38f29439ab5507023cdf64f3fb85ecd08d573eeef444ff170dd6813a2",
+        "experiments\\refresh_cplex_study.py": "2ec174a368ea75274ebb453e71276260cf4ebad8fef870830eddb00e1dde5b29",
+        "experiments\\report_uniform_study.py": "b33bfcabc36158de42fede9bde2885f371f4319d2d9816d3e4109ab41fb7ca00",
+        "src\\model.py": "773750ce59f7d3adaca4e6f086878addad8dce2f8c41008a90a004aff789c5ac",
+        "src\\compact_a_event_model.py": "69b7e2336dd2a09fa9513dc5ad1e6feb9014c33f7e382b340ee2d8e7886d983c",
+        "src\\generate_feasible_instances.py": "111b2a7a58c16e45c3c6792a48ec62544c5b5bafe80e4622635528c650c2faf0",
+        "src\\generate_instances.py": "dbf75cf082f1789d52cf844ef4aa53c56b70bd8a27e9a626191d25f83d7e0377",
+        "src\\validate_maintenance.py": "034ec4d364a6bd378e73b9aa05b4c24843071618297b48e479ac6041d30a5b88"
+      },
+      "inputs": {
+        "data\\five_method_longflight_e14_e21_compact\\perf_p=5_h=29.json": {
+          "sha256": "6637f61c198838443deffd52d90c0bfd18d703929afd08faebd0740148969e24",
+          "P": 5,
+          "observed_H": 30,
+          "F": 74,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        },
+        "data\\five_method_longflight_e14_e21_compact\\perf_p=5_h=49.json": {
+          "sha256": "15e245a720efe10ed60ded983fca4e2680dde8f0e4ff6ca8aab4c6cc7a817dbc",
+          "P": 5,
+          "observed_H": 48,
+          "F": 80,
+          "declared_maintenance_families": [
+            "A"
+          ],
+          "effective_enabled_checks": [
+            "A"
+          ]
+        }
+      },
+      "configuration": {
+        "methods": [
+          "uniform_night_event"
+        ],
+        "effective_enabled_checks": [
+          "A"
+        ],
+        "solver": "gurobi",
+        "solver_version": "11.0.3",
+        "executable": "C:\\gurobi1103\\win64\\python311\\bin\\python.exe",
+        "time_limit_s": 180,
+        "threads": 1,
+        "presolve_configuration": "presolve_on",
+        "warm_start": false,
+        "legacy_max_hour_check_deferral_days": null,
+        "legacy_c13_dmax": null,
+        "lp_relaxation": false,
+        "event_based_optimized_policy": "immediate-after-trigger-flight",
+        "event_based_flex_max_deferral_minutes": 1440.0,
+        "policies": {
+          "uniform_night_event": {
+            "policy_id": "fixed_2200_start_day_cap_v1",
+            "day_indexed_z": false,
+            "maximum_start_deferral_minutes": 1440.0,
+            "time_grid_minutes": 1.0,
+            "one_check_per": "aircraft_actual_start_calendar_day",
+            "capacity": "simultaneous_half_open_bay_occupancy",
+            "calendar_spacing_requirement": null,
+            "night_start_minute": 1320
+          }
+        }
+      },
+      "result_csv_sha256": "ed45f7c19c843ac513f10b1f9f9a2860f0ce4d548498ff34211aeff0fc0aa853",
+      "source_snapshot": "gurobi_latest_uniform_night_p5_20261119.sources.zip",
+      "source_snapshot_sha256": "157c73bc9a6e56be4e4e56472ee82626c019079f9d7e252d863e317a0724e102",
+      "schedule_sha256": "cc6151b51414027780901fca428e1713892f0b4328e9c84d60e3255dbc6e4259"
+    }
+  ]
+}

@@ -41,9 +41,9 @@ def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def load_profile_rows(directory: Path, suffix: str) -> dict[str, dict[str, dict]]:
+def load_profile_rows(directory: Path, suffix: str, profiles=PROFILES) -> dict[str, dict[str, dict]]:
     by_profile = {}
-    for profile in PROFILES:
+    for profile in profiles:
         path = directory / f"profile_timing_{profile}_cplex129_{suffix}.csv"
         metadata_path = path.with_suffix(".metadata.json")
         metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
@@ -53,12 +53,15 @@ def load_profile_rows(directory: Path, suffix: str) -> dict[str, dict[str, dict]
             raise ValueError(f"profile metadata mismatch: {path}")
         with path.open(newline="", encoding="utf-8") as handle:
             rows = list(csv.DictReader(handle))
-        keyed = {row["stem"]: row for row in rows}
+        keyed = {
+            f"{row['stem']}_repeat_{int(row.get('repeat', 0) or 0)}": row
+            for row in rows
+        }
         if len(keyed) != len(rows):
             raise ValueError(f"duplicate instances in {path}")
         by_profile[profile] = keyed
 
-    reference = by_profile["corrected_a_interval"]
+    reference = by_profile[next(iter(by_profile))]
     for profile, rows in by_profile.items():
         if set(rows) != set(reference):
             raise ValueError(f"instance set mismatch for {profile}")
@@ -68,12 +71,13 @@ def load_profile_rows(directory: Path, suffix: str) -> dict[str, dict[str, dict]
 
 
 def plot_profile_distributions(by_profile, output: Path) -> None:
-    cells = sorted({(int(row["P"]), int(row["H"])) for row in by_profile[PROFILES[0]].values()})
+    profiles = tuple(by_profile)
+    cells = sorted({(int(row["P"]), int(row["H"])) for row in by_profile[profiles[0]].values()})
     figure, axes = plt.subplots(2, 2, figsize=(10.5, 7.2), sharey=True, constrained_layout=True)
     rng = random.Random(18042018)
     for axis, (fleet, horizon) in zip(axes.flat, cells):
         pass_counts = []
-        for position, profile in enumerate(PROFILES):
+        for position, profile in enumerate(profiles):
             rows = [
                 row for row in by_profile[profile].values()
                 if int(row["P"]) == fleet and int(row["H"]) == horizon
@@ -117,19 +121,19 @@ def plot_profile_distributions(by_profile, output: Path) -> None:
                 zorder=4,
             )
         axis.set_title(f"{fleet} aircraft, {horizon} days", fontsize=10)
-        axis.set_xticks(range(len(PROFILES)))
+        axis.set_xticks(range(len(profiles)))
         axis.set_xticklabels(
-            [f"{LABELS[name]}\n{count}/10 pass" for name, count in zip(PROFILES, pass_counts)],
+            [f"{LABELS[name]}\n{count} pass" for name, count in zip(profiles, pass_counts)],
             fontsize=8,
         )
-        axis.set_xlim(-0.5, len(PROFILES) - 0.5)
+        axis.set_xlim(-0.5, len(profiles) - 0.5)
         axis.grid(axis="y", color="#d9d9d9", linewidth=0.7)
         axis.set_axisbelow(True)
     for axis in axes[:, 0]:
         axis.set_ylabel("Solver wall time (s)")
     handles = [
         Line2D([0], [0], marker="o", linestyle="", color=COLORS[profile], label=LABELS[profile])
-        for profile in PROFILES
+        for profile in profiles
     ]
     handles.append(Line2D([0], [0], marker="x", linestyle="", color="#c0392b", label="Replay failed"))
     handles.append(Line2D([0], [0], marker="D", linestyle="", color="#202020",
@@ -186,10 +190,17 @@ def main() -> None:
     parser.add_argument("--directory", type=Path, default=ROOT / "results" / "tables")
     parser.add_argument("--suffix", default="20261118")
     parser.add_argument("--output-dir", type=Path, default=ROOT / "paper" / "figures")
+    parser.add_argument("--profiles", nargs="+", choices=PROFILES, default=list(PROFILES))
+    parser.add_argument("--option-pair-only", action="store_true")
     args = parser.parse_args()
-    rows = load_profile_rows(args.directory, args.suffix)
-    plot_profile_distributions(rows, args.output_dir / f"profile_timing_{args.suffix}.png")
-    plot_option_pair(rows, args.output_dir / f"option_a_b_paired_timing_{args.suffix}.png")
+    selected = set(args.profiles)
+    rows = load_profile_rows(args.directory, args.suffix, tuple(args.profiles))
+    if not args.option_pair_only:
+        plot_profile_distributions(rows, args.output_dir / f"profile_timing_{args.suffix}.png")
+    if {"option_a", "option_b"} <= selected:
+        plot_option_pair(rows, args.output_dir / f"option_a_b_paired_timing_{args.suffix}.png")
+    elif args.option_pair_only:
+        parser.error("--option-pair-only requires --profiles option_a option_b")
     print(f"Wrote timing plots to {args.output_dir}")
 
 
